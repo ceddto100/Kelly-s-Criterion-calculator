@@ -68,7 +68,8 @@ function FootballStatsForm({ stats, onChange }) {
             <h4 className="grid-header">Your Team</h4>
             <h4 className="grid-header">Opponent</h4>
             
-            <span>Points Per Game</span>
+            <span>Points Per Game
+            (Your team always first)</span>
             <input type="number" name="teamPointsFor" value={stats.teamPointsFor} onChange={onChange} className="input-field" placeholder="26.1" />
             <input type="number" name="opponentPointsFor" value={stats.opponentPointsFor} onChange={onChange} className="input-field" placeholder="22.5" />
             
@@ -98,7 +99,8 @@ function BasketballStatsForm({ stats, onChange }) {
             <h4 className="grid-header">Your Team</h4>
             <h4 className="grid-header">Opponent</h4>
             
-            <span>Points Per Game</span>
+            <span>Points Per Game
+            (Your team always first)</span>
             <input type="number" name="teamPointsFor" value={stats.teamPointsFor} onChange={onChange} className="input-field" placeholder="115.3" />
             <input type="number" name="opponentPointsFor" value={stats.opponentPointsFor} onChange={onChange} className="input-field" placeholder="112.1" />
             
