@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // 2. Get the prompt data from the frontend
+  // 2. Get the prompt dahta from the frontend
   const { prompt, systemInstruction } = req.body;
   const geminiApiKey = process.env.API_KEY;
 
