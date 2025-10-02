@@ -138,7 +138,7 @@ function predictedMarginBasketball(stats: any): number {
 const formatCurrency = (v: any) => isNaN(Number(v)) ? '$0.00' :
   new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v));
 
-/* keep local state shapes; children will render the fields and call onChange */
+/* local state shapes for controlled forms */
 const initialFootballState = {
   teamPointsFor: '', opponentPointsFor: '',
   teamPointsAgainst: '', opponentPointsAgainst: '',
@@ -348,4 +348,102 @@ function UnitBettingCalculator() {
   const [unitsToWager, setUnitsToWager] = useState('1');
 
   const { recommendedStake, calculatedUnitSize } = useMemo(() => {
-    const b = parseFloat(bankroll), u = parseFloat(u
+    const b = parseFloat(bankroll);
+    const u = parseFloat(unitSize) / 100;
+    const n = parseFloat(unitsToWager);
+
+    if (isNaN(b) || b <= 0 || isNaN(u) || u < 0 || isNaN(n) || n < 0) {
+      return { recommendedStake: 0, calculatedUnitSize: 0 };
+    }
+
+    const unit = b * u;
+    return { recommendedStake: unit * n, calculatedUnitSize: unit };
+  }, [bankroll, unitSize, unitsToWager]);
+
+  return (
+    <div className="panel">
+      <div className="input-group">
+        <label htmlFor="unit-bankroll">Bankroll</label>
+        <input id="unit-bankroll" type="number" className="input-field" value={bankroll} onChange={(e)=>setBankroll(e.target.value)} placeholder="e.g., 1000" />
+      </div>
+      <div className="input-group">
+        <label htmlFor="unit-size">Unit Size (% of Bankroll)</label>
+        <div className="slider-group">
+          <input id="unit-size" type="number" className="input-field" value={unitSize} onChange={(e)=>setUnitSize(e.target.value)} min="0" max="5" step="0.1" />
+          <input type="range" min="0" max="5" step="0.1" value={unitSize} className="slider" onChange={(e)=>setUnitSize(e.target.value)} />
+        </div>
+      </div>
+      <div className="input-group">
+        <label htmlFor="units-wager">Units to Wager</label>
+        <input id="units-wager" type="number" step="0.1" className="input-field" value={unitsToWager} onChange={(e)=>setUnitsToWager(e.target.value)} placeholder="e.g., 1" />
+      </div>
+      <div className="results">
+        <p>Recommended Stake</p>
+        <h2>{formatCurrency(recommendedStake)}</h2>
+        <div className="results-details"><span>Unit Size: {formatCurrency(calculatedUnitSize)}</span></div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================== App =================================== */
+function App() {
+  const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
+  const [probability, setProbability] = useState('50');
+
+  return (
+    <div className="site-bg">
+      <video autoPlay loop muted playsInline>
+        <source src="background.mp4" type="video/mp4" />
+      </video>
+      <div className="bg-overlay" />
+      <div className="blob blob-a" />
+      <div className="blob blob-b" />
+
+      <div className="page-wrap">
+        <header className="header">
+          <h1 className="title">Kelly's Criterion Bet Calculator</h1>
+          <p className="subtitle">To apply Kelly's Criterion, first estimate your win probability—then size the stake to maximize long-term growth.</p>
+        </header>
+
+        <div className="panel" style={{maxWidth:900}}>
+          <div className="tabs" role="tablist">
+            {[
+              { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
+              { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
+              { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                className={`tab ${activeTab === tab.key ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.key)}
+                aria-selected={activeTab === tab.key}
+                role="tab"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeTab === CONSTANTS.TABS.KELLY && (
+          <KellyCalculator probability={probability} setProbability={setProbability} />
+        )}
+        {activeTab === CONSTANTS.TABS.UNIT && <UnitBettingCalculator />}
+        {activeTab === CONSTANTS.TABS.ESTIMATOR && (
+          <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+root.render(
+  <>
+    <GlobalStyle />
+    <App />
+  </>
+);
+
+
