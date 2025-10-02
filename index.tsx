@@ -497,8 +497,8 @@ function App() {
 
       <div className="page-wrap">
         <header className="header">
-          <h1 className="title">Betting Strategy Calculator</h1>
-          <p className="subtitle">Same sleek background as your homepage, now with glass panels and cleaner controls.</p>
+          <h1 className="title">Kelly's Criterion Bet Calculator</h1>
+          <p className="subtitle">To apply Kelly's Criterion, first calculate your probability of success, then use that probability to determine the correct bet size for maximizing long-term gains.</p>
         </header>
 
         <div className="panel" style={{maxWidth:900}}>
