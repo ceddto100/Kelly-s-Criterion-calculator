@@ -4,8 +4,6 @@
 */
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-// No longer need to import GoogleGenerativeAI on the client
-// import { GoogleGenAI, Type } from '@google/genai'; 
 
 const CONSTANTS = {
     TABS: {
@@ -19,7 +17,7 @@ const CONSTANTS = {
     }
 };
 
-// Helper function for the new API call
+// Helper function for the new API call (only used for Kelly explanation)
 async function fetchFromApi(prompt, systemInstruction) {
     const response = await fetch('/api/calculate', {
         method: 'POST',
@@ -35,6 +33,85 @@ async function fetchFromApi(prompt, systemInstruction) {
     return response.json();
 }
 
+/**
+ * Calculate win probability based on point differential and point spread
+ * Uses logistic function to convert point differential to probability
+ * 
+ * @param expectedDifferential - Expected point margin (positive = your team favored)
+ * @param pointSpread - The point spread for your team (negative = favored)
+ * @param standardDeviation - Sport-specific standard deviation
+ * @returns Win probability as a percentage (0-100)
+ */
+function calculateWinProbability(expectedDifferential: number, pointSpread: number, standardDeviation: number): number {
+    // Adjust the expected differential by the point spread
+    // If your team is favored by 7 (spread = -7) and expected to win by 10,
+    // the net advantage is 10 - (-7) = 17 points
+    // If your team is underdog by 3 (spread = +3) and expected to win by 5,
+    // the net advantage is 5 - 3 = 2 points
+    const netAdvantage = expectedDifferential - pointSpread;
+    
+    // Use logistic function to convert point differential to probability
+    // P = 1 / (1 + e^(-netAdvantage / (standardDeviation * sqrt(2/π))))
+    // The factor accounts for the distribution of final score differences
+    const scaleFactor = standardDeviation * Math.sqrt(2 / Math.PI);
+    const probability = 1 / (1 + Math.exp(-netAdvantage / scaleFactor));
+    
+    // Return as percentage, clamped between 0.1% and 99.9%
+    return Math.max(0.1, Math.min(99.9, probability * 100));
+}
+
+/**
+ * Calculate expected point differential for football
+ */
+function calculateFootballDifferential(stats: any): number {
+    const teamNetPoints = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
+    const opponentNetPoints = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
+    
+    const teamNetYards = parseFloat(stats.teamOffYards) - parseFloat(stats.teamDefYards);
+    const opponentNetYards = parseFloat(stats.opponentOffYards) - parseFloat(stats.opponentDefYards);
+    
+    const teamTurnoverDiff = parseFloat(stats.teamTurnoverDiff);
+    const opponentTurnoverDiff = parseFloat(stats.opponentTurnoverDiff);
+    
+    // Weighted formula based on football analytics
+    // Points differential is most important (50% weight)
+    // Yards differential accounts for 30%
+    // Turnovers account for 20% (each turnover worth ~4 points)
+    const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.5;
+    const yardsComponent = ((teamNetYards - opponentNetYards) / 100) * 0.3;
+    const turnoverComponent = (teamTurnoverDiff - opponentTurnoverDiff) * 4 * 0.2;
+    
+    return pointsComponent + yardsComponent + turnoverComponent;
+}
+
+/**
+ * Calculate expected point differential for basketball
+ */
+function calculateBasketballDifferential(stats: any): number {
+    const teamNetPoints = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
+    const opponentNetPoints = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
+    
+    const teamFgPct = parseFloat(stats.teamFgPct);
+    const opponentFgPct = parseFloat(stats.opponentFgPct);
+    
+    const teamReboundMargin = parseFloat(stats.teamReboundMargin);
+    const opponentReboundMargin = parseFloat(stats.opponentReboundMargin);
+    
+    const teamTurnoverMargin = parseFloat(stats.teamTurnoverMargin);
+    const opponentTurnoverMargin = parseFloat(stats.opponentTurnoverMargin);
+    
+    // Weighted formula based on basketball analytics
+    // Points differential is most important (40% weight)
+    // FG% differential accounts for 30% (each 1% worth ~2 points)
+    // Rebound margin accounts for 20%
+    // Turnover margin accounts for 10%
+    const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.4;
+    const fgComponent = (teamFgPct - opponentFgPct) * 2 * 0.3;
+    const reboundComponent = (teamReboundMargin - opponentReboundMargin) * 0.2;
+    const turnoverComponent = (teamTurnoverMargin - opponentTurnoverMargin) * 0.1;
+    
+    return pointsComponent + fgComponent + reboundComponent + turnoverComponent;
+}
 
 const formatCurrency = (value) => {
     const numValue = Number(value);
@@ -128,9 +205,8 @@ function ProbabilityEstimator({ setProbability, setActiveTab }) {
     const [footballStats, setFootballStats] = useState(initialFootballState);
     const [basketballStats, setBasketballStats] = useState(initialBasketballState);
     const [pointSpread, setPointSpread] = useState('');
-    const [isCalculating, setIsCalculating] = useState(false);
     const [calculatedProb, setCalculatedProb] = useState(null);
-    const [error, setError] = useState('');
+    const [expectedDiff, setExpectedDiff] = useState(null);
 
     const handleFootballChange = (e) => setFootballStats({ ...footballStats, [e.target.name]: e.target.value });
     const handleBasketballChange = (e) => setBasketballStats({ ...basketballStats, [e.target.name]: e.target.value });
@@ -145,62 +221,30 @@ function ProbabilityEstimator({ setProbability, setActiveTab }) {
         return Object.values(currentStats).every(val => val !== '') && pointSpread !== '';
     }, [activeSport, footballStats, basketballStats, pointSpread]);
 
-    const handleCalculate = async () => {
-        setIsCalculating(true);
-        setCalculatedProb(null);
-        setError('');
-
+    const handleCalculate = () => {
         try {
-            const systemInstruction = `You are a sports data analyst. Based on the provided team statistics and point spread, calculate the win probability for 'Your Team'. Provide a JSON response with a single key "probability" (e.g., { "probability": 55.4 }). Do not include any other text or explanations.`;
+            const spread = parseFloat(pointSpread);
             
-            let promptLines = [
-                `Calculate the win probability for a ${activeSport} team.`,
-                `Point Spread for Your Team: ${pointSpread}`,
-            ];
+            let expectedDifferential: number;
+            let standardDeviation: number;
             
             if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
-                promptLines.push(
-                    `- Your Team Points/Game: ${footballStats.teamPointsFor}`,
-                    `- Opponent Points/Game: ${footballStats.opponentPointsFor}`,
-                    `- Your Team Points Allowed/Game: ${footballStats.teamPointsAgainst}`,
-                    `- Opponent Points Allowed/Game: ${footballStats.opponentPointsAgainst}`,
-                    `- Your Team Offensive Yards/Game: ${footballStats.teamOffYards}`,
-                    `- Opponent Offensive Yards/Game: ${footballStats.opponentOffYards}`,
-                    `- Your Team Defensive Yards/Game: ${footballStats.teamDefYards}`,
-                    `- Opponent Defensive Yards/Game: ${footballStats.opponentDefYards}`,
-                    `- Your Team Turnover Differential: ${footballStats.teamTurnoverDiff}`,
-                    `- Opponent Turnover Differential: ${footballStats.opponentTurnoverDiff}`
-                );
+                expectedDifferential = calculateFootballDifferential(footballStats);
+                standardDeviation = 13.5; // NFL standard deviation
             } else {
-                 promptLines.push(
-                    `- Your Team Points/Game: ${basketballStats.teamPointsFor}`,
-                    `- Opponent Points/Game: ${basketballStats.opponentPointsFor}`,
-                    `- Your Team Points Allowed/Game: ${basketballStats.teamPointsAgainst}`,
-                    `- Opponent Points Allowed/Game: ${basketballStats.opponentPointsAgainst}`,
-                    `- Your Team Field Goal %%: ${basketballStats.teamFgPct}`,
-                    `- Opponent Field Goal %%: ${basketballStats.opponentFgPct}`,
-                    `- Your Team Rebound Margin: ${basketballStats.teamReboundMargin}`,
-                    `- Opponent Rebound Margin: ${basketballStats.opponentReboundMargin}`,
-                    `- Your Team Turnover Margin: ${basketballStats.teamTurnoverMargin}`,
-                    `- Opponent Turnover Margin: ${basketballStats.opponentTurnoverMargin}`
-                );
+                expectedDifferential = calculateBasketballDifferential(basketballStats);
+                standardDeviation = 12.0; // NBA standard deviation
             }
-
-            const response = await fetchFromApi(promptLines.join('\n'), systemInstruction);
-            const result = JSON.parse(response.text);
-            const probability = result.probability;
-
-            if (probability !== undefined && !isNaN(probability)) {
-                setCalculatedProb(probability);
-            } else {
-                setError("Could not parse a valid probability from the response.");
-            }
+            
+            const probability = calculateWinProbability(expectedDifferential, spread, standardDeviation);
+            
+            setCalculatedProb(probability);
+            setExpectedDiff(expectedDifferential);
 
         } catch (error) {
             console.error("Error calculating probability:", error);
-            setError(error.message || "An error occurred during calculation. Please try again.");
-        } finally {
-            setIsCalculating(false);
+            setCalculatedProb(null);
+            setExpectedDiff(null);
         }
     };
     
@@ -213,16 +257,23 @@ function ProbabilityEstimator({ setProbability, setActiveTab }) {
             <div className="input-group">
                 <label htmlFor="pointSpread">Point Spread (Your Team)</label>
                 <input id="pointSpread" type="number" name="pointSpread" value={pointSpread} onChange={(e) => setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" />
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Negative = your team favored, Positive = your team underdog
+                </p>
             </div>
             {activeSport === CONSTANTS.SPORTS.FOOTBALL ? <FootballStatsForm stats={footballStats} onChange={handleFootballChange} /> : <BasketballStatsForm stats={basketballStats} onChange={handleBasketballChange} />}
-            <button onClick={handleCalculate} className="btn-primary" disabled={isCalculating || !isFormValid}>
-                {isCalculating ? 'Calculating...' : 'Calculate Probability'}
+            <button onClick={handleCalculate} className="btn-primary" disabled={!isFormValid}>
+                Calculate Probability
             </button>
-            {error && <div className="error-message">{error}</div>}
             {calculatedProb !== null && (
                  <div className="results">
-                    <p>Estimated Win Probability for Your Team</p>
+                    <p>Estimated Win Probability</p>
                     <h2>{calculatedProb.toFixed(2)}%</h2>
+                    {expectedDiff !== null && (
+                        <div className="results-details">
+                            <span>Expected Margin: {expectedDiff > 0 ? '+' : ''}{expectedDiff.toFixed(1)} pts</span>
+                        </div>
+                    )}
                     <button className="btn-secondary" onClick={() => handleApplyAndSwitch(calculatedProb.toFixed(2))}>
                         Use in Kelly Calculator
                     </button>
@@ -279,7 +330,6 @@ function KellyCalculator({ probability, setProbability }) {
                     : `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) indicate a "No Value" bet. Provide a concise, 1-2 sentence explanation for why the model recommends not betting. Emphasize bankroll protection.`;
                 
                 const response = await fetchFromApi(userPrompt, systemInstruction);
-                // The proxy returns a simple JSON { text: "..." }, no need for complex parsing
                 setExplanation(response.text);
 
             } catch (error) {
