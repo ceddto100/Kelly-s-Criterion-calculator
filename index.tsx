@@ -82,8 +82,11 @@ const CONSTANTS = {
 };
 
 /* ========================= API helper (Kelly insight) ====================== */
+const apiEnv = import.meta.env.VITE_API_URL;
+const API_BASE_URL = (apiEnv && apiEnv.trim().length > 0 ? apiEnv : 'http://localhost:5000').replace(/\/$/, '');
+
 async function fetchFromApi(prompt: string, systemInstruction: string) {
-  const response = await fetch('/api/calculate', {
+  const response = await fetch(`${API_BASE_URL}/api/calculate`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, systemInstruction }),
   });
