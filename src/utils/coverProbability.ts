@@ -4,7 +4,7 @@ export interface CoverProbabilityInput {
   standardDeviation?: number;
 }
 
-export interface CoverProbabilityResult {
+export interface CoverProbabilityResult extends Record<string, unknown> {
   probability: number;
   zScore: number;
   details: {

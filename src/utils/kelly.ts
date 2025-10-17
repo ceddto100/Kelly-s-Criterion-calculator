@@ -4,7 +4,7 @@ export interface KellyInput {
   bankroll: number;
 }
 
-export interface KellyResult {
+export interface KellyResult extends Record<string, number> {
   kellyFraction: number;
   betSize: number;
 }
