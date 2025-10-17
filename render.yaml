@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: kelly-calculator-backend
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://your-frontend-domain.vercel.app
+      - key: JWT_SECRET
+        sync: false
