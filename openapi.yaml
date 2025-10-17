@@ -1,0 +1,222 @@
+openapi: 3.1.0
+info:
+  title: Kelly & Cover Probability API
+  version: 1.0.0
+  description: API for computing Kelly Criterion bet sizing and spread cover probabilities with token-based access control.
+servers:
+  - url: https://api.example.com
+    description: Production server (replace with actual URL)
+  - url: http://localhost:5000
+    description: Local development server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    KellyRequest:
+      type: object
+      required:
+        - winProb
+        - odds
+        - bankroll
+      properties:
+        winProb:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          maximum: 1
+          exclusiveMaximum: true
+          description: Probability of winning the wager expressed as a decimal (e.g. 0.55).
+        odds:
+          type: number
+          format: float
+          minimum: 1
+          exclusiveMinimum: true
+          description: Decimal odds offered by the sportsbook (e.g. 1.91 for -110 American odds).
+        bankroll:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Current bankroll available for betting.
+    KellyResponse:
+      type: object
+      properties:
+        kellyFraction:
+          type: number
+          format: float
+        betSize:
+          type: number
+          format: float
+        tokensRemaining:
+          type: integer
+          description: Remaining tokens after this request.
+    CoverRequest:
+      type: object
+      required:
+        - spread
+        - projectedMargin
+      properties:
+        spread:
+          type: number
+          format: float
+          description: Spread you are betting on (positive for underdog, negative for favorite).
+        projectedMargin:
+          type: number
+          format: float
+          description: Your projected margin of victory (team score difference in points).
+        standardDeviation:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Optional standard deviation for the distribution of score margin (defaults to 13.5 points).
+    CoverResponse:
+      type: object
+      properties:
+        probability:
+          type: number
+          format: float
+        zScore:
+          type: number
+          format: float
+        details:
+          type: object
+          properties:
+            spread:
+              type: number
+            projectedMargin:
+              type: number
+            standardDeviation:
+              type: number
+        tokensRemaining:
+          type: integer
+    AddTokensRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          minimum: 1
+          description: Number of tokens to add to the user account.
+    UserResponse:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        tokens:
+          type: integer
+        calculations:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [kelly, cover]
+              input:
+                type: object
+                additionalProperties: true
+              output:
+                type: object
+                additionalProperties: true
+              createdAt:
+                type: string
+                format: date-time
+security:
+  - bearerAuth: []
+paths:
+  /api/kelly:
+    post:
+      summary: Calculate Kelly Criterion bet size
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KellyRequest'
+      responses:
+        '200':
+          description: Kelly calculation succeeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KellyResponse'
+        '400':
+          description: Invalid request body
+        '401':
+          description: Missing or invalid authentication
+        '403':
+          description: Not enough tokens remaining
+  /api/cover:
+    post:
+      summary: Estimate the probability of covering a spread
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoverRequest'
+      responses:
+        '200':
+          description: Cover probability computed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverResponse'
+        '400':
+          description: Invalid request body
+        '401':
+          description: Missing or invalid authentication
+        '403':
+          description: Not enough tokens remaining
+  /api/token/add:
+    post:
+      summary: Add tokens to the authenticated user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTokensRequest'
+      responses:
+        '200':
+          description: Tokens were added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokens:
+                    type: integer
+        '400':
+          description: Invalid request body
+        '401':
+          description: Missing or invalid authentication
+  /api/user:
+    get:
+      summary: Retrieve authenticated user info and history
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Returns user profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or invalid authentication
+        '404':
+          description: User not found
