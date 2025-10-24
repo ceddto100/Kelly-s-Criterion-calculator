@@ -1,6 +1,6 @@
 // /lib/coverProbability.ts
 // Thin wrapper around the football/basketball models so your UI can import
-// a single helper regardless of sport.
+// A single helper regardless of sport.
 
 import { coverProbabilityNFL, type NFLInputs } from "./coverProbabilityNFL";
 import {
