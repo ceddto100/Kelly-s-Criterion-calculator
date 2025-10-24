@@ -1,0 +1,248 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Widget styles for ChatGPT components
+ * Following ChatGPT design guidelines: system colors, minimal design, WCAG AA contrast
+ */
+
+:root {
+  /* System colors - inherit from ChatGPT */
+  --widget-bg: #ffffff;
+  --widget-text: #000000;
+  --widget-text-muted: #666666;
+  --widget-border: #e5e5e5;
+  --widget-accent: #0066cc;
+  --widget-danger: #d93025;
+  --widget-success: #0f9d58;
+
+  /* Dark mode support */
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --widget-bg: #2a2a2a;
+    --widget-text: #ffffff;
+    --widget-text-muted: #b3b3b3;
+    --widget-border: #4a4a4a;
+    --widget-accent: #4da3ff;
+    --widget-danger: #f28b82;
+    --widget-success: #81c995;
+  }
+}
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--widget-text);
+  background: var(--widget-bg);
+  line-height: 1.5;
+}
+
+/* Widget container */
+.widget-container {
+  padding: 1.25rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Results display */
+.results {
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--widget-border);
+  background: var(--widget-bg);
+}
+
+.result-large {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--widget-text);
+  margin: 0.5rem 0;
+}
+
+.result-percentage {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--widget-accent);
+  margin: 0.5rem 0;
+}
+
+.result-label {
+  font-size: 0.875rem;
+  color: var(--widget-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.result-detail {
+  font-size: 0.875rem;
+  color: var(--widget-text-muted);
+  margin-top: 0.75rem;
+}
+
+/* No value warning */
+.no-value-warning {
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--widget-danger);
+  background: color-mix(in srgb, var(--widget-danger) 10%, transparent);
+  color: var(--widget-danger);
+  font-weight: 600;
+  text-align: center;
+}
+
+.no-value-warning h2 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+/* Input summary table */
+.input-summary {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--widget-border);
+}
+
+.input-summary h3 {
+  font-size: 0.875rem;
+  color: var(--widget-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.summary-label {
+  color: var(--widget-text-muted);
+  font-weight: 500;
+}
+
+.summary-value {
+  color: var(--widget-text);
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Stats table for probability estimator */
+.stats-table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.stats-table th {
+  text-align: left;
+  padding: 0.5rem;
+  background: color-mix(in srgb, var(--widget-border) 50%, transparent);
+  font-weight: 600;
+  border-bottom: 1px solid var(--widget-border);
+}
+
+.stats-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--widget-border);
+}
+
+.stats-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Insight box */
+.insight-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--widget-border) 30%, transparent);
+  border-left: 3px solid var(--widget-accent);
+}
+
+.insight-box h3 {
+  font-size: 0.875rem;
+  color: var(--widget-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.insight-box p {
+  color: var(--widget-text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Action buttons */
+.action-button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--widget-accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+}
+
+.action-button:active {
+  opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .widget-container {
+    padding: 1rem;
+  }
+
+  .result-large {
+    font-size: 2rem;
+  }
+
+  .result-percentage {
+    font-size: 1.75rem;
+  }
+}
+
+/* Success indicator */
+.success-indicator {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--widget-success) 20%, transparent);
+  color: var(--widget-success);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--widget-border);
+  margin: 1.5rem 0;
+}
