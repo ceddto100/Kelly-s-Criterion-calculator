@@ -43,6 +43,34 @@ registerFootballProbabilityTool(mcpServer);
 registerBasketballProbabilityTool(mcpServer);
 registerUnitBettingTool(mcpServer);
 
+// Root discovery endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: 'Kelly Criterion MCP Server',
+    version: '1.0.0',
+    description: 'Custom MCP server for Kelly Criterion calculations and probability estimation.',
+    mcp_endpoint: '/mcp',
+    capabilities: {
+      tools: ['calculate_kelly_criterion', 'estimate_probability'],
+      supports_streaming: true
+    }
+  });
+});
+
+// OpenID configuration endpoint
+app.get('/.well-known/openid-configuration', (req, res) => {
+  const baseUrl = `https://${req.get('host')}`; // Auto-detects ngrok URL
+
+  res.json({
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/auth`,
+    token_endpoint: `${baseUrl}/token`,
+    response_types_supported: ['code'],
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256']
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
