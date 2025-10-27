@@ -33,28 +33,62 @@ export function registerUnitBettingTool(server: McpServer) {
       // Calculate
       const calculatedUnitSize = bankroll * (unitSize / 100);
       const recommendedStake = calculatedUnitSize * unitsToWager;
+      const stakePercentage = (recommendedStake / bankroll) * 100;
 
       // Format result text
       const resultText = `Based on your unit betting strategy:\n\nBankroll: ${formatCurrency(bankroll)}\nUnit Size: ${unitSize}% (${formatCurrency(calculatedUnitSize)} per unit)\nUnits to Wager: ${unitsToWager}\n\nRecommended Stake: ${formatCurrency(recommendedStake)}`;
 
       return {
+        // Model sees: concise summary of calculation
+        structuredContent: {
+          recommendedStake,
+          stakePercentage,
+          bankroll,
+          unitSize,
+          unitsToWager,
+          calculatedAt: new Date().toISOString()
+        },
+
+        // Optional: natural language text for model
         content: [{
           type: 'text' as const,
-          text: resultText,
-          _meta: {
-            'openai/outputTemplate': 'ui://widget/unit-calculator.html',
-            'openai/widgetAccessible': true,
-            'openai/toolInvocation/invoking': 'Calculating unit betting stake...',
-            'openai/toolInvocation/invoked': 'Calculated unit betting stake',
-            structuredContent: {
-              bankroll,
-              unitSize,
-              unitsToWager,
-              calculatedUnitSize,
-              recommendedStake
-            }
+          text: resultText
+        }],
+
+        // Component sees: complete data for UI rendering
+        _meta: {
+          'openai/outputTemplate': 'ui://widget/unit-calculator.html',
+          'openai/widgetAccessible': true,
+          'openai/toolInvocation/invoking': 'Calculating unit betting stake...',
+          'openai/toolInvocation/invoked': 'Calculated unit betting stake',
+
+          // Complete calculation details
+          calculation: {
+            bankroll,
+            unitSize,
+            unitSizePercentage: unitSize,
+            calculatedUnitSize,
+            unitsToWager,
+            recommendedStake,
+            stakePercentage,
+            method: 'unit_betting'
+          },
+
+          // Bankroll breakdown for visualization
+          breakdown: {
+            totalBankroll: bankroll,
+            oneUnitValue: calculatedUnitSize,
+            remainingBankroll: bankroll - recommendedStake,
+            riskPercentage: stakePercentage
+          },
+
+          // UI display settings
+          displaySettings: {
+            currency: 'USD',
+            decimalPlaces: 2,
+            showBreakdown: true
           }
-        }]
+        }
       };
     }
   );

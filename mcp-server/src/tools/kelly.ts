@@ -48,6 +48,11 @@ export function registerKellyTool(server: McpServer) {
       // Validate odds range
       if (odds > -100 && odds < 100 && odds !== 0) {
         return {
+          structuredContent: {
+            error: 'invalid_odds',
+            message: 'Invalid odds range',
+            validRange: 'Must be <= -100 or >= 100'
+          },
           content: [{
             type: 'text',
             text: 'Invalid odds. American odds must be <= -100 for favorites or >= 100 for underdogs.'
@@ -84,27 +89,51 @@ export function registerKellyTool(server: McpServer) {
         : `No Value - Do Not Bet. The Kelly Criterion indicates negative expected value for this bet.`;
 
       return {
+        // Model sees: concise summary of calculation
+        structuredContent: {
+          hasValue,
+          stake,
+          stakePercentage,
+          bankroll,
+          odds,
+          probability,
+          lastCalculated: new Date().toISOString()
+        },
+
+        // Optional: natural language text for model
         content: [{
           type: 'text' as const,
-          text: resultText + (insight ? `\n\nAnalyst Insight: ${insight}` : ''),
-          _meta: {
-            'openai/outputTemplate': 'ui://widget/kelly-calculator.html',
-            'openai/widgetAccessible': true,
-            'openai/toolInvocation/invoking': 'Calculating optimal stake...',
-            'openai/toolInvocation/invoked': 'Calculated Kelly stake',
-            structuredContent: {
-              bankroll,
-              odds,
-              probability,
-              fraction: numFraction,
-              decimalOdds,
-              stake,
-              stakePercentage,
-              hasValue,
-              insight
-            }
+          text: resultText + (insight ? `\n\nAnalyst Insight: ${insight}` : '')
+        }],
+
+        // Component sees: complete data for UI rendering
+        _meta: {
+          'openai/outputTemplate': 'ui://widget/kelly-calculator.html',
+          'openai/widgetAccessible': true,
+          'openai/toolInvocation/invoking': 'Calculating optimal stake...',
+          'openai/toolInvocation/invoked': 'Calculated Kelly stake',
+
+          // Complete calculation details
+          calculation: {
+            bankroll,
+            odds,
+            decimalOdds,
+            probability,
+            probDecimal,
+            fraction: numFraction,
+            kellyFraction: k,
+            stake,
+            stakePercentage,
+            hasValue,
+            insight
+          },
+
+          // UI display preferences
+          displaySettings: {
+            currency: 'USD',
+            decimalPlaces: 2
           }
-        }]
+        }
       };
     }
   );
