@@ -16,14 +16,14 @@ export function registerUnitBettingTool(server: McpServer) {
     'unit-calculate',
     {
       title: 'Calculate Unit Betting Stake',
-      description: 'Calculate Unit Betting Stake - Use this for simple unit-based bankroll management, a simpler alternative to Kelly Criterion',
+      description: 'Use this when the user wants to calculate bet size using simple unit-based bankroll management as a straightforward alternative to Kelly Criterion. Returns recommended stake amount based on fixed unit sizing. Do not use for Kelly Criterion optimization (use kelly-calculate instead), probability estimation (use probability-estimate-football or probability-estimate-basketball first), or when the user wants mathematically optimal bet sizing (use kelly-calculate for that).',
       inputSchema: {
-        bankroll: z.number().positive().describe('Available betting bankroll in USD'),
-        unitSize: z.number().min(0).max(5).describe('Unit size as percentage of bankroll (0-5%)'),
-        unitsToWager: z.number().positive().describe('Number of units to wager (typically 1-5)')
+        bankroll: z.number().positive().describe('Available betting bankroll in USD. Must be a positive number. Example: 1000 for $1,000 bankroll, 5000 for $5,000 bankroll, 500 for $500 bankroll. Valid range: $0.01 to $1,000,000,000'),
+        unitSize: z.number().min(0).max(5).describe('Unit size as percentage of total bankroll. Conservative bettors use 1-2%, aggressive use 3-5%. Example: 1 for 1% of bankroll per unit (conservative - recommended), 2 for 2% per unit (moderate), 3 for 3% per unit (aggressive). Valid range: 0-5%'),
+        unitsToWager: z.number().positive().describe('Number of units to bet on this wager. Reflects confidence level. Example: 1 for standard bet (low confidence), 2 for confident bet, 3 for high confidence, 5 for maximum confidence. Typically 1-5 units, can go higher but increases risk')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: false
       },
       _meta: {
         'openai/outputTemplate': 'ui://widget/unit-calculator.html',
