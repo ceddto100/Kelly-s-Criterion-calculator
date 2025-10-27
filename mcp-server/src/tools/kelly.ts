@@ -22,12 +22,21 @@ type KellyInput = z.infer<typeof kellyInputSchema>;
 export function registerKellyTool(server: McpServer) {
   server.tool(
     'kelly-calculate',
-    'Calculate Kelly Criterion Stake - Use this when user wants to calculate optimal bet size using Kelly Criterion formula',
     {
-      bankroll: z.number().positive().describe('Available betting bankroll in USD'),
-      odds: z.number().describe('American odds (negative for favorites like -110, positive for underdogs like +150)'),
-      probability: z.number().min(0.1).max(99.9).describe('Estimated win probability as percentage (0.1-99.9)'),
-      fraction: z.enum(['1', '0.5', '0.25']).default('1').describe('Kelly fraction: 1 for full Kelly, 0.5 for half, 0.25 for quarter')
+      title: 'Calculate Kelly Criterion Stake',
+      description: 'Calculate Kelly Criterion Stake - Use this when user wants to calculate optimal bet size using Kelly Criterion formula',
+      inputSchema: {
+        bankroll: z.number().positive().describe('Available betting bankroll in USD'),
+        odds: z.number().describe('American odds (negative for favorites like -110, positive for underdogs like +150)'),
+        probability: z.number().min(0.1).max(99.9).describe('Estimated win probability as percentage (0.1-99.9)'),
+        fraction: z.enum(['1', '0.5', '0.25']).default('1').describe('Kelly fraction: 1 for full Kelly, 0.5 for half, 0.25 for quarter')
+      },
+      _meta: {
+        'openai/outputTemplate': 'ui://widget/kelly-calculator.html',
+        'openai/toolInvocation/invoking': 'Calculating optimal stake...',
+        'openai/toolInvocation/invoked': 'Calculated Kelly stake',
+        'openai/widgetAccessible': true
+      }
     },
     async (args) => {
       const { bankroll, odds, probability, fraction } = args;

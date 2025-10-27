@@ -28,19 +28,28 @@ type FootballInput = z.infer<typeof footballInputSchema>;
 export function registerFootballProbabilityTool(server: McpServer) {
   server.tool(
     'probability-estimate-football',
-    'Estimate Football Game Probability - Use this to estimate win/cover probability for NFL or college football games using team statistics',
     {
-      teamPointsFor: z.number().describe('Your team average points scored per game'),
-      teamPointsAgainst: z.number().describe('Your team average points allowed per game'),
-      opponentPointsFor: z.number().describe('Opponent average points scored per game'),
-      opponentPointsAgainst: z.number().describe('Opponent average points allowed per game'),
-      teamOffYards: z.number().describe('Your team average offensive yards per game'),
-      teamDefYards: z.number().describe('Your team average defensive yards allowed per game'),
-      opponentOffYards: z.number().describe('Opponent average offensive yards per game'),
-      opponentDefYards: z.number().describe('Opponent average defensive yards allowed per game'),
-      teamTurnoverDiff: z.number().describe('Your team turnover differential (positive is good)'),
-      opponentTurnoverDiff: z.number().describe('Opponent turnover differential'),
-      spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
+      title: 'Estimate Football Game Probability',
+      description: 'Estimate Football Game Probability - Use this to estimate win/cover probability for NFL or college football games using team statistics',
+      inputSchema: {
+        teamPointsFor: z.number().describe('Your team average points scored per game'),
+        teamPointsAgainst: z.number().describe('Your team average points allowed per game'),
+        opponentPointsFor: z.number().describe('Opponent average points scored per game'),
+        opponentPointsAgainst: z.number().describe('Opponent average points allowed per game'),
+        teamOffYards: z.number().describe('Your team average offensive yards per game'),
+        teamDefYards: z.number().describe('Your team average defensive yards allowed per game'),
+        opponentOffYards: z.number().describe('Opponent average offensive yards per game'),
+        opponentDefYards: z.number().describe('Opponent average defensive yards allowed per game'),
+        teamTurnoverDiff: z.number().describe('Your team turnover differential (positive is good)'),
+        opponentTurnoverDiff: z.number().describe('Opponent turnover differential'),
+        spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
+      },
+      _meta: {
+        'openai/outputTemplate': 'ui://widget/probability-estimator.html',
+        'openai/toolInvocation/invoking': 'Estimating football probability...',
+        'openai/toolInvocation/invoked': 'Estimated football probability',
+        'openai/widgetAccessible': true
+      }
     },
     async (args) => {
       const validated = args;
