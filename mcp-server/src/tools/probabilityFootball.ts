@@ -44,6 +44,9 @@ export function registerFootballProbabilityTool(server: McpServer) {
         opponentTurnoverDiff: z.number().describe('Opponent turnover differential'),
         spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
       },
+      annotations: {
+        readOnlyHint: true
+      },
       _meta: {
         'openai/outputTemplate': 'ui://widget/probability-estimator.html',
         'openai/toolInvocation/invoking': 'Estimating football probability...',
@@ -52,6 +55,43 @@ export function registerFootballProbabilityTool(server: McpServer) {
       }
     },
     async (args) => {
+      // Input validation
+      const validateStat = (value: number, name: string, min: number, max: number) => {
+        if (typeof value !== 'number' || isNaN(value)) {
+          throw new Error(`${name} must be a valid number`);
+        }
+        if (value < min || value > max) {
+          throw new Error(`${name} must be between ${min} and ${max}`);
+        }
+      };
+
+      try {
+        // Validate all inputs
+        validateStat(args.teamPointsFor, 'Team points for', 0, 100);
+        validateStat(args.teamPointsAgainst, 'Team points against', 0, 100);
+        validateStat(args.opponentPointsFor, 'Opponent points for', 0, 100);
+        validateStat(args.opponentPointsAgainst, 'Opponent points against', 0, 100);
+        validateStat(args.teamOffYards, 'Team offensive yards', 0, 1000);
+        validateStat(args.teamDefYards, 'Team defensive yards', 0, 1000);
+        validateStat(args.opponentOffYards, 'Opponent offensive yards', 0, 1000);
+        validateStat(args.opponentDefYards, 'Opponent defensive yards', 0, 1000);
+        validateStat(args.teamTurnoverDiff, 'Team turnover differential', -50, 50);
+        validateStat(args.opponentTurnoverDiff, 'Opponent turnover differential', -50, 50);
+        validateStat(args.spread, 'Spread', -100, 100);
+      } catch (error) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: error instanceof Error ? error.message : 'Invalid input'
+          },
+          content: [{
+            type: 'text',
+            text: `Validation error: ${error instanceof Error ? error.message : 'Invalid input'}`
+          }],
+          isError: true
+        };
+      }
+
       const validated = args;
 
       // Calculate predicted margin
