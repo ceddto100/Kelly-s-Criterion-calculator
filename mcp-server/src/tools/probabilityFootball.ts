@@ -78,36 +78,67 @@ export function registerFootballProbabilityTool(server: McpServer) {
         `You can use this probability (${probability.toFixed(2)}%) in the Kelly Criterion calculator to determine your optimal bet size.`;
 
       return {
+        // Model sees: concise summary of probability estimate
+        structuredContent: {
+          sport: 'football',
+          probability,
+          predictedMargin,
+          spread: validated.spread,
+          sigma,
+          estimatedAt: new Date().toISOString()
+        },
+
+        // Optional: natural language text for model
         content: [{
           type: 'text' as const,
-          text: resultText,
-          _meta: {
-            'openai/outputTemplate': 'ui://widget/probability-estimator.html',
-            'openai/widgetAccessible': true,
-            'openai/toolInvocation/invoking': 'Estimating football probability...',
-            'openai/toolInvocation/invoked': 'Estimated football probability',
-            structuredContent: {
-              sport: 'football',
-              predictedMargin,
-              spread: validated.spread,
-              probability,
-              teamStats: {
-                pointsFor: validated.teamPointsFor,
-                pointsAgainst: validated.teamPointsAgainst,
-                offYards: validated.teamOffYards,
-                defYards: validated.teamDefYards,
-                turnoverDiff: validated.teamTurnoverDiff
-              },
-              opponentStats: {
-                pointsFor: validated.opponentPointsFor,
-                pointsAgainst: validated.opponentPointsAgainst,
-                offYards: validated.opponentOffYards,
-                defYards: validated.opponentDefYards,
-                turnoverDiff: validated.opponentTurnoverDiff
-              }
-            }
+          text: resultText
+        }],
+
+        // Component sees: complete data for UI rendering
+        _meta: {
+          'openai/outputTemplate': 'ui://widget/probability-estimator.html',
+          'openai/widgetAccessible': true,
+          'openai/toolInvocation/invoking': 'Estimating football probability...',
+          'openai/toolInvocation/invoked': 'Estimated football probability',
+
+          // Complete calculation details
+          calculation: {
+            sport: 'football',
+            predictedMargin,
+            spread: validated.spread,
+            probability,
+            sigma,
+            method: 'statistical_analysis'
+          },
+
+          // Full team statistics for charting
+          teamStats: {
+            pointsFor: validated.teamPointsFor,
+            pointsAgainst: validated.teamPointsAgainst,
+            offYards: validated.teamOffYards,
+            defYards: validated.teamDefYards,
+            turnoverDiff: validated.teamTurnoverDiff,
+            netRating: validated.teamPointsFor - validated.teamPointsAgainst,
+            yardDiff: validated.teamOffYards - validated.teamDefYards
+          },
+
+          // Full opponent statistics for charting
+          opponentStats: {
+            pointsFor: validated.opponentPointsFor,
+            pointsAgainst: validated.opponentPointsAgainst,
+            offYards: validated.opponentOffYards,
+            defYards: validated.opponentDefYards,
+            turnoverDiff: validated.opponentTurnoverDiff,
+            netRating: validated.opponentPointsFor - validated.opponentPointsAgainst,
+            yardDiff: validated.opponentOffYards - validated.opponentDefYards
+          },
+
+          // UI display settings
+          displaySettings: {
+            sportType: 'football',
+            showAdvancedStats: true
           }
-        }]
+        }
       };
     }
   );

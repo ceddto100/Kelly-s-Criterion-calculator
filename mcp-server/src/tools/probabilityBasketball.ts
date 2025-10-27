@@ -60,36 +60,65 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       const resultText = `Based on the team statistics, your team has an estimated ${probability.toFixed(2)}% probability of covering the ${spreadDisplay} point spread.\n\nPredicted Margin: ${marginDisplay} points\n\nYou can use this probability (${probability.toFixed(2)}%) in the Kelly Criterion calculator to determine your optimal bet size.`;
 
       return {
+        // Model sees: concise summary of probability estimate
+        structuredContent: {
+          sport: 'basketball',
+          probability,
+          predictedMargin,
+          spread: args.spread,
+          sigma,
+          estimatedAt: new Date().toISOString()
+        },
+
+        // Optional: natural language text for model
         content: [{
           type: 'text' as const,
-          text: resultText,
-          _meta: {
-            'openai/outputTemplate': 'ui://widget/probability-estimator.html',
-            'openai/widgetAccessible': true,
-            'openai/toolInvocation/invoking': 'Estimating basketball probability...',
-            'openai/toolInvocation/invoked': 'Estimated basketball probability',
-            structuredContent: {
-              sport: 'basketball',
-              predictedMargin,
-              spread: args.spread,
-              probability,
-              teamStats: {
-                pointsFor: args.teamPointsFor,
-                pointsAgainst: args.teamPointsAgainst,
-                fgPct: args.teamFgPct,
-                reboundMargin: args.teamReboundMargin,
-                turnoverMargin: args.teamTurnoverMargin
-              },
-              opponentStats: {
-                pointsFor: args.opponentPointsFor,
-                pointsAgainst: args.opponentPointsAgainst,
-                fgPct: args.opponentFgPct,
-                reboundMargin: args.opponentReboundMargin,
-                turnoverMargin: args.opponentTurnoverMargin
-              }
-            }
+          text: resultText
+        }],
+
+        // Component sees: complete data for UI rendering
+        _meta: {
+          'openai/outputTemplate': 'ui://widget/probability-estimator.html',
+          'openai/widgetAccessible': true,
+          'openai/toolInvocation/invoking': 'Estimating basketball probability...',
+          'openai/toolInvocation/invoked': 'Estimated basketball probability',
+
+          // Complete calculation details
+          calculation: {
+            sport: 'basketball',
+            predictedMargin,
+            spread: args.spread,
+            probability,
+            sigma,
+            method: 'statistical_analysis'
+          },
+
+          // Full team statistics for charting
+          teamStats: {
+            pointsFor: args.teamPointsFor,
+            pointsAgainst: args.teamPointsAgainst,
+            fgPct: args.teamFgPct,
+            reboundMargin: args.teamReboundMargin,
+            turnoverMargin: args.teamTurnoverMargin,
+            netRating: args.teamPointsFor - args.teamPointsAgainst
+          },
+
+          // Full opponent statistics for charting
+          opponentStats: {
+            pointsFor: args.opponentPointsFor,
+            pointsAgainst: args.opponentPointsAgainst,
+            fgPct: args.opponentFgPct,
+            reboundMargin: args.opponentReboundMargin,
+            turnoverMargin: args.opponentTurnoverMargin,
+            netRating: args.opponentPointsFor - args.opponentPointsAgainst
+          },
+
+          // UI display settings
+          displaySettings: {
+            sportType: 'basketball',
+            showAdvancedStats: true
           }
-        }]
+        }
       };
     }
   );
