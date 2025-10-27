@@ -12,19 +12,28 @@ import { predictedMarginBasketball, coverProbability, type BasketballStats } fro
 export function registerBasketballProbabilityTool(server: McpServer) {
   server.tool(
     'probability-estimate-basketball',
-    'Estimate Basketball Game Probability - Use this to estimate win/cover probability for NBA or college basketball games using team statistics',
     {
-      teamPointsFor: z.number().describe('Your team average points scored per game'),
-      teamPointsAgainst: z.number().describe('Your team average points allowed per game'),
-      opponentPointsFor: z.number().describe('Opponent average points scored per game'),
-      opponentPointsAgainst: z.number().describe('Opponent average points allowed per game'),
-      teamFgPct: z.number().describe('Your team field goal percentage (as decimal, e.g., 0.45 for 45%)'),
-      opponentFgPct: z.number().describe('Opponent field goal percentage (as decimal)'),
-      teamReboundMargin: z.number().describe('Your team rebound margin per game'),
-      opponentReboundMargin: z.number().describe('Opponent rebound margin per game'),
-      teamTurnoverMargin: z.number().describe('Your team turnover margin per game'),
-      opponentTurnoverMargin: z.number().describe('Opponent turnover margin per game'),
-      spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
+      title: 'Estimate Basketball Game Probability',
+      description: 'Estimate Basketball Game Probability - Use this to estimate win/cover probability for NBA or college basketball games using team statistics',
+      inputSchema: {
+        teamPointsFor: z.number().describe('Your team average points scored per game'),
+        teamPointsAgainst: z.number().describe('Your team average points allowed per game'),
+        opponentPointsFor: z.number().describe('Opponent average points scored per game'),
+        opponentPointsAgainst: z.number().describe('Opponent average points allowed per game'),
+        teamFgPct: z.number().describe('Your team field goal percentage (as decimal, e.g., 0.45 for 45%)'),
+        opponentFgPct: z.number().describe('Opponent field goal percentage (as decimal)'),
+        teamReboundMargin: z.number().describe('Your team rebound margin per game'),
+        opponentReboundMargin: z.number().describe('Opponent rebound margin per game'),
+        teamTurnoverMargin: z.number().describe('Your team turnover margin per game'),
+        opponentTurnoverMargin: z.number().describe('Opponent turnover margin per game'),
+        spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
+      },
+      _meta: {
+        'openai/outputTemplate': 'ui://widget/probability-estimator.html',
+        'openai/toolInvocation/invoking': 'Estimating basketball probability...',
+        'openai/toolInvocation/invoked': 'Estimated basketball probability',
+        'openai/widgetAccessible': true
+      }
     },
     async (args) => {
       // Calculate predicted margin
