@@ -19,6 +19,9 @@ import { registerUnitBettingTool } from './tools/unitBetting.js';
 // Import component resources
 import { registerComponentResources } from './components/resources.js';
 
+// Import localization utilities
+import { negotiateLocale } from './utils/translations.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -33,6 +36,20 @@ const mcpServer = new McpServer({
   name: 'kelly-criterion-calculator',
   version: '1.0.0'
 });
+
+// Store current locale (default to English)
+// This can be updated per-request in each tool
+let currentLocale = 'en';
+
+// Export locale accessor for tools
+export function getCurrentLocale(): string {
+  return currentLocale;
+}
+
+// Export locale setter for tools (if they want to update global locale)
+export function setCurrentLocale(locale: string): void {
+  currentLocale = negotiateLocale(locale);
+}
 
 // Register all component resources
 registerComponentResources(mcpServer);
