@@ -26,15 +26,15 @@ export function registerKellyTool(server: McpServer) {
     'kelly-calculate',
     {
       title: 'Calculate Kelly Criterion Stake',
-      description: 'Calculate Kelly Criterion Stake - Use this when user wants to calculate optimal bet size using Kelly Criterion formula',
+      description: 'Use this when the user wants to calculate the optimal bet size using the Kelly Criterion formula based on bankroll, odds, and win probability. Returns the recommended stake amount and percentage of bankroll to wager. Do not use for unit-based betting (use unit-calculate instead), probability estimation (use probability-estimate-football or probability-estimate-basketball first), or when the user wants to place a bet without calculating optimal sizing.',
       inputSchema: {
-        bankroll: z.number().positive().describe('Available betting bankroll in USD'),
-        odds: z.number().describe('American odds (negative for favorites like -110, positive for underdogs like +150)'),
-        probability: z.number().min(0.1).max(99.9).describe('Estimated win probability as percentage (0.1-99.9)'),
-        fraction: z.enum(['1', '0.5', '0.25']).default('1').describe('Kelly fraction: 1 for full Kelly, 0.5 for half, 0.25 for quarter')
+        bankroll: z.number().positive().describe('Available betting bankroll in USD. Must be a positive number. Example: 1000 for $1,000 bankroll, 5000 for $5,000 bankroll. Valid range: $0.01 to $1,000,000,000'),
+        odds: z.number().describe('American odds format. Negative for favorites (team expected to win), positive for underdogs. Example: -110 (bet $110 to win $100), +150 (bet $100 to win $150), -200 (strong favorite), +300 (strong underdog). Must be <= -100 or >= 100'),
+        probability: z.number().min(0.1).max(99.9).describe('Estimated win probability as a percentage. Example: 55 for 55% chance of winning, 65.5 for 65.5% chance. Valid range: 0.1% to 99.9%. Use probability estimation tools first if you need to calculate this'),
+        fraction: z.enum(['1', '0.5', '0.25']).default('1').describe('Kelly fraction multiplier for conservative betting. Options: "1" (full Kelly, aggressive), "0.5" (half Kelly, moderate - recommended for most bettors), "0.25" (quarter Kelly, conservative). Example: "0.5" to bet half the Kelly recommendation. Defaults to "1"')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: false
       },
       _meta: {
         'openai/outputTemplate': 'ui://widget/kelly-calculator.html',

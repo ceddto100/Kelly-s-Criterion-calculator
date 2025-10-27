@@ -32,19 +32,19 @@ export function registerFootballProbabilityTool(server: McpServer) {
     'probability-estimate-football',
     {
       title: 'Estimate Football Game Probability',
-      description: 'Estimate Football Game Probability - Use this to estimate win/cover probability for NFL or college football games using team statistics',
+      description: 'Use this when the user wants to estimate the probability of covering a point spread for NFL or college football games using statistical analysis of team performance metrics. Returns win probability, predicted margin, and detailed team statistics. Do not use for basketball games (use probability-estimate-basketball instead), calculating bet sizes (use kelly-calculate after getting probability), or unit betting (use unit-calculate instead).',
       inputSchema: {
-        teamPointsFor: z.number().describe('Your team average points scored per game'),
-        teamPointsAgainst: z.number().describe('Your team average points allowed per game'),
-        opponentPointsFor: z.number().describe('Opponent average points scored per game'),
-        opponentPointsAgainst: z.number().describe('Opponent average points allowed per game'),
-        teamOffYards: z.number().describe('Your team average offensive yards per game'),
-        teamDefYards: z.number().describe('Your team average defensive yards allowed per game'),
-        opponentOffYards: z.number().describe('Opponent average offensive yards per game'),
-        opponentDefYards: z.number().describe('Opponent average defensive yards allowed per game'),
-        teamTurnoverDiff: z.number().describe('Your team turnover differential (positive is good)'),
-        opponentTurnoverDiff: z.number().describe('Opponent turnover differential'),
-        spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
+        teamPointsFor: z.number().describe('Your team\'s average points scored per game. Example: 24.5 for a team averaging 24.5 points scored, 31.2 for a high-scoring offense. Valid range: 0-100 points'),
+        teamPointsAgainst: z.number().describe('Your team\'s average points allowed per game (defensive stat). Example: 18.3 for a team allowing 18.3 points per game, 28.7 for a weak defense. Valid range: 0-100 points'),
+        opponentPointsFor: z.number().describe('Opponent\'s average points scored per game. Example: 27.8 for opponent averaging 27.8 points scored. Valid range: 0-100 points'),
+        opponentPointsAgainst: z.number().describe('Opponent\'s average points allowed per game. Example: 21.4 for opponent allowing 21.4 points. Valid range: 0-100 points'),
+        teamOffYards: z.number().describe('Your team\'s average offensive yards per game (total yards). Example: 375 for 375 yards per game, 420 for a strong offense. Valid range: 0-1000 yards'),
+        teamDefYards: z.number().describe('Your team\'s average defensive yards allowed per game. Example: 310 for allowing 310 yards, 280 for a strong defense. Valid range: 0-1000 yards'),
+        opponentOffYards: z.number().describe('Opponent\'s average offensive yards per game. Example: 390 for 390 yards per game. Valid range: 0-1000 yards'),
+        opponentDefYards: z.number().describe('Opponent\'s average defensive yards allowed per game. Example: 325 for allowing 325 yards. Valid range: 0-1000 yards'),
+        teamTurnoverDiff: z.number().describe('Your team\'s turnover differential per game (turnovers forced minus turnovers committed). Positive is better. Example: +0.8 for a team with +0.8 differential, -1.2 for a team that gives up more turnovers. Valid range: -50 to +50'),
+        opponentTurnoverDiff: z.number().describe('Opponent\'s turnover differential per game. Example: -0.5 for opponent with -0.5 differential. Valid range: -50 to +50'),
+        spread: z.number().describe('Point spread for your team. Negative if favored (expected to win), positive if underdog. Example: -7 if your team is 7-point favorite, +3.5 if your team is 3.5-point underdog. Valid range: -100 to +100')
       },
       annotations: {
         readOnlyHint: true
