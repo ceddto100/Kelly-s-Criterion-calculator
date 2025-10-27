@@ -20,22 +20,10 @@ const placeholderUnit = '<div id="root" style="padding: 20px; font-family: syste
 
 export function registerComponentResources(server: McpServer) {
   // Kelly Calculator Widget
-  server.resource(
-    'kelly-calculator.html',
+  server.registerResource(
+    'kelly-widget',
     'ui://widget/kelly-calculator.html',
-    {
-      description: 'Kelly Criterion Calculator widget displaying optimal bet sizing recommendations',
-      mimeType: 'text/html+skybridge',
-      _meta: {
-        'openai/widgetPrefersBorder': true,
-        'openai/widgetDomain': 'https://chatgpt.com',
-        'openai/widgetCSP': {
-          connect_domains: [],
-          resource_domains: ['https://persistent.oaistatic.com']
-        },
-        'openai/widgetDescription': 'Displays Kelly Criterion betting recommendations including stake amount, percentage of bankroll, and analyst insights'
-      }
-    },
+    {},
     async () => {
       // Try to load built component, fallback to placeholder
       try {
@@ -45,7 +33,16 @@ export function registerComponentResources(server: McpServer) {
           contents: [{
             uri: 'ui://widget/kelly-calculator.html',
             mimeType: 'text/html+skybridge',
-            text: html
+            text: html.trim(),
+            _meta: {
+              'openai/widgetPrefersBorder': true,
+              'openai/widgetDomain': 'https://chatgpt.com',
+              'openai/widgetCSP': {
+                connect_domains: [],
+                resource_domains: ['https://persistent.oaistatic.com']
+              },
+              'openai/widgetDescription': 'Displays Kelly Criterion betting recommendations including stake amount, percentage of bankroll, and analyst insights'
+            }
           }]
         };
       } catch {
@@ -54,7 +51,16 @@ export function registerComponentResources(server: McpServer) {
           contents: [{
             uri: 'ui://widget/kelly-calculator.html',
             mimeType: 'text/html+skybridge',
-            text: placeholderKelly
+            text: placeholderKelly,
+            _meta: {
+              'openai/widgetPrefersBorder': true,
+              'openai/widgetDomain': 'https://chatgpt.com',
+              'openai/widgetCSP': {
+                connect_domains: [],
+                resource_domains: ['https://persistent.oaistatic.com']
+              },
+              'openai/widgetDescription': 'Displays Kelly Criterion betting recommendations including stake amount, percentage of bankroll, and analyst insights'
+            }
           }]
         };
       }
@@ -62,22 +68,10 @@ export function registerComponentResources(server: McpServer) {
   );
 
   // Probability Estimator Widget
-  server.resource(
-    'probability-estimator.html',
+  server.registerResource(
+    'probability-widget',
     'ui://widget/probability-estimator.html',
-    {
-      description: 'Probability Estimator widget for football and basketball games',
-      mimeType: 'text/html+skybridge',
-      _meta: {
-        'openai/widgetPrefersBorder': true,
-        'openai/widgetDomain': 'https://chatgpt.com',
-        'openai/widgetCSP': {
-          connect_domains: [],
-          resource_domains: ['https://persistent.oaistatic.com']
-        },
-        'openai/widgetDescription': 'Displays probability estimates for football and basketball games based on team statistics'
-      }
-    },
+    {},
     async () => {
       try {
         const componentPath = join(__dirname, '../../../component/dist/probability-estimator.html');
@@ -86,7 +80,16 @@ export function registerComponentResources(server: McpServer) {
           contents: [{
             uri: 'ui://widget/probability-estimator.html',
             mimeType: 'text/html+skybridge',
-            text: html
+            text: html.trim(),
+            _meta: {
+              'openai/widgetPrefersBorder': true,
+              'openai/widgetDomain': 'https://chatgpt.com',
+              'openai/widgetCSP': {
+                connect_domains: [],
+                resource_domains: ['https://persistent.oaistatic.com']
+              },
+              'openai/widgetDescription': 'Displays probability estimates for football and basketball games based on team statistics'
+            }
           }]
         };
       } catch {
@@ -95,7 +98,16 @@ export function registerComponentResources(server: McpServer) {
           contents: [{
             uri: 'ui://widget/probability-estimator.html',
             mimeType: 'text/html+skybridge',
-            text: placeholderProbability
+            text: placeholderProbability,
+            _meta: {
+              'openai/widgetPrefersBorder': true,
+              'openai/widgetDomain': 'https://chatgpt.com',
+              'openai/widgetCSP': {
+                connect_domains: [],
+                resource_domains: ['https://persistent.oaistatic.com']
+              },
+              'openai/widgetDescription': 'Displays probability estimates for football and basketball games based on team statistics'
+            }
           }]
         };
       }
@@ -103,22 +115,10 @@ export function registerComponentResources(server: McpServer) {
   );
 
   // Unit Betting Calculator Widget
-  server.resource(
-    'unit-calculator.html',
+  server.registerResource(
+    'unit-widget',
     'ui://widget/unit-calculator.html',
-    {
-      description: 'Unit Betting Calculator widget for simple bankroll management',
-      mimeType: 'text/html+skybridge',
-      _meta: {
-        'openai/widgetPrefersBorder': true,
-        'openai/widgetDomain': 'https://chatgpt.com',
-        'openai/widgetCSP': {
-          connect_domains: [],
-          resource_domains: ['https://persistent.oaistatic.com']
-        },
-        'openai/widgetDescription': 'Displays unit betting calculations for simple, consistent bankroll management'
-      }
-    },
+    {},
     async () => {
       try {
         const componentPath = join(__dirname, '../../../component/dist/unit-calculator.html');
@@ -127,7 +127,16 @@ export function registerComponentResources(server: McpServer) {
           contents: [{
             uri: 'ui://widget/unit-calculator.html',
             mimeType: 'text/html+skybridge',
-            text: html
+            text: html.trim(),
+            _meta: {
+              'openai/widgetPrefersBorder': true,
+              'openai/widgetDomain': 'https://chatgpt.com',
+              'openai/widgetCSP': {
+                connect_domains: [],
+                resource_domains: ['https://persistent.oaistatic.com']
+              },
+              'openai/widgetDescription': 'Displays unit betting calculations for simple, consistent bankroll management'
+            }
           }]
         };
       } catch {
@@ -136,7 +145,16 @@ export function registerComponentResources(server: McpServer) {
           contents: [{
             uri: 'ui://widget/unit-calculator.html',
             mimeType: 'text/html+skybridge',
-            text: placeholderUnit
+            text: placeholderUnit,
+            _meta: {
+              'openai/widgetPrefersBorder': true,
+              'openai/widgetDomain': 'https://chatgpt.com',
+              'openai/widgetCSP': {
+                connect_domains: [],
+                resource_domains: ['https://persistent.oaistatic.com']
+              },
+              'openai/widgetDescription': 'Displays unit betting calculations for simple, consistent bankroll management'
+            }
           }]
         };
       }
