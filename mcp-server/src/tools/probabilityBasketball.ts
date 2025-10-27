@@ -8,6 +8,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { predictedMarginBasketball, coverProbability, type BasketballStats } from '../utils/calculations.js';
+import { t } from '../utils/translations.js';
+import { getCurrentLocale } from '../server.js';
 
 export function registerBasketballProbabilityTool(server: McpServer) {
   server.tool(
@@ -38,14 +40,19 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         'openai/widgetAccessible': true
       }
     },
-    async (args) => {
+    async (args, extra?: any) => {
+      // Extract locale from request or use current server locale
+      const locale: string = (extra?._meta?.['openai/locale'] as string)
+                  || (extra?._meta?.['webplus/i18n'] as string)
+                  || getCurrentLocale();
+
       // Input validation
       const validateStat = (value: number, name: string, min: number, max: number) => {
         if (typeof value !== 'number' || isNaN(value)) {
-          throw new Error(`${name} must be a valid number`);
+          throw new Error(t('validation_stat_range', locale, { stat: name, min: String(min), max: String(max) }));
         }
         if (value < min || value > max) {
-          throw new Error(`${name} must be between ${min} and ${max}`);
+          throw new Error(t('validation_stat_range', locale, { stat: name, min: String(min), max: String(max) }));
         }
       };
 
@@ -66,13 +73,16 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: error instanceof Error ? error.message : 'Invalid input'
+            message: error instanceof Error ? error.message : t('error_invalid_input', locale)
           },
           content: [{
             type: 'text',
-            text: `Validation error: ${error instanceof Error ? error.message : 'Invalid input'}`
+            text: `${t('error_stat_validation', locale)}: ${error instanceof Error ? error.message : t('error_invalid_input', locale)}`
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
       // Calculate predicted margin
@@ -94,9 +104,13 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       const probability = coverProbability(predictedMargin, args.spread, sigma);
 
       // Format result text
-      const spreadDisplay = args.spread > 0 ? `+${args.spread}` : args.spread.toString();
-      const marginDisplay = predictedMargin > 0 ? `+${predictedMargin.toFixed(1)}` : predictedMargin.toFixed(1);
-      const resultText = `Based on the team statistics, your team has an estimated ${probability.toFixed(2)}% probability of covering the ${spreadDisplay} point spread.\n\nPredicted Margin: ${marginDisplay} points\n\nYou can use this probability (${probability.toFixed(2)}%) in the Kelly Criterion calculator to determine your optimal bet size.`;
+      const spreadText = `${args.spread > 0 ? '+' : ''}${args.spread}`;
+      const resultText = t('probability_result_text', locale, {
+        probability: probability.toFixed(2),
+        spread: spreadText
+      }) + '\n\n' +
+        `${t('probability_predicted_margin', locale)}: ${predictedMargin > 0 ? '+' : ''}${predictedMargin.toFixed(1)} ${t('points', locale)}\n\n` +
+        t('probability_use_with_kelly', locale, { probability: probability.toFixed(2) });
 
       return {
         // Model sees: concise summary of probability estimate
@@ -119,8 +133,9 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         _meta: {
           'openai/outputTemplate': 'ui://widget/probability-estimator.html',
           'openai/widgetAccessible': true,
-          'openai/toolInvocation/invoking': 'Estimating basketball probability...',
-          'openai/toolInvocation/invoked': 'Estimated basketball probability',
+          'openai/toolInvocation/invoking': t('probability_estimating', locale),
+          'openai/toolInvocation/invoked': t('probability_estimated', locale),
+          'openai/locale': locale,
 
           // Complete calculation details
           calculation: {
@@ -155,7 +170,8 @@ export function registerBasketballProbabilityTool(server: McpServer) {
           // UI display settings
           displaySettings: {
             sportType: 'basketball',
-            showAdvancedStats: true
+            showAdvancedStats: true,
+            locale
           }
         }
       };

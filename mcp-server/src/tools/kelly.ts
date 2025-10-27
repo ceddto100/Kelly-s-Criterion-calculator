@@ -9,6 +9,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { americanToDecimal, kellyFraction, formatCurrency } from '../utils/calculations.js';
 import { getAnalystInsight } from '../utils/gemini.js';
+import { t, formatCurrencyLocalized } from '../utils/translations.js';
+import { getCurrentLocale } from '../server.js';
 
 const kellyInputSchema = z.object({
   bankroll: z.number().positive().describe('Available betting bankroll in USD'),
@@ -41,7 +43,12 @@ export function registerKellyTool(server: McpServer) {
         'openai/widgetAccessible': true
       }
     },
-    async (args) => {
+    async (args, extra?: any) => {
+      // Extract locale from request or use current server locale
+      const locale: string = (extra?._meta?.['openai/locale'] as string)
+                  || (extra?._meta?.['webplus/i18n'] as string)
+                  || getCurrentLocale();
+
       const { bankroll, odds, probability, fraction } = args;
 
       // Input validation
@@ -49,13 +56,16 @@ export function registerKellyTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Bankroll must be a valid number'
+            message: t('error_invalid_bankroll', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid bankroll. Must be a valid positive number.'
+            text: t('validation_bankroll_positive', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -63,14 +73,17 @@ export function registerKellyTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_bankroll',
-            message: 'Bankroll out of range',
-            validRange: 'Must be between 0 and 1,000,000,000'
+            message: t('error_invalid_bankroll', locale),
+            validRange: t('error_bankroll_range', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid bankroll. Must be a positive number up to $1,000,000,000.'
+            text: t('error_bankroll_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -78,13 +91,16 @@ export function registerKellyTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Odds must be a valid number'
+            message: t('error_invalid_odds', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid odds. Must be a valid number in American format.'
+            text: t('validation_odds_american', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -92,13 +108,16 @@ export function registerKellyTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Probability must be a valid number'
+            message: t('error_invalid_probability', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid probability. Must be a valid number between 0.1 and 99.9.'
+            text: t('validation_probability_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -111,14 +130,17 @@ export function registerKellyTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_odds',
-            message: 'Invalid odds range',
-            validRange: 'Must be <= -100 or >= 100'
+            message: t('error_invalid_odds', locale),
+            validRange: t('error_odds_range', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid odds. American odds must be <= -100 for favorites or >= 100 for underdogs.'
+            text: t('error_odds_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -146,8 +168,11 @@ export function registerKellyTool(server: McpServer) {
 
       // Return results
       const resultText = hasValue
-        ? `Kelly Criterion recommends staking ${formatCurrency(stake)} (${stakePercentage.toFixed(2)}% of bankroll) on this bet.`
-        : `No Value - Do Not Bet. The Kelly Criterion indicates negative expected value for this bet.`;
+        ? t('kelly_stake_text', locale, {
+            stake: formatCurrencyLocalized(stake, locale),
+            percentage: stakePercentage.toFixed(2)
+          })
+        : t('kelly_no_value', locale);
 
       return {
         // Model sees: concise summary of calculation
@@ -171,8 +196,9 @@ export function registerKellyTool(server: McpServer) {
         _meta: {
           'openai/outputTemplate': 'ui://widget/kelly-calculator.html',
           'openai/widgetAccessible': true,
-          'openai/toolInvocation/invoking': 'Calculating optimal stake...',
-          'openai/toolInvocation/invoked': 'Calculated Kelly stake',
+          'openai/toolInvocation/invoking': t('kelly_calculating', locale),
+          'openai/toolInvocation/invoked': t('kelly_calculated', locale),
+          'openai/locale': locale,
 
           // Complete calculation details
           calculation: {
@@ -192,7 +218,8 @@ export function registerKellyTool(server: McpServer) {
           // UI display preferences
           displaySettings: {
             currency: 'USD',
-            decimalPlaces: 2
+            decimalPlaces: 2,
+            locale
           }
         }
       };

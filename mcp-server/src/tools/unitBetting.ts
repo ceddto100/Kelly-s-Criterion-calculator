@@ -8,6 +8,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { formatCurrency } from '../utils/calculations.js';
+import { t, formatCurrencyLocalized } from '../utils/translations.js';
+import { getCurrentLocale } from '../server.js';
 
 export function registerUnitBettingTool(server: McpServer) {
   server.tool(
@@ -30,7 +32,12 @@ export function registerUnitBettingTool(server: McpServer) {
         'openai/widgetAccessible': true
       }
     },
-    async (args) => {
+    async (args, extra?: any) => {
+      // Extract locale from request or use current server locale
+      const locale: string = (extra?._meta?.['openai/locale'] as string)
+                  || (extra?._meta?.['webplus/i18n'] as string)
+                  || getCurrentLocale();
+
       const { bankroll, unitSize, unitsToWager } = args;
 
       // Input validation
@@ -38,13 +45,16 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Bankroll must be a valid number'
+            message: t('error_invalid_bankroll', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid bankroll. Must be a valid positive number.'
+            text: t('validation_bankroll_positive', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -52,14 +62,17 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_bankroll',
-            message: 'Bankroll out of range',
-            validRange: 'Must be between 0 and 1,000,000,000'
+            message: t('error_invalid_bankroll', locale),
+            validRange: t('error_bankroll_range', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid bankroll. Must be a positive number up to $1,000,000,000.'
+            text: t('error_bankroll_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -67,13 +80,16 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Unit size must be a valid number'
+            message: t('error_invalid_unit_size', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid unit size. Must be a valid number between 0 and 5.'
+            text: t('validation_unit_size_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -81,14 +97,17 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_unit_size',
-            message: 'Unit size out of range',
-            validRange: 'Must be between 0 and 5'
+            message: t('error_invalid_unit_size', locale),
+            validRange: t('validation_unit_size_range', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid unit size. Must be between 0% and 5% of bankroll.'
+            text: t('validation_unit_size_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -96,13 +115,16 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Units to wager must be a valid number'
+            message: t('error_invalid_units', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid units to wager. Must be a valid positive number.'
+            text: t('validation_units_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -110,14 +132,17 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_units',
-            message: 'Units to wager out of range',
-            validRange: 'Must be between 1 and 100'
+            message: t('error_invalid_units', locale),
+            validRange: t('validation_units_range', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid units to wager. Must be a positive number between 1 and 100.'
+            text: t('validation_units_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -125,13 +150,16 @@ export function registerUnitBettingTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Units to wager must be a finite number'
+            message: t('error_invalid_units', locale)
           },
           content: [{
             type: 'text',
-            text: 'Invalid units to wager. Must be a finite number.'
+            text: t('validation_units_range', locale)
           }],
-          isError: true
+          isError: true,
+          _meta: {
+            'openai/locale': locale
+          }
         };
       }
 
@@ -141,7 +169,7 @@ export function registerUnitBettingTool(server: McpServer) {
       const stakePercentage = (recommendedStake / bankroll) * 100;
 
       // Format result text
-      const resultText = `Based on your unit betting strategy:\n\nBankroll: ${formatCurrency(bankroll)}\nUnit Size: ${unitSize}% (${formatCurrency(calculatedUnitSize)} per unit)\nUnits to Wager: ${unitsToWager}\n\nRecommended Stake: ${formatCurrency(recommendedStake)}`;
+      const resultText = `${t('unit_result_text', locale)}:\n\n${t('bankroll', locale)}: ${formatCurrencyLocalized(bankroll, locale)}\n${t('unit_per_unit', locale)}: ${unitSize}% (${formatCurrencyLocalized(calculatedUnitSize, locale)} ${t('unit_per_unit', locale)})\n${t('unit_per_unit', locale)}: ${unitsToWager}\n\n${t('unit_recommended_stake', locale)}: ${formatCurrencyLocalized(recommendedStake, locale)}`;
 
       return {
         // Model sees: concise summary of calculation
@@ -164,8 +192,9 @@ export function registerUnitBettingTool(server: McpServer) {
         _meta: {
           'openai/outputTemplate': 'ui://widget/unit-calculator.html',
           'openai/widgetAccessible': true,
-          'openai/toolInvocation/invoking': 'Calculating unit betting stake...',
-          'openai/toolInvocation/invoked': 'Calculated unit betting stake',
+          'openai/toolInvocation/invoking': t('unit_calculating', locale),
+          'openai/toolInvocation/invoked': t('unit_calculated', locale),
+          'openai/locale': locale,
 
           // Complete calculation details
           calculation: {
@@ -191,7 +220,8 @@ export function registerUnitBettingTool(server: McpServer) {
           displaySettings: {
             currency: 'USD',
             decimalPlaces: 2,
-            showBreakdown: true
+            showBreakdown: true,
+            locale
           }
         }
       };
