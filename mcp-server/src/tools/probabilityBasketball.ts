@@ -28,6 +28,9 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         opponentTurnoverMargin: z.number().describe('Opponent turnover margin per game'),
         spread: z.number().describe('Point spread for your team (negative if favored, positive if underdog)')
       },
+      annotations: {
+        readOnlyHint: true
+      },
       _meta: {
         'openai/outputTemplate': 'ui://widget/probability-estimator.html',
         'openai/toolInvocation/invoking': 'Estimating basketball probability...',
@@ -36,6 +39,42 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       }
     },
     async (args) => {
+      // Input validation
+      const validateStat = (value: number, name: string, min: number, max: number) => {
+        if (typeof value !== 'number' || isNaN(value)) {
+          throw new Error(`${name} must be a valid number`);
+        }
+        if (value < min || value > max) {
+          throw new Error(`${name} must be between ${min} and ${max}`);
+        }
+      };
+
+      try {
+        // Validate all inputs
+        validateStat(args.teamPointsFor, 'Team points for', 0, 200);
+        validateStat(args.teamPointsAgainst, 'Team points against', 0, 200);
+        validateStat(args.opponentPointsFor, 'Opponent points for', 0, 200);
+        validateStat(args.opponentPointsAgainst, 'Opponent points against', 0, 200);
+        validateStat(args.teamFgPct, 'Team FG%', 0, 1);
+        validateStat(args.opponentFgPct, 'Opponent FG%', 0, 1);
+        validateStat(args.teamReboundMargin, 'Team rebound margin', -50, 50);
+        validateStat(args.opponentReboundMargin, 'Opponent rebound margin', -50, 50);
+        validateStat(args.teamTurnoverMargin, 'Team turnover margin', -50, 50);
+        validateStat(args.opponentTurnoverMargin, 'Opponent turnover margin', -50, 50);
+        validateStat(args.spread, 'Spread', -100, 100);
+      } catch (error) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: error instanceof Error ? error.message : 'Invalid input'
+          },
+          content: [{
+            type: 'text',
+            text: `Validation error: ${error instanceof Error ? error.message : 'Invalid input'}`
+          }],
+          isError: true
+        };
+      }
       // Calculate predicted margin
       const stats: BasketballStats = {
         teamPointsFor: args.teamPointsFor,

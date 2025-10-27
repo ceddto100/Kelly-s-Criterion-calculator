@@ -18,8 +18,12 @@ export interface InsightParams {
  * Generates betting insight using Gemini AI
  * @param params - Calculation parameters
  * @returns AI-generated insight text or empty string on error
+ *
+ * SECURITY: API key is kept server-side only and never exposed to clients.
+ * Only the generated text response is returned to the client.
  */
 export async function getAnalystInsight(params: InsightParams): Promise<string> {
+  // SECURITY: Load API key from environment (server-side only)
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {

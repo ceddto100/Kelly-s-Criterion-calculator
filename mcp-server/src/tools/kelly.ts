@@ -31,6 +31,9 @@ export function registerKellyTool(server: McpServer) {
         probability: z.number().min(0.1).max(99.9).describe('Estimated win probability as percentage (0.1-99.9)'),
         fraction: z.enum(['1', '0.5', '0.25']).default('1').describe('Kelly fraction: 1 for full Kelly, 0.5 for half, 0.25 for quarter')
       },
+      annotations: {
+        readOnlyHint: true
+      },
       _meta: {
         'openai/outputTemplate': 'ui://widget/kelly-calculator.html',
         'openai/toolInvocation/invoking': 'Calculating optimal stake...',
@@ -40,6 +43,64 @@ export function registerKellyTool(server: McpServer) {
     },
     async (args) => {
       const { bankroll, odds, probability, fraction } = args;
+
+      // Input validation
+      if (typeof bankroll !== 'number' || isNaN(bankroll)) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Bankroll must be a valid number'
+          },
+          content: [{
+            type: 'text',
+            text: 'Invalid bankroll. Must be a valid positive number.'
+          }],
+          isError: true
+        };
+      }
+
+      if (bankroll <= 0 || bankroll > 1000000000) {
+        return {
+          structuredContent: {
+            error: 'invalid_bankroll',
+            message: 'Bankroll out of range',
+            validRange: 'Must be between 0 and 1,000,000,000'
+          },
+          content: [{
+            type: 'text',
+            text: 'Invalid bankroll. Must be a positive number up to $1,000,000,000.'
+          }],
+          isError: true
+        };
+      }
+
+      if (typeof odds !== 'number' || isNaN(odds)) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Odds must be a valid number'
+          },
+          content: [{
+            type: 'text',
+            text: 'Invalid odds. Must be a valid number in American format.'
+          }],
+          isError: true
+        };
+      }
+
+      if (typeof probability !== 'number' || isNaN(probability)) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Probability must be a valid number'
+          },
+          content: [{
+            type: 'text',
+            text: 'Invalid probability. Must be a valid number between 0.1 and 99.9.'
+          }],
+          isError: true
+        };
+      }
 
       // Convert types
       const numFraction = parseFloat(fraction);
