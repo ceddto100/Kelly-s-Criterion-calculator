@@ -40,7 +40,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: inherit; /* Inherit from ChatGPT's system font */
   color: var(--widget-text);
   background: var(--widget-bg);
   line-height: 1.5;
