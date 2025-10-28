@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import type { DisplayMode } from '../types/openai';
+import LoadingState from './LoadingState';
 
 interface UnitData {
   bankroll: number;
@@ -105,11 +106,7 @@ export default function UnitWidget() {
   }, [displayMode, maxHeight]);
 
   if (!data) {
-    return (
-      <div className={`widget-container mode-${displayMode}`}>
-        <p style={{ color: 'var(--widget-text-muted)' }}>Loading unit betting results...</p>
-      </div>
-    );
+    return <LoadingState message="Loading calculator results..." />;
   }
 
   // PiP mode - minimal compact view

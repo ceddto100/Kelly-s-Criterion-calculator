@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import type { DisplayMode } from '../types/openai';
+import LoadingState from './LoadingState';
 
 interface ProbabilityData {
   sport: 'football' | 'basketball';
@@ -139,11 +140,7 @@ export default function ProbabilityWidget() {
   };
 
   if (!data) {
-    return (
-      <div className={`widget-container mode-${displayMode}`}>
-        <p style={{ color: 'var(--widget-text-muted)' }}>Loading probability estimation...</p>
-      </div>
-    );
+    return <LoadingState message="Loading calculator results..." />;
   }
 
   const isFavorite = data.spread < 0;

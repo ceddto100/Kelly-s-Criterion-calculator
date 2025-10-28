@@ -199,17 +199,32 @@ body {
   color: white;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
   width: 100%;
   font-size: 0.875rem;
+  font-family: inherit;
 }
 
-.action-button:hover {
+.action-button:hover:not(:disabled) {
   opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.action-button:active {
+.action-button:active:not(:disabled) {
   opacity: 0.8;
+  transform: translateY(0);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--widget-text-muted);
+}
+
+.action-button:focus-visible {
+  outline: 2px solid var(--widget-accent);
+  outline-offset: 2px;
 }
 
 /* Responsive */
@@ -442,4 +457,11 @@ body {
 
 .expand-button:hover {
   background: var(--widget-border);
+}
+
+/* Add at the end of widget.css */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
