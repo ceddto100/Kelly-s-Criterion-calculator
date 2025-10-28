@@ -179,6 +179,7 @@ export function registerUnitBettingTool(server: McpServer) {
           bankroll,
           unitSize,
           unitsToWager,
+          calculatedUnitSize,
           calculatedAt: new Date().toISOString()
         },
 

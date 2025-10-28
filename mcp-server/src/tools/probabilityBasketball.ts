@@ -103,6 +103,24 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       const sigma = 12.0; // Standard deviation for basketball
       const probability = coverProbability(predictedMargin, args.spread, sigma);
 
+      const teamStats = {
+        pointsFor: args.teamPointsFor,
+        pointsAgainst: args.teamPointsAgainst,
+        fgPct: args.teamFgPct,
+        reboundMargin: args.teamReboundMargin,
+        turnoverMargin: args.teamTurnoverMargin,
+        netRating: args.teamPointsFor - args.teamPointsAgainst
+      };
+
+      const opponentStats = {
+        pointsFor: args.opponentPointsFor,
+        pointsAgainst: args.opponentPointsAgainst,
+        fgPct: args.opponentFgPct,
+        reboundMargin: args.opponentReboundMargin,
+        turnoverMargin: args.opponentTurnoverMargin,
+        netRating: args.opponentPointsFor - args.opponentPointsAgainst
+      };
+
       // Format result text
       const spreadText = `${args.spread > 0 ? '+' : ''}${args.spread}`;
       const resultText = t('probability_result_text', locale, {
@@ -120,6 +138,8 @@ export function registerBasketballProbabilityTool(server: McpServer) {
           predictedMargin,
           spread: args.spread,
           sigma,
+          teamStats,
+          opponentStats,
           estimatedAt: new Date().toISOString()
         },
 
@@ -148,24 +168,10 @@ export function registerBasketballProbabilityTool(server: McpServer) {
           },
 
           // Full team statistics for charting
-          teamStats: {
-            pointsFor: args.teamPointsFor,
-            pointsAgainst: args.teamPointsAgainst,
-            fgPct: args.teamFgPct,
-            reboundMargin: args.teamReboundMargin,
-            turnoverMargin: args.teamTurnoverMargin,
-            netRating: args.teamPointsFor - args.teamPointsAgainst
-          },
+          teamStats,
 
           // Full opponent statistics for charting
-          opponentStats: {
-            pointsFor: args.opponentPointsFor,
-            pointsAgainst: args.opponentPointsAgainst,
-            fgPct: args.opponentFgPct,
-            reboundMargin: args.opponentReboundMargin,
-            turnoverMargin: args.opponentTurnoverMargin,
-            netRating: args.opponentPointsFor - args.opponentPointsAgainst
-          },
+          opponentStats,
 
           // UI display settings
           displaySettings: {
