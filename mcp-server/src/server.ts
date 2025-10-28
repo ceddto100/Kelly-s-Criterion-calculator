@@ -68,7 +68,12 @@ app.get('/', (req, res) => {
     description: 'Custom MCP server for Kelly Criterion calculations and probability estimation.',
     mcp_endpoint: '/mcp',
     capabilities: {
-      tools: ['calculate_kelly_criterion', 'estimate_probability'],
+      tools: [
+        'kelly-calculate',
+        'probability-estimate-football',
+        'probability-estimate-basketball',
+        'unit-calculate'
+      ],
       supports_streaming: true
     }
   });

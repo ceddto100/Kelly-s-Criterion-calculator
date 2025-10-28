@@ -122,6 +122,26 @@ export function registerFootballProbabilityTool(server: McpServer) {
       const sigma = 13.5; // Standard deviation for football
       const probability = coverProbability(predictedMargin, validated.spread, sigma);
 
+      const teamStats = {
+        pointsFor: validated.teamPointsFor,
+        pointsAgainst: validated.teamPointsAgainst,
+        offYards: validated.teamOffYards,
+        defYards: validated.teamDefYards,
+        turnoverDiff: validated.teamTurnoverDiff,
+        netRating: validated.teamPointsFor - validated.teamPointsAgainst,
+        yardDiff: validated.teamOffYards - validated.teamDefYards
+      };
+
+      const opponentStats = {
+        pointsFor: validated.opponentPointsFor,
+        pointsAgainst: validated.opponentPointsAgainst,
+        offYards: validated.opponentOffYards,
+        defYards: validated.opponentDefYards,
+        turnoverDiff: validated.opponentTurnoverDiff,
+        netRating: validated.opponentPointsFor - validated.opponentPointsAgainst,
+        yardDiff: validated.opponentOffYards - validated.opponentDefYards
+      };
+
       // Format result text
       const spreadText = `${validated.spread > 0 ? '+' : ''}${validated.spread}`;
       const resultText = t('probability_result_text', locale, {
@@ -139,6 +159,8 @@ export function registerFootballProbabilityTool(server: McpServer) {
           predictedMargin,
           spread: validated.spread,
           sigma,
+          teamStats,
+          opponentStats,
           estimatedAt: new Date().toISOString()
         },
 
@@ -167,26 +189,10 @@ export function registerFootballProbabilityTool(server: McpServer) {
           },
 
           // Full team statistics for charting
-          teamStats: {
-            pointsFor: validated.teamPointsFor,
-            pointsAgainst: validated.teamPointsAgainst,
-            offYards: validated.teamOffYards,
-            defYards: validated.teamDefYards,
-            turnoverDiff: validated.teamTurnoverDiff,
-            netRating: validated.teamPointsFor - validated.teamPointsAgainst,
-            yardDiff: validated.teamOffYards - validated.teamDefYards
-          },
+          teamStats,
 
           // Full opponent statistics for charting
-          opponentStats: {
-            pointsFor: validated.opponentPointsFor,
-            pointsAgainst: validated.opponentPointsAgainst,
-            offYards: validated.opponentOffYards,
-            defYards: validated.opponentDefYards,
-            turnoverDiff: validated.opponentTurnoverDiff,
-            netRating: validated.opponentPointsFor - validated.opponentPointsAgainst,
-            yardDiff: validated.opponentOffYards - validated.opponentDefYards
-          },
+          opponentStats,
 
           // UI display settings
           displaySettings: {

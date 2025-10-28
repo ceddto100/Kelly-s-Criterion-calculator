@@ -174,17 +174,26 @@ export function registerKellyTool(server: McpServer) {
           })
         : t('kelly_no_value', locale);
 
+      const structuredContent: Record<string, any> = {
+        hasValue,
+        stake,
+        stakePercentage,
+        bankroll,
+        odds,
+        probability,
+        decimalOdds,
+        fraction: numFraction,
+        kellyFraction: k,
+        lastCalculated: new Date().toISOString()
+      };
+
+      if (insight) {
+        structuredContent.insight = insight;
+      }
+
       return {
         // Model sees: concise summary of calculation
-        structuredContent: {
-          hasValue,
-          stake,
-          stakePercentage,
-          bankroll,
-          odds,
-          probability,
-          lastCalculated: new Date().toISOString()
-        },
+        structuredContent,
 
         // Optional: natural language text for model
         content: [{
