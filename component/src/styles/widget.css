@@ -227,18 +227,56 @@ body {
   outline-offset: 2px;
 }
 
-/* Responsive */
+/* Enhanced responsive design */
 @media (max-width: 480px) {
   .widget-container {
     padding: 1rem;
   }
 
   .result-large {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .result-percentage {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
+  }
+
+  .summary-grid {
+    gap: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .stats-table {
+    font-size: 0.8125rem;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    padding: 0.5rem 0.375rem;
+  }
+
+  .input-summary h3 {
+    font-size: 0.8125rem;
+  }
+
+  .action-button {
+    font-size: 0.8125rem;
+    padding: 0.625rem 1rem;
+  }
+}
+
+/* Additional breakpoint for very small screens */
+@media (max-width: 360px) {
+  .widget-container {
+    padding: 0.75rem;
+  }
+
+  .result-large {
+    font-size: 1.5rem;
+  }
+
+  .result-percentage {
+    font-size: 1.25rem;
   }
 }
 
