@@ -465,3 +465,59 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* Visual hierarchy improvements */
+.result-section {
+  margin-bottom: 1.5rem;
+}
+
+.result-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Improved spacing for stat grids */
+.summary-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.summary-grid + .summary-grid {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--widget-border);
+}
+
+/* Better table styling */
+.stats-table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.stats-table th {
+  text-align: left;
+  padding: 0.625rem 0.5rem;
+  background: color-mix(in srgb, var(--widget-border) 30%, transparent);
+  font-weight: 600;
+  border-bottom: 2px solid var(--widget-border);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--widget-text-muted);
+}
+
+.stats-table td {
+  padding: 0.625rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--widget-border) 50%, transparent);
+}
+
+.stats-table tr:last-child td {
+  border-bottom: none;
+}
+
+.stats-table tbody tr:hover {
+  background: color-mix(in srgb, var(--widget-border) 15%, transparent);
+}
