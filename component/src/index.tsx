@@ -65,12 +65,13 @@ function App() {
         className={`widget-container mode-${displayMode}`}
         style={{
           padding: '20px',
-          fontFamily: 'system-ui',
+          fontFamily: 'inherit',
           color: 'var(--widget-text-muted)',
+          textAlign: 'center',
           ...containerStyle
         }}
       >
-        <p>Loading widget...</p>
+        <p>Loading calculator...</p>
       </div>
     );
   }
@@ -89,12 +90,13 @@ function App() {
           className={`widget-container mode-${displayMode}`}
           style={{
             padding: '20px',
-            fontFamily: 'system-ui',
+            fontFamily: 'inherit',
             color: 'var(--widget-text-muted)',
+            textAlign: 'center',
             ...containerStyle
           }}
         >
-          <p>Unknown widget type</p>
+          <p>Unable to display calculator. Please try again.</p>
         </div>
       );
   }
