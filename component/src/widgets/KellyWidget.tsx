@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import type { DisplayMode } from '../types/openai';
+import LoadingState from './LoadingState';
 
 interface KellyData {
   bankroll: number;
@@ -124,11 +125,7 @@ export default function KellyWidget() {
   }, [displayMode, maxHeight]);
 
   if (!data) {
-    return (
-      <div className={`widget-container mode-${displayMode}`}>
-        <p style={{ color: 'var(--widget-text-muted)' }}>Loading Kelly Criterion results...</p>
-      </div>
-    );
+    return <LoadingState message="Loading calculator results..." />;
   }
 
   // PiP mode - minimal compact view
