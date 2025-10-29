@@ -1,0 +1,35 @@
+services:
+  # MCP Server - Kelly Criterion Calculator
+  - type: web
+    name: kelly-criterion-mcp-server
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd mcp-server && npm install && npm run build
+    startCommand: cd mcp-server && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        sync: false
+        # Set this in Render dashboard to include your Render URL
+        # Example: https://chatgpt.com,https://your-app.onrender.com
+      - key: GEMINI_API_KEY
+        sync: false
+        # Optional: Set this in Render dashboard if using AI insights
+    autoDeploy: true
+
+  # Optional: Static site for frontend (if needed)
+  # Uncomment if you want to deploy the frontend separately
+  # - type: web
+  #   name: kelly-criterion-frontend
+  #   runtime: static
+  #   buildCommand: cd frontend && npm install && npm run build
+  #   staticPublishPath: frontend/dist
+  #   headers:
+  #     - path: /*
+  #       name: Cache-Control
+  #       value: public, max-age=3600

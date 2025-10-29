@@ -31,6 +31,25 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const app = express();
 app.use(express.json());
 
+// CORS middleware for ChatGPT and Render deployment
+app.use((req, res, next) => {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['https://chatgpt.com'];
+  const origin = req.headers.origin;
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+  } else {
+    next();
+  }
+});
+
 // Create MCP server
 const mcpServer = new McpServer({
   name: 'kelly-criterion-calculator',
@@ -120,25 +139,6 @@ app.get('/mcp', async (req, res) => {
 app.post('/mcp/message', (req, res) => {
   console.log('MCP POST message received');
   res.status(405).json({ error: 'Use GET /mcp with SSE for MCP protocol' });
-});
-
-// CORS middleware for ChatGPT
-app.use((req, res, next) => {
-  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['https://chatgpt.com'];
-  const origin = req.headers.origin;
-
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(204);
-  } else {
-    next();
-  }
 });
 
 // Start server
