@@ -17,6 +17,7 @@ const {
   UnauthorizedError,
   RateLimitError
 } = require('./middleware/errorHandler');
+const { getTeamMatchupStats } = require('./espnService');
 
 const app = express();
 
@@ -345,6 +346,83 @@ app.get('/api/admin/stats', asyncHandler(async (req, res) => {
     totalRevenue: totalRevenue[0]?.total || 0,
     activeToday
   });
+}));
+
+// Get Team Matchup Stats (ESPN Integration)
+app.post('/get_team_matchup_stats', asyncHandler(async (req, res) => {
+  const { sport, team_1, team_2, season, metrics } = req.body;
+
+  // Validate required parameters
+  if (!sport || !team_1 || !team_2) {
+    return res.status(400).json({
+      error: 'Missing required parameters',
+      required: ['sport', 'team_1', 'team_2'],
+      received: { sport, team_1, team_2 }
+    });
+  }
+
+  // Validate sport
+  if (!['NBA', 'NFL'].includes(sport.toUpperCase())) {
+    return res.status(400).json({
+      error: 'Invalid sport',
+      message: 'Sport must be either "NBA" or "NFL"',
+      received: sport
+    });
+  }
+
+  try {
+    logger.info('Fetching team matchup stats', {
+      sport: sport.toUpperCase(),
+      team_1,
+      team_2,
+      season: season || 'current'
+    });
+
+    // Fetch stats from ESPN
+    const matchupData = await getTeamMatchupStats({
+      sport: sport.toUpperCase(),
+      team_1,
+      team_2,
+      season: season || 'current'
+    });
+
+    // Log success
+    logger.info('Successfully fetched team matchup stats', {
+      sport: matchupData.sport,
+      teams: matchupData.teams
+    });
+
+    res.json(matchupData);
+  } catch (error) {
+    logger.error('Error fetching team matchup stats', {
+      error: error.message,
+      sport,
+      team_1,
+      team_2
+    });
+
+    // Handle specific error cases
+    if (error.message.includes('Team not found')) {
+      return res.status(404).json({
+        error: 'Team not found',
+        message: error.message,
+        suggestion: 'Please check team names and try again'
+      });
+    }
+
+    if (error.message.includes('Failed to fetch')) {
+      return res.status(503).json({
+        error: 'Service unavailable',
+        message: 'ESPN API is temporarily unavailable. Please try again later.'
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      error: 'Failed to fetch team matchup stats',
+      message: error.message
+    });
+  }
 }));
 
 // ==================== ERROR HANDLING ====================
