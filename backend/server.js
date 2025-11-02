@@ -19,6 +19,10 @@ const {
 } = require('./middleware/errorHandler');
 const { getTeamMatchupStats } = require('./espnService');
 
+// Import AI SDKs
+const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -424,6 +428,216 @@ app.post('/get_team_matchup_stats', asyncHandler(async (req, res) => {
     });
   }
 }));
+
+// AI-Powered Matchup Analysis (OpenAI or Claude)
+app.post('/api/matchup',
+  validateUserIdentifier,
+  validateRequest('matchup'),
+  asyncHandler(async (req, res) => {
+    const { sport, team1, team2, season, provider } = req.validatedData;
+
+    logger.info('AI matchup analysis requested', {
+      sport,
+      team1,
+      team2,
+      season: season || 'current',
+      provider
+    });
+
+    // Choose AI provider
+    let data;
+    try {
+      if (provider === 'claude') {
+        data = await getStatsWithClaude({ sport, team1, team2, season: season || 'current' });
+      } else {
+        data = await getStatsWithOpenAI({ sport, team1, team2, season: season || 'current' });
+      }
+
+      logger.info('AI matchup analysis completed', {
+        provider,
+        sport,
+        teams: `${team1} vs ${team2}`
+      });
+
+      res.json({
+        success: true,
+        provider,
+        data,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('AI matchup analysis failed', {
+        error: error.message,
+        provider,
+        sport,
+        team1,
+        team2
+      });
+
+      // Handle specific error cases
+      if (error.message.includes('API key')) {
+        return res.status(500).json({
+          error: 'AI service configuration error',
+          message: 'The AI service is not properly configured. Please contact support.'
+        });
+      }
+
+      if (error.message.includes('rate limit')) {
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: 'Too many requests to the AI service. Please try again later.'
+        });
+      }
+
+      throw error;
+    }
+  })
+);
+
+// ==================== AI HELPER FUNCTIONS ====================
+
+/**
+ * Fetch sports matchup stats using OpenAI Responses API
+ */
+async function getStatsWithOpenAI({ sport, team1, team2, season }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  const openai = new OpenAI({ apiKey });
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a sports statistics expert. Provide structured JSON data with comprehensive stats for sports matchups. Include team performance metrics, head-to-head history, recent form, key player stats, and betting insights. Always return valid JSON.`
+        },
+        {
+          role: 'user',
+          content: `Get detailed stats for ${team1} vs ${team2} in ${sport} for the ${season} season. Include:
+- Team records and standings
+- Head-to-head history
+- Recent performance (last 5-10 games)
+- Key player statistics
+- Home/away splits
+- Injury reports
+- Betting trends and insights
+- Kelly Criterion recommendations based on the data
+
+Return as structured JSON.`
+        }
+      ],
+      temperature: 0.2,
+      response_format: { type: "json_object" }
+    });
+
+    const output = response.choices[0]?.message?.content;
+    if (!output) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse JSON response
+    try {
+      return JSON.parse(output);
+    } catch (parseError) {
+      logger.warn('OpenAI returned non-JSON response, returning raw text', { output });
+      return { raw: output, warning: 'Response was not valid JSON' };
+    }
+  } catch (error) {
+    logger.error('OpenAI API error', {
+      error: error.message,
+      status: error.status,
+      code: error.code
+    });
+
+    if (error.status === 429) {
+      throw new Error('OpenAI rate limit exceeded');
+    }
+    if (error.status === 401) {
+      throw new Error('Invalid OpenAI API key');
+    }
+
+    throw new Error(`OpenAI service error: ${error.message}`);
+  }
+}
+
+/**
+ * Fetch sports matchup stats using Claude (Anthropic)
+ */
+async function getStatsWithClaude({ sport, team1, team2, season }) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  const anthropic = new Anthropic({ apiKey });
+
+  try {
+    const prompt = `Get detailed sports matchup statistics for ${team1} vs ${team2} in ${sport} for the ${season} season.
+
+Please provide comprehensive analysis including:
+- Team records and current standings
+- Head-to-head history and trends
+- Recent performance (last 5-10 games)
+- Key player statistics and matchups
+- Home/away performance splits
+- Current injury reports
+- Historical betting trends
+- Kelly Criterion betting recommendations
+
+Format your response as structured JSON with clear sections for each category.`;
+
+    const message = await anthropic.messages.create({
+      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+      max_tokens: 2048,
+      temperature: 0.2,
+      system: 'You are a sports statistics expert. Provide comprehensive, accurate sports matchup data in structured JSON format. Include team performance metrics, head-to-head history, recent form, key player stats, and betting insights.',
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    });
+
+    const output = message.content[0]?.text;
+    if (!output) {
+      throw new Error('No response from Claude');
+    }
+
+    // Try to parse as JSON
+    try {
+      return JSON.parse(output);
+    } catch (parseError) {
+      // Claude might wrap JSON in markdown code blocks
+      const jsonMatch = output.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+
+      logger.warn('Claude returned non-JSON response, returning raw text', { output });
+      return { raw: output, warning: 'Response was not valid JSON' };
+    }
+  } catch (error) {
+    logger.error('Claude API error', {
+      error: error.message,
+      status: error.status,
+      type: error.type
+    });
+
+    if (error.status === 429) {
+      throw new Error('Claude rate limit exceeded');
+    }
+    if (error.status === 401) {
+      throw new Error('Invalid Anthropic API key');
+    }
+
+    throw new Error(`Claude service error: ${error.message}`);
+  }
+}
 
 // ==================== ERROR HANDLING ====================
 
