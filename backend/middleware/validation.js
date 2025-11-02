@@ -28,6 +28,14 @@ const schemas = {
     adId: z.string().min(1).max(100)
   }),
 
+  matchup: z.object({
+    sport: z.string().min(1).max(50),
+    team1: z.string().min(1).max(100),
+    team2: z.string().min(1).max(100),
+    season: z.string().optional(),
+    provider: z.enum(['openai', 'claude']).optional().default('openai')
+  }),
+
   userIdentifier: z.string().min(1).max(200)
 };
 
