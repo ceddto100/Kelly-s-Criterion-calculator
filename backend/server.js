@@ -33,7 +33,8 @@ app.use(helmet());
 // CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'x-user-id', 'x-admin-key']
 }));
 
 // Body parser with size limit

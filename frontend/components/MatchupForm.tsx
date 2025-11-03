@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function MatchupForm() {
   const [team1, setTeam1] = useState("");
@@ -7,11 +7,22 @@ export default function MatchupForm() {
   const [provider, setProvider] = useState("openai");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState("");
 
   // 🔹 Change this to your Render backend URL
   // For development, you can use relative path if both are on same domain
   // For production, use your actual Render URL
   const BACKEND_URL = process.env.VITE_BACKEND_URL || "https://your-render-backend-url.onrender.com";
+
+  // Generate or retrieve user ID on component mount
+  useEffect(() => {
+    let storedUserId = localStorage.getItem("userId");
+    if (!storedUserId) {
+      storedUserId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem("userId", storedUserId);
+    }
+    setUserId(storedUserId);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +32,10 @@ export default function MatchupForm() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/matchup`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": userId
+        },
         body: JSON.stringify({
           team1,
           team2,
@@ -34,7 +48,7 @@ export default function MatchupForm() {
 
       if (data.success && data.data) {
         // Format the AI response nicely
-        setResult(data.data);
+        setResult(JSON.stringify(data.data, null, 2));
       } else if (data.error) {
         setResult(`Error: ${data.message || data.error}`);
       } else {
@@ -42,7 +56,7 @@ export default function MatchupForm() {
       }
     } catch (error) {
       console.error(error);
-      setResult("Error contacting backend. Please ensure your backend is running.");
+      setResult("Error contacting backend. This could be a CORS issue or the backend may be down. Please check your environment configuration.");
     } finally {
       setLoading(false);
     }
