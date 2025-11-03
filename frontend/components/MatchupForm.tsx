@@ -9,10 +9,10 @@ export default function MatchupForm() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState("");
 
-  // 🔹 Change this to your Render backend URL
-  // For development, you can use relative path if both are on same domain
-  // For production, use your actual Render URL
-  const BACKEND_URL = process.env.VITE_BACKEND_URL || "https://your-render-backend-url.onrender.com";
+  // Backend URL from environment variable
+  // For local development with proxy: use empty string to use relative paths
+  // For production: set VITE_BACKEND_URL in Vercel environment variables
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
   // Generate or retrieve user ID on component mount
   useEffect(() => {
@@ -56,7 +56,11 @@ export default function MatchupForm() {
       }
     } catch (error) {
       console.error(error);
-      setResult("Error contacting backend. This could be a CORS issue or the backend may be down. Please check your environment configuration.");
+      if (!BACKEND_URL && window.location.hostname !== 'localhost') {
+        setResult("Backend URL not configured. Please set VITE_BACKEND_URL environment variable in your deployment settings.");
+      } else {
+        setResult(`Error contacting backend: ${error instanceof Error ? error.message : 'Unknown error'}. This could be a CORS issue or the backend may be down. Please check your environment configuration.`);
+      }
     } finally {
       setLoading(false);
     }
