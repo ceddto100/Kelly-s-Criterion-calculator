@@ -1,4 +1,44 @@
 services:
+  # Backend API - Express Server with AI Matchup Analysis
+  - type: web
+    name: kelly-criterion-backend
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false
+        # Set in Render dashboard: MongoDB Atlas connection string
+        # Example: mongodb+srv://user:pass@cluster.mongodb.net/betting-calculator
+      - key: GEMINI_API_KEY
+        sync: false
+        # Required: Get from https://aistudio.google.com/app/apikey
+      - key: OPENAI_API_KEY
+        sync: false
+        # Required: Get from https://platform.openai.com/api-keys
+      - key: ANTHROPIC_API_KEY
+        sync: false
+        # Optional: Get from https://console.anthropic.com/settings/keys
+      - key: FRONTEND_URL
+        sync: false
+        # IMPORTANT: Set to your Vercel deployment URL
+        # Example: https://your-app.vercel.app
+      - key: ADMIN_KEY
+        sync: false
+        # Generate a secure random string for admin endpoints
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+    autoDeploy: true
+
   # MCP Server - Kelly Criterion Calculator
   - type: web
     name: kelly-criterion-mcp-server
