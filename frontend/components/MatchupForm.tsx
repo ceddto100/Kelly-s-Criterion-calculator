@@ -1,4 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+// Helper function to get or create a user ID
+function getUserId(): string {
+  const STORAGE_KEY = 'betting-calculator-user-id';
+  let userId = localStorage.getItem(STORAGE_KEY);
+
+  if (!userId) {
+    // Generate a random user ID
+    userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    localStorage.setItem(STORAGE_KEY, userId);
+  }
+
+  return userId;
+}
 
 export default function MatchupForm() {
   const [team1, setTeam1] = useState("");
@@ -7,6 +21,12 @@ export default function MatchupForm() {
   const [provider, setProvider] = useState("openai");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState("");
+
+  // Get or create user ID on mount
+  useEffect(() => {
+    setUserId(getUserId());
+  }, []);
 
   // 🔹 Change this to your Render backend URL
   // For development, you can use relative path if both are on same domain
@@ -21,7 +41,10 @@ export default function MatchupForm() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/matchup`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": userId
+        },
         body: JSON.stringify({
           team1,
           team2,
@@ -42,7 +65,7 @@ export default function MatchupForm() {
       }
     } catch (error) {
       console.error(error);
-      setResult("Error contacting backend. Please ensure your backend is running.");
+      setResult("Error contacting backend. Please ensure your backend is running and CORS is configured.");
     } finally {
       setLoading(false);
     }
