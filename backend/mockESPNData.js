@@ -1,5 +1,5 @@
 // mockESPNData.js - Mock ESPN data for demonstration and fallback
-// This provides sample team statistics when ESPN API is unavailable
+// This provides  sample team statistics when ESPN API is unavailable
 
 /**
  * Mock NBA team data
