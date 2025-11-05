@@ -123,8 +123,68 @@ app.get('/api/user/status', validateUserIdentifier, asyncHandler(async (req, res
   });
 }));
 
-// Perform Calculation (with token/free check)
-app.post('/api/calculate',
+// ==================== SIMPLE CALCULATE ENDPOINT (NO AUTH) ====================
+// This is the simple version from calculate.js - no authentication or token tracking
+app.post('/api/calculate', asyncHandler(async (req, res) => {
+  // 1. We only accept POST requests (already handled by Express routing)
+  
+  // 2. Get the prompt data from the frontend
+  const { prompt, systemInstruction } = req.body;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+
+  if (!prompt || !systemInstruction) {
+    return res.status(400).json({ message: 'Missing prompt or system instruction.' });
+  }
+
+  if (!geminiApiKey) {
+    return res.status(500).json({ message: 'API key not configured on the server.' });
+  }
+
+  // 3. Call the actual Gemini API from the secure server
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+          response_mime_type: "application/json",
+          temperature: 0.2
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      logger.error('Gemini API Error', { status: response.status, error: errorData });
+      throw new Error(`Google API failed with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // 4. Send the result back to the frontend
+    // The response is complex, we need to extract the text part
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!responseText) {
+      throw new Error('Invalid response from AI service');
+    }
+    
+    res.status(200).json({ text: responseText });
+
+  } catch (error) {
+    logger.error('Internal Server Error:', error);
+    res.status(500).json({ message: 'An error occurred while contacting the AI model.' });
+  }
+}));
+
+// ==================== AUTHENTICATED CALCULATE ENDPOINT (WITH TOKENS) ====================
+// Keep this as backup or for premium features
+app.post('/api/calculate-premium',
   validateUserIdentifier,
   validateRequest('calculate'),
   asyncHandler(async (req, res) => {
@@ -655,14 +715,15 @@ async function startServer() {
     // Connect to database first
     await connectDatabase();
 
-    // Start server
-    const PORT = process.env.PORT || 3000;
-    const server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`, {
-        environment: process.env.NODE_ENV || 'development',
-        port: PORT
-      });
-    });
+ // Start server
+const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'production'; // Default to production instead
+const server = app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`, {
+    environment: NODE_ENV,
+    port: PORT
+  });
+});
 
     // Setup graceful shutdown
     setupGracefulShutdown(server, require('./config/database').mongoose);
