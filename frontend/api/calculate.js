@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   // 2. Get the prompt dahta from the frontend
   const { prompt, systemInstruction } = req.body;
-  const geminiApiKey = process.env.API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
 
   if (!prompt || !systemInstruction) {
     return res.status(400).json({ message: 'Missing prompt or system instruction.' });
