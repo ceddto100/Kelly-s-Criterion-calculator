@@ -78,7 +78,7 @@ ${jsContent}
     console.log(`✓ Created ${widget.name} (${size} KB)`);
   });
 
-  console.log('\n✓ Build complete! Component HTML files are in component/dist/\n');
+  console.log('\n✓ Build complete! Component HTML files are in chatgpt-widgets/dist/\n');
 } catch (error) {
   console.error('Build failed:', error.message);
   process.exit(1);

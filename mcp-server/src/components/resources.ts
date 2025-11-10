@@ -27,7 +27,7 @@ export function registerComponentResources(server: McpServer) {
     async () => {
       // Try to load built component, fallback to placeholder
       try {
-        const componentPath = join(__dirname, '../../../component/dist/kelly-calculator.html');
+        const componentPath = join(__dirname, '../../../chatgpt-widgets/dist/kelly-calculator.html');
         const html = readFileSync(componentPath, 'utf8');
         return {
           contents: [{
@@ -74,7 +74,7 @@ export function registerComponentResources(server: McpServer) {
     {},
     async () => {
       try {
-        const componentPath = join(__dirname, '../../../component/dist/probability-estimator.html');
+        const componentPath = join(__dirname, '../../../chatgpt-widgets/dist/probability-estimator.html');
         const html = readFileSync(componentPath, 'utf8');
         return {
           contents: [{
@@ -121,7 +121,7 @@ export function registerComponentResources(server: McpServer) {
     {},
     async () => {
       try {
-        const componentPath = join(__dirname, '../../../component/dist/unit-calculator.html');
+        const componentPath = join(__dirname, '../../../chatgpt-widgets/dist/unit-calculator.html');
         const html = readFileSync(componentPath, 'utf8');
         return {
           contents: [{
