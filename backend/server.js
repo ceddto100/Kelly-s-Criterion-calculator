@@ -565,7 +565,7 @@ app.post('/api/matchup',
 // ==================== AI HELPER FUNCTIONS ====================
 
 /**
- * Fetch sports matchup stats using OpenAI Responses API
+ * Fetch sports matchup stats using OpenAI Responses API with ESPN web search
  */
 async function getStatsWithOpenAI({ sport, team1, team2, season }) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -576,46 +576,83 @@ async function getStatsWithOpenAI({ sport, team1, team2, season }) {
   const openai = new OpenAI({ apiKey });
 
   try {
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a sports statistics expert. Provide structured JSON data with comprehensive stats for sports matchups. Include team performance metrics, head-to-head history, recent f[...]`
-        },
-        {
-          role: 'user',
-          content: `Get detailed stats for ${team1} vs ${team2} in ${sport} for the ${season} season. Include:
-- Team records and standings
-- Head-to-head history
-- Recent performance (last 5-10 games)
-- Key player statistics
-- Home/away splits
-- Injury reports
-- Betting trends and insights
-- Kelly Criterion recommendations based on the data
+    // Prepare inputs for the prompt (using team_1, team_2 format for prompt)
+    const promptInputs = [
+      { "name": "sport", "value": sport },
+      { "name": "team_1", "value": team1 },
+      { "name": "team_2", "value": team2 },
+      { "name": "season", "value": season || "current" }
+    ];
 
-Return as structured JSON.`
+    // Call Responses API with web search enabled (ESPN only)
+    const response = await openai.responses.create({
+      prompt: {
+        "id": "pmpt_6905af86ea1081908331b1ff180c06310cbfdf46e0487b36",
+        "version": "3"
+      },
+      input: promptInputs,
+      text: {
+        "format": {
+          "type": "text"
+        }
+      },
+      reasoning: {},
+      tools: [
+        {
+          "type": "web_search_preview",
+          "filters": {
+            "allowed_domains": [
+              "www.espn.com"
+            ]
+          },
+          "search_context_size": "medium",
+          "user_location": {
+            "type": "approximate",
+            "city": null,
+            "country": null,
+            "region": null,
+            "timezone": null
+          }
         }
       ],
-      temperature: 0.2,
-      response_format: { type: "json_object" }
+      max_output_tokens: 2048,
+      store: true,
+      include: ["web_search_call.action.sources"]
     });
 
-    const output = response.choices[0]?.message?.content;
+    // Extract the response text (handle different response formats)
+    const output = response.output?.[0]?.content?.[0]?.text || response.text?.value;
+
     if (!output) {
-      throw new Error('No response from OpenAI');
+      logger.error('OpenAI Responses API returned unexpected format', { response });
+      throw new Error('No text output from OpenAI Responses API');
     }
 
-    // Parse JSON response
+    logger.info('OpenAI web search completed', {
+      sport,
+      teams: `${team1} vs ${team2}`,
+      sources: response.web_search_call?.action?.sources?.length || 0
+    });
+
+    // Try to parse as JSON, otherwise return structured data with raw text
     try {
       return JSON.parse(output);
     } catch (parseError) {
-      logger.warn('OpenAI returned non-JSON response, returning raw text', { output });
-      return { raw: output, warning: 'Response was not valid JSON' };
+      // Return as structured data with raw text and sources
+      return {
+        analysis: output,
+        sources: response.web_search_call?.action?.sources || [],
+        metadata: {
+          sport,
+          team1,
+          team2,
+          season: season || 'current',
+          timestamp: new Date().toISOString()
+        }
+      };
     }
   } catch (error) {
-    logger.error('OpenAI API error', {
+    logger.error('OpenAI Responses API error', {
       error: error.message,
       status: error.status,
       code: error.code
@@ -628,7 +665,7 @@ Return as structured JSON.`
       throw new Error('Invalid OpenAI API key');
     }
 
-    throw new Error(`OpenAI service error: ${error.message}`);
+    throw new Error(`OpenAI Responses API error: ${error.message}`);
   }
 }
 

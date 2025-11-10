@@ -6,6 +6,7 @@ export default function MatchupForm() {
   const [sport, setSport] = useState("Football");
   const [provider, setProvider] = useState("openai");
   const [result, setResult] = useState("");
+  const [sources, setSources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState("");
 
@@ -28,6 +29,7 @@ export default function MatchupForm() {
     e.preventDefault();
     setLoading(true);
     setResult("");
+    setSources([]);
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/matchup`, {
@@ -47,8 +49,14 @@ export default function MatchupForm() {
       const data = await res.json();
 
       if (data.success && data.data) {
-        // Format the AI response nicely
-        setResult(JSON.stringify(data.data, null, 2));
+        // Check if response has analysis format (from Responses API)
+        if (data.data.analysis) {
+          setResult(data.data.analysis);
+          setSources(data.data.sources || []);
+        } else {
+          // Original format (JSON object)
+          setResult(JSON.stringify(data.data, null, 2));
+        }
       } else if (data.error) {
         setResult(`Error: ${data.message || data.error}`);
       } else {
@@ -118,7 +126,7 @@ export default function MatchupForm() {
             onChange={(e) => setProvider(e.target.value)}
             className="input-field"
           >
-            <option value="openai">OpenAI (GPT-4)</option>
+            <option value="openai">OpenAI (GPT-4 + ESPN Search)</option>
             <option value="claude">Anthropic Claude</option>
           </select>
         </div>
@@ -138,6 +146,29 @@ export default function MatchupForm() {
           <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
             {result}
           </div>
+
+          {sources.length > 0 && (
+            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+              <h4 style={{ marginTop: 0, marginBottom: '0.75rem' }}>📊 ESPN Sources ({sources.length})</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {sources.map((source: any, index: number) => (
+                  <a
+                    key={index}
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: 'var(--accent-2)',
+                      textDecoration: 'none',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    🔗 {source.title || source.url}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
