@@ -10,6 +10,9 @@ import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
 import MatchupForm from "./forms/MatchupForm";
 
+/* === Backend URL configuration === */
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+
 /* =========================== Inline theme tweaks =========================== */
 const GlobalStyle = () => (
   <style>{`
@@ -84,7 +87,7 @@ const CONSTANTS = {
 
 /* ========================= API helper (Kelly insight) ====================== */
 async function fetchFromApi(prompt: string, systemInstruction: string) {
-  const response = await fetch('/api/calculate', {
+  const response = await fetch(`${BACKEND_URL}/api/calculate`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, systemInstruction }),
   });
