@@ -5,10 +5,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 
-/* === bring in your committed components === */
-import FootballEstimator from "./components/FootballEstimator";
-import BasketballEstimator from "./components/BasketballEstimator";
-import MatchupForm from "./components/MatchupForm";
+/* === bring in your committed form input components === */
+import FootballEstimator from "./forms/FootballEstimator";
+import BasketballEstimator from "./forms/BasketballEstimator";
+import MatchupForm from "./forms/MatchupForm";
 
 /* =========================== Inline theme tweaks =========================== */
 const GlobalStyle = () => (
