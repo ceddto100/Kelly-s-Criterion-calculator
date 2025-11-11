@@ -19,8 +19,6 @@ This is the legacy backend API for the Kelly's Criterion betting calculator. It 
 - Node.js 18+ or higher
 - MongoDB instance (local or cloud)
 - Gemini API key (for AI insights)
-- OpenAI API key (for AI-powered matchup analysis)
-- Anthropic API key (optional - for Claude-based matchup analysis)
 
 ## Setup
 
@@ -41,8 +39,6 @@ PORT=3000
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/betting-calculator
 GEMINI_API_KEY=your_gemini_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ADMIN_KEY=your_secure_admin_key_here
 FRONTEND_URL=http://localhost:5173
 ```
@@ -177,115 +173,6 @@ Get user's calculation history (last 50).
   ]
 }
 ```
-
-#### POST /api/matchup
-🆕 AI-powered sports matchup analysis using OpenAI or Claude.
-
-**Headers:**
-- `x-user-id` (optional): User identifier
-- `Content-Type`: application/json
-
-**Request Body:**
-```json
-{
-  "sport": "NBA",
-  "team1": "Los Angeles Lakers",
-  "team2": "Boston Celtics",
-  "season": "2024-2025",
-  "provider": "openai"
-}
-```
-
-**Parameters:**
-- `sport` (required): Sport type (e.g., "NBA", "NFL", "NHL")
-- `team1` (required): First team name
-- `team2` (required): Second team name
-- `season` (optional): Season identifier (defaults to "current")
-- `provider` (optional): AI provider - "openai" or "claude" (defaults to "openai")
-
-**Response:**
-```json
-{
-  "success": true,
-  "provider": "openai",
-  "data": {
-    "matchup": {
-      "team1": "Los Angeles Lakers",
-      "team2": "Boston Celtics",
-      "sport": "NBA"
-    },
-    "team_records": {
-      "Lakers": { "wins": 35, "losses": 20, "win_percentage": 0.636 },
-      "Celtics": { "wins": 42, "losses": 13, "win_percentage": 0.764 }
-    },
-    "head_to_head": {
-      "total_games": 15,
-      "Lakers_wins": 6,
-      "Celtics_wins": 9,
-      "last_5_games": "L-W-L-W-L"
-    },
-    "recent_form": {
-      "Lakers": { "last_10": "7-3", "streak": "W3" },
-      "Celtics": { "last_10": "8-2", "streak": "W5" }
-    },
-    "key_stats": {
-      "Lakers": { "ppg": 115.2, "opponent_ppg": 110.4 },
-      "Celtics": { "ppg": 118.5, "opponent_ppg": 108.1 }
-    },
-    "kelly_criterion_insights": {
-      "recommended_bet": "Celtics -5.5",
-      "confidence": "moderate",
-      "reasoning": "Strong recent form and home court advantage"
-    }
-  },
-  "timestamp": "2025-11-02T12:00:00.000Z"
-}
-```
-
-**Features:**
-- Uses OpenAI GPT-4o or Claude 3.5 Sonnet for analysis
-- Provides comprehensive team statistics and trends
-- Includes head-to-head history
-- Generates Kelly Criterion betting recommendations
-- Structured JSON responses for easy frontend integration
-- Fallback handling for non-JSON responses
-
-**Error Responses:**
-```json
-{
-  "error": "AI service configuration error",
-  "message": "The AI service is not properly configured. Please contact support."
-}
-```
-
-```json
-{
-  "error": "Rate limit exceeded",
-  "message": "Too many requests to the AI service. Please try again later."
-}
-```
-
-**Notes:**
-- This endpoint does NOT consume user tokens (no token cost)
-- Uses direct AI provider APIs (OpenAI or Anthropic)
-- Rate limits apply based on AI provider quotas
-- Provider can be switched via the `provider` parameter
-- Requires valid `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in environment
-
-#### POST /get_team_matchup_stats
-ESPN-based team matchup statistics (legacy endpoint).
-
-**Request Body:**
-```json
-{
-  "sport": "NBA",
-  "team_1": "Lakers",
-  "team_2": "Celtics",
-  "season": "2024"
-}
-```
-
-**Note:** This endpoint uses ESPN's public API for real-time sports data. Use `/api/matchup` for AI-powered analysis.
 
 ### Admin Endpoints
 
