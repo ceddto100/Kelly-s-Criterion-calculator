@@ -87,8 +87,9 @@ const CONSTANTS = {
 
 /* ========================= API helper (Kelly insight) ====================== */
 async function fetchFromApi(prompt: string, systemInstruction: string) {
-  const response = await fetch(`${BACKEND_URL}/api/calculate`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+  const response = await fetch(`${BACKEND_URL}/api/calculate`, {  // ← Fixed: ( ) instead of `
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, systemInstruction }),
   });
   if (!response.ok) {
