@@ -87,43 +87,6 @@ const CONSTANTS = {
 
 /* ========================= API helper (Kelly insight) ====================== */
 async function fetchFromApi(prompt: string, systemInstruction: string) {
-  const response = await fetch${BACKEND_URL}/api/calculate, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, systemInstruction }),
-  });
-  if (!response.ok) {
-    let message = 'API request failed';
-    try { const body = await response.json(); message = body.message || message; } catch {}
-    throw new Error(message);
-  }
-  return response.json();
-}
-
-Show less
-The issue is in your fetch call syntax. You're using backticks (`) instead of parentheses () for the function call:
-
-Current (incorrect):
-
-typescript
-const response = await fetch`${BACKEND_URL}/api/calculate`, {
-Should be:
-
-typescript
-const response = await fetch(`${BACKEND_URL}/api/calculate`, {
-This syntax error is causing the fetch to fail completely. The backtick without parentheses treats it as a tagged template literal instead of a function call with a URL string.
-
-Also, regarding your BACKEND_URL setup - looking at your code:
-
-typescript
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
-And your second screenshot shows VITE_BACKEND_URL is set in your environment variables, so that part should be fine. Just make sure:
-
-Fix the fetch syntax (main issue)
-Verify the URL is correct - since you have || "", if the env var isn't loading properly, it defaults to an empty string, which would make the request go to /api/calculate (relative path). This might actually work if your frontend and backend are on the same domain, but could fail in development.
-Quick fix:
-
-typescript
-async function fetchFromApi(prompt: string, systemInstruction: string) {
   const response = await fetch(`${BACKEND_URL}/api/calculate`, {  // ← Fixed: ( ) instead of `
     method: 'POST', 
     headers: { 'Content-Type': 'application/json' },
@@ -136,10 +99,6 @@ async function fetchFromApi(prompt: string, systemInstruction: string) {
   }
   return response.json();
 }
-That should fix your "Failed to fetch" error!
-
-
-
 
 /* ======================== Probability engine (Normal) ====================== */
 function normCdf(x: number): number {
