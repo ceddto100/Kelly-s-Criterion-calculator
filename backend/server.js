@@ -19,6 +19,75 @@ const {
 } = require('./middleware/errorHandler');
 // const { getTeamMatchupStats } = require('./espnService'); // <-- REMOVED THIS LINE
 
+const SPORT_PATH_MAP = {
+  nfl: { sport: 'football', league: 'nfl' },
+  'college-football': { sport: 'football', league: 'college-football' },
+  nba: { sport: 'basketball', league: 'nba' },
+  wnba: { sport: 'basketball', league: 'wnba' },
+  'mens-college-basketball': { sport: 'basketball', league: 'mens-college-basketball' },
+  'womens-college-basketball': { sport: 'basketball', league: 'womens-college-basketball' },
+  mlb: { sport: 'baseball', league: 'mlb' },
+  nhl: { sport: 'hockey', league: 'nhl' },
+};
+
+function resolveSportPath(rawSport) {
+  if (!rawSport || typeof rawSport !== 'string') return null;
+  const trimmed = rawSport.trim().toLowerCase();
+  if (trimmed.includes('/')) {
+    const [sport, league] = trimmed.split('/').map((part) => part.trim()).filter(Boolean);
+    if (sport && league) {
+      return { sport, league };
+    }
+  }
+  if (SPORT_PATH_MAP[trimmed]) {
+    return SPORT_PATH_MAP[trimmed];
+  }
+  return null;
+}
+
+function normalizeString(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findBestTeamMatch(teams, targetName) {
+  if (!Array.isArray(teams)) return null;
+  const normalizedTarget = normalizeString(targetName);
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const entry of teams) {
+    const team = entry?.team;
+    if (!team) continue;
+
+    const candidates = [team.displayName, team.name, team.shortDisplayName, team.abbreviation, team.nickname]
+      .filter(Boolean)
+      .map(normalizeString);
+
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      if (candidate === normalizedTarget) {
+        return team;
+      }
+      const overlap = candidate.split(' ').filter((word) => normalizedTarget.includes(word)).length;
+      if (overlap > bestScore) {
+        bestScore = overlap;
+        bestMatch = team;
+      }
+    }
+  }
+
+  if (!bestMatch && teams.length) {
+    return teams[0].team;
+  }
+
+  return bestMatch;
+}
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -176,6 +245,102 @@ app.post('/api/calculate', asyncHandler(async (req, res) => {
     logger.error('Internal Server Error:', error);
     res.status(500).json({ message: 'An error occurred while contacting the AI model.' });
   }
+}));
+
+app.post('/api/game-search', asyncHandler(async (req, res) => {
+  const { team_1, team_2, sport, season } = req.body || {};
+
+  if (![team_1, team_2, sport, season].every((value) => typeof value === 'string' && value.trim().length > 0)) {
+    return res.status(400).json({ message: 'Missing required fields: team_1, team_2, sport, season.' });
+  }
+
+  const sportPath = resolveSportPath(sport);
+  if (!sportPath) {
+    return res.status(400).json({ message: 'Unsupported sport. Provide a value like "nfl" or "football/nfl".' });
+  }
+
+  const seasonYear = parseInt(season, 10);
+  if (Number.isNaN(seasonYear)) {
+    return res.status(400).json({ message: 'Season must be a numeric year.' });
+  }
+
+  const baseUrl = `https://site.api.espn.com/apis/site/v2/sports/${sportPath.sport}/${sportPath.league}`;
+
+  const teamsResponse = await fetch(`${baseUrl}/teams?limit=1000`);
+  if (!teamsResponse.ok) {
+    throw new Error(`Failed to fetch teams from ESPN (${teamsResponse.status})`);
+  }
+  const teamsPayload = await teamsResponse.json();
+  const teams = teamsPayload?.sports?.[0]?.leagues?.[0]?.teams;
+
+  const teamOne = findBestTeamMatch(teams, team_1);
+  const teamTwo = findBestTeamMatch(teams, team_2);
+
+  if (!teamOne || !teamTwo) {
+    return res.status(404).json({ message: 'Could not match one or both teams on ESPN.' });
+  }
+
+  const scheduleResponse = await fetch(`${baseUrl}/teams/${teamOne.id}/schedule?season=${seasonYear}&seasontype=2`);
+  if (!scheduleResponse.ok) {
+    throw new Error(`Failed to fetch schedule from ESPN (${scheduleResponse.status})`);
+  }
+  const schedulePayload = await scheduleResponse.json();
+  const events = schedulePayload?.events || [];
+
+  const matchingEvent = events.find((event) => {
+    const competition = event?.competitions?.[0];
+    if (!competition?.competitors) return false;
+    return competition.competitors.some((competitor) => competitor?.team?.id === teamTwo.id);
+  });
+
+  if (!matchingEvent) {
+    return res.status(404).json({ message: 'No matching game found for the provided teams and season.' });
+  }
+
+  const competition = matchingEvent.competitions?.[0];
+  const competitors = competition?.competitors || [];
+  const competitorDetails = competitors.map((competitor) => ({
+    id: competitor?.team?.id,
+    name: competitor?.team?.displayName,
+    abbreviation: competitor?.team?.abbreviation,
+    logo: competitor?.team?.logo,
+    score: competitor?.score,
+    winner: competitor?.winner,
+    record: competitor?.records?.[0]?.summary,
+  }));
+
+  const notes = competition?.notes?.map((note) => note?.headline || note?.text).filter(Boolean) || [];
+  const odds = competition?.odds?.[0];
+
+  const responsePayload = {
+    success: true,
+    game: {
+      id: matchingEvent.id,
+      date: matchingEvent.date,
+      status: competition?.status?.type?.detail || competition?.status?.type?.description,
+      venue: competition?.venue?.fullName,
+      location: [competition?.venue?.address?.city, competition?.venue?.address?.state].filter(Boolean).join(', '),
+      season: matchingEvent.season?.year,
+      teams: competitorDetails,
+      headline: matchingEvent.name,
+      notes,
+      odds: odds
+        ? {
+            details: odds.details,
+            overUnder: odds.overUnder,
+            spread: odds.spread,
+            favorite: odds.favorite?.displayName,
+          }
+        : null,
+      links: matchingEvent.links?.filter((link) => Array.isArray(link.rel) && link.rel.includes('summary')).map((link) => ({
+        text: link.text,
+        href: link.href,
+      })),
+    },
+    requested: { team_1, team_2, sport: sportPath, season: seasonYear },
+  };
+
+  res.json(responsePayload);
 }));
 
 // ==================== AUTHENTICATED CALCULATE ENDPOINT (WITH TOKENS) ====================
