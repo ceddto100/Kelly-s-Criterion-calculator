@@ -8,7 +8,6 @@ import ReactDOM from 'react-dom/client';
 /* === bring in your committed form input components === */
 import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
-import MatchupForm from "./forms/MatchupForm";
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -81,7 +80,7 @@ const GlobalStyle = () => (
 
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
-  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit', AI_MATCHUP: 'ai-matchup' },
+  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit' },
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
 };
 
@@ -417,7 +416,6 @@ function App() {
               { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
               { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
               { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
-              { key: CONSTANTS.TABS.AI_MATCHUP, label: 'AI Matchup' },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -439,7 +437,6 @@ function App() {
         {activeTab === CONSTANTS.TABS.ESTIMATOR && (
           <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
         )}
-        {activeTab === CONSTANTS.TABS.AI_MATCHUP && <MatchupForm />}
       </div>
     </div>
   );
