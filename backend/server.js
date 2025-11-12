@@ -18,6 +18,9 @@ const {
   RateLimitError
 } = require('./middleware/errorHandler');
 
+// Import routes
+const chatkitSessionRoute = require('./routes/chatkitSession');
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -86,6 +89,9 @@ async function getOrCreateUser(identifier) {
 }
 
 // ==================== ROUTES ====================
+
+// Mount ChatKit session route
+app.use('/api/chatkit', chatkitSessionRoute);
 
 // Health Check
 app.get('/health', asyncHandler(async (req, res) => {
