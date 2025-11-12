@@ -6,9 +6,11 @@ import React from 'react';
 import { ChatKit, useChatKit } from '@openai/chatkit-react';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const CHATKIT_DOMAIN_PUBLIC_KEY = import.meta.env.VITE_CHATKIT_DOMAIN_PUBLIC_KEY || "domain_pk_6913ba67aad88190a6fef9a51e2d3f6108fb0c7c5b509380";
 
 export function ChatKitWidget() {
   const { control } = useChatKit({
+    publicKey: CHATKIT_DOMAIN_PUBLIC_KEY,
     api: {
       async getClientSecret(existing) {
         if (existing) {
@@ -41,7 +43,13 @@ export function ChatKitWidget() {
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
-      <ChatKit control={control} />
+      <ChatKit
+        control={control}
+        config={{
+          name: "StatScopeAI",
+          theme: "light" // or "dark" depending on your preference
+        }}
+      />
     </div>
   );
 }
