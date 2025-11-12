@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom/client';
 /* === bring in your committed form input components === */
 import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
+import { ChatKitWidget } from "./ChatKitWidget";
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -75,6 +76,7 @@ const GlobalStyle = () => (
     .analyst-insight{ margin-top:1rem; padding:1rem; border-radius:.8rem; background: rgba(2,6,23,.5); border:1px solid rgba(100,116,139,.3); }
 
     .container{ display:flex; flex-direction:column; gap:1rem; }
+    .chatkit-container{ position:fixed; bottom:20px; right:20px; z-index:1000; box-shadow: 0 10px 40px rgba(0,0,0,.5); border-radius:1rem; overflow:hidden; }
   `}</style>
 );
 
@@ -437,6 +439,11 @@ function App() {
         {activeTab === CONSTANTS.TABS.ESTIMATOR && (
           <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
         )}
+      </div>
+
+      {/* ChatKit Widget */}
+      <div className="chatkit-container">
+        <ChatKitWidget />
       </div>
     </div>
   );

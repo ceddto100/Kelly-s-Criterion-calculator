@@ -89,6 +89,51 @@ async function getOrCreateUser(identifier) {
 
 // ==================== ROUTES ====================
 
+// ChatKit Session Token Endpoint
+app.post('/api/chatkit/session', asyncHandler(async (req, res) => {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+
+  if (!openaiApiKey) {
+    return res.status(500).json({ message: 'OpenAI API key not configured on the server.' });
+  }
+
+  // Generate device ID from user identifier or use a default
+  const deviceId = req.headers['x-user-id'] || req.ip || 'anonymous';
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'OpenAI-Beta': 'chatkit_beta=v1',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        workflow: { id: 'wf_6913ae8d21588190822630566a8233ca0416772e440b6b71' },
+        user: deviceId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      logger.error('ChatKit API Error', { status: response.status, error: errorData });
+      throw new Error(`ChatKit API failed with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const { client_secret } = data;
+
+    if (!client_secret) {
+      throw new Error('No client_secret returned from ChatKit API');
+    }
+
+    res.json({ client_secret });
+  } catch (error) {
+    logger.error('ChatKit Session Error:', error);
+    res.status(500).json({ message: 'Failed to create ChatKit session.' });
+  }
+}));
+
 // Health Check
 app.get('/health', asyncHandler(async (req, res) => {
   const dbHealth = await checkDatabaseHealth();
