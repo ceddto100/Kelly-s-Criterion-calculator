@@ -18,10 +18,16 @@ const WORKFLOW_VERSION = "2";
  * Creates a new ChatKit session and returns a client secret
  */
 router.post('/session', async (req, res) => {
+  console.log('ChatKit session request received:', {
+    body: req.body,
+    hasApiKey: !!process.env.OPENAI_API_KEY
+  });
+
   const openaiKey = process.env.OPENAI_API_KEY;
 
   // Validate API key exists
   if (!openaiKey) {
+    console.error('OPENAI_API_KEY not configured');
     return res.status(500).json({
       error: 'OPENAI_API_KEY not configured on server'
     });
@@ -29,6 +35,8 @@ router.post('/session', async (req, res) => {
 
   try {
     // Call OpenAI ChatKit session API
+    console.log('Calling OpenAI ChatKit API...');
+    
     const response = await fetch('https://api.openai.com/v1/chatkit/sessions', {
       method: 'POST',
       headers: {
@@ -49,6 +57,12 @@ router.post('/session', async (req, res) => {
 
     const data = await response.json();
 
+    console.log('OpenAI ChatKit API response:', {
+      status: response.status,
+      ok: response.ok,
+      hasClientSecret: !!data.client_secret
+    });
+
     // Handle API errors
     if (!response.ok) {
       console.error('OpenAI ChatKit API Error:', {
@@ -56,7 +70,8 @@ router.post('/session', async (req, res) => {
         error: data
       });
       return res.status(response.status).json({
-        error: data.error || 'Failed to create ChatKit session'
+        error: data.error?.message || data.error || 'Failed to create ChatKit session',
+        details: data
       });
     }
 
@@ -64,9 +79,11 @@ router.post('/session', async (req, res) => {
     if (!data.client_secret) {
       console.error('Invalid ChatKit response - missing client_secret:', data);
       return res.status(500).json({
-        error: 'Invalid response from ChatKit API'
+        error: 'Invalid response from ChatKit API - missing client_secret'
       });
     }
+
+    console.log('ChatKit session created successfully');
 
     // Return only the client_secret to frontend
     res.json({
@@ -74,7 +91,10 @@ router.post('/session', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('ChatKit session creation error:', error);
+    console.error('ChatKit session creation error:', {
+      message: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       error: 'Internal server error creating ChatKit session',
       message: error.message
