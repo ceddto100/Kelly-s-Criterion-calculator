@@ -22,9 +22,6 @@ import { registerComponentResources } from './components/resources.js';
 // Import localization utilities
 import { negotiateLocale } from './utils/translations.js';
 
-// Import ChatKit route
-import chatkitRouter from './routes/chatkit.js';
-
 // Load environment variables
 dotenv.config();
 
@@ -81,9 +78,6 @@ registerKellyTool(mcpServer);
 registerFootballProbabilityTool(mcpServer);
 registerBasketballProbabilityTool(mcpServer);
 registerUnitBettingTool(mcpServer);
-
-// Mount ChatKit API route
-app.use('/api/chatkit', chatkitRouter);
 
 // Root discovery endpoint
 app.get('/', (req, res) => {

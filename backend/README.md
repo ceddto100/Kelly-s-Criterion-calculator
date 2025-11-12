@@ -114,28 +114,6 @@ Perform a calculation (Kelly Criterion, Probability, or Unit betting).
 }
 ```
 
-#### POST /api/chatkit/session
-Create a secure ChatKit session for the SportsBot AI widget.
-
-**Headers:**
-- `Content-Type`: application/json
-
-**Request Body:**
-```json
-{
-  "userId": "anonymous"
-}
-```
-
-**Response:**
-```json
-{
-  "client_secret": "chatkit_sess_client_secret_..."
-}
-```
-
-**Note:** This endpoint creates temporary session credentials for OpenAI's ChatKit widget. The client_secret should be used immediately and is not stored server-side.
-
 #### POST /api/tokens/purchase
 Purchase token packages.
 
