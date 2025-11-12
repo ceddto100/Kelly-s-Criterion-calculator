@@ -4,6 +4,9 @@
  */
 import { useEffect, useState } from "react";
 
+// Backend URL configuration - uses environment variable or falls back to relative path
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+
 export default function ChatKitWidget() {
   const [error, setError] = useState<string | null>(null);
 
@@ -11,7 +14,8 @@ export default function ChatKitWidget() {
     const initChatKit = async () => {
       try {
         // Fetch client_secret from backend
-        const response = await fetch('/api/chatkit/session', {
+        const apiUrl = BACKEND_URL ? `${BACKEND_URL}/api/chatkit/session` : '/api/chatkit/session';
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
