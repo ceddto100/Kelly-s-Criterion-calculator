@@ -76,7 +76,9 @@ const GlobalStyle = () => (
     .analyst-insight{ margin-top:1rem; padding:1rem; border-radius:.8rem; background: rgba(2,6,23,.5); border:1px solid rgba(100,116,139,.3); }
 
     .container{ display:flex; flex-direction:column; gap:1rem; }
-    .chatkit-container{ position:fixed; bottom:20px; right:20px; z-index:1000; box-shadow: 0 10px 40px rgba(0,0,0,.5); border-radius:1rem; overflow:hidden; }
+    .chatkit-container{ position:fixed; bottom:20px; right:20px; z-index:1000; width:320px; height:600px; box-shadow: 0 10px 40px rgba(0,0,0,.5); border-radius:1rem; overflow:visible; }
+    .chatkit-container > div,
+    .chatkit-container [data-chatkit-container]{ width:100%; height:100%; }
   `}</style>
 );
 
@@ -398,54 +400,56 @@ function App() {
   const [probability, setProbability] = useState('50');
 
   return (
-    <div className="site-bg">
-      <video autoPlay loop muted playsInline>
-        <source src="background.mp4" type="video/mp4" />
-      </video>
-      <div className="bg-overlay" />
-      <div className="blob blob-a" />
-      <div className="blob blob-b" />
+    <>
+      <div className="site-bg">
+        <video autoPlay loop muted playsInline>
+          <source src="background.mp4" type="video/mp4" />
+        </video>
+        <div className="bg-overlay" />
+        <div className="blob blob-a" />
+        <div className="blob blob-b" />
 
-      <div className="page-wrap">
-        <header className="header">
-          <h1 className="title">Kelly's Criterion Bet Calculator</h1>
-          <p className="subtitle">To apply Kelly's Criterion, first estimate your win probability—then size the stake to maximize long-term growth.</p>
-        </header>
+        <div className="page-wrap">
+          <header className="header">
+            <h1 className="title">Kelly's Criterion Bet Calculator</h1>
+            <p className="subtitle">To apply Kelly's Criterion, first estimate your win probability—then size the stake to maximize long-term growth.</p>
+          </header>
 
-        <div className="panel" style={{maxWidth:900}}>
-          <div className="tabs" role="tablist">
-            {[
-              { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
-              { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
-              { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
-            ].map(tab => (
-              <button
-                key={tab.key}
-                className={`tab ${activeTab === tab.key ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
-                aria-selected={activeTab === tab.key}
-                role="tab"
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="panel" style={{maxWidth:900}}>
+            <div className="tabs" role="tablist">
+              {[
+                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
+                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
+                { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  className={`tab ${activeTab === tab.key ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                  aria-selected={activeTab === tab.key}
+                  role="tab"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {activeTab === CONSTANTS.TABS.KELLY && (
-          <KellyCalculator probability={probability} setProbability={setProbability} />
-        )}
-        {activeTab === CONSTANTS.TABS.UNIT && <UnitBettingCalculator />}
-        {activeTab === CONSTANTS.TABS.ESTIMATOR && (
-          <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
-        )}
+          {activeTab === CONSTANTS.TABS.KELLY && (
+            <KellyCalculator probability={probability} setProbability={setProbability} />
+          )}
+          {activeTab === CONSTANTS.TABS.UNIT && <UnitBettingCalculator />}
+          {activeTab === CONSTANTS.TABS.ESTIMATOR && (
+            <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
+          )}
+        </div>
       </div>
 
-      {/* ChatKit Widget */}
+      {/* ChatKit Widget - moved outside site-bg to avoid overflow issues */}
       <div className="chatkit-container">
         <ChatKitWidget />
       </div>
-    </div>
+    </>
   );
 }
 
