@@ -5,7 +5,7 @@
 import React from 'react';
 import { ChatKit, useChatKit } from '@openai/chatkit-react';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export function ChatKitWidget() {
   const { control } = useChatKit({
@@ -16,22 +16,32 @@ export function ChatKitWidget() {
           // For now, we'll just fetch a new token
         }
 
-        const res = await fetch(`${BACKEND_URL}/api/chatkit/session`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/chatkit/session`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (!res.ok) {
-          throw new Error('Failed to get ChatKit session token');
+          if (!res.ok) {
+            console.error('ChatKit session fetch failed:', res.status, await res.text());
+            throw new Error('Failed to get ChatKit session token');
+          }
+
+          const { client_secret } = await res.json();
+          return client_secret;
+        } catch (error) {
+          console.error('ChatKit session error:', error);
+          throw error;
         }
-
-        const { client_secret } = await res.json();
-        return client_secret;
       },
     },
   });
 
-  return <ChatKit control={control} className="h-[600px] w-[320px]" />;
+  return (
+    <div style={{ width: '100%', height: '100%' }}>
+      <ChatKit control={control} />
+    </div>
+  );
 }
