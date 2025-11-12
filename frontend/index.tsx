@@ -80,7 +80,7 @@ const GlobalStyle = () => (
 
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
-  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit', GAME_SEARCH: 'game-search' },
+  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit' },
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
 };
 
@@ -157,17 +157,6 @@ const initialBasketballState = {
   teamReboundMargin: '', opponentReboundMargin: '',
   teamTurnoverMargin: '', opponentTurnoverMargin: '',
 };
-
-const GAME_SEARCH_SPORTS = [
-  { value: 'football/nfl', label: 'NFL' },
-  { value: 'college-football', label: 'College Football' },
-  { value: 'basketball/nba', label: 'NBA' },
-  { value: 'basketball/mens-college-basketball', label: "Men's College Basketball" },
-  { value: 'basketball/womens-college-basketball', label: "Women's College Basketball" },
-  { value: 'basketball/wnba', label: 'WNBA' },
-  { value: 'baseball/mlb', label: 'MLB' },
-  { value: 'hockey/nhl', label: 'NHL' },
-];
 
 /* ========================= Probability Estimator panel ===================== */
 function ProbabilityEstimator({
@@ -401,224 +390,6 @@ function UnitBettingCalculator() {
   );
 }
 
-/* ================================ Game Search ============================== */
-type GameSearchResult = {
-  success?: boolean;
-  message?: string;
-  game?: {
-    id: string;
-    date?: string;
-    status?: string;
-    venue?: string;
-    location?: string;
-    season?: number;
-    headline?: string;
-    notes?: string[];
-    teams?: Array<{
-      id?: string;
-      name?: string;
-      abbreviation?: string;
-      logo?: string;
-      score?: string;
-      winner?: boolean;
-      record?: string;
-    }>;
-    odds?: {
-      details?: string;
-      overUnder?: number;
-      spread?: number;
-      favorite?: string;
-    } | null;
-    links?: Array<{ text?: string; href?: string }> | null;
-  };
-};
-
-function GameSearchPanel() {
-  const [team1, setTeam1] = useState('');
-  const [team2, setTeam2] = useState('');
-  const [sport, setSport] = useState(GAME_SEARCH_SPORTS[0]?.value ?? '');
-  const [season, setSeason] = useState(new Date().getFullYear().toString());
-  const [isSearching, setIsSearching] = useState(false);
-  const [result, setResult] = useState<GameSearchResult | null>(null);
-
-  const isValid = team1.trim() && team2.trim() && sport.trim() && season.trim();
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!isValid) {
-      setResult({ message: 'All fields are required to search.' });
-      return;
-    }
-
-    setIsSearching(true);
-    setResult(null);
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/game-search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          team_1: team1.trim(),
-          team_2: team2.trim(),
-          sport: sport.trim(),
-          season: season.trim(),
-        }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.message || 'Game search failed.');
-      }
-      setResult(payload);
-    } catch (error: any) {
-      setResult({ message: error?.message || 'Game search failed.' });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const renderResult = () => {
-    if (!result) return null;
-    if (result.message && !result.success) {
-      return (
-        <div className="results no-value" role="alert">
-          <strong>{result.message}</strong>
-        </div>
-      );
-    }
-
-    const game = result.game;
-    if (!game) return null;
-    const primaryLink = game.links?.find((link) => Boolean(link?.href));
-
-    return (
-      <div className="results" role="region" aria-live="polite">
-        <h3 style={{ marginTop: 0 }}>{game.headline || 'Matchup Details'}</h3>
-        <p style={{ margin: '0.25rem 0' }}><strong>Status:</strong> {game.status || 'TBD'}</p>
-        <p style={{ margin: '0.25rem 0' }}><strong>Date:</strong> {game.date ? new Date(game.date).toLocaleString() : 'TBD'}</p>
-        {game.venue && (
-          <p style={{ margin: '0.25rem 0' }}><strong>Venue:</strong> {game.venue}{game.location ? ` (${game.location})` : ''}</p>
-        )}
-        {Array.isArray(game.teams) && game.teams.length > 0 && (
-          <div style={{ marginTop: '0.75rem', display: 'grid', gap: '0.75rem' }}>
-            {game.teams.map((team) => (
-              <div key={team.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                {team.logo && <img src={team.logo} alt={team.name || 'Team logo'} style={{ width: '36px', height: '36px', objectFit: 'contain', background: '#0f1836', borderRadius: '8px', padding: '4px' }} />}
-                <div>
-                  <strong>{team.name}</strong>{team.abbreviation ? ` (${team.abbreviation})` : ''}
-                  {team.record && <div style={{ color: 'var(--text-muted)', fontSize: '.85rem' }}>{team.record}</div>}
-                </div>
-                {team.score !== undefined && team.score !== null && team.score !== '' && (
-                  <div style={{ marginLeft: 'auto', fontSize: '1.25rem', fontWeight: 700 }}>
-                    {team.score}{team.winner ? ' ✅' : ''}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {game.odds && (
-          <div style={{ marginTop: '0.75rem' }}>
-            <p style={{ margin: '0.25rem 0' }}><strong>Odds:</strong> {game.odds.details || 'Unavailable'}</p>
-            <p style={{ margin: '0.25rem 0' }}>
-              {game.odds.spread !== undefined && <span>Spread: {game.odds.spread}</span>}{' '}
-              {game.odds.overUnder !== undefined && <span>Over/Under: {game.odds.overUnder}</span>}{' '}
-              {game.odds.favorite && <span>Favorite: {game.odds.favorite}</span>}
-            </p>
-          </div>
-        )}
-        {game.notes && game.notes.length > 0 && (
-          <div style={{ marginTop: '0.75rem' }}>
-            <strong>Notes</strong>
-            <ul>
-              {game.notes.map((note, index) => (
-                <li key={index}>{note}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {primaryLink && (
-          <div style={{ marginTop: '0.75rem' }}>
-            <a
-              href={primaryLink.href}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary"
-              style={{ display: 'inline-block', width: 'auto' }}
-            >
-              View on ESPN
-            </a>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="panel panel-strong">
-      <form onSubmit={handleSubmit} className="container" aria-label="Game search form">
-        <div className="input-group">
-          <label htmlFor="team1">Team 1<span aria-hidden="true">*</span></label>
-          <input
-            id="team1"
-            name="team1"
-            className="input-field"
-            value={team1}
-            onChange={(event) => setTeam1(event.target.value)}
-            placeholder="e.g., Kansas City Chiefs"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="team2">Team 2<span aria-hidden="true">*</span></label>
-          <input
-            id="team2"
-            name="team2"
-            className="input-field"
-            value={team2}
-            onChange={(event) => setTeam2(event.target.value)}
-            placeholder="e.g., Buffalo Bills"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="sport">Sport<span aria-hidden="true">*</span></label>
-          <select
-            id="sport"
-            name="sport"
-            className="input-field"
-            value={sport}
-            onChange={(event) => setSport(event.target.value)}
-            required
-          >
-            {GAME_SEARCH_SPORTS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="input-group">
-          <label htmlFor="season">Season (Year)<span aria-hidden="true">*</span></label>
-          <input
-            id="season"
-            name="season"
-            className="input-field"
-            value={season}
-            onChange={(event) => setSeason(event.target.value)}
-            type="number"
-            min="1950"
-            max="2100"
-            required
-          />
-        </div>
-        <button type="submit" className="btn-primary" disabled={!isValid || isSearching}>
-          {isSearching ? 'Searching…' : 'Game Search'}
-        </button>
-      </form>
-      {renderResult()}
-    </div>
-  );
-}
-
 /* ================================== App =================================== */
 function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
@@ -645,7 +416,6 @@ function App() {
               { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
               { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
               { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
-              { key: CONSTANTS.TABS.GAME_SEARCH, label: 'Game Search' },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -667,7 +437,6 @@ function App() {
         {activeTab === CONSTANTS.TABS.ESTIMATOR && (
           <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
         )}
-        {activeTab === CONSTANTS.TABS.GAME_SEARCH && <GameSearchPanel />}
       </div>
     </div>
   );
