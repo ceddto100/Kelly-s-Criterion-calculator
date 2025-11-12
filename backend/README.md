@@ -13,12 +13,14 @@ This is the legacy backend API for the Kelly's Criterion betting calculator. It 
 - Calculation history tracking
 - Admin statistics dashboard
 - Rate limiting and security middleware
+- OpenAI ChatKit session management for SportsBot AI widget
 
 ## Prerequisites
 
 - Node.js 18+ or higher
 - MongoDB instance (local or cloud)
-- Gemini API key (for AI insights)
+- Gemini API key (for Kelly Criterion AI calculations)
+- OpenAI API key (for ChatKit SportsBot AI widget)
 
 ## Setup
 
@@ -39,6 +41,7 @@ PORT=3000
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/betting-calculator
 GEMINI_API_KEY=your_gemini_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 ADMIN_KEY=your_secure_admin_key_here
 FRONTEND_URL=http://localhost:5173
 ```
@@ -110,6 +113,28 @@ Perform a calculation (Kelly Criterion, Probability, or Unit betting).
   "freeRemaining": 9
 }
 ```
+
+#### POST /api/chatkit/session
+Create a secure ChatKit session for the SportsBot AI widget.
+
+**Headers:**
+- `Content-Type`: application/json
+
+**Request Body:**
+```json
+{
+  "userId": "anonymous"
+}
+```
+
+**Response:**
+```json
+{
+  "client_secret": "chatkit_sess_client_secret_..."
+}
+```
+
+**Note:** This endpoint creates temporary session credentials for OpenAI's ChatKit widget. The client_secret should be used immediately and is not stored server-side.
 
 #### POST /api/tokens/purchase
 Purchase token packages.
