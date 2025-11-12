@@ -409,3 +409,14 @@ body::after {
       margin-top: 0.5rem;
   }
 }
+
+/* ChatKit Widget Styling */
+:root {
+  --chatkit-accent: #38bdf8;
+}
+
+.chatkit-widget {
+  font-family: "Inter", sans-serif;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+}

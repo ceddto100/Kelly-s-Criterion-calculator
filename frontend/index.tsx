@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom/client';
 /* === bring in your committed form input components === */
 import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
+import ChatKitWidget from "./components/ChatKitWidget";
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -397,6 +398,7 @@ function App() {
 
   return (
     <div className="site-bg">
+      <ChatKitWidget />
       <video autoPlay loop muted playsInline>
         <source src="background.mp4" type="video/mp4" />
       </video>
