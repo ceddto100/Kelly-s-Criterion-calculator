@@ -13,14 +13,12 @@ This is the legacy backend API for the Kelly's Criterion betting calculator. It 
 - Calculation history tracking
 - Admin statistics dashboard
 - Rate limiting and security middleware
-- OpenAI ChatKit session management for SportsBot AI widget
 
 ## Prerequisites
 
 - Node.js 18+ or higher
 - MongoDB instance (local or cloud)
 - Gemini API key (for Kelly Criterion AI calculations)
-- OpenAI API key (for ChatKit SportsBot AI widget)
 
 ## Setup
 
@@ -41,7 +39,6 @@ PORT=3000
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/betting-calculator
 GEMINI_API_KEY=your_gemini_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
 ADMIN_KEY=your_secure_admin_key_here
 FRONTEND_URL=http://localhost:5173
 ```
@@ -252,10 +249,6 @@ Get platform statistics.
 | NODE_ENV | No | development | Environment mode |
 | MONGODB_URI | Yes | - | MongoDB connection string |
 | GEMINI_API_KEY | No | - | Google Gemini API key (for AI insights) |
-| OPENAI_API_KEY | Yes | - | OpenAI API key (for /api/matchup endpoint) |
-| OPENAI_MODEL | No | gpt-4o | OpenAI model to use |
-| ANTHROPIC_API_KEY | No | - | Anthropic API key (for Claude provider) |
-| ANTHROPIC_MODEL | No | claude-3-5-sonnet-20241022 | Claude model to use |
 | ADMIN_KEY | Yes | - | Admin endpoint authentication |
 | FRONTEND_URL | No | * | CORS allowed origin |
 
