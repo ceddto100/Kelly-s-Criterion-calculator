@@ -337,6 +337,36 @@ function ProbabilityEstimator({
     setActiveTab(CONSTANTS.TABS.KELLY);
   };
 
+  const handleSwap = () => {
+    if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
+      setFootballStats({
+        teamPointsFor: footballStats.opponentPointsFor,
+        opponentPointsFor: footballStats.teamPointsFor,
+        teamPointsAgainst: footballStats.opponentPointsAgainst,
+        opponentPointsAgainst: footballStats.teamPointsAgainst,
+        teamOffYards: footballStats.opponentOffYards,
+        opponentOffYards: footballStats.teamOffYards,
+        teamDefYards: footballStats.opponentDefYards,
+        opponentDefYards: footballStats.teamDefYards,
+        teamTurnoverDiff: footballStats.opponentTurnoverDiff,
+        opponentTurnoverDiff: footballStats.teamTurnoverDiff,
+      });
+    } else {
+      setBasketballStats({
+        teamPointsFor: basketballStats.opponentPointsFor,
+        opponentPointsFor: basketballStats.teamPointsFor,
+        teamPointsAgainst: basketballStats.opponentPointsAgainst,
+        opponentPointsAgainst: basketballStats.teamPointsAgainst,
+        teamFgPct: basketballStats.opponentFgPct,
+        opponentFgPct: basketballStats.teamFgPct,
+        teamReboundMargin: basketballStats.opponentReboundMargin,
+        opponentReboundMargin: basketballStats.teamReboundMargin,
+        teamTurnoverMargin: basketballStats.opponentTurnoverMargin,
+        opponentTurnoverMargin: basketballStats.teamTurnoverMargin,
+      });
+    }
+  };
+
   return (
     <div className="panel panel-strong">
       <div className="tabs nested-tabs" role="tablist" aria-label="Sport selector">
@@ -397,9 +427,19 @@ function ProbabilityEstimator({
         />
       )}
 
-      <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid}>
-        Calculate Probability
-      </button>
+      <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
+        <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid} style={{flex:'1'}}>
+          Calculate Probability
+        </button>
+        <button
+          className="btn-secondary"
+          onClick={handleSwap}
+          style={{flex:'0 0 auto', minWidth:'150px'}}
+          title="Swap team and opponent values to see probability from the other perspective"
+        >
+          ⇄ Swap Teams
+        </button>
+      </div>
 
       {calculatedProb !== null && (
         <div className="results" role="status" aria-live="polite">
