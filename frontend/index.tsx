@@ -55,12 +55,19 @@ const GlobalStyle = () => (
       margin: 0 auto 1rem; max-width:900px; }
     .panel-strong{ background:var(--glass-strong); }
 
-    .input-group{ display:flex; flex-direction:column; gap:.35rem; margin-bottom:1rem; }
+    .input-group{ display:flex; flex-direction:column; gap:.35rem; margin-bottom:1rem; position:relative; }
     .input-field, select{ background:#0f1836; border:1px solid rgba(148,163,184,.35); color:var(--text);
-      padding:.65rem .75rem; border-radius:.6rem; outline:none; width:100%; }
+      padding:.65rem .75rem; border-radius:.6rem; outline:none; width:100%; transition: all 0.2s ease; }
     .input-field:focus, select:focus{ border-color:#818cf8; box-shadow: 0 0 0 3px rgba(99,102,241,.25); }
+    .input-field.valid{ border-color:#10b981; }
+    .input-field.invalid{ border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,.15); }
+    .error-message{ color:#ef4444; font-size:.8rem; margin-top:.25rem; display:flex; align-items:center; gap:.35rem; }
     .slider-group{ display:grid; grid-template-columns: 1fr; gap:.5rem; }
     .slider{ width:100%; accent-color:#6366f1; }
+    .help-icon{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+      border-radius:50%; background:rgba(99,102,241,.2); color:#a5b4fc; cursor:help; font-size:.75rem; font-weight:bold;
+      margin-left:.35rem; transition:.2s ease; }
+    .help-icon:hover{ background:rgba(99,102,241,.35); transform:scale(1.1); }
 
     .btn-primary, .btn-secondary{ border:none; cursor:pointer; padding:.75rem 1rem; border-radius:.8rem; font-weight:700; transition:.2s ease; width:100%; }
     .btn-primary{ background: linear-gradient(90deg, #4f46e5, #7c3aed); color:#fff; box-shadow: 0 10px 24px rgba(79,70,229,.35); }
@@ -69,12 +76,87 @@ const GlobalStyle = () => (
     .btn-secondary{ background: rgba(99,102,241,.14); color:#c7d2fe; border:1px solid rgba(99,102,241,.35); }
     .btn-secondary:hover{ background: rgba(99,102,241,.22); }
 
-    .results{ margin-top:1rem; padding:1rem; border-radius:.8rem; border:1px solid rgba(99,102,241,.35); background: rgba(30,27,75,.45); }
+    .results{ margin-top:1rem; padding:1rem; border-radius:.8rem; border:1px solid rgba(99,102,241,.35); background: rgba(30,27,75,.45);
+      animation: fadeInScale 0.3s ease-out; }
     .results.no-value{ background: rgba(127,29,29,.25); border-color: rgba(248,113,113,.35); }
+    .results.warning{ background: rgba(217,119,6,.15); border-color: rgba(251,191,36,.35); }
     .results-details{ color:#cbd5e1; margin-top:.35rem; }
+    .results h2{ font-size: clamp(1.75rem, 3vw, 2.5rem); margin:0.25rem 0 0.35rem; font-weight:800; }
     .analyst-insight{ margin-top:1rem; padding:1rem; border-radius:.8rem; background: rgba(2,6,23,.5); border:1px solid rgba(100,116,139,.3); }
 
     .container{ display:flex; flex-direction:column; gap:1rem; }
+
+    /* Animations */
+    @keyframes fadeInScale{ 0%{ opacity:0; transform:scale(0.95); } 100%{ opacity:1; transform:scale(1); } }
+    @keyframes spin{ 0%{ transform:rotate(0deg); } 100%{ transform:rotate(360deg); } }
+    @keyframes pulse-glow{ 0%,100%{ box-shadow: 0 8px 26px rgba(79,70,229,.35); } 50%{ box-shadow: 0 8px 38px rgba(79,70,229,.55); } }
+    @keyframes shimmer{ 0%{ background-position: -200% center; } 100%{ background-position: 200% center; } }
+
+    /* Loading states */
+    .loading-spinner{ display:inline-block; width:20px; height:20px; border:3px solid rgba(99,102,241,.2);
+      border-top-color:#6366f1; border-radius:50%; animation: spin 0.8s linear infinite; margin-right:.5rem; }
+    .skeleton{ background: linear-gradient(90deg, rgba(100,116,139,.2) 25%, rgba(100,116,139,.35) 50%, rgba(100,116,139,.2) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius:.6rem; height:1.2rem; margin:.5rem 0; }
+
+    /* Enhanced hover states */
+    .btn-secondary:hover, .tab:hover{ transform: translateY(-1px); }
+    .results:hover{ border-color: rgba(99,102,241,.5); }
+
+    /* Copy button */
+    .copy-btn{ background: rgba(99,102,241,.14); border:1px solid rgba(99,102,241,.35); color:#c7d2fe;
+      padding:.4rem .8rem; border-radius:.5rem; cursor:pointer; font-size:.85rem; font-weight:600;
+      transition:.2s ease; margin-top:.5rem; display:inline-flex; align-items:center; gap:.35rem; }
+    .copy-btn:hover{ background: rgba(99,102,241,.25); }
+    .toast{ position:fixed; bottom:2rem; right:2rem; background:#10b981; color:white; padding:.75rem 1.25rem;
+      border-radius:.6rem; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: fadeInScale 0.3s ease-out;
+      z-index:1000; font-weight:600; }
+
+    /* History panel */
+    .history-panel{ margin-top:1rem; padding:1rem; border-radius:.8rem; background: rgba(2,6,23,.5);
+      border:1px solid rgba(100,116,139,.3); }
+    .history-item{ padding:.6rem; border-radius:.5rem; background: rgba(30,27,75,.25); margin-bottom:.5rem;
+      font-size:.85rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+      transition:.2s ease; border:1px solid transparent; }
+    .history-item:hover{ background: rgba(30,27,75,.45); border-color: rgba(99,102,241,.25); }
+
+    /* Progress indicators */
+    .progress-container{ display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .progress-step{ display:flex; align-items:center; gap:.35rem; padding:.4rem .8rem; border-radius:.5rem;
+      background: rgba(100,116,139,.15); border:1px solid rgba(100,116,139,.25); font-size:.85rem;
+      color:var(--text-muted); }
+    .progress-step.completed{ background: rgba(16,185,129,.15); border-color:rgba(16,185,129,.35); color:#10b981; }
+    .progress-step.active{ background: rgba(99,102,241,.15); border-color:rgba(99,102,241,.35); color:#a5b4fc; }
+
+    /* Tooltips */
+    .tooltip{ position:relative; display:inline-block; }
+    .tooltip .tooltiptext{ visibility:hidden; width:220px; background:#1e293b; color:var(--text);
+      text-align:center; border-radius:.6rem; padding:.6rem; position:absolute; z-index:1;
+      bottom:125%; left:50%; margin-left:-110px; opacity:0; transition:.3s ease;
+      font-size:.85rem; border:1px solid rgba(100,116,139,.35); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+    .tooltip:hover .tooltiptext{ visibility:visible; opacity:1; }
+
+    /* Empty state */
+    .empty-state{ text-align:center; padding:2rem 1rem; color:var(--text-muted); }
+    .empty-state h3{ color:var(--text); margin-bottom:.5rem; }
+    .try-example-btn{ background: linear-gradient(90deg, #4f46e5, #7c3aed); color:#fff; border:none;
+      padding:.6rem 1.2rem; border-radius:.6rem; cursor:pointer; font-weight:600; margin-top:1rem;
+      transition:.2s ease; box-shadow: 0 6px 18px rgba(79,70,229,.25); }
+    .try-example-btn:hover{ filter: brightness(1.1); transform: translateY(-1px); }
+
+    /* Stats grid responsive */
+    .stats-grid{ display:grid; grid-template-columns: 2fr 1fr 1fr; gap:.75rem; align-items:center;
+      margin-bottom:1rem; }
+    .grid-header{ font-weight:700; color:#a5b4fc; margin:0; font-size:.9rem; }
+    @media (max-width: 640px) {
+      .stats-grid{ grid-template-columns: 1fr; gap:.5rem; }
+      .grid-header{ display:none; }
+      .stats-grid > span:nth-child(3n+1){ font-weight:600; color:#a5b4fc; margin-top:.75rem; }
+    }
+
+    /* Enhanced focus indicators */
+    button:focus-visible, input:focus-visible, select:focus-visible{
+      outline: 2px solid #818cf8; outline-offset: 2px;
+    }
   `}</style>
 );
 
@@ -143,14 +225,14 @@ const formatCurrency = (v: any) => isNaN(Number(v)) ? '$0.00' :
   new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v));
 
 /* local state shapes for controlled forms */
-const initialFootballState = {
+export const initialFootballState = {
   teamPointsFor: '', opponentPointsFor: '',
   teamPointsAgainst: '', opponentPointsAgainst: '',
   teamOffYards: '', opponentOffYards: '',
   teamDefYards: '', opponentDefYards: '',
   teamTurnoverDiff: '', opponentTurnoverDiff: '',
 };
-const initialBasketballState = {
+export const initialBasketballState = {
   teamPointsFor: '', opponentPointsFor: '',
   teamPointsAgainst: '', opponentPointsAgainst: '',
   teamFgPct: '', opponentFgPct: '',
@@ -161,20 +243,76 @@ const initialBasketballState = {
 /* ========================= Probability Estimator panel ===================== */
 function ProbabilityEstimator({
   setProbability,
-  setActiveTab
-}: { setProbability:(v:string)=>void; setActiveTab:(t:string)=>void }) {
-  const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
-  const [footballStats, setFootballStats] = useState(initialFootballState);
-  const [basketballStats, setBasketballStats] = useState(initialBasketballState);
-  const [pointSpread, setPointSpread] = useState<string>('');
-  const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
-  const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
+  setActiveTab,
+  activeSport,
+  setActiveSport,
+  footballStats,
+  setFootballStats,
+  basketballStats,
+  setBasketballStats,
+  pointSpread,
+  setPointSpread,
+  calculatedProb,
+  setCalculatedProb,
+  expectedDiff,
+  setExpectedDiff
+}: {
+  setProbability:(v:string)=>void;
+  setActiveTab:(t:string)=>void;
+  activeSport: string;
+  setActiveSport: (v:string)=>void;
+  footballStats: any;
+  setFootballStats: (v:any)=>void;
+  basketballStats: any;
+  setBasketballStats: (v:any)=>void;
+  pointSpread: string;
+  setPointSpread: (v:string)=>void;
+  calculatedProb: number|null;
+  setCalculatedProb: (v:number|null)=>void;
+  expectedDiff: number|null;
+  setExpectedDiff: (v:number|null)=>void;
+}) {
 
   const isFormValid = useMemo(() => {
     const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
     const ok = Object.values(current).every(v => v !== '');
     return ok && pointSpread !== '';
   }, [activeSport, footballStats, basketballStats, pointSpread]);
+
+  const progress = useMemo(() => {
+    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+    const filledFields = Object.values(current).filter(v => v !== '').length;
+    const totalFields = Object.keys(current).length;
+    const hasSpread = pointSpread !== '';
+    return {
+      stats: filledFields,
+      totalStats: totalFields,
+      spread: hasSpread,
+      allComplete: filledFields === totalFields && hasSpread
+    };
+  }, [activeSport, footballStats, basketballStats, pointSpread]);
+
+  const loadExample = () => {
+    if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
+      setFootballStats({
+        teamPointsFor: '28.5', opponentPointsFor: '24.2',
+        teamPointsAgainst: '21.3', opponentPointsAgainst: '26.8',
+        teamOffYards: '395', opponentOffYards: '362',
+        teamDefYards: '315', opponentDefYards: '385',
+        teamTurnoverDiff: '8', opponentTurnoverDiff: '-3'
+      });
+      setPointSpread('-6.5');
+    } else {
+      setBasketballStats({
+        teamPointsFor: '112.5', opponentPointsFor: '108.3',
+        teamPointsAgainst: '106.2', opponentPointsAgainst: '110.8',
+        teamFgPct: '47.8', opponentFgPct: '45.2',
+        teamReboundMargin: '4.2', opponentReboundMargin: '-1.5',
+        teamTurnoverMargin: '2.8', opponentTurnoverMargin: '-1.2'
+      });
+      setPointSpread('-4.5');
+    }
+  };
 
   const handleCalculate = () => {
     try {
@@ -208,10 +346,37 @@ function ProbabilityEstimator({
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
       </div>
 
+      {/* Progress indicators */}
+      <div className="progress-container">
+        <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
+          {progress.spread ? '✓' : '1'} Point Spread
+        </div>
+        <div className={`progress-step ${progress.allComplete ? 'completed' : progress.spread ? 'active' : ''}`}>
+          {progress.allComplete ? '✓' : progress.stats}/{progress.totalStats} Team Stats
+        </div>
+      </div>
+
+      {/* Empty state with example */}
+      {progress.stats === 0 && !pointSpread && (
+        <div className="empty-state">
+          <h3>Get Started</h3>
+          <p>Enter team statistics and point spread to calculate win probability</p>
+          <button className="try-example-btn" onClick={loadExample}>
+            Try Example Data
+          </button>
+        </div>
+      )}
+
       <div className="input-group">
-        <label htmlFor="pointSpread">Point Spread (Your Team)</label>
+        <label htmlFor="pointSpread">
+          Point Spread (Your Team)
+          <span className="tooltip">
+            <span className="help-icon">?</span>
+            <span className="tooltiptext">Negative = your team favored (e.g., -6.5 means your team must win by more than 6.5). Positive = underdog</span>
+          </span>
+        </label>
         <input id="pointSpread" type="number" name="pointSpread" value={pointSpread}
-               onChange={(e)=>setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" />
+               onChange={(e)=>setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" step="0.5" />
         <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
           Negative = your team favored, Positive = your team underdog
         </p>
@@ -255,14 +420,32 @@ function ProbabilityEstimator({
 }
 
 /* ============================== Kelly Calculator =========================== */
+type HistoryEntry = { bankroll:string; odds:string; probability:string; stake:number; timestamp:number };
+
 function KellyCalculator({ probability, setProbability }: { probability:string; setProbability:(v:string)=>void }) {
   const [bankroll, setBankroll] = useState('1000');
   const [odds, setOdds] = useState('150');
   const [fraction, setFraction] = useState('1');
   const [explanation, setExplanation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
 
-  const { stake, stakePercentage, hasValue } = useMemo(() => {
+  // Validation
+  const validation = useMemo(() => {
+    const numBankroll = parseFloat(bankroll);
+    const americanOdds = parseFloat(odds);
+    const numProbability = parseFloat(probability);
+
+    return {
+      bankroll: bankroll === '' ? null : (numBankroll > 0),
+      odds: odds === '' ? null : (americanOdds <= -100 || americanOdds >= 100),
+      probability: probability === '' ? null : (numProbability > 0 && numProbability < 100)
+    };
+  }, [bankroll, odds, probability]);
+
+  const { stake, stakePercentage, hasValue, isHighStake } = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
     const americanOdds = parseFloat(odds);
     const numProbability = parseFloat(probability) / 100;
@@ -271,14 +454,31 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     if (isNaN(numBankroll) || numBankroll <= 0 ||
         isNaN(americanOdds) || (americanOdds > -100 && americanOdds < 100) ||
         isNaN(numProbability) || numProbability <= 0 || numProbability >= 1) {
-      return { stake:0, stakePercentage:0, hasValue:false };
+      return { stake:0, stakePercentage:0, hasValue:false, isHighStake:false };
     }
     const decimalOdds = americanOdds > 0 ? (americanOdds/100)+1 : (100/Math.abs(americanOdds))+1;
     const b = decimalOdds - 1;
     const k = ((b * numProbability) - (1 - numProbability)) / b;
-    if (k <= 0) return { stake:0, stakePercentage:0, hasValue:false };
-    return { stake: numBankroll * k * numFraction, stakePercentage: k*100*numFraction, hasValue:true };
+    if (k <= 0) return { stake:0, stakePercentage:0, hasValue:false, isHighStake:false };
+    const calculatedStake = numBankroll * k * numFraction;
+    const calculatedPercentage = k*100*numFraction;
+    return {
+      stake: calculatedStake,
+      stakePercentage: calculatedPercentage,
+      hasValue:true,
+      isHighStake: calculatedPercentage > 10
+    };
   }, [bankroll, odds, probability, fraction]);
+
+  // Track calculation history
+  useEffect(() => {
+    if (hasValue && stake > 0) {
+      const newEntry: HistoryEntry = {
+        bankroll, odds, probability, stake, timestamp: Date.now()
+      };
+      setHistory(prev => [newEntry, ...prev.slice(0, 4)]); // Keep last 5
+    }
+  }, [stake, hasValue, bankroll, odds, probability]);
 
   useEffect(() => {
     if (!probability) return;
@@ -300,25 +500,95 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     return () => clearTimeout(t);
   }, [stake, stakePercentage, hasValue, bankroll, odds, probability]);
 
+  const handleCopyStake = () => {
+    navigator.clipboard.writeText(formatCurrency(stake));
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
+  const loadHistoryItem = (item: HistoryEntry) => {
+    setBankroll(item.bankroll);
+    setOdds(item.odds);
+    setProbability(item.probability);
+  };
+
+  const getValidationClass = (isValid: boolean|null) => {
+    if (isValid === null) return '';
+    return isValid ? 'valid' : 'invalid';
+  };
+
   return (
     <div className="panel">
       <div className="input-group">
-        <label htmlFor="bankroll">Bankroll</label>
-        <input id="bankroll" type="number" className="input-field" value={bankroll} onChange={(e)=>setBankroll(e.target.value)} placeholder="e.g., 1000" />
+        <label htmlFor="bankroll">
+          Bankroll
+          <span className="tooltip">
+            <span className="help-icon">?</span>
+            <span className="tooltiptext">Total amount of money available for betting</span>
+          </span>
+        </label>
+        <input
+          id="bankroll"
+          type="number"
+          className={`input-field ${getValidationClass(validation.bankroll)}`}
+          value={bankroll}
+          onChange={(e)=>setBankroll(e.target.value)}
+          placeholder="e.g., 1000"
+        />
+        {validation.bankroll === false && <div className="error-message">⚠ Bankroll must be positive</div>}
       </div>
+
       <div className="input-group">
-        <label htmlFor="odds">American Odds</label>
-        <input id="odds" type="number" className="input-field" value={odds} onChange={(e)=>setOdds(e.target.value)} placeholder="e.g., -110 or 150" />
+        <label htmlFor="odds">
+          American Odds
+          <span className="tooltip">
+            <span className="help-icon">?</span>
+            <span className="tooltiptext">Negative = favorite (e.g., -110), Positive = underdog (e.g., +150). Must be ≤-100 or ≥100</span>
+          </span>
+        </label>
+        <input
+          id="odds"
+          type="number"
+          className={`input-field ${getValidationClass(validation.odds)}`}
+          value={odds}
+          onChange={(e)=>setOdds(e.target.value)}
+          placeholder="e.g., -110 or 150"
+        />
+        {validation.odds === false && <div className="error-message">⚠ Odds must be ≤-100 or ≥100</div>}
       </div>
+
       <div className="input-group">
-        <label htmlFor="probability">Win Probability (%)</label>
+        <label htmlFor="probability">
+          Win Probability (%)
+          <span className="tooltip">
+            <span className="help-icon">?</span>
+            <span className="tooltiptext">Your estimated probability of winning (0-100%). Use the Probability Estimator to calculate this.</span>
+          </span>
+        </label>
         <div className="slider-group">
-          <input id="probability" type="number" className="input-field" value={probability} onChange={(e)=>setProbability(e.target.value)} min="0" max="100" step="0.1" />
+          <input
+            id="probability"
+            type="number"
+            className={`input-field ${getValidationClass(validation.probability)}`}
+            value={probability}
+            onChange={(e)=>setProbability(e.target.value)}
+            min="0"
+            max="100"
+            step="0.1"
+          />
           <input type="range" min="0" max="100" value={probability} step="0.1" className="slider" onChange={(e)=>setProbability(e.target.value)} />
         </div>
+        {validation.probability === false && <div className="error-message">⚠ Probability must be between 0 and 100</div>}
       </div>
+
       <div className="input-group">
-        <label htmlFor="fraction">Kelly Fraction</label>
+        <label htmlFor="fraction">
+          Kelly Fraction
+          <span className="tooltip">
+            <span className="help-icon">?</span>
+            <span className="tooltiptext">Fraction of Kelly recommendation to bet. Half Kelly (0.5x) reduces volatility. Quarter Kelly (0.25x) is very conservative.</span>
+          </span>
+        </label>
         <select id="fraction" className="input-field" value={fraction} onChange={(e)=>setFraction(e.target.value)}>
           <option value="1">Full Kelly (1x)</option>
           <option value="0.5">Half Kelly (0.5x)</option>
@@ -327,10 +597,16 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
       </div>
 
       {hasValue ? (
-        <div className="results">
+        <div className={`results ${isHighStake ? 'warning' : ''}`}>
           <p>Recommended Stake</p>
           <h2>{formatCurrency(stake)}</h2>
-          <div className="results-details"><span>{stakePercentage.toFixed(2)}% of Bankroll</span></div>
+          <div className="results-details">
+            <span>{stakePercentage.toFixed(2)}% of Bankroll</span>
+            {isHighStake && <div style={{marginTop:'.35rem', color:'#fbbf24'}}>⚠ High stake - consider reducing Kelly fraction</div>}
+          </div>
+          <button className="copy-btn" onClick={handleCopyStake}>
+            📋 Copy Stake
+          </button>
         </div>
       ) : (
         <div className="results no-value"><h2>No Value - Do Not Bet</h2></div>
@@ -338,9 +614,42 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
 
       <div className="analyst-insight">
         <h3 style={{marginTop:0}}>Analyst's Insight</h3>
-        {isGenerating && <p className="loading-text">Analyst is thinking...</p>}
-        {explanation && <p>{explanation}</p>}
+        {isGenerating && (
+          <p style={{display:'flex', alignItems:'center'}}>
+            <span className="loading-spinner"></span>
+            Analyst is analyzing your bet...
+          </p>
+        )}
+        {!isGenerating && explanation && <p>{explanation}</p>}
       </div>
+
+      {history.length > 0 && (
+        <div className="history-panel">
+          <h3 style={{marginTop:0, marginBottom:'.75rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <span>Recent Calculations</span>
+            <button
+              className="btn-secondary"
+              style={{width:'auto', padding:'.3rem .6rem', fontSize:'.8rem'}}
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              {showHistory ? 'Hide' : 'Show'}
+            </button>
+          </h3>
+          {showHistory && history.map((item, i) => (
+            <div key={item.timestamp} className="history-item" onClick={() => loadHistoryItem(item)}>
+              <div>
+                <strong>{formatCurrency(item.stake)}</strong>
+                <div style={{fontSize:'.75rem', color:'var(--text-muted)'}}>
+                  Bankroll: {formatCurrency(item.bankroll)} | Odds: {item.odds} | Prob: {item.probability}%
+                </div>
+              </div>
+              <span style={{fontSize:'.75rem', color:'var(--text-muted)'}}>Load</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showToast && <div className="toast">Copied {formatCurrency(stake)} to clipboard!</div>}
     </div>
   );
 }
@@ -395,6 +704,14 @@ function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
   const [probability, setProbability] = useState('50');
 
+  // Lift probability estimator state to App level to prevent data loss on tab switches
+  const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
+  const [footballStats, setFootballStats] = useState(initialFootballState);
+  const [basketballStats, setBasketballStats] = useState(initialBasketballState);
+  const [pointSpread, setPointSpread] = useState<string>('');
+  const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
+  const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
+
   return (
     <>
       <div className="site-bg">
@@ -436,7 +753,22 @@ function App() {
           )}
           {activeTab === CONSTANTS.TABS.UNIT && <UnitBettingCalculator />}
           {activeTab === CONSTANTS.TABS.ESTIMATOR && (
-            <ProbabilityEstimator setProbability={setProbability} setActiveTab={setActiveTab} />
+            <ProbabilityEstimator
+              setProbability={setProbability}
+              setActiveTab={setActiveTab}
+              activeSport={activeSport}
+              setActiveSport={setActiveSport}
+              footballStats={footballStats}
+              setFootballStats={setFootballStats}
+              basketballStats={basketballStats}
+              setBasketballStats={setBasketballStats}
+              pointSpread={pointSpread}
+              setPointSpread={setPointSpread}
+              calculatedProb={calculatedProb}
+              setCalculatedProb={setCalculatedProb}
+              expectedDiff={expectedDiff}
+              setExpectedDiff={setExpectedDiff}
+            />
           )}
         </div>
       </div>
