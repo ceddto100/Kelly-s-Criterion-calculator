@@ -1,9 +1,9 @@
-// scrapers/matchup.js - Combine all stats for a team matchup
-const { loadPage } = require('./utils');
+// scrapers/matchup.js - Combine all stats for a team matchup (CSV-based)
+const { loadCSV, findTeam } = require('../utils/loadCSV');
 
 /**
  * GET /api/matchup?teamA=Lakers&teamB=Warriors
- * Combines offensive, defensive, and differential stats for two teams
+ * Reads stats from CSV files updated by GitHub Actions
  */
 async function matchup(req, res) {
   try {
@@ -15,81 +15,41 @@ async function matchup(req, res) {
       });
     }
 
-    // Arrays to store scraped data
-    const offenseData = [];
-    const defenseData = [];
-    const diffData = [];
+    console.log(`🏀 Loading matchup: ${teamA} vs ${teamB} (from CSV files)`);
 
-    // Fetch all stats in parallel by scraping ESPN directly
-    const [offensePage, defensePage, diffPage] = await Promise.all([
-      loadPage('https://www.espn.com/nba/stats/team'),
-      loadPage('https://www.espn.com/nba/stats/team/_/view/opponent/table/offensive/sort/avgPoints/dir/asc'),
-      loadPage('https://www.espn.com/nba/stats/team/_/view/differential')
+    // Load all CSV files in parallel
+    const [ppgData, allowedData, fieldGoalData, reboundMarginData, turnoverMarginData] = await Promise.all([
+      loadCSV('ppg.csv'),
+      loadCSV('allowed.csv'),
+      loadCSV('fieldgoal.csv'),
+      loadCSV('rebound_margin.csv'),
+      loadCSV('turnover_margin.csv')
     ]);
 
-    // Parse offense stats
-    offensePage('table tbody tr').each((_, row) => {
-      const tds = offensePage(row).find('td');
-      if (tds.length > 0) {
-        const team = offensePage(tds[0]).text().trim();
-        const ppg = parseFloat(offensePage(tds[1]).text().trim());
-        if (team && !isNaN(ppg)) {
-          offenseData.push({ team, ppg });
-        }
-      }
-    });
-
-    // Parse defense stats
-    defensePage('table tbody tr').each((_, row) => {
-      const tds = defensePage(row).find('td');
-      if (tds.length > 0) {
-        const team = defensePage(tds[0]).text().trim();
-        const papg = parseFloat(defensePage(tds[1]).text().trim());
-        if (team && !isNaN(papg)) {
-          defenseData.push({ team, papg });
-        }
-      }
-    });
-
-    // Parse differential stats
-    diffPage('table tbody tr').each((_, row) => {
-      const tds = diffPage(row).find('td');
-      if (tds.length > 4) {
-        const team = diffPage(tds[0]).text().trim();
-        const reboundMargin = parseFloat(diffPage(tds[2]).text().trim());
-        const turnoverMargin = parseFloat(diffPage(tds[4]).text().trim());
-        if (team && !isNaN(reboundMargin) && !isNaN(turnoverMargin)) {
-          diffData.push({ team, reboundMargin, turnoverMargin });
-        }
-      }
-    });
-
     /**
-     * Find stats for a given team (case-insensitive partial match)
+     * Combine stats for a given team from all CSV files
      * @param {string} team - Team name to search for
      * @returns {object} - Combined stats for the team
      */
     function getStats(team) {
-      const teamLower = team.toLowerCase();
+      const ppgTeam = findTeam(ppgData, team);
+      const allowedTeam = findTeam(allowedData, team);
+      const fgTeam = findTeam(fieldGoalData, team);
+      const reboundTeam = findTeam(reboundMarginData, team);
+      const turnoverTeam = findTeam(turnoverMarginData, team);
 
-      const off = offenseData.find(t =>
-        t.team.toLowerCase().includes(teamLower)
-      ) || {};
-
-      const def = defenseData.find(t =>
-        t.team.toLowerCase().includes(teamLower)
-      ) || {};
-
-      const df = diffData.find(t =>
-        t.team.toLowerCase().includes(teamLower)
-      ) || {};
+      // If no data found for this team
+      if (!ppgTeam && !allowedTeam && !fgTeam && !reboundTeam && !turnoverTeam) {
+        return null;
+      }
 
       return {
-        team: off.team || def.team || df.team || team,
-        points_per_game: off.ppg || null,
-        points_allowed: def.papg || null,
-        rebound_margin: df.reboundMargin || null,
-        turnover_margin: df.turnoverMargin || null
+        team: ppgTeam?.team || allowedTeam?.team || fgTeam?.team || reboundTeam?.team || turnoverTeam?.team || team,
+        points_per_game: ppgTeam ? parseFloat(ppgTeam.ppg) : null,
+        points_allowed: allowedTeam ? parseFloat(allowedTeam.allowed) : null,
+        field_goal_pct: fgTeam ? parseFloat(fgTeam.fg_pct) : null,
+        rebound_margin: reboundTeam ? parseFloat(reboundTeam.rebound_margin) : null,
+        turnover_margin: turnoverTeam ? parseFloat(turnoverTeam.turnover_margin) : null
       };
     }
 
@@ -97,24 +57,37 @@ async function matchup(req, res) {
     const teamBStats = getStats(teamB);
 
     // Check if we found both teams
-    if (!teamAStats.points_per_game && !teamAStats.points_allowed) {
+    if (!teamAStats) {
       return res.status(404).json({
-        error: `Team "${teamA}" not found. Please check the team name.`
+        error: `Team "${teamA}" not found in CSV data. Please check the team name.`
       });
     }
 
-    if (!teamBStats.points_per_game && !teamBStats.points_allowed) {
+    if (!teamBStats) {
       return res.status(404).json({
-        error: `Team "${teamB}" not found. Please check the team name.`
+        error: `Team "${teamB}" not found in CSV data. Please check the team name.`
       });
     }
 
     res.json({
       teamA: teamAStats,
-      teamB: teamBStats
+      teamB: teamBStats,
+      dataSource: 'CSV files (updated every 12 hours via GitHub Actions)',
+      timestamp: new Date().toISOString()
     });
+
   } catch (error) {
-    console.error('Error in matchup scraper:', error);
+    console.error('🔥 Error in matchup route:', error);
+
+    // If CSV files don't exist yet, provide helpful error
+    if (error.message.includes('CSV file not found')) {
+      return res.status(503).json({
+        error: 'Stats data not available yet',
+        details: 'CSV files have not been generated. Please wait for the first GitHub Actions run or manually run: node scripts/updateNBAStats.js',
+        suggestion: 'The GitHub Actions workflow runs every 12 hours. You can also trigger it manually from the Actions tab.'
+      });
+    }
+
     res.status(500).json({
       error: 'Failed to retrieve matchup data',
       details: error.message

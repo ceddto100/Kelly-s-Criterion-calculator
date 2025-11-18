@@ -65,7 +65,7 @@ Keep it concise and data-driven.
 
 /**
  * Express route handler: GET /api/analyze?teamA=X&teamB=Y
- * Uses 3-tier fallback: ESPN API → HTML Scraping → Estimated Data
+ * Uses 3-tier fallback: CSV Files → ESPN API → Estimated Data
  */
 async function analyzeMatchupRoute(req, res) {
   try {
@@ -80,112 +80,86 @@ async function analyzeMatchupRoute(req, res) {
     let matchupData = null;
     let dataSource = 'unknown';
 
-    // STRATEGY 1: Try ESPN API first (most reliable)
+    // STRATEGY 1: Try CSV files first (fastest, updated every 12 hours)
     try {
-      console.log('📊 Strategy 1: Trying ESPN API...');
-      const { fetchNBATeamStats, findTeamByName } = require("../scrapers/nbaStatsApi");
+      console.log('📊 Strategy 1: Trying CSV files...');
+      const { loadCSV, findTeam } = require("../utils/loadCSV");
 
-      const allTeams = await fetchNBATeamStats();
-      const teamAStats = findTeamByName(allTeams, teamA);
-      const teamBStats = findTeamByName(allTeams, teamB);
+      const [ppgData, allowedData, fieldGoalData, reboundMarginData, turnoverMarginData] = await Promise.all([
+        loadCSV('ppg.csv'),
+        loadCSV('allowed.csv'),
+        loadCSV('fieldgoal.csv'),
+        loadCSV('rebound_margin.csv'),
+        loadCSV('turnover_margin.csv')
+      ]);
+
+      function getStatsFromCSV(team) {
+        const ppgTeam = findTeam(ppgData, team);
+        const allowedTeam = findTeam(allowedData, team);
+        const fgTeam = findTeam(fieldGoalData, team);
+        const reboundTeam = findTeam(reboundMarginData, team);
+        const turnoverTeam = findTeam(turnoverMarginData, team);
+
+        if (!ppgTeam && !allowedTeam && !fgTeam && !reboundTeam && !turnoverTeam) {
+          return null;
+        }
+
+        return {
+          team: ppgTeam?.team || allowedTeam?.team || fgTeam?.team || reboundTeam?.team || turnoverTeam?.team || team,
+          points_per_game: ppgTeam ? parseFloat(ppgTeam.ppg) : null,
+          points_allowed: allowedTeam ? parseFloat(allowedTeam.allowed) : null,
+          field_goal_pct: fgTeam ? parseFloat(fgTeam.fg_pct) : null,
+          rebound_margin: reboundTeam ? parseFloat(reboundTeam.rebound_margin) : null,
+          turnover_margin: turnoverTeam ? parseFloat(turnoverTeam.turnover_margin) : null
+        };
+      }
+
+      const teamAStats = getStatsFromCSV(teamA);
+      const teamBStats = getStatsFromCSV(teamB);
 
       if (teamAStats && teamBStats) {
-        matchupData = {
-          teamA: {
-            team: teamAStats.name,
-            points_per_game: teamAStats.stats.pointsPerGame,
-            points_allowed: teamAStats.stats.pointsAllowed,
-            field_goal_pct: teamAStats.stats.fieldGoalPct,
-            rebounds_per_game: teamAStats.stats.reboundsPerGame,
-            turnovers_per_game: teamAStats.stats.turnoversPerGame
-          },
-          teamB: {
-            team: teamBStats.name,
-            points_per_game: teamBStats.stats.pointsPerGame,
-            points_allowed: teamBStats.stats.pointsAllowed,
-            field_goal_pct: teamBStats.stats.fieldGoalPct,
-            rebounds_per_game: teamBStats.stats.reboundsPerGame,
-            turnovers_per_game: teamBStats.stats.turnoversPerGame
-          }
-        };
-        dataSource = 'ESPN API';
-        console.log('✅ Successfully fetched data from ESPN API');
+        matchupData = { teamA: teamAStats, teamB: teamBStats };
+        dataSource = 'CSV files (updated every 12 hours via GitHub Actions)';
+        console.log('✅ Successfully loaded data from CSV files');
       }
-    } catch (apiError) {
-      console.warn('⚠️ ESPN API failed:', apiError.message);
+    } catch (csvError) {
+      console.warn('⚠️ CSV loading failed:', csvError.message);
     }
 
-    // STRATEGY 2: Fall back to HTML scraping if API failed
+    // STRATEGY 2: Fall back to ESPN API if CSV failed
     if (!matchupData) {
-      console.log('📊 Strategy 2: Trying HTML scraping...');
+      console.log('📊 Strategy 2: Trying ESPN API...');
       try {
-        const { loadPage } = require("../scrapers/utils");
+        const { fetchNBATeamStats, findTeamByName } = require("../scrapers/nbaStatsApi");
 
-        const [offensePage, defensePage, diffPage] = await Promise.all([
-          loadPage("https://www.espn.com/nba/stats/team"),
-          loadPage("https://www.espn.com/nba/stats/team/_/view/opponent/table/offensive/sort/avgPoints/dir/asc"),
-          loadPage("https://www.espn.com/nba/stats/team/_/view/differential")
-        ]);
+        const allTeams = await fetchNBATeamStats();
+        const teamAStats = findTeamByName(allTeams, teamA);
+        const teamBStats = findTeamByName(allTeams, teamB);
 
-        const offenseData = [];
-        offensePage("table tbody tr").each((_, row) => {
-          const tds = offensePage(row).find("td");
-          if (tds.length > 1) {
-            offenseData.push({
-              team: offensePage(tds[0]).text().trim(),
-              ppg: parseFloat(offensePage(tds[1]).text().trim())
-            });
-          }
-        });
-
-        const defenseData = [];
-        defensePage("table tbody tr").each((_, row) => {
-          const tds = defensePage(row).find("td");
-          if (tds.length > 1) {
-            defenseData.push({
-              team: defensePage(tds[0]).text().trim(),
-              papg: parseFloat(defensePage(tds[1]).text().trim())
-            });
-          }
-        });
-
-        const diffData = [];
-        diffPage("table tbody tr").each((_, row) => {
-          const tds = diffPage(row).find("td");
-          if (tds.length > 4) {
-            diffData.push({
-              team: diffPage(tds[0]).text().trim(),
-              reboundMargin: parseFloat(diffPage(tds[2]).text().trim()),
-              turnoverMargin: parseFloat(diffPage(tds[4]).text().trim())
-            });
-          }
-        });
-
-        function getStats(name) {
-          const key = name.toLowerCase();
-          const off = offenseData.find(t => t.team.toLowerCase().includes(key)) || {};
-          const def = defenseData.find(t => t.team.toLowerCase().includes(key)) || {};
-          const df = diffData.find(t => t.team.toLowerCase().includes(key)) || {};
-
-          return {
-            team: off.team || def.team || df.team || name,
-            points_per_game: off.ppg ?? null,
-            points_allowed: def.papg ?? null,
-            rebound_margin: df.reboundMargin ?? null,
-            turnover_margin: df.turnoverMargin ?? null
+        if (teamAStats && teamBStats) {
+          matchupData = {
+            teamA: {
+              team: teamAStats.name,
+              points_per_game: teamAStats.stats.pointsPerGame,
+              points_allowed: teamAStats.stats.pointsAllowed,
+              field_goal_pct: teamAStats.stats.fieldGoalPct,
+              rebounds_per_game: teamAStats.stats.reboundsPerGame,
+              turnovers_per_game: teamAStats.stats.turnoversPerGame
+            },
+            teamB: {
+              team: teamBStats.name,
+              points_per_game: teamBStats.stats.pointsPerGame,
+              points_allowed: teamBStats.stats.pointsAllowed,
+              field_goal_pct: teamBStats.stats.fieldGoalPct,
+              rebounds_per_game: teamBStats.stats.reboundsPerGame,
+              turnovers_per_game: teamBStats.stats.turnoversPerGame
+            }
           };
+          dataSource = 'ESPN API (live fallback)';
+          console.log('✅ Successfully fetched data from ESPN API');
         }
-
-        const teamAStats = getStats(teamA);
-        const teamBStats = getStats(teamB);
-
-        if (teamAStats.points_per_game || teamBStats.points_per_game) {
-          matchupData = { teamA: teamAStats, teamB: teamBStats };
-          dataSource = 'HTML Scraping';
-          console.log('✅ Successfully scraped data from ESPN HTML');
-        }
-      } catch (scrapeError) {
-        console.warn('⚠️ HTML scraping failed:', scrapeError.message);
+      } catch (apiError) {
+        console.warn('⚠️ ESPN API failed:', apiError.message);
       }
     }
 
@@ -210,7 +184,7 @@ async function analyzeMatchupRoute(req, res) {
           note: "Stats unavailable - using league averages"
         }
       };
-      dataSource = 'Estimated (ESPN unavailable)';
+      dataSource = 'Estimated (Data sources unavailable)';
       console.log('⚠️ Using fallback estimated data');
     }
 
