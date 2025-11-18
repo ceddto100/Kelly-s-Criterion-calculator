@@ -338,6 +338,7 @@ function ProbabilityEstimator({
   };
 
   const handleSwap = () => {
+    // Swap team and opponent stats
     if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
       setFootballStats({
         teamPointsFor: footballStats.opponentPointsFor,
@@ -364,6 +365,14 @@ function ProbabilityEstimator({
         teamTurnoverMargin: basketballStats.opponentTurnoverMargin,
         opponentTurnoverMargin: basketballStats.teamTurnoverMargin,
       });
+    }
+
+    // Flip the point spread sign (favorite becomes underdog and vice versa)
+    if (pointSpread !== '') {
+      const currentSpread = parseFloat(pointSpread);
+      if (!isNaN(currentSpread)) {
+        setPointSpread((-currentSpread).toString());
+      }
     }
   };
 
