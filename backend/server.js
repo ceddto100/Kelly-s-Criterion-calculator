@@ -26,6 +26,7 @@ const defense = require('./scrapers/defense');
 const differential = require('./scrapers/differential');
 const matchup = require('./scrapers/matchup');
 const { analyzeMatchupRoute } = require('./groq/chat');
+const { fetchNBATeamStats, findTeamByName } = require('./scrapers/nbaStatsApi');
 
 const app = express();
 
@@ -433,6 +434,52 @@ app.get('/api/matchup', asyncHandler(matchup));
 
 // Get AI-powered matchup analysis using Groq
 app.get('/api/analyze', asyncHandler(analyzeMatchupRoute));
+
+// Health check for sports API
+app.get('/api/sports/health', asyncHandler(async (req, res) => {
+  const results = {
+    timestamp: new Date().toISOString(),
+    tests: {}
+  };
+
+  // Test ESPN API
+  try {
+    const teams = await fetchNBATeamStats();
+    results.tests.espnApi = {
+      status: 'healthy',
+      teams: teams.length,
+      message: 'ESPN API is accessible'
+    };
+  } catch (error) {
+    results.tests.espnApi = {
+      status: 'unhealthy',
+      error: error.message
+    };
+  }
+
+  // Test Groq
+  try {
+    const groqKey = process.env.GROQ_API_KEY;
+    results.tests.groq = {
+      status: groqKey ? 'configured' : 'unconfigured',
+      message: groqKey ? 'Groq API key is set' : 'Groq API key missing'
+    };
+  } catch (error) {
+    results.tests.groq = {
+      status: 'error',
+      error: error.message
+    };
+  }
+
+  const overallHealth = Object.values(results.tests).every(
+    test => test.status === 'healthy' || test.status === 'configured'
+  );
+
+  res.status(overallHealth ? 200 : 503).json({
+    status: overallHealth ? 'healthy' : 'degraded',
+    ...results
+  });
+}));
 
 // ==================== ERROR HANDLING ====================
 
