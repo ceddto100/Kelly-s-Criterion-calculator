@@ -477,7 +477,6 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
   const [fraction, setFraction] = useState('1');
   const [explanation, setExplanation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showToast, setShowToast] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -494,7 +493,7 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     };
   }, [bankroll, odds, probability]);
 
-  const { stake, stakePercentage, hasValue, isHighStake } = useMemo(() => {
+  const { stake, stakePercentage, hasValue } = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
     const americanOdds = parseFloat(odds);
     const numProbability = parseFloat(probability) / 100;
@@ -503,19 +502,18 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     if (isNaN(numBankroll) || numBankroll <= 0 ||
         isNaN(americanOdds) || (americanOdds > -100 && americanOdds < 100) ||
         isNaN(numProbability) || numProbability <= 0 || numProbability >= 1) {
-      return { stake:0, stakePercentage:0, hasValue:false, isHighStake:false };
+      return { stake:0, stakePercentage:0, hasValue:false };
     }
     const decimalOdds = americanOdds > 0 ? (americanOdds/100)+1 : (100/Math.abs(americanOdds))+1;
     const b = decimalOdds - 1;
     const k = ((b * numProbability) - (1 - numProbability)) / b;
-    if (k <= 0) return { stake:0, stakePercentage:0, hasValue:false, isHighStake:false };
+    if (k <= 0) return { stake:0, stakePercentage:0, hasValue:false };
     const calculatedStake = numBankroll * k * numFraction;
     const calculatedPercentage = k*100*numFraction;
     return {
       stake: calculatedStake,
       stakePercentage: calculatedPercentage,
-      hasValue:true,
-      isHighStake: calculatedPercentage > 10
+      hasValue:true
     };
   }, [bankroll, odds, probability, fraction]);
 
@@ -548,12 +546,6 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     const t = setTimeout(getExplanation, 500);
     return () => clearTimeout(t);
   }, [stake, stakePercentage, hasValue, bankroll, odds, probability]);
-
-  const handleCopyStake = () => {
-    navigator.clipboard.writeText(formatCurrency(stake));
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
 
   const loadHistoryItem = (item: HistoryEntry) => {
     setBankroll(item.bankroll);
@@ -646,16 +638,12 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
       </div>
 
       {hasValue ? (
-        <div className={`results ${isHighStake ? 'warning' : ''}`}>
+        <div className="results">
           <p>Recommended Stake</p>
           <h2>{formatCurrency(stake)}</h2>
           <div className="results-details">
             <span>{stakePercentage.toFixed(2)}% of Bankroll</span>
-            {isHighStake && <div style={{marginTop:'.35rem', color:'#fbbf24'}}>⚠ High stake - consider reducing Kelly fraction</div>}
           </div>
-          <button className="copy-btn" onClick={handleCopyStake}>
-            📋 Copy Stake
-          </button>
         </div>
       ) : (
         <div className="results no-value"><h2>No Value - Do Not Bet</h2></div>
@@ -697,8 +685,6 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
           ))}
         </div>
       )}
-
-      {showToast && <div className="toast">Copied {formatCurrency(stake)} to clipboard!</div>}
     </div>
   );
 }
