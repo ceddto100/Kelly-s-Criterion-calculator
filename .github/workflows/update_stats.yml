@@ -25,7 +25,7 @@ jobs:
           npm install
 
       - name: Run NBA stats update script
-        run: node scripts/updateNBAStats.js
+        run: NODE_PATH=backend/node_modules node scripts/updateNBAStats.js
 
       - name: Commit and push updated CSV files
         run: |
