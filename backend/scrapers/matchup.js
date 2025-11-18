@@ -1,5 +1,5 @@
 // scrapers/matchup.js - Combine all stats for a team matchup
-const axios = require('axios');
+const { loadPage } = require('./utils');
 
 /**
  * GET /api/matchup?teamA=Lakers&teamB=Warriors
@@ -15,12 +15,54 @@ async function matchup(req, res) {
       });
     }
 
-    // Fetch all stats in parallel
-    const [offense, defense, diff] = await Promise.all([
-      axios.get('http://localhost:3000/api/offense'),
-      axios.get('http://localhost:3000/api/defense'),
-      axios.get('http://localhost:3000/api/differential'),
+    // Arrays to store scraped data
+    const offenseData = [];
+    const defenseData = [];
+    const diffData = [];
+
+    // Fetch all stats in parallel by scraping ESPN directly
+    const [offensePage, defensePage, diffPage] = await Promise.all([
+      loadPage('https://www.espn.com/nba/stats/team'),
+      loadPage('https://www.espn.com/nba/stats/team/_/view/opponent/table/offensive/sort/avgPoints/dir/asc'),
+      loadPage('https://www.espn.com/nba/stats/team/_/view/differential')
     ]);
+
+    // Parse offense stats
+    offensePage('table tbody tr').each((_, row) => {
+      const tds = offensePage(row).find('td');
+      if (tds.length > 0) {
+        const team = offensePage(tds[0]).text().trim();
+        const ppg = parseFloat(offensePage(tds[1]).text().trim());
+        if (team && !isNaN(ppg)) {
+          offenseData.push({ team, ppg });
+        }
+      }
+    });
+
+    // Parse defense stats
+    defensePage('table tbody tr').each((_, row) => {
+      const tds = defensePage(row).find('td');
+      if (tds.length > 0) {
+        const team = defensePage(tds[0]).text().trim();
+        const papg = parseFloat(defensePage(tds[1]).text().trim());
+        if (team && !isNaN(papg)) {
+          defenseData.push({ team, papg });
+        }
+      }
+    });
+
+    // Parse differential stats
+    diffPage('table tbody tr').each((_, row) => {
+      const tds = diffPage(row).find('td');
+      if (tds.length > 4) {
+        const team = diffPage(tds[0]).text().trim();
+        const reboundMargin = parseFloat(diffPage(tds[2]).text().trim());
+        const turnoverMargin = parseFloat(diffPage(tds[4]).text().trim());
+        if (team && !isNaN(reboundMargin) && !isNaN(turnoverMargin)) {
+          diffData.push({ team, reboundMargin, turnoverMargin });
+        }
+      }
+    });
 
     /**
      * Find stats for a given team (case-insensitive partial match)
@@ -30,15 +72,15 @@ async function matchup(req, res) {
     function getStats(team) {
       const teamLower = team.toLowerCase();
 
-      const off = offense.data.find(t =>
+      const off = offenseData.find(t =>
         t.team.toLowerCase().includes(teamLower)
       ) || {};
 
-      const def = defense.data.find(t =>
+      const def = defenseData.find(t =>
         t.team.toLowerCase().includes(teamLower)
       ) || {};
 
-      const df = diff.data.find(t =>
+      const df = diffData.find(t =>
         t.team.toLowerCase().includes(teamLower)
       ) || {};
 
