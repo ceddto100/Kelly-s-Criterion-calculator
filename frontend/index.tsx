@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom/client';
 /* === bring in your committed form input components === */
 import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
+import SportsMatchup from "./forms/SportsMatchup";
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -157,12 +158,62 @@ const GlobalStyle = () => (
     button:focus-visible, input:focus-visible, select:focus-visible{
       outline: 2px solid #818cf8; outline-offset: 2px;
     }
+
+    /* ==================== Sports Matchup Chat Styles ==================== */
+    .sports-matchup-container{ display:flex; flex-direction:column; height:600px; max-height:70vh; }
+
+    .quick-examples{ display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;
+      padding:.75rem; background: rgba(2,6,23,.5); border-radius:.6rem; border:1px solid rgba(100,116,139,.3); }
+    .example-btn{ background: rgba(99,102,241,.14); border:1px solid rgba(99,102,241,.35); color:#c7d2fe;
+      padding:.35rem .75rem; border-radius:.5rem; cursor:pointer; font-size:.8rem; font-weight:600;
+      transition:.2s ease; }
+    .example-btn:hover{ background: rgba(99,102,241,.25); transform: translateY(-1px); }
+
+    .chat-messages{ flex:1; overflow-y:auto; padding:1rem; background: rgba(2,6,23,.3); border-radius:.8rem;
+      border:1px solid rgba(100,116,139,.3); margin-bottom:1rem; }
+    .chat-messages::-webkit-scrollbar{ width:8px; }
+    .chat-messages::-webkit-scrollbar-track{ background: rgba(100,116,139,.1); border-radius:4px; }
+    .chat-messages::-webkit-scrollbar-thumb{ background: rgba(99,102,241,.4); border-radius:4px; }
+    .chat-messages::-webkit-scrollbar-thumb:hover{ background: rgba(99,102,241,.6); }
+
+    .chat-message{ margin-bottom:1.25rem; padding:.75rem 1rem; border-radius:.8rem; animation: fadeInScale 0.3s ease-out; }
+    .chat-message.user{ background: rgba(79,70,229,.15); border:1px solid rgba(79,70,229,.3); margin-left:2rem; }
+    .chat-message.assistant{ background: rgba(30,27,75,.35); border:1px solid rgba(100,116,139,.25); margin-right:2rem; }
+
+    .message-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;
+      font-size:.8rem; }
+    .message-role{ font-weight:700; color:#a5b4fc; }
+    .message-time{ color:var(--text-muted); font-size:.75rem; }
+    .message-content{ color:var(--text); line-height:1.6; white-space:pre-wrap; word-wrap:break-word; }
+
+    .chat-input-form{ display:flex; gap:.5rem; align-items:center; }
+    .chat-input{ flex:1; background:#0f1836; border:1px solid rgba(148,163,184,.35); color:var(--text);
+      padding:.75rem 1rem; border-radius:.6rem; outline:none; transition: all 0.2s ease; }
+    .chat-input:focus{ border-color:#818cf8; box-shadow: 0 0 0 3px rgba(99,102,241,.25); }
+    .chat-input:disabled{ opacity:.6; cursor:not-allowed; }
+
+    .chat-submit-btn{ background: linear-gradient(90deg, #4f46e5, #7c3aed); color:#fff; border:none;
+      padding:.75rem 1.5rem; border-radius:.6rem; cursor:pointer; font-weight:700; font-size:1.2rem;
+      transition:.2s ease; box-shadow: 0 6px 18px rgba(79,70,229,.25); min-width:60px; }
+    .chat-submit-btn:hover:not(:disabled){ filter: brightness(1.1); transform: translateY(-1px); }
+    .chat-submit-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+    .clear-chat-btn{ background: rgba(239,68,68,.14); border:1px solid rgba(239,68,68,.35); color:#fca5a5;
+      padding:.75rem 1rem; border-radius:.6rem; cursor:pointer; font-weight:600; transition:.2s ease; }
+    .clear-chat-btn:hover{ background: rgba(239,68,68,.25); }
+
+    @media (max-width: 640px) {
+      .sports-matchup-container{ height:500px; }
+      .chat-message.user{ margin-left:.5rem; }
+      .chat-message.assistant{ margin-right:.5rem; }
+      .quick-examples{ font-size:.75rem; }
+    }
   `}</style>
 );
 
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
-  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit' },
+  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit', MATCHUP: 'matchup' },
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
 };
 
@@ -769,6 +820,7 @@ function App() {
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
                 { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
+                { key: CONSTANTS.TABS.MATCHUP, label: '🏀 NBA Matchup' },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -804,6 +856,11 @@ function App() {
               expectedDiff={expectedDiff}
               setExpectedDiff={setExpectedDiff}
             />
+          )}
+          {activeTab === CONSTANTS.TABS.MATCHUP && (
+            <div className="panel">
+              <SportsMatchup backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'} />
+            </div>
           )}
         </div>
       </div>
