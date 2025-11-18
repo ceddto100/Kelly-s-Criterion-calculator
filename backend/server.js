@@ -20,6 +20,13 @@ const {
 
 // Import routes
 
+// Sports Scraper Routes
+const offense = require('./scrapers/offense');
+const defense = require('./scrapers/defense');
+const differential = require('./scrapers/differential');
+const matchup = require('./scrapers/matchup');
+const { analyzeMatchupRoute } = require('./groq/chat');
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -409,6 +416,23 @@ app.get('/api/admin/stats', asyncHandler(async (req, res) => {
     activeToday
   });
 }));
+
+// ==================== SPORTS SCRAPER ROUTES ====================
+
+// Get offensive stats (Points Per Game)
+app.get('/api/offense', asyncHandler(offense));
+
+// Get defensive stats (Points Allowed)
+app.get('/api/defense', asyncHandler(defense));
+
+// Get differential stats (Rebound & Turnover Margins)
+app.get('/api/differential', asyncHandler(differential));
+
+// Get matchup comparison for two teams
+app.get('/api/matchup', asyncHandler(matchup));
+
+// Get AI-powered matchup analysis using Groq
+app.get('/api/analyze', asyncHandler(analyzeMatchupRoute));
 
 // ==================== ERROR HANDLING ====================
 
