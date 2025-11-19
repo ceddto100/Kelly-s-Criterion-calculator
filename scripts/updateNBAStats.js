@@ -2,7 +2,7 @@
 // Generates realistic NBA team stats and saves to CSV files
 // Runs via GitHub Actions every 12 hours
 
-const { Parser } = require('json2csv');
+const { Parser } = require('@json2csv/plainjs');
 const fs = require('fs');
 const path = require('path');
 
