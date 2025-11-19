@@ -26,8 +26,9 @@ const GlobalStyle = () => (
     }
     body{ margin:0; color:var(--text); background:#000;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
-    .site-bg{ position:relative; min-height:100vh; overflow-x:hidden; width:100%; max-width:100vw;
-      background: linear-gradient(135deg, var(--bg-from), var(--bg-to)); }
+    .site-bg{ position:relative; min-height:100vh; width:100%; max-width:100vw;
+      background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
+      -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling */ }
     .site-bg video,.site-bg img.bg-fallback{ position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; opacity:.5; pointer-events:none; transform: translateY(-10%); }
     .bg-overlay{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(30,64,175,.65), rgba(76,29,149,.65)); backdrop-filter: blur(2px); }
