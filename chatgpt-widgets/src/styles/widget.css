@@ -22,13 +22,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --widget-bg: #2a2a2a;
-    --widget-text: #ffffff;
-    --widget-text-muted: #b3b3b3;
-    --widget-border: #4a4a4a;
-    --widget-accent: #4da3ff;
-    --widget-danger: #f28b82;
-    --widget-success: #81c995;
+    /* Match main frontend colors for consistency */
+    --widget-bg: #0f172a; /* Match --input-background */
+    --widget-text: #f8fafc; /* Match --text-primary */
+    --widget-text-muted: #cbd5e1; /* Match --text-secondary */
+    --widget-border: #475569; /* Match --border-color */
+    --widget-accent: #6366f1; /* Match --primary-accent (was #4da3ff) */
+    --widget-danger: #f43f5e; /* Match --danger-color */
+    --widget-success: #34d399; /* Match --success-color */
   }
 }
 
@@ -558,4 +559,30 @@ body {
 
 .stats-table tbody tr:hover {
   background: color-mix(in srgb, var(--widget-border) 15%, transparent);
+}
+
+/* ============================================ */
+/* ACCESSIBILITY: Reduced Motion Support       */
+/* ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Remove hover transforms */
+  .action-button:hover:not(:disabled),
+  .expand-button:hover {
+    transform: none;
+  }
+}
+
+/* Enhanced focus indicators for accessibility */
+button:focus-visible {
+  outline: 3px solid var(--widget-accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--widget-accent) 20%, transparent);
 }
