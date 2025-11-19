@@ -1,5 +1,5 @@
 // scripts/updateNBAStats.js
-const fetch = require('node-fetch');
+// Using Node.js built-in fetch (available in Node 18+)
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
