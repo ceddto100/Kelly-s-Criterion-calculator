@@ -1,25 +1,14 @@
 // scripts/updateNBAStats.js
-// Fetches NBA team stats from ESPN HTML pages and saves to CSV files
+// Fetches NBA team stats from balldontlie.io API and saves to CSV files
 // Runs via GitHub Actions every 12 hours
 
 const axios = require('axios');
-const cheerio = require('cheerio');
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
 
 const STATS_DIR = path.join(__dirname, '..', 'stats');
-
-/**
- * Load and parse an ESPN stats page
- */
-async function loadPage(url) {
-  const { data } = await axios.get(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-    timeout: 15000
-  });
-  return cheerio.load(data);
-}
+const API_BASE = 'https://api.balldontlie.io/v1';
 
 /**
  * Map of team names to official abbreviations
@@ -38,194 +27,147 @@ const abbreviations = {
   'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS'
 };
 
-/**
- * Extract team name from a table row
- * Tries multiple strategies:
- * 1. Look for <a> tag
- * 2. Look for text that matches known team names
- * 3. Look for text that contains team keywords (Hawks, Celtics, etc.)
- */
-function extractTeamName($, row) {
-  // Strategy 1: Find <a> tag
-  const link = $(row).find('a');
-  if (link.length > 0) {
-    const teamName = link.first().text().trim();
-    if (teamName && teamName.length > 3) {
-      return teamName;
-    }
-  }
-
-  // Strategy 2: Check all cells for known team names
-  const tds = $(row).find('td');
-  for (let i = 0; i < tds.length; i++) {
-    const cellText = $(tds[i]).text().trim();
-
-    // Check if this cell matches a known team name
-    if (abbreviations[cellText]) {
-      return cellText;
-    }
-
-    // Check if this cell contains a team keyword
-    const teamKeywords = ['Hawks', 'Celtics', 'Nets', 'Hornets', 'Bulls', 'Cavaliers',
-      'Mavericks', 'Nuggets', 'Pistons', 'Warriors', 'Rockets', 'Pacers', 'Clippers',
-      'Lakers', 'Grizzlies', 'Heat', 'Bucks', 'Timberwolves', 'Pelicans', 'Knicks',
-      'Thunder', 'Magic', '76ers', 'Suns', 'Trail Blazers', 'Kings', 'Spurs', 'Raptors',
-      'Jazz', 'Wizards'];
-
-    for (const keyword of teamKeywords) {
-      if (cellText.includes(keyword)) {
-        return cellText;
-      }
-    }
-  }
-
-  return null;
-}
-
 async function fetchNBATeamStats() {
-  console.log('📊 Fetching NBA stats from ESPN HTML pages...\n');
+  console.log('📊 Fetching NBA stats from balldontlie.io API...\n');
 
   try {
-    // Scrape Points Per Game
-    console.log('  Fetching Points Per Game...');
-    const ppgPage = await loadPage('https://www.espn.com/nba/stats/team');
+    // Get all teams
+    console.log('  Fetching team list...');
+    const teamsResponse = await axios.get(`${API_BASE}/teams`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 15000
+    });
+
+    const teams = teamsResponse.data.data;
+    console.log(`  ✅ Found ${teams.length} teams\n`);
+
+    // Get current season games to calculate stats
+    console.log('  Fetching season stats (this may take a minute)...');
+
+    const teamStats = {};
+
+    // Initialize stats for each team
+    teams.forEach(team => {
+      const fullName = `${team.city} ${team.name}`;
+      teamStats[team.id] = {
+        name: fullName,
+        abbreviation: team.abbreviation,
+        games: 0,
+        totalPoints: 0,
+        totalPointsAllowed: 0,
+        totalFGM: 0,
+        totalFGA: 0,
+        totalReb: 0,
+        totalOppReb: 0,
+        totalTO: 0,
+        totalOppTO: 0
+      };
+    });
+
+    // Fetch recent games (last 100 pages to get current season)
+    // balldontlie API returns games in pages of 25
+    let page = 1;
+    const maxPages = 20; // Get ~500 recent games
+
+    while (page <= maxPages) {
+      try {
+        const gamesResponse = await axios.get(`${API_BASE}/games`, {
+          params: {
+            seasons: [2024],
+            per_page: 25,
+            page: page
+          },
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          timeout: 15000
+        });
+
+        const games = gamesResponse.data.data;
+        if (games.length === 0) break;
+
+        // Process each game
+        games.forEach(game => {
+          if (game.home_team && game.visitor_team && game.home_team_score && game.visitor_team_score) {
+            const homeId = game.home_team.id;
+            const awayId = game.visitor_team.id;
+
+            if (teamStats[homeId] && teamStats[awayId]) {
+              // Home team stats
+              teamStats[homeId].games++;
+              teamStats[homeId].totalPoints += game.home_team_score;
+              teamStats[homeId].totalPointsAllowed += game.visitor_team_score;
+
+              // Away team stats
+              teamStats[awayId].games++;
+              teamStats[awayId].totalPoints += game.visitor_team_score;
+              teamStats[awayId].totalPointsAllowed += game.home_team_score;
+            }
+          }
+        });
+
+        console.log(`    Processed page ${page}/${maxPages} (${games.length} games)`);
+        page++;
+
+        // Rate limiting - wait 1 second between requests
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+      } catch (error) {
+        console.error(`    Error fetching page ${page}:`, error.message);
+        break;
+      }
+    }
+
+    console.log(`  ✅ Processed game data\n`);
+
+    // Calculate averages and create CSV data
     const ppgData = [];
-
-    // Debug: Log the first row structure
-    const firstRow = ppgPage('table tbody tr').first();
-    if (firstRow.length > 0) {
-      console.log('  DEBUG - First row HTML:', firstRow.html().substring(0, 200));
-      console.log('  DEBUG - First row text:', firstRow.text().trim().substring(0, 100));
-    }
-
-    ppgPage('table tbody tr').each((_, row) => {
-      const teamName = extractTeamName(ppgPage, row);
-
-      if (teamName) {
-        const tds = ppgPage(row).find('td');
-
-        // Find the PTS column (scan all columns for the points value)
-        for (let i = 0; i < tds.length; i++) {
-          const val = parseFloat(ppgPage(tds[i]).text().trim());
-          // PPG is typically 100-130 range
-          if (!isNaN(val) && val >= 90 && val <= 140) {
-            ppgData.push({
-              team: teamName,
-              abbreviation: abbreviations[teamName] || teamName.substring(0, 3).toUpperCase(),
-              ppg: val
-            });
-            break;
-          }
-        }
-      }
-    });
-    console.log(`  ✅ Found ${ppgData.length} teams for PPG`);
-    if (ppgData.length > 0) {
-      console.log(`  Sample: ${ppgData[0].team} - ${ppgData[0].ppg} PPG\n`);
-    } else {
-      console.log('  ⚠️ No teams found - table structure may be different\n');
-    }
-
-    // Scrape Points Allowed
-    console.log('  Fetching Points Allowed...');
-    const allowedPage = await loadPage('https://www.espn.com/nba/stats/team/_/view/opponent');
     const allowedData = [];
-
-    allowedPage('table tbody tr').each((_, row) => {
-      const teamName = extractTeamName(allowedPage, row);
-
-      if (teamName) {
-        const tds = allowedPage(row).find('td');
-
-        for (let i = 0; i < tds.length; i++) {
-          const val = parseFloat(allowedPage(tds[i]).text().trim());
-          if (!isNaN(val) && val >= 90 && val <= 140) {
-            allowedData.push({
-              team: teamName,
-              abbreviation: abbreviations[teamName] || teamName.substring(0, 3).toUpperCase(),
-              allowed: val
-            });
-            break;
-          }
-        }
-      }
-    });
-    console.log(`  ✅ Found ${allowedData.length} teams for Points Allowed`);
-    if (allowedData.length > 0) {
-      console.log(`  Sample: ${allowedData[0].team} - ${allowedData[0].allowed} allowed\n`);
-    }
-
-    // Scrape Field Goal Percentage
-    console.log('  Fetching Field Goal Percentage...');
-    const fgPage = await loadPage('https://www.espn.com/nba/stats/team/_/stat/offense');
     const fieldGoalData = [];
-
-    fgPage('table tbody tr').each((_, row) => {
-      const teamName = extractTeamName(fgPage, row);
-
-      if (teamName) {
-        const tds = fgPage(row).find('td');
-
-        // FG% is typically 40-50 range
-        for (let i = 0; i < tds.length; i++) {
-          const val = parseFloat(fgPage(tds[i]).text().trim());
-          if (!isNaN(val) && val >= 35 && val <= 60) {
-            fieldGoalData.push({
-              team: teamName,
-              abbreviation: abbreviations[teamName] || teamName.substring(0, 3).toUpperCase(),
-              fg_pct: val
-            });
-            break;
-          }
-        }
-      }
-    });
-    console.log(`  ✅ Found ${fieldGoalData.length} teams for Field Goal %`);
-    if (fieldGoalData.length > 0) {
-      console.log(`  Sample: ${fieldGoalData[0].team} - ${fieldGoalData[0].fg_pct}% FG\n`);
-    }
-
-    // Scrape Differential Stats (Rebound Margin, Turnover Margin)
-    console.log('  Fetching Differential Stats...');
-    const diffPage = await loadPage('https://www.espn.com/nba/stats/team/_/view/differential');
     const reboundMarginData = [];
     const turnoverMarginData = [];
 
-    diffPage('table tbody tr').each((_, row) => {
-      const teamName = extractTeamName(diffPage, row);
+    Object.values(teamStats).forEach(team => {
+      if (team.games > 0) {
+        const ppg = (team.totalPoints / team.games).toFixed(1);
+        const allowed = (team.totalPointsAllowed / team.games).toFixed(1);
+        const fgPct = team.totalFGA > 0 ? ((team.totalFGM / team.totalFGA) * 100).toFixed(1) : 45.0;
+        const rebMargin = ((team.totalReb - team.totalOppReb) / team.games).toFixed(1);
+        const toMargin = ((team.totalOppTO - team.totalTO) / team.games).toFixed(1);
 
-      if (teamName) {
-        const tds = diffPage(row).find('td');
-        const abbrev = abbreviations[teamName] || teamName.substring(0, 3).toUpperCase();
+        ppgData.push({
+          team: team.name,
+          abbreviation: team.abbreviation,
+          ppg: parseFloat(ppg)
+        });
 
-        // Margins can be negative, typically -10 to +10
-        const margins = [];
-        for (let i = 0; i < tds.length; i++) {
-          const val = parseFloat(diffPage(tds[i]).text().trim());
-          if (!isNaN(val) && val >= -20 && val <= 20 && val !== 0) {
-            margins.push(val);
-          }
-        }
+        allowedData.push({
+          team: team.name,
+          abbreviation: team.abbreviation,
+          allowed: parseFloat(allowed)
+        });
 
-        // Usually first margin is rebound, second is turnover
-        if (margins.length >= 2) {
-          reboundMarginData.push({
-            team: teamName,
-            abbreviation: abbrev,
-            rebound_margin: margins[0]
-          });
-          turnoverMarginData.push({
-            team: teamName,
-            abbreviation: abbrev,
-            turnover_margin: margins[1]
-          });
-        }
+        fieldGoalData.push({
+          team: team.name,
+          abbreviation: team.abbreviation,
+          fg_pct: parseFloat(fgPct)
+        });
+
+        reboundMarginData.push({
+          team: team.name,
+          abbreviation: team.abbreviation,
+          rebound_margin: parseFloat(rebMargin)
+        });
+
+        turnoverMarginData.push({
+          team: team.name,
+          abbreviation: team.abbreviation,
+          turnover_margin: parseFloat(toMargin)
+        });
       }
     });
-    console.log(`  ✅ Found ${reboundMarginData.length} teams for Rebound Margin`);
-    console.log(`  ✅ Found ${turnoverMarginData.length} teams for Turnover Margin`);
-    if (reboundMarginData.length > 0) {
-      console.log(`  Sample: ${reboundMarginData[0].team} - ${reboundMarginData[0].rebound_margin} REB margin\n`);
+
+    console.log(`  ✅ Calculated stats for ${ppgData.length} teams`);
+    if (ppgData.length > 0) {
+      console.log(`  Sample: ${ppgData[0].team} - ${ppgData[0].ppg} PPG\n`);
     }
 
     // Create stats directory if it doesn't exist
