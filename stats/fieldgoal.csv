@@ -1,31 +1,31 @@
 "team","abbreviation","fg_pct"
-"Atlanta Hawks","ATL",0
-"Boston Celtics","BOS",0
-"Brooklyn Nets","BKN",0
-"Charlotte Hornets","CHA",0
-"Chicago Bulls","CHI",0
-"Cleveland Cavaliers","CLE",0
-"Dallas Mavericks","DAL",0
-"Denver Nuggets","DEN",0
-"Detroit Pistons","DET",0
-"Golden State Warriors","GS",0
-"Houston Rockets","HOU",0
-"Indiana Pacers","IND",0
-"LA Clippers","LAC",0
-"Los Angeles Lakers","LAL",0
-"Memphis Grizzlies","MEM",0
-"Miami Heat","MIA",0
-"Milwaukee Bucks","MIL",0
-"Minnesota Timberwolves","MIN",0
-"New Orleans Pelicans","NO",0
-"New York Knicks","NY",0
-"Oklahoma City Thunder","OKC",0
-"Orlando Magic","ORL",0
-"Philadelphia 76ers","PHI",0
-"Phoenix Suns","PHX",0
-"Portland Trail Blazers","POR",0
-"Sacramento Kings","SAC",0
-"San Antonio Spurs","SA",0
-"Toronto Raptors","TOR",0
-"Utah Jazz","UTAH",0
-"Washington Wizards","WSH",0
+"Atlanta Hawks","ATL",46.6
+"Boston Celtics","BOS",47.8
+"Brooklyn Nets","BKN",48.9
+"Charlotte Hornets","CHA",43.8
+"Chicago Bulls","CHI",45.4
+"Cleveland Cavaliers","CLE",47.3
+"Dallas Mavericks","DAL",47
+"Denver Nuggets","DEN",48.1
+"Detroit Pistons","DET",44.4
+"Golden State Warriors","GS",45.6
+"Houston Rockets","HOU",44.4
+"Indiana Pacers","IND",45.3
+"LA Clippers","LAC",43.9
+"Los Angeles Lakers","LAL",48.2
+"Memphis Grizzlies","MEM",44.6
+"Miami Heat","MIA",44.2
+"Milwaukee Bucks","MIL",47.6
+"Minnesota Timberwolves","MIN",46.9
+"New Orleans Pelicans","NO",43.6
+"New York Knicks","NY",49.1
+"Oklahoma City Thunder","OKC",44.4
+"Orlando Magic","ORL",45.4
+"Philadelphia 76ers","PHI",49
+"Phoenix Suns","PHX",48.8
+"Portland Trail Blazers","POR",45.4
+"Sacramento Kings","SAC",48.1
+"San Antonio Spurs","SA",44.9
+"Toronto Raptors","TOR",45.7
+"Utah Jazz","UTAH",46.4
+"Washington Wizards","WSH",45.3
