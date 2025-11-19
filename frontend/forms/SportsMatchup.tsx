@@ -14,9 +14,10 @@ interface Message {
 
 interface SportsMatchupProps {
   backendUrl: string;
+  onTransferToEstimator?: (matchupData: any) => void;
 }
 
-export default function SportsMatchup({ backendUrl }: SportsMatchupProps) {
+export default function SportsMatchup({ backendUrl, onTransferToEstimator }: SportsMatchupProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -202,6 +203,15 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
                 }
                 return <div key={i}>{line || <br />}</div>;
               })}
+              {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
+                <button
+                  className="btn-secondary"
+                  onClick={() => onTransferToEstimator(msg.stats)}
+                  style={{ marginTop: '1rem', width: '100%' }}
+                >
+                  📊 Use in Probability Estimator →
+                </button>
+              )}
             </div>
           </div>
         ))}

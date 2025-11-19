@@ -798,6 +798,24 @@ function App() {
   const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
   const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
 
+  // Handler to transfer matchup data to Basketball Estimator
+  const handleTransferToEstimator = (matchupData: any) => {
+    setBasketballStats({
+      teamPointsFor: matchupData.teamA.points_per_game?.toFixed(1) || '',
+      opponentPointsFor: matchupData.teamB.points_per_game?.toFixed(1) || '',
+      teamPointsAgainst: matchupData.teamA.points_allowed?.toFixed(1) || '',
+      opponentPointsAgainst: matchupData.teamB.points_allowed?.toFixed(1) || '',
+      teamFgPct: matchupData.teamA.field_goal_pct?.toFixed(1) || '',
+      opponentFgPct: matchupData.teamB.field_goal_pct?.toFixed(1) || '',
+      teamReboundMargin: matchupData.teamA.rebound_margin?.toFixed(1) || '',
+      opponentReboundMargin: matchupData.teamB.rebound_margin?.toFixed(1) || '',
+      teamTurnoverMargin: matchupData.teamA.turnover_margin?.toFixed(1) || '',
+      opponentTurnoverMargin: matchupData.teamB.turnover_margin?.toFixed(1) || '',
+    });
+    setActiveSport(CONSTANTS.SPORTS.BASKETBALL);
+    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
+  };
+
   return (
     <>
       <div className="site-bg">
@@ -859,7 +877,10 @@ function App() {
           )}
           {activeTab === CONSTANTS.TABS.MATCHUP && (
             <div className="panel">
-              <SportsMatchup backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'} />
+              <SportsMatchup
+                backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'}
+                onTransferToEstimator={handleTransferToEstimator}
+              />
             </div>
           )}
         </div>
