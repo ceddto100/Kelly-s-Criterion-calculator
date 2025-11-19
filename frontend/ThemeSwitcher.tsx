@@ -23,29 +23,35 @@ export default function ThemeSwitcher({ className = '' }: ThemeSwitcherProps) {
   }, []);
 
   const applyTheme = (theme: Theme) => {
-    // Remove existing theme stylesheets
-    const existingLink = document.getElementById('theme-stylesheet') as HTMLLinkElement;
-    if (existingLink) {
-      existingLink.remove();
-    }
+    // Remove all theme-related stylesheets
+    const existingLinks = document.querySelectorAll('[data-theme-stylesheet]');
+    existingLinks.forEach(link => link.remove());
 
-    // Add new theme stylesheet
+    // Remove inline GlobalStyle if it exists to avoid conflicts
+    const inlineStyles = document.querySelectorAll('style');
+    inlineStyles.forEach(style => {
+      if (style.textContent?.includes(':root') && style.textContent?.includes('--accent')) {
+        style.remove();
+      }
+    });
+
+    // Apply theme-specific stylesheet
     if (theme === 'bold') {
+      // Bold theme: Replace with bold theme CSS
       const link = document.createElement('link');
-      link.id = 'theme-stylesheet';
+      link.setAttribute('data-theme-stylesheet', 'bold');
       link.rel = 'stylesheet';
       link.href = '/index-bold-theme.css';
       document.head.appendChild(link);
-    }
-    // 'default' uses index.css (already loaded)
-    // 'original-accessible' uses index.css + accessibility-fixes.css
-    if (theme === 'original-accessible') {
+    } else if (theme === 'original-accessible') {
+      // Accessible theme: Add accessibility fixes on top of default
       const link = document.createElement('link');
-      link.id = 'theme-stylesheet';
+      link.setAttribute('data-theme-stylesheet', 'accessible');
       link.rel = 'stylesheet';
       link.href = '/accessibility-fixes.css';
       document.head.appendChild(link);
     }
+    // 'default' uses index.css (already loaded in HTML)
   };
 
   const handleThemeChange = (theme: Theme) => {
