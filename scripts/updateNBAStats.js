@@ -21,6 +21,33 @@ async function loadPage(url) {
   return cheerio.load(data);
 }
 
+/**
+ * Extract team name and abbreviation from ESPN table cell
+ */
+function extractTeamInfo(teamCell) {
+  const fullName = teamCell.trim();
+
+  // Map of team names to official abbreviations
+  const abbreviations = {
+    'Atlanta Hawks': 'ATL', 'Boston Celtics': 'BOS', 'Brooklyn Nets': 'BKN',
+    'Charlotte Hornets': 'CHA', 'Chicago Bulls': 'CHI', 'Cleveland Cavaliers': 'CLE',
+    'Dallas Mavericks': 'DAL', 'Denver Nuggets': 'DEN', 'Detroit Pistons': 'DET',
+    'Golden State Warriors': 'GSW', 'Houston Rockets': 'HOU', 'Indiana Pacers': 'IND',
+    'LA Clippers': 'LAC', 'Los Angeles Clippers': 'LAC', 'LA Lakers': 'LAL',
+    'Los Angeles Lakers': 'LAL', 'Memphis Grizzlies': 'MEM', 'Miami Heat': 'MIA',
+    'Milwaukee Bucks': 'MIL', 'Minnesota Timberwolves': 'MIN', 'New Orleans Pelicans': 'NOP',
+    'New York Knicks': 'NYK', 'Oklahoma City Thunder': 'OKC', 'Orlando Magic': 'ORL',
+    'Philadelphia 76ers': 'PHI', 'Phoenix Suns': 'PHX', 'Portland Trail Blazers': 'POR',
+    'Sacramento Kings': 'SAC', 'San Antonio Spurs': 'SAS', 'Toronto Raptors': 'TOR',
+    'Utah Jazz': 'UTA', 'Washington Wizards': 'WAS'
+  };
+
+  return {
+    name: fullName,
+    abbreviation: abbreviations[fullName] || fullName.substring(0, 3).toUpperCase()
+  };
+}
+
 async function fetchNBATeamStats() {
   console.log('📊 Fetching NBA stats from ESPN HTML pages...\n');
 
@@ -29,13 +56,23 @@ async function fetchNBATeamStats() {
     console.log('  Fetching Points Per Game...');
     const ppgPage = await loadPage('https://www.espn.com/nba/stats/team');
     const ppgData = [];
+
     ppgPage('table tbody tr').each((_, row) => {
       const tds = ppgPage(row).find('td');
-      if (tds.length > 1) {
-        const team = ppgPage(tds[0]).text().trim();
-        const ppg = parseFloat(ppgPage(tds[1]).text().trim());
-        if (team && !isNaN(ppg)) {
-          ppgData.push({ team, abbreviation: team.substring(0, 3).toUpperCase(), ppg });
+
+      // ESPN table: [RK, TEAM, GP, W, L, PTS, FGM, FGA, ...]
+      // We want: column 1 (TEAM) and column 5 (PTS which is PPG)
+      if (tds.length > 5) {
+        const teamCell = ppgPage(tds[1]).text().trim();  // Column 1: Team name
+        const ppg = parseFloat(ppgPage(tds[5]).text().trim());  // Column 5: Points
+
+        if (teamCell && !isNaN(ppg) && teamCell !== 'TEAM') {
+          const teamInfo = extractTeamInfo(teamCell);
+          ppgData.push({
+            team: teamInfo.name,
+            abbreviation: teamInfo.abbreviation,
+            ppg
+          });
         }
       }
     });
@@ -45,13 +82,21 @@ async function fetchNBATeamStats() {
     console.log('  Fetching Points Allowed...');
     const allowedPage = await loadPage('https://www.espn.com/nba/stats/team/_/view/opponent');
     const allowedData = [];
+
     allowedPage('table tbody tr').each((_, row) => {
       const tds = allowedPage(row).find('td');
-      if (tds.length > 1) {
-        const team = allowedPage(tds[0]).text().trim();
-        const allowed = parseFloat(allowedPage(tds[1]).text().trim());
-        if (team && !isNaN(allowed)) {
-          allowedData.push({ team, abbreviation: team.substring(0, 3).toUpperCase(), allowed });
+
+      if (tds.length > 5) {
+        const teamCell = allowedPage(tds[1]).text().trim();
+        const allowed = parseFloat(allowedPage(tds[5]).text().trim());
+
+        if (teamCell && !isNaN(allowed) && teamCell !== 'TEAM') {
+          const teamInfo = extractTeamInfo(teamCell);
+          allowedData.push({
+            team: teamInfo.name,
+            abbreviation: teamInfo.abbreviation,
+            allowed
+          });
         }
       }
     });
@@ -61,13 +106,22 @@ async function fetchNBATeamStats() {
     console.log('  Fetching Field Goal Percentage...');
     const fgPage = await loadPage('https://www.espn.com/nba/stats/team/_/stat/offense');
     const fieldGoalData = [];
+
     fgPage('table tbody tr').each((_, row) => {
       const tds = fgPage(row).find('td');
-      if (tds.length > 6) {
-        const team = fgPage(tds[0]).text().trim();
-        const fgPct = parseFloat(fgPage(tds[6]).text().trim());
-        if (team && !isNaN(fgPct)) {
-          fieldGoalData.push({ team, abbreviation: team.substring(0, 3).toUpperCase(), fg_pct: fgPct });
+
+      // Find FG% column (usually around column 8-10)
+      if (tds.length > 8) {
+        const teamCell = fgPage(tds[1]).text().trim();
+        const fgPct = parseFloat(fgPage(tds[8]).text().trim());
+
+        if (teamCell && !isNaN(fgPct) && teamCell !== 'TEAM') {
+          const teamInfo = extractTeamInfo(teamCell);
+          fieldGoalData.push({
+            team: teamInfo.name,
+            abbreviation: teamInfo.abbreviation,
+            fg_pct: fgPct
+          });
         }
       }
     });
@@ -78,20 +132,31 @@ async function fetchNBATeamStats() {
     const diffPage = await loadPage('https://www.espn.com/nba/stats/team/_/view/differential');
     const reboundMarginData = [];
     const turnoverMarginData = [];
+
     diffPage('table tbody tr').each((_, row) => {
       const tds = diffPage(row).find('td');
+
       if (tds.length > 4) {
-        const team = diffPage(tds[0]).text().trim();
+        const teamCell = diffPage(tds[1]).text().trim();
         const reboundMargin = parseFloat(diffPage(tds[2]).text().trim());
         const turnoverMargin = parseFloat(diffPage(tds[4]).text().trim());
 
-        if (team) {
-          const abbrev = team.substring(0, 3).toUpperCase();
+        if (teamCell && teamCell !== 'TEAM') {
+          const teamInfo = extractTeamInfo(teamCell);
+
           if (!isNaN(reboundMargin)) {
-            reboundMarginData.push({ team, abbreviation: abbrev, rebound_margin: reboundMargin });
+            reboundMarginData.push({
+              team: teamInfo.name,
+              abbreviation: teamInfo.abbreviation,
+              rebound_margin: reboundMargin
+            });
           }
           if (!isNaN(turnoverMargin)) {
-            turnoverMarginData.push({ team, abbreviation: abbrev, turnover_margin: turnoverMargin });
+            turnoverMarginData.push({
+              team: teamInfo.name,
+              abbreviation: teamInfo.abbreviation,
+              turnover_margin: turnoverMargin
+            });
           }
         }
       }
