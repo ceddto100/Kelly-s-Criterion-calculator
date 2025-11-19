@@ -39,14 +39,46 @@ const abbreviations = {
 };
 
 /**
- * Extract team name from a table row (looks for <a> tag)
+ * Extract team name from a table row
+ * Tries multiple strategies:
+ * 1. Look for <a> tag
+ * 2. Look for text that matches known team names
+ * 3. Look for text that contains team keywords (Hawks, Celtics, etc.)
  */
 function extractTeamName($, row) {
-  // Team names are typically in an <a> tag
+  // Strategy 1: Find <a> tag
   const link = $(row).find('a');
   if (link.length > 0) {
-    return link.first().text().trim();
+    const teamName = link.first().text().trim();
+    if (teamName && teamName.length > 3) {
+      return teamName;
+    }
   }
+
+  // Strategy 2: Check all cells for known team names
+  const tds = $(row).find('td');
+  for (let i = 0; i < tds.length; i++) {
+    const cellText = $(tds[i]).text().trim();
+
+    // Check if this cell matches a known team name
+    if (abbreviations[cellText]) {
+      return cellText;
+    }
+
+    // Check if this cell contains a team keyword
+    const teamKeywords = ['Hawks', 'Celtics', 'Nets', 'Hornets', 'Bulls', 'Cavaliers',
+      'Mavericks', 'Nuggets', 'Pistons', 'Warriors', 'Rockets', 'Pacers', 'Clippers',
+      'Lakers', 'Grizzlies', 'Heat', 'Bucks', 'Timberwolves', 'Pelicans', 'Knicks',
+      'Thunder', 'Magic', '76ers', 'Suns', 'Trail Blazers', 'Kings', 'Spurs', 'Raptors',
+      'Jazz', 'Wizards'];
+
+    for (const keyword of teamKeywords) {
+      if (cellText.includes(keyword)) {
+        return cellText;
+      }
+    }
+  }
+
   return null;
 }
 
@@ -58,6 +90,13 @@ async function fetchNBATeamStats() {
     console.log('  Fetching Points Per Game...');
     const ppgPage = await loadPage('https://www.espn.com/nba/stats/team');
     const ppgData = [];
+
+    // Debug: Log the first row structure
+    const firstRow = ppgPage('table tbody tr').first();
+    if (firstRow.length > 0) {
+      console.log('  DEBUG - First row HTML:', firstRow.html().substring(0, 200));
+      console.log('  DEBUG - First row text:', firstRow.text().trim().substring(0, 100));
+    }
 
     ppgPage('table tbody tr').each((_, row) => {
       const teamName = extractTeamName(ppgPage, row);
@@ -83,6 +122,8 @@ async function fetchNBATeamStats() {
     console.log(`  ✅ Found ${ppgData.length} teams for PPG`);
     if (ppgData.length > 0) {
       console.log(`  Sample: ${ppgData[0].team} - ${ppgData[0].ppg} PPG\n`);
+    } else {
+      console.log('  ⚠️ No teams found - table structure may be different\n');
     }
 
     // Scrape Points Allowed
