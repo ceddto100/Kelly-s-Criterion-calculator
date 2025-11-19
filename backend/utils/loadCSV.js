@@ -12,11 +12,24 @@ const csv = require('csv-parser');
  */
 function loadCSV(filename) {
   return new Promise((resolve, reject) => {
-    const filePath = path.join(__dirname, '..', '..', 'stats', filename);
+    // Try multiple possible paths for stats files
+    const possiblePaths = [
+      path.join(__dirname, '..', '..', 'stats', filename),  // Local: /stats/
+      path.join(__dirname, '..', 'stats', filename),         // Render: /backend/stats/
+      path.join(process.cwd(), 'stats', filename),           // CWD: stats/
+      path.join(process.cwd(), '..', 'stats', filename)      // CWD parent: ../stats/
+    ];
 
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return reject(new Error(`CSV file not found: ${filename}`));
+    let filePath = null;
+    for (const tryPath of possiblePaths) {
+      if (fs.existsSync(tryPath)) {
+        filePath = tryPath;
+        break;
+      }
+    }
+
+    if (!filePath) {
+      return reject(new Error(`CSV file not found: ${filename}. Tried paths: ${possiblePaths.join(', ')}`));
     }
 
     const results = [];
