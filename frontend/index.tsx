@@ -511,7 +511,7 @@ function ProbabilityEstimator({
             </div>
           )}
           <div style={{marginTop:'.6rem'}}>
-            <button className="btn-secondary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>Use in Kelly Calculator</button>
+            <button className="btn-tab-style" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>Use in Kelly Calculator</button>
           </div>
         </div>
       )}
