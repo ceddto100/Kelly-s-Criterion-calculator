@@ -447,6 +447,7 @@ body::after {
     transparent 70%
   );
   animation: shimmer 3s linear infinite;
+  pointer-events: none; /* Allow clicks through shimmer effect */
 }
 
 @keyframes shimmer {
@@ -719,6 +720,8 @@ body::after {
       0 0 30px rgba(59, 130, 246, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     animation: glow-pulse-subtle 3s ease-in-out infinite;
+    position: relative;
+    z-index: 10; /* Ensure button is above shimmer effects */
 }
 
 .btn-tab-style:hover {
