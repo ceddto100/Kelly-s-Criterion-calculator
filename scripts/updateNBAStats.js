@@ -6,6 +6,9 @@ const path = require('path');
 
 const STATS_DIR = path.join(__dirname, '..', 'stats');
 
+// Target season
+const CURRENT_SEASON = '2025-26';
+
 /**
  * Fetch all NBA teams from ESPN's public API
  * This endpoint is accessible from cloud environments like GitHub Actions
@@ -42,36 +45,63 @@ async function fetchNBATeams() {
 }
 
 /**
- * Fetch team stats from ESPN API
- * Note: ESPN's detailed stats APIs are limited, so we use their standings/record data
+ * Try to fetch real team stats from ESPN's standings endpoint
+ * This includes actual season statistics if the season has started
  */
-async function fetchTeamRecord(teamId) {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}`;
+async function fetchESPNStandings() {
+  const url = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
 
   try {
     const response = await fetch(url);
 
     if (!response.ok) {
+      console.log('  ℹ️  ESPN standings not available, will use estimated stats');
       return null;
     }
 
     const data = await response.json();
-    return data.team || null;
+
+    // Extract team stats from standings if available
+    if (data.children && data.children[0] && data.children[0].standings) {
+      return data.children[0].standings.entries;
+    }
+
+    return null;
   } catch (error) {
+    console.log('  ℹ️  Could not fetch ESPN standings, will use estimated stats');
     return null;
   }
 }
 
 /**
+ * Extract stats from ESPN standings entry
+ */
+function extractStatsFromStandings(entry) {
+  if (!entry || !entry.stats) return null;
+
+  const stats = {};
+
+  // ESPN standings include various stats
+  for (const stat of entry.stats) {
+    if (stat.name === 'pointsFor') stats.ppg = stat.value;
+    if (stat.name === 'pointsAgainst') stats.allowed = stat.value;
+    if (stat.name === 'avgPointsFor') stats.ppg = stat.value;
+    if (stat.name === 'avgPointsAgainst') stats.allowed = stat.value;
+  }
+
+  return Object.keys(stats).length > 0 ? stats : null;
+}
+
+/**
  * Generate realistic team stats based on team tier
- * Since NBA.com blocks cloud providers and ESPN doesn't provide detailed stats,
- * we generate realistic stats based on typical NBA team performance ranges
+ * Fallback when real stats aren't available from ESPN
+ * Uses typical NBA team performance ranges for the season
  */
 function generateTeamStats(team, index, totalTeams) {
   // Create performance tiers based on alphabetical distribution (simulating variety)
   const tierPosition = (index / totalTeams);
 
-  // NBA league averages and ranges (2024-25 season typical values)
+  // NBA league averages and ranges (2025-26 season typical values)
   const leagueAvgPPG = 114.5;
   const leagueAvgAllowed = 114.5;
   const leagueAvgFGPct = 46.5;
@@ -109,8 +139,8 @@ function generateTeamStats(team, index, totalTeams) {
  * Main function to generate NBA stats
  */
 async function generateNBAStats() {
-  console.log('📊 Fetching NBA team data and generating statistics...\n');
-  console.log('ℹ️  Note: Using ESPN API for team data with estimated season stats');
+  console.log(`📊 Fetching NBA team data for ${CURRENT_SEASON} season...\n`);
+  console.log('ℹ️  Note: Attempting to fetch real stats from ESPN API');
   console.log('ℹ️  (NBA.com blocks cloud providers like GitHub Actions)\n');
 
   try {
@@ -119,19 +149,59 @@ async function generateNBAStats() {
     const teams = await fetchNBATeams();
     console.log(`  ✅ Found ${teams.length} NBA teams\n`);
 
+    // Try to fetch real standings/stats from ESPN
+    console.log('  Attempting to fetch real team statistics from ESPN...');
+    const standingsData = await fetchESPNStandings();
+    const useRealStats = standingsData && standingsData.length > 0;
+
+    if (useRealStats) {
+      console.log(`  ✅ Found real stats for current season!\n`);
+    } else {
+      console.log(`  ℹ️  Real stats not available, using estimated league averages\n`);
+    }
+
     const ppgData = [];
     const allowedData = [];
     const fieldGoalData = [];
     const reboundMarginData = [];
     const turnoverMarginData = [];
 
+    // Create a map of real stats if available
+    const realStatsMap = new Map();
+    if (useRealStats && standingsData) {
+      for (const entry of standingsData) {
+        if (entry.team) {
+          const teamId = entry.team.id;
+          const extracted = extractStatsFromStandings(entry);
+          if (extracted) {
+            realStatsMap.set(teamId, extracted);
+          }
+        }
+      }
+    }
+
     // Process each team
-    console.log('  Generating team statistics...\n');
+    console.log('  Processing team statistics...\n');
     for (let i = 0; i < teams.length; i++) {
       const team = teams[i];
 
-      // Generate realistic stats for this team
-      const stats = generateTeamStats(team, i, teams.length);
+      // Try to use real stats first, fall back to generated
+      let stats;
+      const realStats = realStatsMap.get(team.id);
+
+      if (realStats && realStats.ppg && realStats.allowed) {
+        // Use real stats from ESPN, generate missing ones
+        stats = {
+          ppg: parseFloat(realStats.ppg.toFixed(1)),
+          allowed: parseFloat(realStats.allowed.toFixed(1)),
+          fg_pct: generateTeamStats(team, i, teams.length).fg_pct, // Still generate FG%
+          rebound_margin: generateTeamStats(team, i, teams.length).rebound_margin,
+          turnover_margin: generateTeamStats(team, i, teams.length).turnover_margin
+        };
+      } else {
+        // Generate all stats
+        stats = generateTeamStats(team, i, teams.length);
+      }
 
       console.log(`  ${team.name}: ${stats.ppg} PPG, ${stats.allowed} allowed, ${stats.fg_pct}% FG`);
 
@@ -197,7 +267,12 @@ async function generateNBAStats() {
 
     console.log('\n🎉 All NBA stats generated and saved successfully!');
     console.log(`📁 Files saved to: ${STATS_DIR}`);
-    console.log(`📅 Season: 2024-25 NBA Season (estimated stats based on league averages)`);
+
+    if (useRealStats) {
+      console.log(`📅 Season: ${CURRENT_SEASON} NBA Season (real stats from ESPN where available)`);
+    } else {
+      console.log(`📅 Season: ${CURRENT_SEASON} NBA Season (estimated stats based on league averages)`);
+    }
 
   } catch (error) {
     console.error('🔥 Error generating NBA stats:', error.message);
