@@ -584,7 +584,7 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
       setIsGenerating(true); setExplanation('');
       try {
         const systemInstruction =
-          "You are a seasoned betting analyst. Provide brief (1-2 sentences), insightful, and varied explanations for Kelly Criterion recommendations. Your tone should be responsible and clear. Never repeat the same explanation. Focus on the core reason for the recommendation.";
+          "You are an elite betting analyst. Give sharp, 1–2 sentence insights explaining each Kelly Criterion recommendation. Be confident, direct, and responsibly bold with a touch of sass. Keep explanations concise, varied, and never repetitive. Always highlight the core reason behind the recommendation—no fluff, just clarity.";
         const userPrompt = hasValue
           ? `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) result in a recommended stake of ${formatCurrency(stake)} (${stakePercentage.toFixed(2)}%). Provide a concise, 1-2 sentence explanation for why this is a good bet according to the Kelly Criterion.`
           : `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) indicate a "No Value" bet. Provide a concise, 1-2 sentence explanation emphasizing bankroll protection.`;
@@ -828,8 +828,8 @@ function App() {
 
         <div className="page-wrap">
           <header className="header">
-            <h1 className="title">Kelly's Criterion Bet Calculator</h1>
-            <p className="subtitle">To apply Kelly's Criterion, first estimate your win probability—then size the stake to maximize long-term growth.</p>
+            <h1 className="title">Point Spread Bet Calculator</h1>
+            <p className="subtitle">“Analyze matchups, estimate your edge, and get your recommended bet size—step by step.”</p>
           </header>
 
           <div className="panel" style={{maxWidth:900}}>
