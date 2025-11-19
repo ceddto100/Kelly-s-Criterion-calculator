@@ -26,7 +26,7 @@ const GlobalStyle = () => (
     }
     body{ margin:0; color:var(--text); background:#000;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
-    .site-bg{ position:relative; min-height:100vh; overflow-x:hidden;
+    .site-bg{ position:relative; min-height:100vh; overflow-x:hidden; width:100%; max-width:100vw;
       background: linear-gradient(135deg, var(--bg-from), var(--bg-to)); }
     .site-bg video,.site-bg img.bg-fallback{ position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; opacity:.5; pointer-events:none; transform: translateY(-10%); }
@@ -34,10 +34,26 @@ const GlobalStyle = () => (
     .blob{ position:absolute; border-radius:9999px; filter: blur(36px); opacity:.25; pointer-events:none; }
     .blob-a{ width:22rem; height:22rem; background: radial-gradient(closest-side, #60a5fa, transparent); top:12%; right:-6%; animation: float 14s ease-in-out infinite; }
     .blob-b{ width:24rem; height:24rem; background: radial-gradient(closest-side, #a78bfa, transparent); bottom:10%; left:-8%; animation: pulse 18s ease-in-out infinite; }
+
+    /* Mobile blob containment */
+    @media (max-width: 480px) {
+      .blob-a{ width:14rem; height:14rem; right:-4%; }
+      .blob-b{ width:16rem; height:16rem; left:-5%; }
+    }
+    @media (max-width: 360px) {
+      .blob-a{ width:10rem; height:10rem; right:-3%; }
+      .blob-b{ width:12rem; height:12rem; left:-4%; }
+    }
     @keyframes float{ 0%,100%{ transform: translateY(-10px); } 50%{ transform: translateY(10px); } }
     @keyframes pulse{ 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.06); } }
 
-    .page-wrap{ position:relative; z-index:1; padding:3rem 1rem; max-width:1100px; margin:0 auto; }
+    .page-wrap{ position:relative; z-index:1; padding:3rem 1rem; max-width:1100px; margin:0 auto; width:100%; }
+    @media (max-width: 480px) {
+      .page-wrap{ padding:2rem 0.75rem; }
+    }
+    @media (max-width: 360px) {
+      .page-wrap{ padding:1.5rem 0.5rem; }
+    }
     .header{ margin-bottom:1.25rem; text-align:center; }
     .title{ font-weight:800; line-height:1.1; margin:.25rem 0 .5rem;
       background: linear-gradient(90deg, #93c5fd, #a78bfa); -webkit-background-clip:text; background-clip:text; color:transparent;
