@@ -205,7 +205,7 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
               })}
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
                 <button
-                  className="btn-secondary"
+                  className="btn-primary"
                   onClick={() => onTransferToEstimator(msg.stats)}
                   style={{ marginTop: '1rem', width: '100%' }}
                 >
