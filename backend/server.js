@@ -25,7 +25,7 @@ const offense = require('./scrapers/offense');
 const defense = require('./scrapers/defense');
 const differential = require('./scrapers/differential');
 const matchup = require('./scrapers/matchup');
-const { analyzeMatchupRoute } = require('./groq/chat');
+const { analyzeMatchupRoute } = require('./gemini/chat');
 const { fetchNBATeamStats, findTeamByName } = require('./scrapers/nbaStatsApi');
 
 const app = express();
@@ -457,15 +457,15 @@ app.get('/api/sports/health', asyncHandler(async (req, res) => {
     };
   }
 
-  // Test Groq
+  // Test Gemini
   try {
-    const groqKey = process.env.GROQ_API_KEY;
-    results.tests.groq = {
-      status: groqKey ? 'configured' : 'unconfigured',
-      message: groqKey ? 'Groq API key is set' : 'Groq API key missing'
+    const geminiKey = process.env.GEMINI_API_KEY;
+    results.tests.gemini = {
+      status: geminiKey ? 'configured' : 'unconfigured',
+      message: geminiKey ? 'Gemini API key is set' : 'Gemini API key missing'
     };
   } catch (error) {
-    results.tests.groq = {
+    results.tests.gemini = {
       status: 'error',
       error: error.message
     };
