@@ -8,38 +8,50 @@
  */
 
 :root {
-  /* Richer dark backgrounds with navy tint */
-  --background-color: #0a0e27; /* Deep navy-black */
-  --card-background: rgba(15, 23, 42, 0.92); /* More opaque for punch */
-  --input-background: #1a1f3a; /* Navy-900 */
+  /* Richer dark backgrounds with navy tint - !important to override inline styles */
+  --background-color: #0a0e27 !important; /* Deep navy-black */
+  --card-background: rgba(15, 23, 42, 0.92) !important; /* More opaque for punch */
+  --input-background: #1a1f3a !important; /* Navy-900 */
 
   /* Vibrant accent pair - purple + cyan (high contrast complementary) */
-  --primary-accent: #8b5cf6; /* Purple-500 - bolder than conservative */
-  --primary-accent-2: #06b6d4; /* Cyan-500 - HIGH CONTRAST pair */
-  --primary-accent-hover: #7c3aed; /* Purple-600 for hover states */
+  --primary-accent: #8b5cf6 !important; /* Purple-500 - bolder than conservative */
+  --primary-accent-2: #06b6d4 !important; /* Cyan-500 - HIGH CONTRAST pair */
+  --primary-accent-hover: #7c3aed !important; /* Purple-600 for hover states */
 
   /* Enhanced text hierarchy with purple tint */
-  --text-primary: #ffffff; /* Pure white for maximum contrast */
-  --text-secondary: #e0e7ff; /* Indigo-100 - ties to purple theme */
-  --text-muted: #a5b4fc; /* Indigo-300 - purple-tinted muted text */
+  --text-primary: #ffffff !important; /* Pure white for maximum contrast */
+  --text-secondary: #e0e7ff !important; /* Indigo-100 - ties to purple theme */
+  --text-muted: #a5b4fc !important; /* Indigo-300 - purple-tinted muted text */
+  --text: #ffffff !important; /* Override inline GlobalStyle */
 
   /* Borders with purple tint for brand cohesion */
-  --border-color: #4c4b7a; /* Purple-tinted gray - unique to theme */
-  --border-subtle: #3a3966; /* Darker purple-tinted border */
-  --border-accent: #8b5cf6; /* Matches primary for highlights */
+  --border-color: #4c4b7a !important; /* Purple-tinted gray - unique to theme */
+  --border-subtle: #3a3966 !important; /* Darker purple-tinted border */
+  --border-accent: #8b5cf6 !important; /* Matches primary for highlights */
+  --border: rgba(76, 75, 122, 0.5) !important; /* Override inline GlobalStyle */
 
   /* Status colors - purple-friendly palette */
-  --danger-color: #f472b6; /* Pink-400 (purple-friendly red alternative) */
-  --danger-bg: rgba(244, 114, 182, 0.12); /* Pink danger backgrounds */
-  --success-color: #22d3ee; /* Cyan-400 (matches accent-2 for cohesion) */
-  --success-bg: rgba(34, 211, 238, 0.12); /* Cyan success backgrounds */
-  --warning-color: #fb923c; /* Orange-400 - warm accent */
-  --warning-bg: rgba(251, 146, 60, 0.12);
+  --danger-color: #f472b6 !important; /* Pink-400 (purple-friendly red alternative) */
+  --danger-bg: rgba(244, 114, 182, 0.12) !important; /* Pink danger backgrounds */
+  --success-color: #22d3ee !important; /* Cyan-400 (matches accent-2 for cohesion) */
+  --success-bg: rgba(34, 211, 238, 0.12) !important; /* Cyan success backgrounds */
+  --warning-color: #fb923c !important; /* Orange-400 - warm accent */
+  --warning-bg: rgba(251, 146, 60, 0.12) !important;
 
   /* Bold gradient - purple to cyan diagonal */
-  --gradient-from: #312e81; /* Indigo-900 */
-  --gradient-via: #6b21a8; /* Purple-800 */
-  --gradient-to: #0e7490; /* Cyan-800 */
+  --gradient-from: #312e81 !important; /* Indigo-900 */
+  --gradient-via: #6b21a8 !important; /* Purple-800 */
+  --gradient-to: #0e7490 !important; /* Cyan-800 */
+  --bg-from: #0b1030 !important; /* Override inline GlobalStyle */
+  --bg-to: #1a1248 !important; /* Override inline GlobalStyle */
+
+  /* Override inline GlobalStyle glass variables */
+  --glass: rgba(15, 23, 42, 0.92) !important;
+  --glass-strong: rgba(15, 23, 42, 0.95) !important;
+
+  /* Override accent inline variables */
+  --accent: #8b5cf6 !important;
+  --accent-2: #06b6d4 !important;
 }
 
 * {

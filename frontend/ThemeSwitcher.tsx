@@ -23,21 +23,13 @@ export default function ThemeSwitcher({ className = '' }: ThemeSwitcherProps) {
   }, []);
 
   const applyTheme = (theme: Theme) => {
-    // Remove all theme-related stylesheets
+    // Remove all theme-related stylesheets only
     const existingLinks = document.querySelectorAll('[data-theme-stylesheet]');
     existingLinks.forEach(link => link.remove());
 
-    // Remove inline GlobalStyle if it exists to avoid conflicts
-    const inlineStyles = document.querySelectorAll('style');
-    inlineStyles.forEach(style => {
-      if (style.textContent?.includes(':root') && style.textContent?.includes('--accent')) {
-        style.remove();
-      }
-    });
-
     // Apply theme-specific stylesheet
     if (theme === 'bold') {
-      // Bold theme: Replace with bold theme CSS
+      // Bold theme: Load bold theme CSS (will override CSS variables)
       const link = document.createElement('link');
       link.setAttribute('data-theme-stylesheet', 'bold');
       link.rel = 'stylesheet';
@@ -51,7 +43,7 @@ export default function ThemeSwitcher({ className = '' }: ThemeSwitcherProps) {
       link.href = '/accessibility-fixes.css';
       document.head.appendChild(link);
     }
-    // 'default' uses index.css (already loaded in HTML)
+    // 'default' uses index.css (already loaded in HTML) + GlobalStyle inline
   };
 
   const handleThemeChange = (theme: Theme) => {
