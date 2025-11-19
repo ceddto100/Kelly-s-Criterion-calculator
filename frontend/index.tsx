@@ -9,6 +9,7 @@ import ReactDOM from 'react-dom/client';
 import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
 import SportsMatchup from "./forms/SportsMatchup";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -830,6 +831,7 @@ function App() {
           <header className="header">
             <h1 className="title">Kelly's Criterion Bet Calculator</h1>
             <p className="subtitle">To apply Kelly's Criterion, first estimate your win probability—then size the stake to maximize long-term growth.</p>
+            <ThemeSwitcher />
           </header>
 
           <div className="panel" style={{maxWidth:900}}>

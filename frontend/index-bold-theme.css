@@ -1,36 +1,57 @@
+/**
+ * OPTION B: Bold Purple + Cyan Theme
+ * High-impact modern color palette with complementary purple-cyan pairing
+ * Use this as an alternative to index.css for a more vibrant, distinctive look
+ *
+ * To use: Replace <link rel="stylesheet" href="/index.css" />
+ *         with <link rel="stylesheet" href="/index-bold-theme.css" />
+ */
+
 :root {
-  /* OPTION A: Enhanced Conservative Palette */
-  /* Backgrounds - slightly warmer, better contrast */
-  --background-color: #050914; /* Deeper black with blue undertone */
-  --card-background: rgba(15, 23, 42, 0.85); /* More opaque for better contrast */
-  --input-background: #0f172a; /* Slate-900, warmer than before */
+  /* Richer dark backgrounds with navy tint - !important to override inline styles */
+  --background-color: #0a0e27 !important; /* Deep navy-black */
+  --card-background: rgba(15, 23, 42, 0.92) !important; /* More opaque for punch */
+  --input-background: #1a1f3a !important; /* Navy-900 */
 
-  /* Primary Accents - keep indigo/purple identity */
-  --primary-accent: #6366f1; /* Indigo-500 (unchanged) */
-  --primary-accent-2: #a78bfa; /* Lighter purple for better visibility */
-  --primary-accent-hover: #7c3aed; /* Purple-600 for hover states */
+  /* Vibrant accent pair - purple + cyan (high contrast complementary) */
+  --primary-accent: #8b5cf6 !important; /* Purple-500 - bolder than conservative */
+  --primary-accent-2: #06b6d4 !important; /* Cyan-500 - HIGH CONTRAST pair */
+  --primary-accent-hover: #7c3aed !important; /* Purple-600 for hover states */
 
-  /* Text - improved hierarchy */
-  --text-primary: #f8fafc; /* Slightly softer white */
-  --text-secondary: #cbd5e1; /* Brighter gray - better contrast (was #a9a9b3) */
-  --text-muted: #94a3b8; /* For tertiary text */
+  /* Enhanced text hierarchy with purple tint */
+  --text-primary: #ffffff !important; /* Pure white for maximum contrast */
+  --text-secondary: #e0e7ff !important; /* Indigo-100 - ties to purple theme */
+  --text-muted: #a5b4fc !important; /* Indigo-300 - purple-tinted muted text */
+  --text: #ffffff !important; /* Override inline GlobalStyle */
 
-  /* Borders - much more visible */
-  --border-color: #475569; /* Slate-600 - 3.8:1 contrast (was #374151) */
-  --border-subtle: #334155; /* For less important borders */
+  /* Borders with purple tint for brand cohesion */
+  --border-color: #4c4b7a !important; /* Purple-tinted gray - unique to theme */
+  --border-subtle: #3a3966 !important; /* Darker purple-tinted border */
+  --border-accent: #8b5cf6 !important; /* Matches primary for highlights */
+  --border: rgba(76, 75, 122, 0.5) !important; /* Override inline GlobalStyle */
 
-  /* Status colors - harmonized with purple theme */
-  --danger-color: #f43f5e; /* Rose-500 (was #ff4d4d) - softer, more cohesive */
-  --danger-bg: rgba(244, 63, 94, 0.12); /* Danger backgrounds */
-  --success-color: #34d399; /* Emerald-400 (was #00e676) - less neon */
-  --success-bg: rgba(52, 211, 153, 0.12); /* Success backgrounds */
-  --warning-color: #fbbf24; /* Amber-400 - NEW for neutral states */
-  --warning-bg: rgba(251, 191, 36, 0.12);
+  /* Status colors - purple-friendly palette */
+  --danger-color: #f472b6 !important; /* Pink-400 (purple-friendly red alternative) */
+  --danger-bg: rgba(244, 114, 182, 0.12) !important; /* Pink danger backgrounds */
+  --success-color: #22d3ee !important; /* Cyan-400 (matches accent-2 for cohesion) */
+  --success-bg: rgba(34, 211, 238, 0.12) !important; /* Cyan success backgrounds */
+  --warning-color: #fb923c !important; /* Orange-400 - warm accent */
+  --warning-bg: rgba(251, 146, 60, 0.12) !important;
 
-  /* Background gradient - more distinct steps */
-  --gradient-from: #1e40af; /* Blue-700 */
-  --gradient-via: #4338ca; /* Indigo-700 */
-  --gradient-to: #6b21a8; /* Purple-700 */
+  /* Bold gradient - purple to cyan diagonal */
+  --gradient-from: #312e81 !important; /* Indigo-900 */
+  --gradient-via: #6b21a8 !important; /* Purple-800 */
+  --gradient-to: #0e7490 !important; /* Cyan-800 */
+  --bg-from: #0b1030 !important; /* Override inline GlobalStyle */
+  --bg-to: #1a1248 !important; /* Override inline GlobalStyle */
+
+  /* Override inline GlobalStyle glass variables */
+  --glass: rgba(15, 23, 42, 0.92) !important;
+  --glass-strong: rgba(15, 23, 42, 0.95) !important;
+
+  /* Override accent inline variables */
+  --accent: #8b5cf6 !important;
+  --accent-2: #06b6d4 !important;
 }
 
 * {
@@ -52,15 +73,15 @@ body {
   overflow-x: hidden;
 }
 
-/* Main animated gradient overlay */
+/* Main animated gradient overlay - BOLD purple to cyan */
 body::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(125deg, var(--gradient-from) 0%, var(--gradient-via) 50%, var(--gradient-to) 100%);
+  background: linear-gradient(135deg, var(--gradient-from) 0%, var(--gradient-via) 50%, var(--gradient-to) 100%);
   background-size: 400% 400%;
-  animation: gradientAnimation 15s ease infinite;
-  opacity: 0.5; /* Reduced from 0.6 for less overwhelming effect */
+  animation: gradientAnimation 18s ease infinite;
+  opacity: 0.6; /* More visible than conservative */
   z-index: -2;
 }
 
@@ -70,17 +91,23 @@ body::before {
     100% { background-position: 0% 50%; }
 }
 
-/* Decorative blob 1 */
+/* Decorative blob 1 - Cyan accent */
 body::after {
   content: '';
   position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.2), transparent 70%);
   filter: blur(120px);
-  bottom: -100px;
-  right: -100px;
+  bottom: -120px;
+  right: -120px;
   z-index: -1;
+  animation: pulse 12s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.1); opacity: 0.3; }
 }
 
 #root {
@@ -89,29 +116,36 @@ body::after {
   position: relative;
 }
 
-/* Decorative blob 2 */
+/* Decorative blob 2 - Purple accent */
 #root::before {
     content: '';
     position: absolute;
-    width: 350px;
-    height: 350px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.25), transparent 70%);
     filter: blur(120px);
-    top: -80px;
-    left: -80px;
+    top: -100px;
+    left: -100px;
     z-index: -1;
+    animation: float 15s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(20px, -20px); }
+  66% { transform: translate(-20px, 10px); }
 }
 
 .container {
   background-color: var(--card-background);
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(139, 92, 246, 0.15), 0 20px 60px rgba(6, 182, 212, 0.1);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   position: relative;
   z-index: 1;
 }
@@ -140,7 +174,7 @@ body::after {
 
 .tabs {
   display: flex;
-  background-color: rgba(0,0,0,0.2);
+  background-color: rgba(0,0,0,0.3);
 }
 
 .tab {
@@ -151,7 +185,7 @@ body::after {
   cursor: pointer;
   border: none;
   background-color: transparent;
-  color: var(--text-secondary); /* Now brighter with new color */
+  color: var(--text-secondary);
   transition: all 0.2s ease-in-out;
   border-bottom: 2px solid transparent;
   font-size: 0.9rem;
@@ -160,17 +194,16 @@ body::after {
 
 .tab:hover {
   color: var(--text-primary);
-  background-color: rgba(99, 102, 241, 0.08); /* Subtle background */
+  background-color: rgba(139, 92, 246, 0.1);
   transform: translateY(-1px);
 }
 
 .tab.active {
   color: var(--text-primary);
-  border-bottom: 2px solid var(--primary-accent);
-  background-color: rgba(99, 102, 241, 0.15); /* More prominent background */
+  border-bottom: 2px solid var(--primary-accent-2); /* Cyan accent for active */
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.15), rgba(6, 182, 212, 0.1));
 }
 
-/* Enhanced focus for tabs */
 .tab:focus-visible {
   outline: 2px solid var(--primary-accent-2);
   outline-offset: 2px;
@@ -187,7 +220,7 @@ body::after {
     border-bottom: none;
 }
 .nested-tabs .tab.active {
-    background-color: var(--border-color);
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
     color: var(--text-primary);
 }
 
@@ -214,7 +247,7 @@ body::after {
   width: 100%;
   padding: 0.75rem;
   background-color: var(--input-background);
-  border: 1px solid var(--border-color); /* Now more visible with new --border-color */
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 1rem;
@@ -223,11 +256,10 @@ body::after {
 
 .input-field:focus {
   outline: none;
-  border-color: var(--primary-accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); /* Increased from 0.2 for better visibility */
+  border-color: var(--primary-accent-2); /* Cyan focus */
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.3);
 }
 
-/* Enhanced focus indicators for accessibility */
 .input-field:focus-visible {
   outline: 2px solid var(--primary-accent-2);
   outline-offset: 2px;
@@ -254,19 +286,21 @@ body::after {
   appearance: none;
   width: 18px;
   height: 18px;
-  background: var(--primary-accent);
+  background: linear-gradient(135deg, var(--primary-accent), var(--primary-accent-2));
   cursor: pointer;
   border-radius: 50%;
   border: 2px solid var(--input-background);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
 }
 
 .slider::-moz-range-thumb {
   width: 18px;
   height: 18px;
-  background: var(--primary-accent);
+  background: linear-gradient(135deg, var(--primary-accent), var(--primary-accent-2));
   cursor: pointer;
   border-radius: 50%;
   border: 2px solid var(--input-background);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
 }
 
 .results {
@@ -274,12 +308,21 @@ body::after {
   padding: 1.5rem;
   border-radius: 8px;
   text-align: center;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15);
 }
 
 .results.no-value {
-    background-color: var(--danger-bg); /* Uses new variable */
+    background-color: var(--danger-bg);
     border-color: var(--danger-color);
+    box-shadow: 0 4px 20px rgba(244, 114, 182, 0.15);
+}
+
+.results.no-value::before {
+    content: "⛔ ";
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
 }
 
 .results p {
@@ -300,19 +343,11 @@ body::after {
 }
 
 .results.no-value h2 {
-    color: #fb7185; /* Rose-400 - better contrast */
+    color: #f9a8d4; /* Pink-300 - better contrast */
     font-size: 1.25rem;
     margin-bottom: 0;
-    -webkit-text-fill-color: #fb7185;
+    -webkit-text-fill-color: #f9a8d4;
     background: none;
-}
-
-/* Add icon prefix for accessibility */
-.results.no-value::before {
-    content: "⛔ ";
-    font-size: 1.5rem;
-    display: block;
-    margin-bottom: 0.5rem;
 }
 
 .results-details {
@@ -327,14 +362,18 @@ body::after {
     background-color: var(--input-background);
     padding: 1rem 1.5rem;
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--primary-accent-2); /* Cyan accent */
+    border-right: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.05), rgba(6, 182, 212, 0.05));
 }
 
 .analyst-insight h3 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: var(--text-primary);
+    color: var(--primary-accent-2);
 }
 
 .analyst-insight p {
@@ -344,10 +383,10 @@ body::after {
 }
 
 .loading-text {
-    animation: pulse 1.5s infinite ease-in-out;
+    animation: pulse-text 1.5s infinite ease-in-out;
 }
 
-@keyframes pulse {
+@keyframes pulse-text {
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
@@ -387,13 +426,13 @@ body::after {
     cursor: pointer;
     transition: all 0.2s ease;
     width: 100%;
-    background-size: 150% auto;
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.3), 0 3px 12px rgba(6, 182, 212, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
     opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px rgba(139, 92, 246, 0.4), 0 5px 16px rgba(6, 182, 212, 0.3);
 }
 
 .btn-primary:disabled {
@@ -403,9 +442,9 @@ body::after {
 }
 
 .btn-secondary {
-    background-color: #334155; /* Slate-700 - more visible than before */
-    color: #f1f5f9; /* Slate-100 */
-    border: 1px solid var(--border-color); /* Add visible border */
+    background-color: #334155;
+    color: #f1f5f9;
+    border: 1px solid var(--border-color);
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
     font-weight: 600;
@@ -416,8 +455,8 @@ body::after {
     transition: all 0.2s ease;
 }
 .btn-secondary:hover:not(:disabled) {
-    background-color: var(--border-color); /* Slate-600 */
-    opacity: 0.9;
+    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.15));
+    border-color: var(--primary-accent-2);
     transform: translateY(-1px);
 }
 .btn-secondary:disabled {
@@ -426,9 +465,9 @@ body::after {
 }
 
 .error-message {
-    background-color: var(--danger-bg); /* Uses new variable */
+    background-color: var(--danger-bg);
     border: 1px solid var(--danger-color);
-    color: #fb7185; /* Rose-400 - lighter for better contrast */
+    color: #f9a8d4; /* Pink-300 - better contrast */
     padding: 0.75rem;
     border-radius: 6px;
     font-size: 0.9rem;
@@ -465,18 +504,15 @@ body::after {
 /* ACCESSIBILITY: Reduced Motion Support       */
 /* ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  /* Disable gradient animation */
   @keyframes gradientAnimation {
     0%, 100% { background-position: 0% 50%; }
   }
 
-  /* Disable blob animations */
   body::after,
   #root::before {
     animation: none;
   }
 
-  /* Reduce all animations to minimal duration */
   *,
   *::before,
   *::after {
@@ -485,7 +521,6 @@ body::after {
     transition-duration: 0.01ms !important;
   }
 
-  /* Keep transforms but remove animation */
   .btn-primary:hover:not(:disabled),
   .btn-secondary:hover:not(:disabled),
   .tab:hover {
@@ -499,5 +534,5 @@ input:focus-visible,
 select:focus-visible {
   outline: 3px solid var(--primary-accent-2);
   outline-offset: 3px;
-  box-shadow: 0 0 0 5px rgba(167, 139, 250, 0.2);
+  box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.2);
 }
