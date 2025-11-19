@@ -192,9 +192,21 @@ async function analyzeMatchupRoute(req, res) {
       console.log('⚠️ Using fallback estimated data');
     }
 
-    // Call Gemini for AI analysis
-    console.log('🤖 Generating AI analysis with Gemini...');
-    const analysis = await analyzeMatchup(teamA, teamB, matchupData);
+    // Call Gemini for AI analysis (optional - only if API key is set)
+    let analysis = null;
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+
+    if (geminiApiKey && geminiApiKey !== 'your_gemini_api_key_here') {
+      try {
+        console.log('🤖 Generating AI analysis with Gemini...');
+        analysis = await analyzeMatchup(teamA, teamB, matchupData);
+      } catch (aiError) {
+        console.warn('⚠️ AI analysis failed, returning stats only:', aiError.message);
+        analysis = null;
+      }
+    } else {
+      console.log('ℹ️ No Gemini API key configured - returning stats only');
+    }
 
     res.json({
       teamA,
