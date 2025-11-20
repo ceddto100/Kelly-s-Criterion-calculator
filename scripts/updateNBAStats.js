@@ -1,163 +1,141 @@
 // scripts/updateNBAStats.js
-// Using Node.js built-in fetch (available in Node 18+)
+// Fetches REAL NBA stats from ESPN API for 2025-26 season
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
 
 const STATS_DIR = path.join(__dirname, '..', 'stats');
 
-// Target season
-const CURRENT_SEASON = '2025-26';
+// Current NBA season (2025-26 season = year 2026 in ESPN API)
+const SEASON_YEAR = 2026;
+const SEASON_TYPE = 2; // 1=preseason, 2=regular, 3=playoffs
 
 /**
- * Fetch all NBA teams from ESPN's public API
- * This endpoint is accessible from cloud environments like GitHub Actions
+ * Fetch all NBA teams from ESPN
  */
 async function fetchNBATeams() {
   const url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
 
-  try {
-    const response = await fetch(url);
+  console.log('  Fetching NBA teams from ESPN...');
+  const response = await fetch(url);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.sports || !data.sports[0] || !data.sports[0].leagues || !data.sports[0].leagues[0]) {
-      throw new Error('Unexpected API response structure');
-    }
-
-    const teams = data.sports[0].leagues[0].teams.map(t => ({
-      id: t.team.id,
-      name: t.team.displayName,
-      abbreviation: t.team.abbreviation,
-      location: t.team.location,
-      shortDisplayName: t.team.shortDisplayName
-    }));
-
-    return teams;
-  } catch (error) {
-    console.error(`  ⚠️  Error fetching teams:`, error.message);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to fetch teams: ${response.status}`);
   }
+
+  const data = await response.json();
+
+  if (!data.sports?.[0]?.leagues?.[0]?.teams) {
+    throw new Error('Unexpected API response structure');
+  }
+
+  const teams = data.sports[0].leagues[0].teams.map(t => ({
+    id: t.team.id,
+    name: t.team.displayName,
+    abbreviation: t.team.abbreviation
+  }));
+
+  console.log(`  ✅ Found ${teams.length} NBA teams\n`);
+  return teams;
 }
 
 /**
- * Try to fetch real team stats from ESPN's standings endpoint
- * This includes actual season statistics if the season has started
+ * Fetch team statistics from ESPN
  */
-async function fetchESPNStandings() {
-  const url = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
+async function fetchTeamStats(teamId, teamName) {
+  const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${SEASON_YEAR}/types/${SEASON_TYPE}/teams/${teamId}/statistics`;
 
   try {
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.log('  ℹ️  ESPN standings not available, will use estimated stats');
+      console.log(`  ⚠️  No stats available for ${teamName} (${response.status})`);
       return null;
     }
 
     const data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(`  ⚠️  Error fetching ${teamName}: ${error.message}`);
+    return null;
+  }
+}
 
-    // Extract team stats from standings if available
-    if (data.children && data.children[0] && data.children[0].standings) {
-      return data.children[0].standings.entries;
+/**
+ * Extract a specific stat value from ESPN's nested structure
+ */
+function getStat(statsData, categoryName, statName) {
+  try {
+    if (!statsData?.splits?.categories) return null;
+
+    const category = statsData.splits.categories.find(c => c.name === categoryName);
+    if (!category?.stats) return null;
+
+    const stat = category.stats.find(s => s.name === statName);
+    return stat?.value ?? null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Calculate per-game average if we only have totals
+ */
+function calculateAverage(total, gamesPlayed) {
+  if (!total || !gamesPlayed || gamesPlayed === 0) return null;
+  return total / gamesPlayed;
+}
+
+/**
+ * Fetch scoreboard to get games played count
+ */
+async function fetchGamesPlayed() {
+  try {
+    const url = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
+    const response = await fetch(url);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const gamesMap = new Map();
+
+    // Extract games played from standings
+    if (data.children?.[0]?.standings?.entries) {
+      for (const entry of data.children[0].standings.entries) {
+        if (entry.team?.id && entry.stats) {
+          const gamesPlayed = entry.stats.find(s => s.name === 'gamesPlayed')?.value;
+          if (gamesPlayed) {
+            gamesMap.set(entry.team.id, gamesPlayed);
+          }
+        }
+      }
     }
 
-    return null;
+    return gamesMap;
   } catch (error) {
-    console.log('  ℹ️  Could not fetch ESPN standings, will use estimated stats');
+    console.log('  ℹ️  Could not fetch games played data');
     return null;
   }
-}
-
-/**
- * Extract stats from ESPN standings entry
- */
-function extractStatsFromStandings(entry) {
-  if (!entry || !entry.stats) return null;
-
-  const stats = {};
-
-  // ESPN standings include various stats
-  for (const stat of entry.stats) {
-    if (stat.name === 'pointsFor') stats.ppg = stat.value;
-    if (stat.name === 'pointsAgainst') stats.allowed = stat.value;
-    if (stat.name === 'avgPointsFor') stats.ppg = stat.value;
-    if (stat.name === 'avgPointsAgainst') stats.allowed = stat.value;
-  }
-
-  return Object.keys(stats).length > 0 ? stats : null;
-}
-
-/**
- * Generate realistic team stats based on team tier
- * Fallback when real stats aren't available from ESPN
- * Uses typical NBA team performance ranges for the season
- */
-function generateTeamStats(team, index, totalTeams) {
-  // Create performance tiers based on alphabetical distribution (simulating variety)
-  const tierPosition = (index / totalTeams);
-
-  // NBA league averages and ranges (2025-26 season typical values)
-  const leagueAvgPPG = 114.5;
-  const leagueAvgAllowed = 114.5;
-  const leagueAvgFGPct = 46.5;
-  const leagueAvgReb = 43.5;
-  const leagueAvgTov = 13.5;
-
-  // Variation ranges
-  const ppgRange = 8; // Top teams ~122, bottom ~106
-  const allowedRange = 8;
-  const fgPctRange = 3; // Top ~49%, bottom ~43%
-  const rebRange = 4;
-  const tovRange = 2;
-
-  // Use hash of team name for consistency across runs
-  const teamHash = team.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const seed = (teamHash % 100) / 100;
-
-  // Generate stats with some controlled randomness
-  const ppg = leagueAvgPPG + (seed - 0.5) * ppgRange * 2;
-  const allowed = leagueAvgAllowed + ((1 - seed) - 0.5) * allowedRange * 2;
-  const fgPct = leagueAvgFGPct + (seed - 0.5) * fgPctRange * 2;
-  const reb = leagueAvgReb + (seed - 0.5) * rebRange * 2;
-  const tov = leagueAvgTov + ((1 - seed) - 0.5) * tovRange * 2;
-
-  return {
-    ppg: parseFloat(ppg.toFixed(1)),
-    allowed: parseFloat(allowed.toFixed(1)),
-    fg_pct: parseFloat(fgPct.toFixed(1)),
-    rebound_margin: parseFloat((reb - leagueAvgReb).toFixed(1)),
-    turnover_margin: parseFloat((leagueAvgTov - tov).toFixed(1))
-  };
 }
 
 /**
  * Main function to generate NBA stats
  */
 async function generateNBAStats() {
-  console.log(`📊 Fetching NBA team data for ${CURRENT_SEASON} season...\n`);
-  console.log('ℹ️  Note: Attempting to fetch real stats from ESPN API');
-  console.log('ℹ️  (NBA.com blocks cloud providers like GitHub Actions)\n');
+  console.log('📊 Fetching REAL NBA team stats from ESPN API\n');
+  console.log(`📅 Season: 2025-26 (Year ${SEASON_YEAR})\n`);
 
   try {
-    // Fetch all teams from ESPN
-    console.log('  Fetching NBA teams from ESPN...');
+    // Fetch all teams
     const teams = await fetchNBATeams();
-    console.log(`  ✅ Found ${teams.length} NBA teams\n`);
 
-    // Try to fetch real standings/stats from ESPN
-    console.log('  Attempting to fetch real team statistics from ESPN...');
-    const standingsData = await fetchESPNStandings();
-    const useRealStats = standingsData && standingsData.length > 0;
-
-    if (useRealStats) {
-      console.log(`  ✅ Found real stats for current season!\n`);
+    // Fetch games played for each team
+    console.log('  Fetching games played data...');
+    const gamesPlayedMap = await fetchGamesPlayed();
+    if (gamesPlayedMap) {
+      console.log(`  ✅ Found games played for ${gamesPlayedMap.size} teams\n`);
     } else {
-      console.log(`  ℹ️  Real stats not available, using estimated league averages\n`);
+      console.log('  ⚠️  Games played data unavailable\n');
     }
 
     const ppgData = [];
@@ -166,82 +144,93 @@ async function generateNBAStats() {
     const reboundMarginData = [];
     const turnoverMarginData = [];
 
-    // Create a map of real stats if available
-    const realStatsMap = new Map();
-    if (useRealStats && standingsData) {
-      for (const entry of standingsData) {
-        if (entry.team) {
-          const teamId = entry.team.id;
-          const extracted = extractStatsFromStandings(entry);
-          if (extracted) {
-            realStatsMap.set(teamId, extracted);
-          }
+    // Fetch stats for each team
+    console.log('  Fetching team statistics...\n');
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const team of teams) {
+      console.log(`  Processing ${team.name}...`);
+
+      const stats = await fetchTeamStats(team.id, team.name);
+
+      if (stats) {
+        // Get games played for this team
+        const gamesPlayed = gamesPlayedMap?.get(team.id) || null;
+
+        // Extract stats - try both per-game and total versions
+        let ppg = getStat(stats, 'scoring', 'avgPoints');
+        let pointsAllowed = getStat(stats, 'defensive', 'avgPointsAllowed');
+
+        // If we only have totals, calculate averages
+        if (!ppg && gamesPlayed) {
+          const totalPoints = getStat(stats, 'scoring', 'points');
+          ppg = calculateAverage(totalPoints, gamesPlayed);
         }
-      }
-    }
 
-    // Process each team
-    console.log('  Processing team statistics...\n');
-    for (let i = 0; i < teams.length; i++) {
-      const team = teams[i];
+        if (!pointsAllowed && gamesPlayed) {
+          const totalPointsAllowed = getStat(stats, 'defensive', 'pointsAllowed');
+          pointsAllowed = calculateAverage(totalPointsAllowed, gamesPlayed);
+        }
 
-      // Try to use real stats first, fall back to generated
-      let stats;
-      const realStats = realStatsMap.get(team.id);
+        const fgPct = getStat(stats, 'fieldGoals', 'fieldGoalPct');
+        const reboundMargin = getStat(stats, 'rebounding', 'reboundMargin');
+        const turnoverMargin = getStat(stats, 'turnovers', 'turnoverMargin');
 
-      if (realStats && realStats.ppg && realStats.allowed) {
-        // Use real stats from ESPN, generate missing ones
-        stats = {
-          ppg: parseFloat(realStats.ppg.toFixed(1)),
-          allowed: parseFloat(realStats.allowed.toFixed(1)),
-          fg_pct: generateTeamStats(team, i, teams.length).fg_pct, // Still generate FG%
-          rebound_margin: generateTeamStats(team, i, teams.length).rebound_margin,
-          turnover_margin: generateTeamStats(team, i, teams.length).turnover_margin
-        };
+        // Only add if we have at least PPG data
+        if (ppg !== null) {
+          ppgData.push({
+            team: team.name,
+            abbreviation: team.abbreviation,
+            ppg: parseFloat(ppg.toFixed(1))
+          });
+
+          allowedData.push({
+            team: team.name,
+            abbreviation: team.abbreviation,
+            allowed: pointsAllowed !== null ? parseFloat(pointsAllowed.toFixed(1)) : 0
+          });
+
+          fieldGoalData.push({
+            team: team.name,
+            abbreviation: team.abbreviation,
+            fg_pct: fgPct !== null ? parseFloat(fgPct.toFixed(1)) : 0
+          });
+
+          reboundMarginData.push({
+            team: team.name,
+            abbreviation: team.abbreviation,
+            rebound_margin: reboundMargin !== null ? parseFloat(reboundMargin.toFixed(1)) : 0
+          });
+
+          turnoverMarginData.push({
+            team: team.name,
+            abbreviation: team.abbreviation,
+            turnover_margin: turnoverMargin !== null ? parseFloat(turnoverMargin.toFixed(1)) : 0
+          });
+
+          console.log(`    ✅ ${ppg.toFixed(1)} PPG, ${pointsAllowed?.toFixed(1) || 'N/A'} allowed, ${fgPct?.toFixed(1) || 'N/A'}% FG`);
+          successCount++;
+        } else {
+          console.log(`    ⚠️  No valid stats available`);
+          failCount++;
+        }
       } else {
-        // Generate all stats
-        stats = generateTeamStats(team, i, teams.length);
+        console.log(`    ❌ Failed to fetch stats`);
+        failCount++;
       }
 
-      console.log(`  ${team.name}: ${stats.ppg} PPG, ${stats.allowed} allowed, ${stats.fg_pct}% FG`);
-
-      ppgData.push({
-        team: team.name,
-        abbreviation: team.abbreviation,
-        ppg: stats.ppg
-      });
-
-      allowedData.push({
-        team: team.name,
-        abbreviation: team.abbreviation,
-        allowed: stats.allowed
-      });
-
-      fieldGoalData.push({
-        team: team.name,
-        abbreviation: team.abbreviation,
-        fg_pct: stats.fg_pct
-      });
-
-      reboundMarginData.push({
-        team: team.name,
-        abbreviation: team.abbreviation,
-        rebound_margin: stats.rebound_margin
-      });
-
-      turnoverMarginData.push({
-        team: team.name,
-        abbreviation: team.abbreviation,
-        turnover_margin: stats.turnover_margin
-      });
-
-      // Small delay to be respectful to ESPN's API
-      if (i < teams.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
+      // Rate limiting - be respectful to ESPN
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    console.log(`\n  ✅ Successfully processed stats for ${ppgData.length} teams\n`);
+    console.log(`\n📊 Stats Summary:`);
+    console.log(`  ✅ Successfully fetched: ${successCount} teams`);
+    console.log(`  ❌ Failed to fetch: ${failCount} teams\n`);
+
+    if (successCount === 0) {
+      throw new Error('No stats were successfully fetched. Season may not have started yet.');
+    }
 
     // Create stats directory if it doesn't exist
     if (!fs.existsSync(STATS_DIR)) {
@@ -262,20 +251,17 @@ async function generateNBAStats() {
       const csv = parser.parse(file.data);
       const filePath = path.join(STATS_DIR, file.name);
       fs.writeFileSync(filePath, csv);
-      console.log(`  ✅ Created ${file.name} with ${file.data.length} teams`);
+      console.log(`  ✅ Saved ${file.name} (${file.data.length} teams)`);
     }
 
-    console.log('\n🎉 All NBA stats generated and saved successfully!');
-    console.log(`📁 Files saved to: ${STATS_DIR}`);
-
-    if (useRealStats) {
-      console.log(`📅 Season: ${CURRENT_SEASON} NBA Season (real stats from ESPN where available)`);
-    } else {
-      console.log(`📅 Season: ${CURRENT_SEASON} NBA Season (estimated stats based on league averages)`);
-    }
+    console.log('\n🎉 NBA stats successfully fetched and saved!');
+    console.log(`📁 Location: ${STATS_DIR}`);
+    console.log(`📅 Season: 2025-26 NBA Regular Season`);
+    console.log(`🔄 Last updated: ${new Date().toISOString()}\n`);
 
   } catch (error) {
-    console.error('🔥 Error generating NBA stats:', error.message);
+    console.error('\n🔥 Error generating NBA stats:');
+    console.error(`   ${error.message}\n`);
     console.error(error.stack);
     process.exit(1);
   }
