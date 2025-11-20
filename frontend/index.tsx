@@ -171,6 +171,12 @@ const GlobalStyle = () => (
       .stats-grid > span:nth-child(3n+1){ font-weight:600; color:#a5b4fc; margin-top:.75rem; }
     }
 
+    /* Team name labels inside input fields */
+    .team-name-label{ position:absolute; top:.5rem; left:.75rem; font-size:.75rem; font-weight:700;
+      color:#a78bfa; pointer-events:none; text-transform:uppercase; letter-spacing:.05em;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa); -webkit-background-clip:text;
+      background-clip:text; color:transparent; opacity:.9; }
+
     /* Enhanced focus indicators */
     button:focus-visible, input:focus-visible, select:focus-visible{
       outline: 2px solid #818cf8; outline-offset: 2px;
@@ -306,6 +312,7 @@ export const initialBasketballState = {
   teamFgPct: '', opponentFgPct: '',
   teamReboundMargin: '', opponentReboundMargin: '',
   teamTurnoverMargin: '', opponentTurnoverMargin: '',
+  teamAName: '', teamBName: '',
 };
 
 /* ========================= Probability Estimator panel ===================== */
@@ -432,6 +439,8 @@ function ProbabilityEstimator({
         opponentReboundMargin: basketballStats.teamReboundMargin,
         teamTurnoverMargin: basketballStats.opponentTurnoverMargin,
         opponentTurnoverMargin: basketballStats.teamTurnoverMargin,
+        teamAName: basketballStats.teamBName,
+        teamBName: basketballStats.teamAName,
       });
     }
 
@@ -828,6 +837,8 @@ function App() {
       opponentReboundMargin: matchupData.teamB.rebound_margin?.toFixed(1) || '',
       teamTurnoverMargin: matchupData.teamA.turnover_margin?.toFixed(1) || '',
       opponentTurnoverMargin: matchupData.teamB.turnover_margin?.toFixed(1) || '',
+      teamAName: matchupData.teamA.team || '',
+      teamBName: matchupData.teamB.team || '',
     });
     setActiveSport(CONSTANTS.SPORTS.BASKETBALL);
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);

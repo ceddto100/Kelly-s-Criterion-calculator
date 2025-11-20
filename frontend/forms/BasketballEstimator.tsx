@@ -11,6 +11,8 @@ export type BasketballStats = {
   opponentReboundMargin: string;
   teamTurnoverMargin: string;
   opponentTurnoverMargin: string;
+  teamAName?: string;
+  teamBName?: string;
 };
 
 type Props = {
@@ -19,6 +21,35 @@ type Props = {
 };
 
 export default function BasketballEstimator({ stats, onChange }: Props) {
+  const InputWithTeamLabel = ({
+    name,
+    value,
+    placeholder,
+    teamName
+  }: {
+    name: string;
+    value: string;
+    placeholder: string;
+    teamName?: string;
+  }) => (
+    <div style={{ position: 'relative' }}>
+      <input
+        name={name}
+        type="number"
+        className="input-field"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={teamName ? { paddingTop: '1.75rem' } : {}}
+      />
+      {teamName && (
+        <span className="team-name-label">
+          {teamName}
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <div className="stats-grid">
       <h4 className="grid-header">Metric</h4>
@@ -26,53 +57,73 @@ export default function BasketballEstimator({ stats, onChange }: Props) {
       <h4 className="grid-header">Opponent</h4>
 
       <span>Points Per Game (Your team always first)</span>
-      <input
-        name="teamPointsFor" type="number" className="input-field"
-        value={stats.teamPointsFor} onChange={onChange} placeholder="115.3"
+      <InputWithTeamLabel
+        name="teamPointsFor"
+        value={stats.teamPointsFor}
+        placeholder="115.3"
+        teamName={stats.teamAName}
       />
-      <input
-        name="opponentPointsFor" type="number" className="input-field"
-        value={stats.opponentPointsFor} onChange={onChange} placeholder="112.1"
+      <InputWithTeamLabel
+        name="opponentPointsFor"
+        value={stats.opponentPointsFor}
+        placeholder="112.1"
+        teamName={stats.teamBName}
       />
 
       <span>Points Allowed</span>
-      <input
-        name="teamPointsAgainst" type="number" className="input-field"
-        value={stats.teamPointsAgainst} onChange={onChange} placeholder="110.8"
+      <InputWithTeamLabel
+        name="teamPointsAgainst"
+        value={stats.teamPointsAgainst}
+        placeholder="110.8"
+        teamName={stats.teamAName}
       />
-      <input
-        name="opponentPointsAgainst" type="number" className="input-field"
-        value={stats.opponentPointsAgainst} onChange={onChange} placeholder="114.5"
+      <InputWithTeamLabel
+        name="opponentPointsAgainst"
+        value={stats.opponentPointsAgainst}
+        placeholder="114.5"
+        teamName={stats.teamBName}
       />
 
       <span>Field Goal %</span>
-      <input
-        name="teamFgPct" type="number" className="input-field"
-        value={stats.teamFgPct} onChange={onChange} placeholder="48.7"
+      <InputWithTeamLabel
+        name="teamFgPct"
+        value={stats.teamFgPct}
+        placeholder="48.7"
+        teamName={stats.teamAName}
       />
-      <input
-        name="opponentFgPct" type="number" className="input-field"
-        value={stats.opponentFgPct} onChange={onChange} placeholder="46.5"
+      <InputWithTeamLabel
+        name="opponentFgPct"
+        value={stats.opponentFgPct}
+        placeholder="46.5"
+        teamName={stats.teamBName}
       />
 
       <span>Rebound Margin</span>
-      <input
-        name="teamReboundMargin" type="number" className="input-field"
-        value={stats.teamReboundMargin} onChange={onChange} placeholder="3.5"
+      <InputWithTeamLabel
+        name="teamReboundMargin"
+        value={stats.teamReboundMargin}
+        placeholder="3.5"
+        teamName={stats.teamAName}
       />
-      <input
-        name="opponentReboundMargin" type="number" className="input-field"
-        value={stats.opponentReboundMargin} onChange={onChange} placeholder="-1.2"
+      <InputWithTeamLabel
+        name="opponentReboundMargin"
+        value={stats.opponentReboundMargin}
+        placeholder="-1.2"
+        teamName={stats.teamBName}
       />
 
       <span>Turnover Margin</span>
-      <input
-        name="teamTurnoverMargin" type="number" className="input-field"
-        value={stats.teamTurnoverMargin} onChange={onChange} placeholder="2.1"
+      <InputWithTeamLabel
+        name="teamTurnoverMargin"
+        value={stats.teamTurnoverMargin}
+        placeholder="2.1"
+        teamName={stats.teamAName}
       />
-      <input
-        name="opponentTurnoverMargin" type="number" className="input-field"
-        value={stats.opponentTurnoverMargin} onChange={onChange} placeholder="-0.8"
+      <InputWithTeamLabel
+        name="opponentTurnoverMargin"
+        value={stats.opponentTurnoverMargin}
+        placeholder="-0.8"
+        teamName={stats.teamBName}
       />
     </div>
   );
