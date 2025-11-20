@@ -541,7 +541,7 @@ type HistoryEntry = { bankroll:string; odds:string; probability:string; stake:nu
 
 function KellyCalculator({ probability, setProbability }: { probability:string; setProbability:(v:string)=>void }) {
   const [bankroll, setBankroll] = useState('1000');
-  const [odds, setOdds] = useState('150');
+  const [odds, setOdds] = useState('-110');
   const [fraction, setFraction] = useState('1');
   const [explanation, setExplanation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
