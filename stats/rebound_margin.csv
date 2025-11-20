@@ -1,31 +1,31 @@
 "team","abbreviation","rebound_margin"
-"Atlanta Hawks","ATL",0.1
-"Boston Celtics","BOS",1.8
-"Brooklyn Nets","BKN",3.2
-"Charlotte Hornets","CHA",-3.6
-"Chicago Bulls","CHI",-1.4
-"Cleveland Cavaliers","CLE",1.1
-"Dallas Mavericks","DAL",0.6
-"Denver Nuggets","DEN",2.2
-"Detroit Pistons","DET",-2.8
-"Golden State Warriors","GS",-1.2
-"Houston Rockets","HOU",-2.8
-"Indiana Pacers","IND",-1.6
-"LA Clippers","LAC",-3.4
-"Los Angeles Lakers","LAL",2.3
-"Memphis Grizzlies","MEM",-2.6
-"Miami Heat","MIA",-3.1
-"Milwaukee Bucks","MIL",1.4
-"Minnesota Timberwolves","MIN",0.6
-"New Orleans Pelicans","NO",-3.9
-"New York Knicks","NY",3.5
-"Oklahoma City Thunder","OKC",-2.8
-"Orlando Magic","ORL",-1.4
-"Philadelphia 76ers","PHI",3.4
-"Phoenix Suns","PHX",3
-"Portland Trail Blazers","POR",-1.5
-"Sacramento Kings","SAC",2.2
-"San Antonio Spurs","SA",-2.2
-"Toronto Raptors","TOR",-1.1
-"Utah Jazz","UTAH",-0.1
-"Washington Wizards","WSH",-1.6
+"Atlanta Hawks","ATL",-4.2
+"Boston Celtics","BOS",0.5
+"Brooklyn Nets","BKN",-6.6
+"Charlotte Hornets","CHA",6.7
+"Chicago Bulls","CHI",3.3
+"Cleveland Cavaliers","CLE",-1.2
+"Dallas Mavericks","DAL",-4.1
+"Denver Nuggets","DEN",6.9
+"Detroit Pistons","DET",3.6
+"Golden State Warriors","GSW",-2
+"Houston Rockets","HOU",12.4
+"Indiana Pacers","IND",-2.9
+"LA Clippers","LAC",-1.5
+"Los Angeles Lakers","LAL",1.6
+"Memphis Grizzlies","MEM",-1.7
+"Miami Heat","MIA",-5.5
+"Milwaukee Bucks","MIL",-6.2
+"Minnesota Timberwolves","MIN",0.2
+"New Orleans Pelicans","NOP",-4.2
+"New York Knicks","NYK",5.6
+"Oklahoma City Thunder","OKC",3.1
+"Orlando Magic","ORL",3.4
+"Philadelphia 76ers","PHI",0.3
+"Phoenix Suns","PHX",1.4
+"Portland Trail Blazers","POR",-0.8
+"Sacramento Kings","SAC",-6.7
+"San Antonio Spurs","SAS",5.6
+"Toronto Raptors","TOR",-2
+"Utah Jazz","UTA",4.8
+"Washington Wizards","WAS",-6.6
