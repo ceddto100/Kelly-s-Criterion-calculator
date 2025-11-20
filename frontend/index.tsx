@@ -172,10 +172,10 @@ const GlobalStyle = () => (
     }
 
     /* Team name labels inside input fields */
-    .team-name-label{ position:absolute; top:.5rem; left:.75rem; font-size:.75rem; font-weight:700;
-      color:#a78bfa; pointer-events:none; text-transform:uppercase; letter-spacing:.05em;
+    .team-name-label{ position:absolute; top:.35rem; left:.75rem; font-size:.65rem; font-weight:600;
+      color:#a78bfa; pointer-events:none; text-transform:uppercase; letter-spacing:.03em;
       background: linear-gradient(90deg, #a78bfa, #60a5fa); -webkit-background-clip:text;
-      background-clip:text; color:transparent; opacity:.9; }
+      background-clip:text; color:transparent; opacity:.85; line-height:1; }
 
     /* Enhanced focus indicators */
     button:focus-visible, input:focus-visible, select:focus-visible{
@@ -824,6 +824,14 @@ function App() {
   const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
   const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
 
+  // Helper function to extract team abbreviation from full name
+  const getTeamAbbreviation = (fullName: string): string => {
+    if (!fullName) return '';
+    // Extract last word (team nickname) from full name (e.g., "Los Angeles Lakers" -> "Lakers")
+    const words = fullName.trim().split(' ');
+    return words[words.length - 1];
+  };
+
   // Handler to transfer matchup data to Basketball Estimator
   const handleTransferToEstimator = (matchupData: any) => {
     setBasketballStats({
@@ -837,8 +845,8 @@ function App() {
       opponentReboundMargin: matchupData.teamB.rebound_margin?.toFixed(1) || '',
       teamTurnoverMargin: matchupData.teamA.turnover_margin?.toFixed(1) || '',
       opponentTurnoverMargin: matchupData.teamB.turnover_margin?.toFixed(1) || '',
-      teamAName: matchupData.teamA.team || '',
-      teamBName: matchupData.teamB.team || '',
+      teamAName: getTeamAbbreviation(matchupData.teamA.team || ''),
+      teamBName: getTeamAbbreviation(matchupData.teamB.team || ''),
     });
     setActiveSport(CONSTANTS.SPORTS.BASKETBALL);
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);

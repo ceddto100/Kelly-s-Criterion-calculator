@@ -40,7 +40,7 @@ export default function BasketballEstimator({ stats, onChange }: Props) {
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        style={teamName ? { paddingTop: '1.75rem' } : {}}
+        style={teamName ? { paddingTop: '1.5rem' } : {}}
       />
       {teamName && (
         <span className="team-name-label">
