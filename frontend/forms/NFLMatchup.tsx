@@ -4,6 +4,13 @@
  */
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 
+// Import CSV files as raw text (Vite handles this)
+import ppgCsv from '../../stats/nfl_ppg.csv?raw';
+import allowedCsv from '../../stats/nfl_allowed.csv?raw';
+import offYardsCsv from '../../stats/nfl_off_yards.csv?raw';
+import defYardsCsv from '../../stats/nfl_def_yards.csv?raw';
+import turnoverCsv from '../../stats/nfl_turnover_diff.csv?raw';
+
 // NFL Team Stats interface
 interface NFLTeamStats {
   team: string;
@@ -15,41 +22,50 @@ interface NFLTeamStats {
   turnover_diff: number;
 }
 
-// All 32 NFL teams with placeholder stats (embedded for no backend dependency)
-const NFL_TEAMS: NFLTeamStats[] = [
-  { team: "Arizona Cardinals", abbreviation: "ARI", ppg: 21.5, allowed: 25.8, off_yards: 325.5, def_yards: 365.8, turnover_diff: -5 },
-  { team: "Atlanta Falcons", abbreviation: "ATL", ppg: 24.2, allowed: 24.5, off_yards: 358.2, def_yards: 352.5, turnover_diff: 2 },
-  { team: "Baltimore Ravens", abbreviation: "BAL", ppg: 28.5, allowed: 19.2, off_yards: 392.5, def_yards: 298.2, turnover_diff: 12 },
-  { team: "Buffalo Bills", abbreviation: "BUF", ppg: 27.8, allowed: 20.1, off_yards: 385.8, def_yards: 312.1, turnover_diff: 8 },
-  { team: "Carolina Panthers", abbreviation: "CAR", ppg: 18.9, allowed: 27.2, off_yards: 298.9, def_yards: 378.2, turnover_diff: -8 },
-  { team: "Chicago Bears", abbreviation: "CHI", ppg: 20.1, allowed: 23.8, off_yards: 312.1, def_yards: 345.8, turnover_diff: -2 },
-  { team: "Cincinnati Bengals", abbreviation: "CIN", ppg: 25.4, allowed: 22.4, off_yards: 365.4, def_yards: 332.4, turnover_diff: 5 },
-  { team: "Cleveland Browns", abbreviation: "CLE", ppg: 22.3, allowed: 21.5, off_yards: 342.3, def_yards: 318.5, turnover_diff: 1 },
-  { team: "Dallas Cowboys", abbreviation: "DAL", ppg: 26.1, allowed: 23.2, off_yards: 378.1, def_yards: 342.2, turnover_diff: 6 },
-  { team: "Denver Broncos", abbreviation: "DEN", ppg: 21.8, allowed: 20.8, off_yards: 328.8, def_yards: 315.8, turnover_diff: 3 },
-  { team: "Detroit Lions", abbreviation: "DET", ppg: 29.2, allowed: 21.8, off_yards: 398.2, def_yards: 328.8, turnover_diff: 10 },
-  { team: "Green Bay Packers", abbreviation: "GB", ppg: 25.6, allowed: 22.1, off_yards: 362.6, def_yards: 335.1, turnover_diff: 4 },
-  { team: "Houston Texans", abbreviation: "HOU", ppg: 26.8, allowed: 21.2, off_yards: 375.8, def_yards: 322.2, turnover_diff: 7 },
-  { team: "Indianapolis Colts", abbreviation: "IND", ppg: 22.5, allowed: 24.8, off_yards: 338.5, def_yards: 358.8, turnover_diff: -1 },
-  { team: "Jacksonville Jaguars", abbreviation: "JAX", ppg: 21.2, allowed: 23.5, off_yards: 322.2, def_yards: 348.5, turnover_diff: -4 },
-  { team: "Kansas City Chiefs", abbreviation: "KC", ppg: 28.9, allowed: 19.8, off_yards: 395.9, def_yards: 305.8, turnover_diff: 11 },
-  { team: "Las Vegas Raiders", abbreviation: "LV", ppg: 20.7, allowed: 25.2, off_yards: 318.7, def_yards: 368.2, turnover_diff: -6 },
-  { team: "Los Angeles Chargers", abbreviation: "LAC", ppg: 24.8, allowed: 22.8, off_yards: 358.8, def_yards: 342.8, turnover_diff: 2 },
-  { team: "Los Angeles Rams", abbreviation: "LAR", ppg: 23.4, allowed: 24.1, off_yards: 345.4, def_yards: 355.1, turnover_diff: -3 },
-  { team: "Miami Dolphins", abbreviation: "MIA", ppg: 27.2, allowed: 22.5, off_yards: 388.2, def_yards: 338.5, turnover_diff: 5 },
-  { team: "Minnesota Vikings", abbreviation: "MIN", ppg: 24.5, allowed: 21.8, off_yards: 355.5, def_yards: 325.8, turnover_diff: 6 },
-  { team: "New England Patriots", abbreviation: "NE", ppg: 19.8, allowed: 22.1, off_yards: 305.8, def_yards: 332.1, turnover_diff: -3 },
-  { team: "New Orleans Saints", abbreviation: "NO", ppg: 23.1, allowed: 24.2, off_yards: 342.1, def_yards: 358.2, turnover_diff: 0 },
-  { team: "New York Giants", abbreviation: "NYG", ppg: 18.5, allowed: 26.5, off_yards: 295.5, def_yards: 372.5, turnover_diff: -7 },
-  { team: "New York Jets", abbreviation: "NYJ", ppg: 19.2, allowed: 24.8, off_yards: 302.2, def_yards: 365.8, turnover_diff: -5 },
-  { team: "Philadelphia Eagles", abbreviation: "PHI", ppg: 26.5, allowed: 20.2, off_yards: 372.5, def_yards: 308.2, turnover_diff: 9 },
-  { team: "Pittsburgh Steelers", abbreviation: "PIT", ppg: 22.8, allowed: 21.2, off_yards: 335.8, def_yards: 318.2, turnover_diff: 4 },
-  { team: "San Francisco 49ers", abbreviation: "SF", ppg: 27.5, allowed: 18.5, off_yards: 382.5, def_yards: 285.5, turnover_diff: 13 },
-  { team: "Seattle Seahawks", abbreviation: "SEA", ppg: 24.1, allowed: 23.8, off_yards: 352.1, def_yards: 348.8, turnover_diff: 1 },
-  { team: "Tampa Bay Buccaneers", abbreviation: "TB", ppg: 25.2, allowed: 22.8, off_yards: 365.2, def_yards: 338.8, turnover_diff: 3 },
-  { team: "Tennessee Titans", abbreviation: "TEN", ppg: 21.6, allowed: 25.1, off_yards: 328.6, def_yards: 362.1, turnover_diff: -4 },
-  { team: "Washington Commanders", abbreviation: "WAS", ppg: 23.8, allowed: 23.5, off_yards: 348.8, def_yards: 345.5, turnover_diff: 2 },
-];
+// Parse CSV string into array of objects
+function parseCsv(csv: string): Record<string, string | number>[] {
+  const lines = csv.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+    const obj: Record<string, string | number> = {};
+    headers.forEach((h, i) => {
+      const val = values[i];
+      // Try to parse as number
+      const num = parseFloat(val);
+      obj[h] = isNaN(num) ? val : num;
+    });
+    return obj;
+  });
+}
+
+// Build NFL teams from CSV data
+function buildNFLTeams(): NFLTeamStats[] {
+  const ppgData = parseCsv(ppgCsv);
+  const allowedData = parseCsv(allowedCsv);
+  const offYardsData = parseCsv(offYardsCsv);
+  const defYardsData = parseCsv(defYardsCsv);
+  const turnoverData = parseCsv(turnoverCsv);
+
+  // Create lookup maps by abbreviation
+  const allowedMap = new Map(allowedData.map(d => [d.abbreviation, d.allowed]));
+  const offYardsMap = new Map(offYardsData.map(d => [d.abbreviation, d.off_yards]));
+  const defYardsMap = new Map(defYardsData.map(d => [d.abbreviation, d.def_yards]));
+  const turnoverMap = new Map(turnoverData.map(d => [d.abbreviation, d.turnover_diff]));
+
+  return ppgData.map(team => ({
+    team: team.team as string,
+    abbreviation: team.abbreviation as string,
+    ppg: team.ppg as number,
+    allowed: (allowedMap.get(team.abbreviation) as number) || 0,
+    off_yards: (offYardsMap.get(team.abbreviation) as number) || 0,
+    def_yards: (defYardsMap.get(team.abbreviation) as number) || 0,
+    turnover_diff: (turnoverMap.get(team.abbreviation) as number) || 0,
+  }));
+}
+
+// Load NFL teams from CSVs
+const NFL_TEAMS: NFLTeamStats[] = buildNFLTeams();
 
 interface Message {
   id: number;
