@@ -306,6 +306,7 @@ export const initialFootballState = {
   teamOffYards: '', opponentOffYards: '',
   teamDefYards: '', opponentDefYards: '',
   teamTurnoverDiff: '', opponentTurnoverDiff: '',
+  teamAName: '', teamBName: '',
 };
 export const initialBasketballState = {
   teamPointsFor: '', opponentPointsFor: '',
@@ -427,6 +428,8 @@ function ProbabilityEstimator({
         opponentDefYards: footballStats.teamDefYards,
         teamTurnoverDiff: footballStats.opponentTurnoverDiff,
         opponentTurnoverDiff: footballStats.teamTurnoverDiff,
+        teamAName: footballStats.teamBName,
+        teamBName: footballStats.teamAName,
       });
     } else {
       setBasketballStats({
@@ -866,6 +869,8 @@ function App() {
       opponentDefYards: matchupData.opponentDefYards || '',
       teamTurnoverDiff: matchupData.teamTurnoverDiff || '',
       opponentTurnoverDiff: matchupData.opponentTurnoverDiff || '',
+      teamAName: matchupData.teamAName || '',
+      teamBName: matchupData.teamBName || '',
     });
     setActiveSport(CONSTANTS.SPORTS.FOOTBALL);
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);

@@ -11,6 +11,8 @@ export type FootballStats = {
   opponentDefYards: string;
   teamTurnoverDiff: string;
   opponentTurnoverDiff: string;
+  teamAName?: string;
+  teamBName?: string;
 };
 
 type Props = {
@@ -19,6 +21,38 @@ type Props = {
 };
 
 export default function FootballEstimator({ stats, onChange }: Props) {
+  const InputWithTeamLabel = ({
+    name,
+    value,
+    placeholder,
+    teamName,
+    step = "0.1"
+  }: {
+    name: string;
+    value: string;
+    placeholder: string;
+    teamName?: string;
+    step?: string;
+  }) => (
+    <div style={{ position: 'relative' }}>
+      <input
+        name={name}
+        type="number"
+        step={step}
+        className="input-field"
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={teamName ? { paddingTop: '1.5rem' } : {}}
+      />
+      {teamName && (
+        <span className="team-name-label">
+          {teamName}
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <div className="stats-grid">
       <h4 className="grid-header">Metric</h4>
@@ -26,105 +60,76 @@ export default function FootballEstimator({ stats, onChange }: Props) {
       <h4 className="grid-header">Opponent</h4>
 
       <span>Points Per Game (Your team always first)</span>
-      <input
+      <InputWithTeamLabel
         name="teamPointsFor"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.teamPointsFor}
-        onChange={onChange}
         placeholder="26.1"
+        teamName={stats.teamAName}
       />
-      <input
+      <InputWithTeamLabel
         name="opponentPointsFor"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.opponentPointsFor}
-        onChange={onChange}
         placeholder="22.5"
+        teamName={stats.teamBName}
       />
 
       <span>Points Allowed</span>
-      <input
+      <InputWithTeamLabel
         name="teamPointsAgainst"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.teamPointsAgainst}
-        onChange={onChange}
         placeholder="20.8"
+        teamName={stats.teamAName}
       />
-      <input
+      <InputWithTeamLabel
         name="opponentPointsAgainst"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.opponentPointsAgainst}
-        onChange={onChange}
         placeholder="23.1"
+        teamName={stats.teamBName}
       />
 
       <span>Offensive Yards</span>
-      <input
+      <InputWithTeamLabel
         name="teamOffYards"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.teamOffYards}
-        onChange={onChange}
         placeholder="385.2"
+        teamName={stats.teamAName}
       />
-      <input
+      <InputWithTeamLabel
         name="opponentOffYards"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.opponentOffYards}
-        onChange={onChange}
         placeholder="350.7"
+        teamName={stats.teamBName}
       />
 
       <span>Defensive Yards</span>
-      <input
+      <InputWithTeamLabel
         name="teamDefYards"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.teamDefYards}
-        onChange={onChange}
         placeholder="330.1"
+        teamName={stats.teamAName}
       />
-      <input
+      <InputWithTeamLabel
         name="opponentDefYards"
-        type="number"
-        step="0.1"
-        className="input-field"
         value={stats.opponentDefYards}
-        onChange={onChange}
         placeholder="365.4"
+        teamName={stats.teamBName}
       />
 
       <span>Turnover Diff.</span>
-      <input
+      <InputWithTeamLabel
         name="teamTurnoverDiff"
-        type="number"
-        step="1"
-        className="input-field"
         value={stats.teamTurnoverDiff}
-        onChange={onChange}
         placeholder="7"
-      />
-      <input
-        name="opponentTurnoverDiff"
-        type="number"
+        teamName={stats.teamAName}
         step="1"
-        className="input-field"
+      />
+      <InputWithTeamLabel
+        name="opponentTurnoverDiff"
         value={stats.opponentTurnoverDiff}
-        onChange={onChange}
         placeholder="-2"
+        teamName={stats.teamBName}
+        step="1"
       />
     </div>
   );
 }
-

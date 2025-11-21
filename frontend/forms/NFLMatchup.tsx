@@ -229,10 +229,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
 • Offensive Yards/Game: ${teamB.off_yards.toFixed(1)}
 • Defensive Yards Allowed: ${teamB.def_yards.toFixed(1)}
 • Turnover Differential: ${formatSign(teamB.turnover_diff)}
-
-**Quick Analysis:**
-• Net Points ${teamA.abbreviation}: ${formatSign((teamA.ppg - teamA.allowed).toFixed(1))} | ${teamB.abbreviation}: ${formatSign((teamB.ppg - teamB.allowed).toFixed(1))}
-• Net Yards ${teamA.abbreviation}: ${formatSign((teamA.off_yards - teamA.def_yards).toFixed(1))} | ${teamB.abbreviation}: ${formatSign((teamB.off_yards - teamB.def_yards).toFixed(1))}
 `;
 
       const assistantMessage: Message = {
