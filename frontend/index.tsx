@@ -9,6 +9,7 @@ import ReactDOM from 'react-dom/client';
 import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
 import SportsMatchup from "./forms/SportsMatchup";
+import NFLMatchup from "./forms/NFLMatchup";
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -236,7 +237,7 @@ const GlobalStyle = () => (
 
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
-  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit', MATCHUP: 'matchup' },
+  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit', MATCHUP: 'matchup', NFL_MATCHUP: 'nfl_matchup' },
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
 };
 
@@ -852,6 +853,24 @@ function App() {
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);
   };
 
+  // Handler to transfer NFL matchup data to Football Estimator
+  const handleNFLTransferToEstimator = (matchupData: any) => {
+    setFootballStats({
+      teamPointsFor: matchupData.teamPointsFor || '',
+      opponentPointsFor: matchupData.opponentPointsFor || '',
+      teamPointsAgainst: matchupData.teamPointsAgainst || '',
+      opponentPointsAgainst: matchupData.opponentPointsAgainst || '',
+      teamOffYards: matchupData.teamOffYards || '',
+      opponentOffYards: matchupData.opponentOffYards || '',
+      teamDefYards: matchupData.teamDefYards || '',
+      opponentDefYards: matchupData.opponentDefYards || '',
+      teamTurnoverDiff: matchupData.teamTurnoverDiff || '',
+      opponentTurnoverDiff: matchupData.opponentTurnoverDiff || '',
+    });
+    setActiveSport(CONSTANTS.SPORTS.FOOTBALL);
+    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
+  };
+
   return (
     <>
       <div className="site-bg">
@@ -874,7 +893,8 @@ function App() {
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
                 { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
-                { key: CONSTANTS.TABS.MATCHUP, label: '🏀 NBA Matchup' },
+                { key: CONSTANTS.TABS.MATCHUP, label: 'NBA Matchup' },
+                { key: CONSTANTS.TABS.NFL_MATCHUP, label: 'NFL Matchup' },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -916,6 +936,13 @@ function App() {
               <SportsMatchup
                 backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'}
                 onTransferToEstimator={handleTransferToEstimator}
+              />
+            </div>
+          )}
+          {activeTab === CONSTANTS.TABS.NFL_MATCHUP && (
+            <div className="panel">
+              <NFLMatchup
+                onTransferToEstimator={handleNFLTransferToEstimator}
               />
             </div>
           )}
