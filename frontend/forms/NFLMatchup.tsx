@@ -2,14 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-
-// Import CSV files as raw text (Vite handles this)
-import ppgCsv from '../../stats/nfl_ppg.csv?raw';
-import allowedCsv from '../../stats/nfl_allowed.csv?raw';
-import offYardsCsv from '../../stats/nfl_off_yards.csv?raw';
-import defYardsCsv from '../../stats/nfl_def_yards.csv?raw';
-import turnoverCsv from '../../stats/nfl_turnover_diff.csv?raw';
+import React, { useState, useRef, useEffect } from 'react';
 
 // NFL Team Stats interface
 interface NFLTeamStats {
@@ -31,41 +24,12 @@ function parseCsv(csv: string): Record<string, string | number>[] {
     const obj: Record<string, string | number> = {};
     headers.forEach((h, i) => {
       const val = values[i];
-      // Try to parse as number
       const num = parseFloat(val);
       obj[h] = isNaN(num) ? val : num;
     });
     return obj;
   });
 }
-
-// Build NFL teams from CSV data
-function buildNFLTeams(): NFLTeamStats[] {
-  const ppgData = parseCsv(ppgCsv);
-  const allowedData = parseCsv(allowedCsv);
-  const offYardsData = parseCsv(offYardsCsv);
-  const defYardsData = parseCsv(defYardsCsv);
-  const turnoverData = parseCsv(turnoverCsv);
-
-  // Create lookup maps by abbreviation
-  const allowedMap = new Map(allowedData.map(d => [d.abbreviation, d.allowed]));
-  const offYardsMap = new Map(offYardsData.map(d => [d.abbreviation, d.off_yards]));
-  const defYardsMap = new Map(defYardsData.map(d => [d.abbreviation, d.def_yards]));
-  const turnoverMap = new Map(turnoverData.map(d => [d.abbreviation, d.turnover_diff]));
-
-  return ppgData.map(team => ({
-    team: team.team as string,
-    abbreviation: team.abbreviation as string,
-    ppg: team.ppg as number,
-    allowed: (allowedMap.get(team.abbreviation) as number) || 0,
-    off_yards: (offYardsMap.get(team.abbreviation) as number) || 0,
-    def_yards: (defYardsMap.get(team.abbreviation) as number) || 0,
-    turnover_diff: (turnoverMap.get(team.abbreviation) as number) || 0,
-  }));
-}
-
-// Load NFL teams from CSVs
-const NFL_TEAMS: NFLTeamStats[] = buildNFLTeams();
 
 interface Message {
   id: number;
@@ -83,6 +47,10 @@ interface NFLMatchupProps {
 }
 
 export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
+  const [nflTeams, setNflTeams] = useState<NFLTeamStats[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -94,6 +62,58 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load CSV data on mount
+  useEffect(() => {
+    async function loadNFLData() {
+      try {
+        const [ppgRes, allowedRes, offYardsRes, defYardsRes, turnoverRes] = await Promise.all([
+          fetch('/stats/nfl_ppg.csv'),
+          fetch('/stats/nfl_allowed.csv'),
+          fetch('/stats/nfl_off_yards.csv'),
+          fetch('/stats/nfl_def_yards.csv'),
+          fetch('/stats/nfl_turnover_diff.csv'),
+        ]);
+
+        const [ppgCsv, allowedCsv, offYardsCsv, defYardsCsv, turnoverCsv] = await Promise.all([
+          ppgRes.text(),
+          allowedRes.text(),
+          offYardsRes.text(),
+          defYardsRes.text(),
+          turnoverRes.text(),
+        ]);
+
+        const ppgData = parseCsv(ppgCsv);
+        const allowedData = parseCsv(allowedCsv);
+        const offYardsData = parseCsv(offYardsCsv);
+        const defYardsData = parseCsv(defYardsCsv);
+        const turnoverData = parseCsv(turnoverCsv);
+
+        const allowedMap = new Map(allowedData.map(d => [d.abbreviation, d.allowed]));
+        const offYardsMap = new Map(offYardsData.map(d => [d.abbreviation, d.off_yards]));
+        const defYardsMap = new Map(defYardsData.map(d => [d.abbreviation, d.def_yards]));
+        const turnoverMap = new Map(turnoverData.map(d => [d.abbreviation, d.turnover_diff]));
+
+        const teams = ppgData.map(team => ({
+          team: team.team as string,
+          abbreviation: team.abbreviation as string,
+          ppg: team.ppg as number,
+          allowed: (allowedMap.get(team.abbreviation) as number) || 0,
+          off_yards: (offYardsMap.get(team.abbreviation) as number) || 0,
+          def_yards: (defYardsMap.get(team.abbreviation) as number) || 0,
+          turnover_diff: (turnoverMap.get(team.abbreviation) as number) || 0,
+        }));
+
+        setNflTeams(teams);
+        setDataLoaded(true);
+      } catch (err: any) {
+        console.error('Failed to load NFL data:', err);
+        setLoadError(err.message || 'Failed to load NFL stats');
+      }
+    }
+
+    loadNFLData();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -107,18 +127,15 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
   const findTeam = (query: string): NFLTeamStats | null => {
     const normalizedQuery = query.toLowerCase().trim();
 
-    // Try exact abbreviation match first
-    const abbrevMatch = NFL_TEAMS.find(t => t.abbreviation.toLowerCase() === normalizedQuery);
+    const abbrevMatch = nflTeams.find(t => t.abbreviation.toLowerCase() === normalizedQuery);
     if (abbrevMatch) return abbrevMatch;
 
-    // Try team name contains (e.g., "Chiefs" matches "Kansas City Chiefs")
-    const nameMatch = NFL_TEAMS.find(t =>
+    const nameMatch = nflTeams.find(t =>
       t.team.toLowerCase().includes(normalizedQuery) ||
       normalizedQuery.includes(t.team.split(' ').pop()?.toLowerCase() || '')
     );
     if (nameMatch) return nameMatch;
 
-    // Try fuzzy matching for common names
     const fuzzyMatches: { [key: string]: string } = {
       'niners': 'SF',
       '49ers': 'SF',
@@ -137,41 +154,29 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
 
     const fuzzyKey = Object.keys(fuzzyMatches).find(k => normalizedQuery.includes(k));
     if (fuzzyKey) {
-      return NFL_TEAMS.find(t => t.abbreviation === fuzzyMatches[fuzzyKey]) || null;
+      return nflTeams.find(t => t.abbreviation === fuzzyMatches[fuzzyKey]) || null;
     }
 
     return null;
   };
 
   const parseTeamInput = (input: string): { teamA: string; teamB: string } | null => {
-    // Try to parse input like "Chiefs vs Bills" or "Cowboys Eagles"
     const vsPattern = /(.+)\s+vs\.?\s+(.+)/i;
     const match = input.match(vsPattern);
 
     if (match) {
-      return {
-        teamA: match[1].trim(),
-        teamB: match[2].trim()
-      };
+      return { teamA: match[1].trim(), teamB: match[2].trim() };
     }
 
-    // Try space-separated (e.g., "Cowboys Eagles")
     const words = input.trim().split(/\s+/);
     if (words.length === 2) {
-      return {
-        teamA: words[0],
-        teamB: words[1]
-      };
+      return { teamA: words[0], teamB: words[1] };
     }
 
-    // Try with "at" or "@" (e.g., "Chiefs at Bills")
     const atPattern = /(.+)\s+(?:at|@)\s+(.+)/i;
     const atMatch = input.match(atPattern);
     if (atMatch) {
-      return {
-        teamA: atMatch[1].trim(),
-        teamB: atMatch[2].trim()
-      };
+      return { teamA: atMatch[1].trim(), teamB: atMatch[2].trim() };
     }
 
     return null;
@@ -179,7 +184,7 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !dataLoaded) return;
 
     const userMessage: Message = {
       id: Date.now(),
@@ -192,7 +197,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
     setInput('');
     setIsLoading(true);
 
-    // Simulate brief loading for UX
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
@@ -226,7 +230,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
         return;
       }
 
-      // Format the response with stats
       const formatSign = (val: number) => val > 0 ? `+${val}` : val.toString();
 
       const statsText = `
@@ -271,7 +274,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
 
   const handleTransfer = (stats: { teamA: NFLTeamStats; teamB: NFLTeamStats }) => {
     if (onTransferToEstimator) {
-      // Transform to football estimator format
       onTransferToEstimator({
         teamPointsFor: stats.teamA.ppg.toString(),
         opponentPointsFor: stats.teamB.ppg.toString(),
@@ -304,6 +306,30 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
     ]);
   };
 
+  if (loadError) {
+    return (
+      <div className="sports-matchup-container">
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+          <p>Failed to load NFL stats: {loadError}</p>
+          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>
+            Make sure the CSV files exist in the public/stats folder.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dataLoaded) {
+    return (
+      <div className="sports-matchup-container">
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <span className="loading-spinner"></span>
+          <p>Loading NFL stats...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="sports-matchup-container">
       {/* Quick Examples */}
@@ -328,7 +354,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
             </div>
             <div className="message-content">
               {msg.content.split('\n').map((line, i) => {
-                // Bold text between **
                 if (line.includes('**')) {
                   const parts = line.split('**');
                   return (
@@ -339,7 +364,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
                     </div>
                   );
                 }
-                // Bullet points
                 if (line.startsWith('•')) {
                   return <div key={i} style={{ paddingLeft: '1rem' }}>{line}</div>;
                 }
