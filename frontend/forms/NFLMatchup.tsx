@@ -67,6 +67,8 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
   useEffect(() => {
     async function loadNFLData() {
       try {
+        console.log('Loading NFL stats from /stats/nfl/...');
+
         const [ppgRes, allowedRes, offYardsRes, defYardsRes, turnoverRes] = await Promise.all([
           fetch('/stats/nfl/nfl_ppg.csv'),
           fetch('/stats/nfl/nfl_allowed.csv'),
@@ -75,6 +77,13 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
           fetch('/stats/nfl/nfl_turnover_diff.csv'),
         ]);
 
+        // Check if any fetch failed
+        if (!ppgRes.ok) throw new Error(`Failed to fetch PPG stats: ${ppgRes.status}`);
+        if (!allowedRes.ok) throw new Error(`Failed to fetch Allowed stats: ${allowedRes.status}`);
+        if (!offYardsRes.ok) throw new Error(`Failed to fetch Offensive Yards: ${offYardsRes.status}`);
+        if (!defYardsRes.ok) throw new Error(`Failed to fetch Defensive Yards: ${defYardsRes.status}`);
+        if (!turnoverRes.ok) throw new Error(`Failed to fetch Turnovers: ${turnoverRes.status}`);
+
         const [ppgCsv, allowedCsv, offYardsCsv, defYardsCsv, turnoverCsv] = await Promise.all([
           ppgRes.text(),
           allowedRes.text(),
@@ -82,6 +91,8 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
           defYardsRes.text(),
           turnoverRes.text(),
         ]);
+
+        console.log('CSV files loaded, parsing...');
 
         const ppgData = parseCsv(ppgCsv);
         const allowedData = parseCsv(allowedCsv);
@@ -104,6 +115,7 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
           turnover_diff: (turnoverMap.get(team.abbreviation) as number) || 0,
         }));
 
+        console.log(`Loaded ${teams.length} NFL teams`);
         setNflTeams(teams);
         setDataLoaded(true);
       } catch (err: any) {
