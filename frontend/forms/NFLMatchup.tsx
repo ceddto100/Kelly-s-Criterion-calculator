@@ -68,11 +68,11 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
     async function loadNFLData() {
       try {
         const [ppgRes, allowedRes, offYardsRes, defYardsRes, turnoverRes] = await Promise.all([
-          fetch('/stats/nfl_ppg.csv'),
-          fetch('/stats/nfl_allowed.csv'),
-          fetch('/stats/nfl_off_yards.csv'),
-          fetch('/stats/nfl_def_yards.csv'),
-          fetch('/stats/nfl_turnover_diff.csv'),
+          fetch('/stats/nfl/nfl_ppg.csv'),
+          fetch('/stats/nfl/nfl_allowed.csv'),
+          fetch('/stats/nfl/nfl_off_yards.csv'),
+          fetch('/stats/nfl/nfl_def_yards.csv'),
+          fetch('/stats/nfl/nfl_turnover_diff.csv'),
         ]);
 
         const [ppgCsv, allowedCsv, offYardsCsv, defYardsCsv, turnoverCsv] = await Promise.all([

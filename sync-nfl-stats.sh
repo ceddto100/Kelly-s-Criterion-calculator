@@ -1,4 +1,5 @@
 #!/bin/bash
-# Sync NFL stats from root stats/ to frontend/public/stats/
-cp stats/nfl_*.csv frontend/public/stats/
-echo "✓ NFL stats synced to frontend/public/stats/"
+# Sync NFL stats from stats/nfl/ to frontend/public/stats/nfl/
+mkdir -p frontend/public/stats/nfl
+cp stats/nfl/*.csv frontend/public/stats/nfl/
+echo "✓ NFL stats synced to frontend/public/stats/nfl/"
