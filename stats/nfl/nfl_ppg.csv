@@ -1,33 +1,33 @@
-"team","abbreviation","def_yards"
-"Houston Texans","HOU",258.1
-"Cleveland Browns","CLE",273.5
-"Denver Broncos","DEN",274.5
-"Los Angeles Chargers","LAC",286.1
-"Detroit Lions","DET",291.8
-"Green Bay Packers","GB",292.1
-"Kansas City Chiefs","KC",296.8
-"New England Patriots","NE",300.3
-"Seattle Seahawks","SEA",301.5
-"Minnesota Vikings","MIN",317.5
-"New Orleans Saints","NO",317.5
-"Buffalo Bills","BUF",320.8
-"Los Angeles Rams","LAR",323.0
-"Jacksonville Jaguars","JAX",323.6
-"Carolina Panthers","CAR",326.0
-"Atlanta Falcons","ATL",326.3
-"Las Vegas Raiders","LV",326.8
-"Philadelphia Eagles","PHI",326.8
-"Indianapolis Colts","IND",327.6
-"New York Jets","NYJ",329.7
-"Arizona Cardinals","ARI",333.6
-"Tampa Bay Buccaneers","TB",342.0
-"Miami Dolphins","MIA",349.8
-"Tennessee Titans","TEN",352.5
-"San Francisco 49ers","SF",352.9
-"Baltimore Ravens","BAL",354.1
-"Chicago Bears","CHI",364.6
-"Pittsburgh Steelers","PIT",368.1
-"New York Giants","NYG",375.1
-"Dallas Cowboys","DAL",381.3
-"Washington Commanders","WAS",387.0
-"Cincinnati Bengals","CIN",418.2
+"team","abbreviation","ppg"
+"Arizona Cardinals","ARI",21.7
+"Atlanta Falcons","ATL",21.8
+"Baltimore Ravens","BAL",28.9
+"Buffalo Bills","BUF",28.3
+"Carolina Panthers","CAR",20.3
+"Chicago Bears","CHI",18.5
+"Cincinnati Bengals","CIN",25.1
+"Cleveland Browns","CLE",18.2
+"Dallas Cowboys","DAL",21.0
+"Denver Broncos","DEN",19.9
+"Detroit Lions","DET",29.5
+"Green Bay Packers","GB",24.6
+"Houston Texans","HOU",23.4
+"Indianapolis Colts","IND",21.7
+"Jacksonville Jaguars","JAX",20.6
+"Kansas City Chiefs","KC",27.1
+"Las Vegas Raiders","LV",18.5
+"Los Angeles Chargers","LAC",20.0
+"Los Angeles Rams","LAR",20.6
+"Miami Dolphins","MIA",18.8
+"Minnesota Vikings","MIN",24.3
+"New England Patriots","NE",17.6
+"New Orleans Saints","NO",22.4
+"New York Giants","NYG",15.6
+"New York Jets","NYJ",18.7
+"Philadelphia Eagles","PHI",24.5
+"Pittsburgh Steelers","PIT",24.5
+"San Francisco 49ers","SF",22.8
+"Seattle Seahawks","SEA",24.2
+"Tampa Bay Buccaneers","TB",25.5
+"Tennessee Titans","TEN",21.4
+"Washington Commanders","WAS",24.0
