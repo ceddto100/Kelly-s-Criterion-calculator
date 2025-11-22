@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "prebuild": "cp ../stats/nfl_*.csv public/stats/ 2>/dev/null || true",
     "build": "vite build",
     "preview": "vite preview"
   },
