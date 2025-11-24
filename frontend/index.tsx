@@ -232,6 +232,42 @@ const GlobalStyle = () => (
       .chat-message.assistant{ margin-right:.5rem; }
       .quick-examples{ font-size:.75rem; }
     }
+
+    /* ==================== Desktop Optimizations ==================== */
+    @media (min-width: 768px) {
+      .page-wrap{ padding:3.5rem 1.5rem; }
+      .title{ font-size: 2.75rem; }
+      .subtitle{ font-size:1.1rem; max-width:52rem; }
+      .panel{ padding:1.75rem; }
+      .chat-message.user{ margin-left:3rem; }
+      .chat-message.assistant{ margin-right:3rem; }
+      .sports-matchup-container{ height:650px; max-height:75vh; }
+      .stats-grid{ grid-template-columns: 2fr 1fr 1fr; gap:1rem; }
+    }
+
+    @media (min-width: 1024px) {
+      .page-wrap{ padding:4rem 2rem; }
+      .title{ font-size: 3rem; }
+      .subtitle{ font-size:1.15rem; max-width:56rem; }
+      .panel{ padding:2rem; max-width:1000px; }
+      .tabs{ gap:.75rem; }
+      .tab{ padding:.75rem 1.25rem; font-size:1rem; }
+      .chat-message.user{ margin-left:4rem; }
+      .chat-message.assistant{ margin-right:4rem; }
+      .chat-message{ padding:1rem 1.25rem; }
+      .message-content{ font-size:1.05rem; line-height:1.7; }
+      .sports-matchup-container{ height:700px; max-height:80vh; }
+      .input-field, select{ padding:.75rem .9rem; font-size:1.05rem; }
+      .btn-primary, .btn-secondary{ padding:.85rem 1.25rem; font-size:1.05rem; }
+    }
+
+    @media (min-width: 1440px) {
+      .page-wrap{ padding:4.5rem 2.5rem; }
+      .title{ font-size: 3.25rem; }
+      .subtitle{ font-size:1.2rem; }
+      .panel{ max-width:1100px; }
+      .sports-matchup-container{ height:750px; }
+    }
   `}</style>
 );
 
