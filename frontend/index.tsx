@@ -322,36 +322,69 @@ function normCdf(x: number): number {
   const y = 1 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.exp(-z*z);
   return 0.5 * (1 + sign * y);
 }
+/**
+ * Convert predicted margin to cover probability using normal distribution
+ * @param predictedMargin - Expected point margin (positive = team A favored)
+ * @param spread - Point spread from team A's perspective (negative = team A favored)
+ * @param sigma - Standard deviation (NFL: ~13.5, NBA: ~11.5)
+ */
 function coverProbabilityFromMargin(predictedMargin: number, spread: number, sigma: number): number {
-  const Z = (predictedMargin + spread) / sigma; // cover threshold = -spread
+  // To cover spread, Team A needs: actualMargin > -spread
+  // P(cover) = P(margin > -spread) = Φ((predictedMargin + spread) / sigma)
+  const Z = (predictedMargin + spread) / sigma;
   const p = normCdf(Z);
-  return Math.max(0.1, Math.min(99.9, p * 100));
+
+  // Clamp to reasonable bounds (1% to 99%)
+  return Math.max(1, Math.min(99, p * 100));
 }
 
 /* ========================== Sport-specific margin math ===================== */
-function predictedMarginFootball(stats: any): number {
-  const teamNetPoints = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
-  const opponentNetPoints = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const teamNetYards = parseFloat(stats.teamOffYards) - parseFloat(stats.teamDefYards);
-  const opponentNetYards = parseFloat(stats.opponentOffYards) - parseFloat(stats.opponentDefYards);
-  const teamTO = parseFloat(stats.teamTurnoverDiff);
-  const oppTO = parseFloat(stats.opponentTurnoverDiff);
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.5;
-  const yardsComponent = ((teamNetYards - opponentNetYards) / 100) * 0.3;
-  const turnoverComponent = (teamTO - oppTO) * 4 * 0.2;
-  return pointsComponent + yardsComponent + turnoverComponent;
+/**
+ * Football: Predict margin using point differential and adjustments
+ * Research basis: Point differential is the strongest predictor of future performance
+ */
+function predictedMarginFootball(stats: any, isHome: boolean | null = null): number {
+  // Team A's average point differential per game
+  const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
+
+  // Team B's (opponent's) average point differential per game
+  const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
+
+  // Base margin prediction: difference in point differentials
+  // The 0.5 factor accounts for regression to the mean and strength of schedule uncertainty
+  const baseMargin = (teamAPointDiff - teamBPointDiff) * 0.5;
+
+  // Turnover differential adjustment (regressed heavily - turnovers are ~50% luck)
+  const teamTO = parseFloat(stats.teamTurnoverDiff) || 0;
+  const oppTO = parseFloat(stats.opponentTurnoverDiff) || 0;
+  // Each turnover is worth ~4 points, but regress by 0.25 for sustainability
+  const turnoverAdjustment = (teamTO - oppTO) * 4 * 0.25;
+
+  // Home field advantage: +2.5 for home, -2.5 for away, 0 for neutral
+  const homeFieldAdvantage = isHome === null ? 0 : (isHome ? 2.5 : -2.5);
+
+  return baseMargin + turnoverAdjustment + homeFieldAdvantage;
 }
-function predictedMarginBasketball(stats: any): number {
-  const teamNetPoints = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
-  const opponentNetPoints = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const fgT = parseFloat(stats.teamFgPct), fgO = parseFloat(stats.opponentFgPct);
-  const rebT = parseFloat(stats.teamReboundMargin), rebO = parseFloat(stats.opponentReboundMargin);
-  const tovT = parseFloat(stats.teamTurnoverMargin), tovO = parseFloat(stats.opponentTurnoverMargin);
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.4;
-  const fgComponent = (fgT - fgO) * 2 * 0.3;
-  const reboundComponent = (rebT - rebO) * 0.2;
-  const turnoverComponent = (tovT - tovO) * 0.1;
-  return pointsComponent + fgComponent + reboundComponent + turnoverComponent;
+/**
+ * Basketball: Predict margin using point differential
+ * Research basis: NBA point differential is highly predictive (Pythagorean expectation)
+ * Other stats (FG%, rebounds, turnovers) are already captured in point differential
+ */
+function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
+  // Team A's average point differential per game
+  const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
+
+  // Team B's (opponent's) average point differential per game
+  const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
+
+  // Base prediction from point differentials
+  // The 0.5 regression factor accounts for skill vs luck/schedule variance
+  const baseMargin = (teamAPointDiff - teamBPointDiff) * 0.5;
+
+  // Home court advantage: +3.0 for home, -3.0 for away, 0 for neutral
+  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
+
+  return baseMargin + homeCourtAdvantage;
 }
 
 /* ================================= Utilities ============================== */
@@ -391,7 +424,9 @@ function ProbabilityEstimator({
   calculatedProb,
   setCalculatedProb,
   expectedDiff,
-  setExpectedDiff
+  setExpectedDiff,
+  isTeamAHome,
+  setIsTeamAHome
 }: {
   setProbability:(v:string)=>void;
   setActiveTab:(t:string)=>void;
@@ -407,6 +442,8 @@ function ProbabilityEstimator({
   setCalculatedProb: (v:number|null)=>void;
   expectedDiff: number|null;
   setExpectedDiff: (v:number|null)=>void;
+  isTeamAHome: boolean|null;
+  setIsTeamAHome: (v:boolean|null)=>void;
 }) {
 
   const isFormValid = useMemo(() => {
@@ -454,11 +491,15 @@ function ProbabilityEstimator({
     try {
       const spread = parseFloat(pointSpread);
       if (Number.isNaN(spread)) throw new Error('Invalid spread');
+
       const m = activeSport === CONSTANTS.SPORTS.FOOTBALL
-        ? predictedMarginFootball(footballStats)
-        : predictedMarginBasketball(basketballStats);
-      const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 12.0;
+        ? predictedMarginFootball(footballStats, isTeamAHome)
+        : predictedMarginBasketball(basketballStats, isTeamAHome);
+
+      // NFL sigma ~13.5, NBA sigma ~11.5
+      const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 11.5;
       const p = coverProbabilityFromMargin(m, spread, sigma);
+
       setCalculatedProb(p);
       setExpectedDiff(m);
     } catch (e) {
@@ -514,6 +555,11 @@ function ProbabilityEstimator({
         setPointSpread((-currentSpread).toString());
       }
     }
+
+    // Swap home/away venue
+    if (isTeamAHome !== null) {
+      setIsTeamAHome(!isTeamAHome);
+    }
   };
 
   return (
@@ -559,6 +605,29 @@ function ProbabilityEstimator({
         <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
           Negative = your team favored, Positive = your team underdog
         </p>
+      </div>
+
+      <div className="input-group">
+        <label htmlFor="venue">
+          Venue
+          <span className="tooltip">
+            <span className="help-icon">?</span>
+            <span className="tooltiptext">Home field advantage is worth ~2.5 pts (NFL) or ~3 pts (NBA)</span>
+          </span>
+        </label>
+        <select
+          id="venue"
+          className="input-field"
+          value={isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'}
+          onChange={(e) => {
+            const val = e.target.value;
+            setIsTeamAHome(val === 'neutral' ? null : val === 'home');
+          }}
+        >
+          <option value="neutral">Neutral Site</option>
+          <option value="home">Your Team is Home</option>
+          <option value="away">Your Team is Away</option>
+        </select>
       </div>
 
       {/* Use your committed components as controlled forms */}
@@ -886,6 +955,7 @@ function App() {
   const [pointSpread, setPointSpread] = useState<string>('');
   const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
   const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
+  const [isTeamAHome, setIsTeamAHome] = useState<boolean | null>(null);
 
   // Authentication state
   const [authUser, setAuthUser] = useState<{name: string; email: string; avatar: string} | null>(null);
@@ -1045,6 +1115,8 @@ function App() {
               setCalculatedProb={setCalculatedProb}
               expectedDiff={expectedDiff}
               setExpectedDiff={setExpectedDiff}
+              isTeamAHome={isTeamAHome}
+              setIsTeamAHome={setIsTeamAHome}
             />
           )}
           {activeTab === CONSTANTS.TABS.MATCHUP && (
