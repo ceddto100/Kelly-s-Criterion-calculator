@@ -31,9 +31,9 @@ const GlobalStyle = () => (
       background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
       -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling */ }
     .site-bg video,.site-bg img.bg-fallback{ position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover; opacity:.5; pointer-events:none; transform: translateY(-10%); }
-    .bg-overlay{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(30,64,175,.65), rgba(76,29,149,.65)); backdrop-filter: blur(2px); }
-    .blob{ position:absolute; border-radius:9999px; filter: blur(36px); opacity:.25; pointer-events:none; }
+      object-fit:cover; opacity:.5; pointer-events:none; transform: translateY(-10%); z-index:0; }
+    .bg-overlay{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(30,64,175,.65), rgba(76,29,149,.65)); backdrop-filter: blur(2px); z-index:0; pointer-events:none; }
+    .blob{ position:absolute; border-radius:9999px; filter: blur(36px); opacity:.25; pointer-events:none; z-index:0; }
     .blob-a{ width:22rem; height:22rem; background: radial-gradient(closest-side, #60a5fa, transparent); top:12%; right:-6%; animation: float 14s ease-in-out infinite; }
     .blob-b{ width:24rem; height:24rem; background: radial-gradient(closest-side, #a78bfa, transparent); bottom:10%; left:-8%; animation: pulse 18s ease-in-out infinite; }
 
@@ -251,7 +251,7 @@ const GlobalStyle = () => (
     .logout-btn:hover{ background: rgba(239,68,68,.25); }
 
     @media (max-width: 640px) {
-      .auth-container{ position:static; margin:0 auto 1rem; display:flex; justify-content:center; }
+      .auth-container{ position:relative; left:auto; right:auto; top:auto; margin:0 auto 1rem; display:flex; justify-content:center; z-index:100; }
       .user-info{ flex-wrap:wrap; justify-content:center; }
       .user-details{ text-align:center; }
     }
