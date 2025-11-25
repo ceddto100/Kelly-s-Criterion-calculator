@@ -1,6 +1,8 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * UPDATED: With Bet Logging Integration
 */
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -10,6 +12,9 @@ import FootballEstimator from "./forms/FootballEstimator";
 import BasketballEstimator from "./forms/BasketballEstimator";
 import SportsMatchup from "./forms/SportsMatchup";
 import NFLMatchup from "./forms/NFLMatchup";
+
+/* === NEW: Import Bet Logger components === */
+import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -29,7 +34,7 @@ const GlobalStyle = () => (
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
     .site-bg{ position:relative; min-height:100vh; width:100%; max-width:100vw;
       background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
-      -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling */ }
+      -webkit-overflow-scrolling: touch; }
     .site-bg video,.site-bg img.bg-fallback{ position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; opacity:.5; pointer-events:none; transform: translateY(-10%); z-index:0; }
     .bg-overlay{ position:absolute; inset:0; background: linear-gradient(90deg, rgba(30,64,175,.65), rgba(76,29,149,.65)); backdrop-filter: blur(2px); z-index:0; pointer-events:none; }
@@ -37,7 +42,6 @@ const GlobalStyle = () => (
     .blob-a{ width:22rem; height:22rem; background: radial-gradient(closest-side, #60a5fa, transparent); top:12%; right:-6%; animation: float 14s ease-in-out infinite; }
     .blob-b{ width:24rem; height:24rem; background: radial-gradient(closest-side, #a78bfa, transparent); bottom:10%; left:-8%; animation: pulse 18s ease-in-out infinite; }
 
-    /* Mobile blob containment */
     @media (max-width: 480px) {
       .blob-a{ width:14rem; height:14rem; right:-4%; }
       .blob-b{ width:16rem; height:16rem; left:-5%; }
@@ -105,23 +109,19 @@ const GlobalStyle = () => (
 
     .container{ display:flex; flex-direction:column; gap:1rem; }
 
-    /* Animations */
     @keyframes fadeInScale{ 0%{ opacity:0; transform:scale(0.95); } 100%{ opacity:1; transform:scale(1); } }
     @keyframes spin{ 0%{ transform:rotate(0deg); } 100%{ transform:rotate(360deg); } }
     @keyframes pulse-glow{ 0%,100%{ box-shadow: 0 8px 26px rgba(79,70,229,.35); } 50%{ box-shadow: 0 8px 38px rgba(79,70,229,.55); } }
     @keyframes shimmer{ 0%{ background-position: -200% center; } 100%{ background-position: 200% center; } }
 
-    /* Loading states */
     .loading-spinner{ display:inline-block; width:20px; height:20px; border:3px solid rgba(99,102,241,.2);
       border-top-color:#6366f1; border-radius:50%; animation: spin 0.8s linear infinite; margin-right:.5rem; }
     .skeleton{ background: linear-gradient(90deg, rgba(100,116,139,.2) 25%, rgba(100,116,139,.35) 50%, rgba(100,116,139,.2) 75%);
       background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius:.6rem; height:1.2rem; margin:.5rem 0; }
 
-    /* Enhanced hover states */
     .btn-secondary:hover, .tab:hover{ transform: translateY(-1px); }
     .results:hover{ border-color: rgba(99,102,241,.5); }
 
-    /* Copy button */
     .copy-btn{ background: rgba(99,102,241,.14); border:1px solid rgba(99,102,241,.35); color:#c7d2fe;
       padding:.4rem .8rem; border-radius:.5rem; cursor:pointer; font-size:.85rem; font-weight:600;
       transition:.2s ease; margin-top:.5rem; display:inline-flex; align-items:center; gap:.35rem; }
@@ -130,7 +130,6 @@ const GlobalStyle = () => (
       border-radius:.6rem; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: fadeInScale 0.3s ease-out;
       z-index:1000; font-weight:600; }
 
-    /* History panel */
     .history-panel{ margin-top:1rem; padding:1rem; border-radius:.8rem; background: rgba(2,6,23,.5);
       border:1px solid rgba(100,116,139,.3); }
     .history-item{ padding:.6rem; border-radius:.5rem; background: rgba(30,27,75,.25); margin-bottom:.5rem;
@@ -138,7 +137,6 @@ const GlobalStyle = () => (
       transition:.2s ease; border:1px solid transparent; }
     .history-item:hover{ background: rgba(30,27,75,.45); border-color: rgba(99,102,241,.25); }
 
-    /* Progress indicators */
     .progress-container{ display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
     .progress-step{ display:flex; align-items:center; gap:.35rem; padding:.4rem .8rem; border-radius:.5rem;
       background: rgba(100,116,139,.15); border:1px solid rgba(100,116,139,.25); font-size:.85rem;
@@ -146,7 +144,6 @@ const GlobalStyle = () => (
     .progress-step.completed{ background: rgba(16,185,129,.15); border-color:rgba(16,185,129,.35); color:#10b981; }
     .progress-step.active{ background: rgba(99,102,241,.15); border-color:rgba(99,102,241,.35); color:#a5b4fc; }
 
-    /* Tooltips */
     .tooltip{ position:relative; display:inline-block; }
     .tooltip .tooltiptext{ visibility:hidden; width:220px; background:#1e293b; color:var(--text);
       text-align:center; border-radius:.6rem; padding:.6rem; position:absolute; z-index:1;
@@ -154,7 +151,6 @@ const GlobalStyle = () => (
       font-size:.85rem; border:1px solid rgba(100,116,139,.35); box-shadow: 0 8px 20px rgba(0,0,0,.4); }
     .tooltip:hover .tooltiptext{ visibility:visible; opacity:1; }
 
-    /* Empty state */
     .empty-state{ text-align:center; padding:2rem 1rem; color:var(--text-muted); }
     .empty-state h3{ color:var(--text); margin-bottom:.5rem; }
     .try-example-btn{ background: linear-gradient(90deg, #4f46e5, #7c3aed); color:#fff; border:none;
@@ -162,7 +158,6 @@ const GlobalStyle = () => (
       transition:.2s ease; box-shadow: 0 6px 18px rgba(79,70,229,.25); }
     .try-example-btn:hover{ filter: brightness(1.1); transform: translateY(-1px); }
 
-    /* Stats grid responsive */
     .stats-grid{ display:grid; grid-template-columns: 2fr 1fr 1fr; gap:.75rem; align-items:center;
       margin-bottom:1rem; }
     .grid-header{ font-weight:700; color:#a5b4fc; margin:0; font-size:.9rem; }
@@ -172,18 +167,15 @@ const GlobalStyle = () => (
       .stats-grid > span:nth-child(3n+1){ font-weight:600; color:#a5b4fc; margin-top:.75rem; }
     }
 
-    /* Team name labels inside input fields */
     .team-name-label{ position:absolute; top:.35rem; left:.75rem; font-size:.65rem; font-weight:600;
       color:#a78bfa; pointer-events:none; text-transform:uppercase; letter-spacing:.03em;
       background: linear-gradient(90deg, #a78bfa, #60a5fa); -webkit-background-clip:text;
       background-clip:text; color:transparent; opacity:.85; line-height:1; }
 
-    /* Enhanced focus indicators */
     button:focus-visible, input:focus-visible, select:focus-visible{
       outline: 2px solid #818cf8; outline-offset: 2px;
     }
 
-    /* ==================== Sports Matchup Chat Styles ==================== */
     .sports-matchup-container{ display:flex; flex-direction:column; height:600px; max-height:70vh; }
 
     .quick-examples{ display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;
@@ -233,11 +225,10 @@ const GlobalStyle = () => (
       .quick-examples{ font-size:.75rem; }
     }
 
-    /* ==================== Authentication Styles ==================== */
     .auth-container{ position:absolute; top:1rem; right:1rem; z-index:100; }
     .auth-btn{ background: linear-gradient(90deg, #4f46e5, #7c3aed); color:#fff; border:none;
       padding:.65rem 1.25rem; border-radius:.7rem; cursor:pointer; font-weight:600; transition:.2s ease;
-      box-shadow: 0 6px 18px rgba(79,70,229,.35); font-size:.95rem; display:flex; align-items:center; gap:.5rem; }
+      box-shadow: 0 6px 18px rgba(79,70,229,.35); font-size:.95rem; display:flex; align-items:center; gap:.5rem; text-decoration:none; }
     .auth-btn:hover{ filter: brightness(1.1); transform: translateY(-1px); }
     .user-info{ background:var(--glass-strong); border:1px solid var(--border); border-radius:.8rem;
       padding:.65rem 1rem; display:flex; align-items:center; gap:.75rem; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
@@ -247,7 +238,7 @@ const GlobalStyle = () => (
     .user-email{ color:var(--text-muted); font-size:.75rem; line-height:1.2; }
     .logout-btn{ background: rgba(239,68,68,.14); border:1px solid rgba(239,68,68,.35); color:#fca5a5;
       padding:.4rem .8rem; border-radius:.5rem; cursor:pointer; font-weight:600; transition:.2s ease;
-      font-size:.85rem; margin-left:.5rem; }
+      font-size:.85rem; margin-left:.5rem; text-decoration:none; }
     .logout-btn:hover{ background: rgba(239,68,68,.25); }
 
     @media (max-width: 640px) {
@@ -256,7 +247,6 @@ const GlobalStyle = () => (
       .user-details{ text-align:center; }
     }
 
-    /* ==================== Desktop Optimizations ==================== */
     @media (min-width: 768px) {
       .page-wrap{ padding:3.5rem 1.5rem; }
       .title{ font-size: 2.75rem; }
@@ -291,19 +281,29 @@ const GlobalStyle = () => (
       .panel{ max-width:1100px; }
       .sports-matchup-container{ height:750px; }
     }
+
+    /* NEW: Include Bet Logger Styles */
+    ${BetLoggerStyles}
   `}</style>
 );
 
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
-  TABS: { KELLY: 'kelly', ESTIMATOR: 'estimator', UNIT: 'unit', MATCHUP: 'matchup', NFL_MATCHUP: 'nfl_matchup' },
+  TABS: {
+    KELLY: 'kelly',
+    ESTIMATOR: 'estimator',
+    UNIT: 'unit',
+    MATCHUP: 'matchup',
+    NFL_MATCHUP: 'nfl_matchup',
+    BET_HISTORY: 'bet_history'  // NEW TAB
+  },
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
 };
 
 /* ========================= API helper (Kelly insight) ====================== */
 async function fetchFromApi(prompt: string, systemInstruction: string) {
-  const response = await fetch(`${BACKEND_URL}/api/calculate`, {  // ← Fixed: ( ) instead of `
-    method: 'POST', 
+  const response = await fetch(`${BACKEND_URL}/api/calculate`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, systemInstruction }),
   });
@@ -322,104 +322,51 @@ function normCdf(x: number): number {
   const y = 1 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.exp(-z*z);
   return 0.5 * (1 + sign * y);
 }
-/**
- * Convert predicted margin to cover probability using normal distribution
- * @param predictedMargin - Expected point margin (positive = team A favored)
- * @param spread - Point spread from team A's perspective (negative = team A favored)
- * @param sigma - Standard deviation (NFL: ~13.5, NBA: ~11.5)
- */
+
 function coverProbabilityFromMargin(predictedMargin: number, spread: number, sigma: number): number {
-  // To cover spread, Team A needs: actualMargin > -spread
-  // P(cover) = P(margin > -spread) = Φ((predictedMargin + spread) / sigma)
   const Z = (predictedMargin + spread) / sigma;
   const p = normCdf(Z);
-
-  // Clamp to reasonable bounds (1% to 99%)
   return Math.max(1, Math.min(99, p * 100));
 }
 
 /* ========================== Sport-specific margin math ===================== */
-/**
- * Football: Predict margin using ALL available stats
- *
- * Components and their research-based weights:
- * - Point differential: Primary predictor (~40% weight)
- * - Yard differential: Secondary predictor (~25% weight) - ~25 yards ≈ 1 point
- * - Turnover differential: Tertiary predictor (~20% weight) - each turnover ≈ 4 points, regressed
- * - Home field: Fixed adjustment (~15% of typical margin)
- */
 function predictedMarginFootball(stats: any, isHome: boolean | null = null): number {
-  // === POINT DIFFERENTIAL (40% weight) ===
-  // Net points per game for each team
   const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
   const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
   const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.4;
 
-  // === YARD DIFFERENTIAL (25% weight) ===
-  // Offensive yards - Defensive yards allowed = net yard production
-  // Research: ~25 yards of differential ≈ 1 point of margin
   const teamAYardDiff = parseFloat(stats.teamOffYards) - parseFloat(stats.teamDefYards);
   const teamBYardDiff = parseFloat(stats.opponentOffYards) - parseFloat(stats.opponentDefYards);
   const yardDiffComponent = ((teamAYardDiff - teamBYardDiff) / 25) * 0.25;
 
-  // === TURNOVER DIFFERENTIAL (20% weight) ===
-  // Each turnover is worth ~4 points, but regress by 0.5 (turnovers are ~50% luck)
-  // Cap the differential input to +/- 10 to prevent outliers from breaking the model
   let teamTO = parseFloat(stats.teamTurnoverDiff) || 0;
   let oppTO = parseFloat(stats.opponentTurnoverDiff) || 0;
-
-  // Clamp values to prevent extreme outliers
   teamTO = Math.max(-10, Math.min(10, teamTO));
   oppTO = Math.max(-10, Math.min(10, oppTO));
-
   const turnoverComponent = (teamTO - oppTO) * 4 * 0.5 * 0.2;
 
-  // === HOME FIELD ADVANTAGE ===
-  // NFL home field ≈ 2.5 points (has declined from ~3 in recent years)
   const homeFieldAdvantage = isHome === null ? 0 : (isHome ? 2.5 : -2.5);
 
   return pointDiffComponent + yardDiffComponent + turnoverComponent + homeFieldAdvantage;
 }
-/**
- * Basketball: Predict margin using ALL available stats
- * OPTIMIZED using Dean Oliver's "Four Factors" approach
- *
- * New Weighting (Optimized):
- * - Point differential: 35% (Down from 50% - reduces noise from garbage time)
- * - FG% differential: 30% (Up from 20% - efficiency is "sticky" and predictive)
- * - Rebound margin: 20% (Up from 15% - possessions are critical in modern NBA)
- * - Turnover margin: 15% (Unchanged - ball security matters)
- * - Home court: Fixed adjustment
- */
+
 function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
-  // === POINT DIFFERENTIAL (35% weight) ===
-  // Reduced from 50% to account for noise (garbage time, schedule variance)
   const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
   const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
   const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.35;
 
-  // === FIELD GOAL % DIFFERENTIAL (30% weight) ===
-  // Increased from 20% - Efficiency is more predictive than raw scoring
-  // Each 1% FG difference ≈ 1.0 point over a game (~85-90 FGA per game)
   const teamAFg = parseFloat(stats.teamFgPct) || 0;
   const teamBFg = parseFloat(stats.opponentFgPct) || 0;
   const fgDiffComponent = (teamAFg - teamBFg) * 1.0 * 0.30;
 
-  // === REBOUND MARGIN DIFFERENTIAL (20% weight) ===
-  // Increased from 15% - Possessions are critical in modern NBA
-  // Each rebound advantage ≈ 0.5 extra points (extra possessions + second chances)
   const teamAReb = parseFloat(stats.teamReboundMargin) || 0;
   const teamBReb = parseFloat(stats.opponentReboundMargin) || 0;
   const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.20;
 
-  // === TURNOVER MARGIN DIFFERENTIAL (15% weight) ===
-  // Each turnover differential ≈ 1 point (lost possession + fast break opportunity)
   const teamATov = parseFloat(stats.teamTurnoverMargin) || 0;
   const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
   const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.15;
 
-  // === HOME COURT ADVANTAGE ===
-  // NBA home court ≈ 3 points (has declined slightly in recent years)
   const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
 
   return pointDiffComponent + fgDiffComponent + reboundComponent + turnoverComponent + homeCourtAdvantage;
@@ -429,7 +376,6 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
 const formatCurrency = (v: any) => isNaN(Number(v)) ? '$0.00' :
   new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v));
 
-/* local state shapes for controlled forms */
 export const initialFootballState = {
   teamPointsFor: '', opponentPointsFor: '',
   teamPointsAgainst: '', opponentPointsAgainst: '',
@@ -446,6 +392,28 @@ export const initialBasketballState = {
   teamTurnoverMargin: '', opponentTurnoverMargin: '',
   teamAName: '', teamBName: '',
 };
+
+/* ======================== NEW: Types for Bet Logging ======================= */
+interface MatchupData {
+  sport: 'football' | 'basketball';
+  teamA: {
+    name: string;
+    abbreviation?: string;
+    stats: Record<string, number>;
+  };
+  teamB: {
+    name: string;
+    abbreviation?: string;
+    stats: Record<string, number>;
+  };
+  venue: 'home' | 'away' | 'neutral';
+}
+
+interface EstimationData {
+  pointSpread: number;
+  calculatedProbability: number;
+  expectedMargin?: number;
+}
 
 /* ========================= Probability Estimator panel ===================== */
 function ProbabilityEstimator({
@@ -464,7 +432,10 @@ function ProbabilityEstimator({
   expectedDiff,
   setExpectedDiff,
   isTeamAHome,
-  setIsTeamAHome
+  setIsTeamAHome,
+  // NEW: Callbacks to store data for bet logging
+  setCurrentMatchup,
+  setCurrentEstimation
 }: {
   setProbability:(v:string)=>void;
   setActiveTab:(t:string)=>void;
@@ -482,11 +453,13 @@ function ProbabilityEstimator({
   setExpectedDiff: (v:number|null)=>void;
   isTeamAHome: boolean|null;
   setIsTeamAHome: (v:boolean|null)=>void;
+  // NEW props
+  setCurrentMatchup: (v: MatchupData | null) => void;
+  setCurrentEstimation: (v: EstimationData | null) => void;
 }) {
 
   const isFormValid = useMemo(() => {
     const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
-    // Exclude teamAName and teamBName from validation - they're optional display fields
     const requiredFields = Object.entries(current)
       .filter(([key]) => key !== 'teamAName' && key !== 'teamBName')
       .map(([, value]) => value);
@@ -496,7 +469,6 @@ function ProbabilityEstimator({
 
   const progress = useMemo(() => {
     const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
-    // Exclude teamAName and teamBName from progress count
     const statEntries = Object.entries(current).filter(([key]) => key !== 'teamAName' && key !== 'teamBName');
     const filledFields = statEntries.filter(([, v]) => v !== '').length;
     const totalFields = statEntries.length;
@@ -516,7 +488,8 @@ function ProbabilityEstimator({
         teamPointsAgainst: '21.3', opponentPointsAgainst: '26.8',
         teamOffYards: '395', opponentOffYards: '362',
         teamDefYards: '315', opponentDefYards: '385',
-        teamTurnoverDiff: '8', opponentTurnoverDiff: '-3'
+        teamTurnoverDiff: '8', opponentTurnoverDiff: '-3',
+        teamAName: 'KC', teamBName: 'BUF'
       });
       setPointSpread('-6.5');
     } else {
@@ -525,7 +498,8 @@ function ProbabilityEstimator({
         teamPointsAgainst: '106.2', opponentPointsAgainst: '110.8',
         teamFgPct: '47.8', opponentFgPct: '45.2',
         teamReboundMargin: '4.2', opponentReboundMargin: '-1.5',
-        teamTurnoverMargin: '2.8', opponentTurnoverMargin: '-1.2'
+        teamTurnoverMargin: '2.8', opponentTurnoverMargin: '-1.2',
+        teamAName: 'Lakers', teamBName: 'Warriors'
       });
       setPointSpread('-4.5');
     }
@@ -540,7 +514,6 @@ function ProbabilityEstimator({
         ? predictedMarginFootball(footballStats, isTeamAHome)
         : predictedMarginBasketball(basketballStats, isTeamAHome);
 
-      // NFL sigma ~13.5, NBA sigma ~11.5
       const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 11.5;
       const p = coverProbabilityFromMargin(m, spread, sigma);
 
@@ -553,13 +526,68 @@ function ProbabilityEstimator({
     }
   };
 
-  const handleApplyAndSwitch = (prob:number) => {
+  // UPDATED: Store matchup data when applying to Kelly
+  const handleApplyAndSwitch = (prob: number) => {
     setProbability(prob.toFixed(2));
+
+    const stats = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+
+    // Build matchup data for bet logging
+    const matchupData: MatchupData = {
+      sport: activeSport as 'football' | 'basketball',
+      teamA: {
+        name: stats.teamAName || 'Team A',
+        abbreviation: stats.teamAName || undefined,
+        stats: activeSport === CONSTANTS.SPORTS.FOOTBALL
+          ? {
+              pointsFor: parseFloat(stats.teamPointsFor) || 0,
+              pointsAgainst: parseFloat(stats.teamPointsAgainst) || 0,
+              offYards: parseFloat(stats.teamOffYards) || 0,
+              defYards: parseFloat(stats.teamDefYards) || 0,
+              turnoverDiff: parseFloat(stats.teamTurnoverDiff) || 0
+            }
+          : {
+              pointsFor: parseFloat(stats.teamPointsFor) || 0,
+              pointsAgainst: parseFloat(stats.teamPointsAgainst) || 0,
+              fgPct: parseFloat(stats.teamFgPct) || 0,
+              reboundMargin: parseFloat(stats.teamReboundMargin) || 0,
+              turnoverMargin: parseFloat(stats.teamTurnoverMargin) || 0
+            }
+      },
+      teamB: {
+        name: stats.teamBName || 'Team B',
+        abbreviation: stats.teamBName || undefined,
+        stats: activeSport === CONSTANTS.SPORTS.FOOTBALL
+          ? {
+              pointsFor: parseFloat(stats.opponentPointsFor) || 0,
+              pointsAgainst: parseFloat(stats.opponentPointsAgainst) || 0,
+              offYards: parseFloat(stats.opponentOffYards) || 0,
+              defYards: parseFloat(stats.opponentDefYards) || 0,
+              turnoverDiff: parseFloat(stats.opponentTurnoverDiff) || 0
+            }
+          : {
+              pointsFor: parseFloat(stats.opponentPointsFor) || 0,
+              pointsAgainst: parseFloat(stats.opponentPointsAgainst) || 0,
+              fgPct: parseFloat(stats.opponentFgPct) || 0,
+              reboundMargin: parseFloat(stats.opponentReboundMargin) || 0,
+              turnoverMargin: parseFloat(stats.opponentTurnoverMargin) || 0
+            }
+      },
+      venue: isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'
+    };
+
+    const estimationData: EstimationData = {
+      pointSpread: parseFloat(pointSpread),
+      calculatedProbability: prob,
+      expectedMargin: expectedDiff || undefined
+    };
+
+    setCurrentMatchup(matchupData);
+    setCurrentEstimation(estimationData);
     setActiveTab(CONSTANTS.TABS.KELLY);
   };
 
   const handleSwap = () => {
-    // Swap team and opponent stats
     if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
       setFootballStats({
         teamPointsFor: footballStats.opponentPointsFor,
@@ -592,7 +620,6 @@ function ProbabilityEstimator({
       });
     }
 
-    // Flip the point spread sign (favorite becomes underdog and vice versa)
     if (pointSpread !== '') {
       const currentSpread = parseFloat(pointSpread);
       if (!isNaN(currentSpread)) {
@@ -600,7 +627,6 @@ function ProbabilityEstimator({
       }
     }
 
-    // Swap home/away venue
     if (isTeamAHome !== null) {
       setIsTeamAHome(!isTeamAHome);
     }
@@ -615,7 +641,6 @@ function ProbabilityEstimator({
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
       </div>
 
-      {/* Progress indicators */}
       <div className="progress-container">
         <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
           {progress.spread ? '✓' : '1'} Point Spread
@@ -625,7 +650,6 @@ function ProbabilityEstimator({
         </div>
       </div>
 
-      {/* Empty state with example */}
       {progress.stats === 0 && !pointSpread && (
         <div className="empty-state">
           <h3>Get Started</h3>
@@ -674,7 +698,6 @@ function ProbabilityEstimator({
         </select>
       </div>
 
-      {/* Use your committed components as controlled forms */}
       {activeSport === CONSTANTS.SPORTS.FOOTBALL ? (
         <FootballEstimator
           stats={footballStats}
@@ -713,7 +736,9 @@ function ProbabilityEstimator({
             </div>
           )}
           <div style={{marginTop:'.6rem'}}>
-            <button className="btn-tab-style" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>Use in Kelly Calculator</button>
+            <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>
+              Use in Kelly Calculator →
+            </button>
           </div>
         </div>
       )}
@@ -722,28 +747,33 @@ function ProbabilityEstimator({
 }
 
 /* ============================== Kelly Calculator =========================== */
-/**
- * Calculate implied probability from American odds
- * 100% Frontend Math - No API needed
- */
 const calculateImpliedProbability = (americanOdds: string): number | null => {
   const odds = parseFloat(americanOdds);
   if (isNaN(odds)) return null;
-
-  // Formula for Negative Odds (Favorites, e.g., -150)
-  // (-(-150)) / (-(-150) + 100) -> 150 / 250 = 0.60 (60%)
   if (odds < 0) {
     return (-odds) / (-odds + 100) * 100;
   }
-
-  // Formula for Positive Odds (Underdogs, e.g., +200)
-  // 100 / (200 + 100) -> 100 / 300 = 0.33 (33.3%)
   return 100 / (odds + 100) * 100;
 };
 
 type HistoryEntry = { bankroll:string; odds:string; probability:string; stake:number; timestamp:number };
 
-function KellyCalculator({ probability, setProbability }: { probability:string; setProbability:(v:string)=>void }) {
+function KellyCalculator({
+  probability,
+  setProbability,
+  // NEW: Props for bet logging
+  isAuthenticated,
+  matchupData,
+  estimationData,
+  onLoginRequired
+}: {
+  probability: string;
+  setProbability: (v: string) => void;
+  isAuthenticated: boolean;
+  matchupData: MatchupData | null;
+  estimationData: EstimationData | null;
+  onLoginRequired: () => void;
+}) {
   const [bankroll, setBankroll] = useState('1000');
   const [odds, setOdds] = useState('-110');
   const [fraction, setFraction] = useState('1');
@@ -752,7 +782,6 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Validation
   const validation = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
     const americanOdds = parseFloat(odds);
@@ -789,21 +818,14 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     };
   }, [bankroll, odds, probability, fraction]);
 
-  // Calculate implied probability and edge
   const { impliedProb, edge, edgeColor } = useMemo(() => {
-    // 1. Get the Bookmaker's implied probability from the odds input
     const implied = calculateImpliedProbability(odds);
-
-    // 2. Get the User's calculated probability (from your Estimator or manual input)
     const userProb = parseFloat(probability);
 
     if (!implied || isNaN(userProb)) return { impliedProb: null, edge: null, edgeColor: 'grey' };
 
-    // 3. Calculate the "Edge" (The difference)
     const currentEdge = userProb - implied;
-
-    // 4. Determine color for UI (Green if you have an edge, Red if the bookie wins)
-    const color = currentEdge > 0 ? '#10b981' : '#ef4444'; // Green : Red
+    const color = currentEdge > 0 ? '#10b981' : '#ef4444';
 
     return {
       impliedProb: implied,
@@ -812,13 +834,12 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     };
   }, [odds, probability]);
 
-  // Track calculation history
   useEffect(() => {
     if (hasValue && stake > 0) {
       const newEntry: HistoryEntry = {
         bankroll, odds, probability, stake, timestamp: Date.now()
       };
-      setHistory(prev => [newEntry, ...prev.slice(0, 4)]); // Keep last 5
+      setHistory(prev => [newEntry, ...prev.slice(0, 4)]);
     }
   }, [stake, hasValue, bankroll, odds, probability]);
 
@@ -828,10 +849,10 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
       setIsGenerating(true); setExplanation('');
       try {
         const systemInstruction =
-          "You are an elite betting analyst. Give sharp, 1–2 sentence insights explaining each Kelly Criterion recommendation. Be confident, direct, and responsibly bold with a touch of sass. Keep explanations concise, varied, and never repetitive. Always highlight the core reason behind the recommendation—no fluff, just clarity.";
+          "You are an elite betting analyst. Give sharp, 1–2 sentence insights explaining each Kelly Criterion recommendation. Be confident, direct, and responsibly bold with a touch of sass. Keep explanations concise, varied, and never repetitive.";
         const userPrompt = hasValue
-          ? `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) result in a recommended stake of ${formatCurrency(stake)} (${stakePercentage.toFixed(2)}%). Provide a concise, 1-2 sentence explanation for why this is a good bet according to the Kelly Criterion.`
-          : `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) indicate a "No Value" bet. Provide a concise, 1-2 sentence explanation emphasizing bankroll protection.`;
+          ? `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) result in a recommended stake of ${formatCurrency(stake)} (${stakePercentage.toFixed(2)}%). Provide a concise, 1-2 sentence explanation.`
+          : `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) indicate a "No Value" bet. Provide a concise explanation emphasizing bankroll protection.`;
         const response = await fetchFromApi(userPrompt, systemInstruction);
         setExplanation(response.text);
       } catch (e:any) {
@@ -852,6 +873,9 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
     if (isValid === null) return '';
     return isValid ? 'valid' : 'invalid';
   };
+
+  // Check if we have complete data for bet logging
+  const canLogBet = hasValue && matchupData && estimationData;
 
   return (
     <div className="panel">
@@ -879,7 +903,7 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
           American Odds
           <span className="tooltip">
             <span className="help-icon">?</span>
-            <span className="tooltiptext">Negative = favorite (e.g., -110), Positive = underdog (e.g., +150). Must be ≤-100 or ≥100</span>
+            <span className="tooltiptext">Negative = favorite (e.g., -110), Positive = underdog (e.g., +150)</span>
           </span>
         </label>
         <input
@@ -898,7 +922,7 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
           Win Probability (%)
           <span className="tooltip">
             <span className="help-icon">?</span>
-            <span className="tooltiptext">Your estimated probability of winning (0-100%). Use the Probability Estimator to calculate this.</span>
+            <span className="tooltiptext">Your estimated probability of winning (0-100%)</span>
           </span>
         </label>
         <div className="slider-group">
@@ -922,7 +946,7 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
           Kelly Fraction
           <span className="tooltip">
             <span className="help-icon">?</span>
-            <span className="tooltiptext">Fraction of Kelly recommendation to bet. Half Kelly (0.5x) reduces volatility. Quarter Kelly (0.25x) is very conservative.</span>
+            <span className="tooltiptext">Half Kelly (0.5x) reduces volatility</span>
           </span>
         </label>
         <select id="fraction" className="input-field" value={fraction} onChange={(e)=>setFraction(e.target.value)}>
@@ -939,6 +963,43 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
           <div className="results-details">
             <span>{stakePercentage.toFixed(2)}% of Bankroll</span>
           </div>
+
+          {/* NEW: Log Bet Button */}
+          {canLogBet && (
+            <LogBetButton
+              sport={matchupData!.sport}
+              teamA={matchupData!.teamA}
+              teamB={matchupData!.teamB}
+              venue={matchupData!.venue}
+              pointSpread={estimationData!.pointSpread}
+              calculatedProbability={estimationData!.calculatedProbability}
+              expectedMargin={estimationData!.expectedMargin}
+              impliedProbability={impliedProb || undefined}
+              edge={edge || undefined}
+              bankroll={parseFloat(bankroll)}
+              americanOdds={parseFloat(odds)}
+              kellyFraction={parseFloat(fraction)}
+              recommendedStake={stake}
+              stakePercentage={stakePercentage}
+              isAuthenticated={isAuthenticated}
+              onLoginRequired={onLoginRequired}
+            />
+          )}
+
+          {/* Show sign-in prompt if no matchup data or not authenticated */}
+          {!canLogBet && hasValue && (
+            <div style={{ marginTop: '1rem', padding: '.75rem', background: 'rgba(99,102,241,.1)', borderRadius: '.5rem', textAlign: 'center' }}>
+              {!isAuthenticated ? (
+                <button className="log-bet-btn" style={{ opacity: 0.8 }} onClick={onLoginRequired}>
+                  🔒 Sign in to Log Bets
+                </button>
+              ) : (
+                <p style={{ color: 'var(--text-muted)', fontSize: '.9rem', margin: 0 }}>
+                  💡 Use the Probability Estimator first to enable bet logging with full matchup data
+                </p>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="results no-value"><h2>No Value - Do Not Bet</h2></div>
@@ -960,7 +1021,6 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
             <span style={{color: 'var(--text-muted)', display:'block', fontSize:'.75rem'}}>Implied Win %</span>
             <strong>{impliedProb.toFixed(1)}%</strong>
           </div>
-
           <div style={{textAlign: 'right'}}>
             <span style={{color: 'var(--text-muted)', display:'block', fontSize:'.75rem'}}>Your Edge</span>
             <strong style={{color: edgeColor}}>
@@ -1060,7 +1120,7 @@ function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
   const [probability, setProbability] = useState('50');
 
-  // Lift probability estimator state to App level to prevent data loss on tab switches
+  // Probability estimator state
   const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
   const [footballStats, setFootballStats] = useState(initialFootballState);
   const [basketballStats, setBasketballStats] = useState(initialBasketballState);
@@ -1073,12 +1133,16 @@ function App() {
   const [authUser, setAuthUser] = useState<{name: string; email: string; avatar: string} | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // NEW: State for bet logging data flow
+  const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
+  const [currentEstimation, setCurrentEstimation] = useState<EstimationData | null>(null);
+
   // Check authentication status on mount
   useEffect(() => {
     async function checkAuth() {
       try {
         const response = await fetch(`${BACKEND_URL}/auth/status`, {
-          credentials: 'include' // Important: send cookies with request
+          credentials: 'include'
         });
         if (response.ok) {
           const data = await response.json();
@@ -1095,15 +1159,13 @@ function App() {
     checkAuth();
   }, []);
 
-  // Helper function to extract team abbreviation from full name
   const getTeamAbbreviation = (fullName: string): string => {
     if (!fullName) return '';
-    // Extract last word (team nickname) from full name (e.g., "Los Angeles Lakers" -> "Lakers")
     const words = fullName.trim().split(' ');
     return words[words.length - 1];
   };
 
-  // Handler to transfer matchup data to Basketball Estimator
+  // Handler to transfer NBA matchup data to Basketball Estimator
   const handleTransferToEstimator = (matchupData: any) => {
     setBasketballStats({
       teamPointsFor: matchupData.teamA.points_per_game?.toFixed(1) || '',
@@ -1141,6 +1203,11 @@ function App() {
     });
     setActiveSport(CONSTANTS.SPORTS.FOOTBALL);
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);
+  };
+
+  // Login redirect handler
+  const handleLoginRequired = () => {
+    window.location.href = `${BACKEND_URL}/auth/google`;
   };
 
   return (
@@ -1193,6 +1260,7 @@ function App() {
                 { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
                 { key: CONSTANTS.TABS.MATCHUP, label: 'NBA Matchup' },
                 { key: CONSTANTS.TABS.NFL_MATCHUP, label: 'NFL Matchup' },
+                { key: CONSTANTS.TABS.BET_HISTORY, label: '📊 Bet History' },  // NEW TAB
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -1208,7 +1276,14 @@ function App() {
           </div>
 
           {activeTab === CONSTANTS.TABS.KELLY && (
-            <KellyCalculator probability={probability} setProbability={setProbability} />
+            <KellyCalculator
+              probability={probability}
+              setProbability={setProbability}
+              isAuthenticated={!!authUser}
+              matchupData={currentMatchup}
+              estimationData={currentEstimation}
+              onLoginRequired={handleLoginRequired}
+            />
           )}
           {activeTab === CONSTANTS.TABS.UNIT && <UnitBettingCalculator />}
           {activeTab === CONSTANTS.TABS.ESTIMATOR && (
@@ -1229,6 +1304,9 @@ function App() {
               setExpectedDiff={setExpectedDiff}
               isTeamAHome={isTeamAHome}
               setIsTeamAHome={setIsTeamAHome}
+              // NEW: Pass setters for bet logging
+              setCurrentMatchup={setCurrentMatchup}
+              setCurrentEstimation={setCurrentEstimation}
             />
           )}
           {activeTab === CONSTANTS.TABS.MATCHUP && (
@@ -1246,6 +1324,12 @@ function App() {
               />
             </div>
           )}
+          {/* NEW: Bet History Tab */}
+          {activeTab === CONSTANTS.TABS.BET_HISTORY && (
+            <div className="panel">
+              <BetHistory isAuthenticated={!!authUser} />
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -1259,5 +1343,3 @@ root.render(
     <App />
   </>
 );
-
-
