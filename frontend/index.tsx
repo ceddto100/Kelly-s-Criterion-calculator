@@ -364,8 +364,14 @@ function predictedMarginFootball(stats: any, isHome: boolean | null = null): num
 
   // === TURNOVER DIFFERENTIAL (20% weight) ===
   // Each turnover is worth ~4 points, but regress by 0.5 (turnovers are ~50% luck)
-  const teamTO = parseFloat(stats.teamTurnoverDiff) || 0;
-  const oppTO = parseFloat(stats.opponentTurnoverDiff) || 0;
+  // Cap the differential input to +/- 10 to prevent outliers from breaking the model
+  let teamTO = parseFloat(stats.teamTurnoverDiff) || 0;
+  let oppTO = parseFloat(stats.opponentTurnoverDiff) || 0;
+
+  // Clamp values to prevent extreme outliers
+  teamTO = Math.max(-10, Math.min(10, teamTO));
+  oppTO = Math.max(-10, Math.min(10, oppTO));
+
   const turnoverComponent = (teamTO - oppTO) * 4 * 0.5 * 0.2;
 
   // === HOME FIELD ADVANTAGE ===
@@ -376,33 +382,35 @@ function predictedMarginFootball(stats: any, isHome: boolean | null = null): num
 }
 /**
  * Basketball: Predict margin using ALL available stats
+ * OPTIMIZED using Dean Oliver's "Four Factors" approach
  *
- * Components and their research-based weights:
- * - Point differential: Primary predictor (~50% weight)
- * - FG% differential: Shooting efficiency (~20% weight) - each 1% ≈ 0.8-1 point
- * - Rebound margin: Possession control (~15% weight) - each rebound ≈ 0.5 extra points
- * - Turnover margin: Ball security (~15% weight) - each turnover ≈ 1 point
+ * New Weighting (Optimized):
+ * - Point differential: 35% (Down from 50% - reduces noise from garbage time)
+ * - FG% differential: 30% (Up from 20% - efficiency is "sticky" and predictive)
+ * - Rebound margin: 20% (Up from 15% - possessions are critical in modern NBA)
+ * - Turnover margin: 15% (Unchanged - ball security matters)
  * - Home court: Fixed adjustment
  */
 function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
-  // === POINT DIFFERENTIAL (50% weight) ===
-  // This is the strongest single predictor
+  // === POINT DIFFERENTIAL (35% weight) ===
+  // Reduced from 50% to account for noise (garbage time, schedule variance)
   const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
   const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.5;
+  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.35;
 
-  // === FIELD GOAL % DIFFERENTIAL (20% weight) ===
-  // Each 1% FG difference ≈ 0.8-1 point over a game (~85-90 FGA per game)
-  // Using 0.9 as middle estimate
+  // === FIELD GOAL % DIFFERENTIAL (30% weight) ===
+  // Increased from 20% - Efficiency is more predictive than raw scoring
+  // Each 1% FG difference ≈ 1.0 point over a game (~85-90 FGA per game)
   const teamAFg = parseFloat(stats.teamFgPct) || 0;
   const teamBFg = parseFloat(stats.opponentFgPct) || 0;
-  const fgDiffComponent = (teamAFg - teamBFg) * 0.9 * 0.2;
+  const fgDiffComponent = (teamAFg - teamBFg) * 1.0 * 0.30;
 
-  // === REBOUND MARGIN DIFFERENTIAL (15% weight) ===
+  // === REBOUND MARGIN DIFFERENTIAL (20% weight) ===
+  // Increased from 15% - Possessions are critical in modern NBA
   // Each rebound advantage ≈ 0.5 extra points (extra possessions + second chances)
   const teamAReb = parseFloat(stats.teamReboundMargin) || 0;
   const teamBReb = parseFloat(stats.opponentReboundMargin) || 0;
-  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.15;
+  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.20;
 
   // === TURNOVER MARGIN DIFFERENTIAL (15% weight) ===
   // Each turnover differential ≈ 1 point (lost possession + fast break opportunity)
