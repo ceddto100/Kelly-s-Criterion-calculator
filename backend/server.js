@@ -44,9 +44,12 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
+// Trust proxy - required for Render deployment to correctly identify client IP and protocol
+app.set('trust proxy', 1);
+
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.FRONTEND_URL || 'https://kelly-s-criterion-calculator.vercel.app',
   credentials: true,
   allowedHeaders: ['Content-Type', 'x-user-id', 'x-admin-key']
 }));
@@ -65,7 +68,8 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true in production (requires HTTPS)
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // 'none' required for cross-origin cookies
   }
 }));
 
