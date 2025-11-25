@@ -78,6 +78,12 @@ const GlobalStyle = () => (
       margin: 0 auto 1rem; max-width:900px; }
     .panel-strong{ background:var(--glass-strong); }
 
+    .info-panel{ max-width:1100px; }
+
+    .footer{ color:var(--text-muted); text-align:center; padding:2rem 1rem 3rem; font-size:.9rem; }
+    .footer a{ color:#c7d2fe; text-decoration:none; font-weight:600; }
+    .footer a:hover{ color:white; text-decoration:underline; }
+
     .input-group{ display:flex; flex-direction:column; gap:.35rem; margin-bottom:1rem; position:relative; }
     .input-field, select{ background:#0f1836; border:1px solid rgba(148,163,184,.35); color:var(--text);
       padding:.65rem .75rem; border-radius:.6rem; outline:none; width:100%; transition: all 0.2s ease; }
@@ -1330,7 +1336,42 @@ function App() {
               <BetHistory isAuthenticated={!!authUser} />
             </div>
           )}
+
+          <div className="panel info-panel" id="app-documentation">
+            <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
+            <p style={{color:'var(--text-muted)', marginTop:0}}>
+              Follow these steps to move from estimating your edge to logging a bet with confidence:
+            </p>
+            <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+              <li>
+                Start in <strong>Probability Estimator</strong> to enter matchup stats (Football or Basketball) and calculate a fair win probability.
+                You can also import stats directly from <strong>NBA Matchup</strong> or <strong>NFL Matchup</strong> using their transfer buttons.
+              </li>
+              <li>
+                Switch to <strong>Kelly Criterion</strong>, input your bankroll and odds, and paste the estimated win probability. The tool shows your suggested stake and edge.
+              </li>
+              <li>
+                Use <strong>Unit Betting</strong> if you prefer staking by units instead of Kelly sizing.
+              </li>
+              <li>
+                (Optional) Review recent recommendations in <strong>📊 Bet History</strong>—saved automatically when you calculate a positive-value bet while authenticated.
+              </li>
+            </ol>
+
+            <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
+            <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+              <li><strong>Kelly Criterion</strong>: Calculates optimal stake size based on bankroll, odds, and your estimated win probability.</li>
+              <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
+              <li><strong>Unit Betting</strong>: Turns your bankroll into unit sizes for flat- or multiple-unit staking.</li>
+              <li><strong>NBA Matchup</strong> / <strong>NFL Matchup</strong>: Pulls team data, compares opponents, and lets you push the results into the estimator.</li>
+              <li><strong>📊 Bet History</strong>: Displays recently logged Kelly recommendations (requires sign-in).</li>
+            </ul>
+          </div>
         </div>
+
+        <footer className="footer">
+          Need more detail? Visit the <a href="#app-documentation">documentation &amp; workflow guide</a> above.
+        </footer>
       </div>
     </>
   );
