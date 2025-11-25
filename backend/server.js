@@ -25,6 +25,7 @@ const { ensureAuthenticated } = require('./middleware/auth');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const betsRoutes = require('./routes/bets');
 
 // Sports Scraper Routes
 const offense = require('./scrapers/offense');
@@ -453,6 +454,7 @@ app.get('/api/admin/stats', asyncHandler(async (req, res) => {
 
 // Mount authentication routes
 app.use('/auth', authRoutes);
+app.use('/api/bets', betsRoutes);
 
 // Protected Dashboard Route - displays logged-in user information
 app.get('/dashboard', ensureAuthenticated, (req, res) => {
