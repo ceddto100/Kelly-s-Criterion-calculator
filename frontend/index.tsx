@@ -714,6 +714,25 @@ function ProbabilityEstimator({
 }
 
 /* ============================== Kelly Calculator =========================== */
+/**
+ * Calculate implied probability from American odds
+ * 100% Frontend Math - No API needed
+ */
+const calculateImpliedProbability = (americanOdds: string): number | null => {
+  const odds = parseFloat(americanOdds);
+  if (isNaN(odds)) return null;
+
+  // Formula for Negative Odds (Favorites, e.g., -150)
+  // (-(-150)) / (-(-150) + 100) -> 150 / 250 = 0.60 (60%)
+  if (odds < 0) {
+    return (-odds) / (-odds + 100) * 100;
+  }
+
+  // Formula for Positive Odds (Underdogs, e.g., +200)
+  // 100 / (200 + 100) -> 100 / 300 = 0.33 (33.3%)
+  return 100 / (odds + 100) * 100;
+};
+
 type HistoryEntry = { bankroll:string; odds:string; probability:string; stake:number; timestamp:number };
 
 function KellyCalculator({ probability, setProbability }: { probability:string; setProbability:(v:string)=>void }) {
@@ -761,6 +780,29 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
       hasValue:true
     };
   }, [bankroll, odds, probability, fraction]);
+
+  // Calculate implied probability and edge
+  const { impliedProb, edge, edgeColor } = useMemo(() => {
+    // 1. Get the Bookmaker's implied probability from the odds input
+    const implied = calculateImpliedProbability(odds);
+
+    // 2. Get the User's calculated probability (from your Estimator or manual input)
+    const userProb = parseFloat(probability);
+
+    if (!implied || isNaN(userProb)) return { impliedProb: null, edge: null, edgeColor: 'grey' };
+
+    // 3. Calculate the "Edge" (The difference)
+    const currentEdge = userProb - implied;
+
+    // 4. Determine color for UI (Green if you have an edge, Red if the bookie wins)
+    const color = currentEdge > 0 ? '#10b981' : '#ef4444'; // Green : Red
+
+    return {
+      impliedProb: implied,
+      edge: currentEdge,
+      edgeColor: color
+    };
+  }, [odds, probability]);
 
   // Track calculation history
   useEffect(() => {
@@ -892,6 +934,32 @@ function KellyCalculator({ probability, setProbability }: { probability:string; 
         </div>
       ) : (
         <div className="results no-value"><h2>No Value - Do Not Bet</h2></div>
+      )}
+
+      {impliedProb !== null && edge !== null && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '.75rem',
+          borderRadius: '.6rem',
+          background: 'rgba(15, 23, 42, 0.6)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '0.9rem'
+        }}>
+          <div>
+            <span style={{color: 'var(--text-muted)', display:'block', fontSize:'.75rem'}}>Implied Win %</span>
+            <strong>{impliedProb.toFixed(1)}%</strong>
+          </div>
+
+          <div style={{textAlign: 'right'}}>
+            <span style={{color: 'var(--text-muted)', display:'block', fontSize:'.75rem'}}>Your Edge</span>
+            <strong style={{color: edgeColor}}>
+              {edge > 0 ? '+' : ''}{edge.toFixed(1)}%
+            </strong>
+          </div>
+        </div>
       )}
 
       <div className="analyst-insight">
