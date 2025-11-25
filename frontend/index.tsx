@@ -30,8 +30,11 @@ const GlobalStyle = () => (
       --accent:#4f46e5; --accent-2:#6366f1;
       --text:#ffffff; --text-muted:#cbd5e1;
     }
-    body{ margin:0; color:var(--text); background:#000;
+    html, body, #root{ min-height:100vh; }
+    body{ margin:0; color:var(--text);
+      background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    #root{ background: #0b1030; }
     .site-bg{ position:relative; min-height:100vh; width:100%; max-width:100vw;
       background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
       -webkit-overflow-scrolling: touch; }
