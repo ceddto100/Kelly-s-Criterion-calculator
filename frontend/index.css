@@ -115,9 +115,28 @@ body::after {
 
 #root {
   width: 100%;
-  max-width: 520px;
+  max-width: 520px; /* Mobile default */
   position: relative;
   /* No overflow-x restriction here - let parent handle it */
+}
+
+/* Desktop optimization - expand for larger screens */
+@media (min-width: 768px) {
+  #root {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 1024px) {
+  #root {
+    max-width: 900px;
+  }
+}
+
+@media (min-width: 1440px) {
+  #root {
+    max-width: 1100px;
+  }
 }
 
 /* Glowing blob 2 - Purple */
@@ -873,5 +892,183 @@ body::after {
 
   .btn-primary {
     animation: none;
+  }
+}
+
+/* ============================================ */
+/* DESKTOP OPTIMIZATIONS                       */
+/* ============================================ */
+
+/* Tablet and up - Enhanced spacing and typography */
+@media (min-width: 768px) {
+  body {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .header {
+    padding: 2.5rem 2rem 2rem;
+  }
+
+  .header h1 {
+    font-size: 2.5rem;
+  }
+
+  .header p {
+    font-size: 1.05rem;
+    max-width: 500px;
+  }
+
+  .calculator-body {
+    padding: 2.5rem;
+    gap: 2rem;
+  }
+
+  .results {
+    padding: 2.5rem 2rem;
+  }
+
+  .results h2 {
+    font-size: 3.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+  }
+
+  .tab {
+    padding: 1.2rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .btn-primary {
+    font-size: 1.1rem;
+    padding: 1.1rem 1.75rem;
+  }
+
+  .btn-secondary,
+  .btn-tab-style {
+    font-size: 1rem;
+    padding: 0.95rem 1.5rem;
+  }
+}
+
+/* Desktop - Generous spacing and larger text */
+@media (min-width: 1024px) {
+  body {
+    padding: 3rem 2rem;
+  }
+
+  .header {
+    padding: 3rem 2.5rem 2.5rem;
+  }
+
+  .header h1 {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .header p {
+    font-size: 1.1rem;
+    max-width: 600px;
+  }
+
+  .calculator-body {
+    padding: 3rem;
+    gap: 2.5rem;
+  }
+
+  .input-group {
+    gap: 0.75rem;
+  }
+
+  .input-group label {
+    font-size: 1rem;
+  }
+
+  .input-field {
+    padding: 1rem 1.25rem;
+    font-size: 1.05rem;
+  }
+
+  .results {
+    padding: 3rem 2.5rem;
+  }
+
+  .results h2 {
+    font-size: 4rem;
+  }
+
+  .results p {
+    font-size: 1rem;
+  }
+
+  .results-details {
+    gap: 2.5rem;
+    font-size: 1rem;
+  }
+
+  .stats-grid {
+    gap: 1.5rem;
+  }
+
+  .stats-grid .grid-header {
+    font-size: 0.9rem;
+  }
+
+  .stats-grid span {
+    font-size: 1rem;
+  }
+
+  .analyst-insight {
+    padding: 1.5rem 2rem;
+  }
+
+  .analyst-insight h3 {
+    font-size: 1.15rem;
+  }
+
+  .analyst-insight p {
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .btn-primary {
+    font-size: 1.15rem;
+    padding: 1.2rem 2rem;
+  }
+
+  .btn-secondary,
+  .btn-tab-style {
+    font-size: 1.05rem;
+    padding: 1rem 1.75rem;
+  }
+
+  .tab {
+    padding: 1.3rem 2rem;
+    font-size: 1.05rem;
+  }
+}
+
+/* Large Desktop - Maximum comfort */
+@media (min-width: 1440px) {
+  body {
+    padding: 3.5rem 2.5rem;
+  }
+
+  .header h1 {
+    font-size: 3.5rem;
+  }
+
+  .results h2 {
+    font-size: 4.5rem;
+  }
+
+  .calculator-body {
+    gap: 3rem;
   }
 }
