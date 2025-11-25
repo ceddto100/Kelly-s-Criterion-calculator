@@ -4,8 +4,7 @@ const mongoose = require('mongoose');
 const betLogSchema = new mongoose.Schema({
   // User reference (Google OAuth user)
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
     index: true
   },
@@ -153,7 +152,7 @@ betLogSchema.methods.calculateProfit = function() {
 // Static method to get user's betting stats
 betLogSchema.statics.getUserStats = async function(userId) {
   const stats = await this.aggregate([
-    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+    { $match: { userId } },
     {
       $group: {
         _id: null,

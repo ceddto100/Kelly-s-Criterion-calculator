@@ -8,6 +8,11 @@ const { asyncHandler } = require('../middleware/errorHandler');
 // All routes require authentication
 router.use(ensureAuthenticated);
 
+// Helper function to get user ID from various OAuth providers
+const getUserId = (req) => {
+  return req.user._id || req.user.id || req.user.googleId;
+};
+
 // POST /api/bets - Log a new bet
 router.post('/', asyncHandler(async (req, res) => {
   const {
@@ -29,7 +34,7 @@ router.post('/', asyncHandler(async (req, res) => {
 
   // Create the bet log
   const betLog = new BetLog({
-    userId: req.user._id,
+    userId: getUserId(req),
     matchup: {
       sport: matchup.sport,
       teamA: {
@@ -84,7 +89,7 @@ router.get('/', asyncHandler(async (req, res) => {
   } = req.query;
 
   // Build filter
-  const filter = { userId: req.user._id };
+  const filter = { userId: getUserId(req) };
 
   if (sport && ['football', 'basketball'].includes(sport)) {
     filter['matchup.sport'] = sport;
@@ -122,14 +127,14 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // GET /api/bets/stats - Get user's betting statistics
 router.get('/stats', asyncHandler(async (req, res) => {
-  const stats = await BetLog.getUserStats(req.user._id);
+  const stats = await BetLog.getUserStats(getUserId(req));
   res.json(stats);
 }));
 
 // GET /api/bets/pending - Get only pending bets
 router.get('/pending', asyncHandler(async (req, res) => {
   const bets = await BetLog.find({
-    userId: req.user._id,
+    userId: getUserId(req),
     'outcome.result': 'pending'
   })
     .sort({ createdAt: -1 })
@@ -142,7 +147,7 @@ router.get('/pending', asyncHandler(async (req, res) => {
 router.get('/:id', asyncHandler(async (req, res) => {
   const bet = await BetLog.findOne({
     _id: req.params.id,
-    userId: req.user._id
+    userId: getUserId(req)
   }).lean();
 
   if (!bet) {
@@ -165,7 +170,7 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
 
   const bet = await BetLog.findOne({
     _id: req.params.id,
-    userId: req.user._id
+    userId: getUserId(req)
   });
 
   if (!bet) {
@@ -212,7 +217,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 
   const bet = await BetLog.findOne({
     _id: req.params.id,
-    userId: req.user._id
+    userId: getUserId(req)
   });
 
   if (!bet) {
@@ -243,7 +248,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 router.delete('/:id', asyncHandler(async (req, res) => {
   const bet = await BetLog.findOneAndDelete({
     _id: req.params.id,
-    userId: req.user._id
+    userId: getUserId(req)
   });
 
   if (!bet) {
@@ -258,7 +263,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
 // GET /api/bets/export/csv - Export bets as CSV
 router.get('/export/csv', asyncHandler(async (req, res) => {
-  const bets = await BetLog.find({ userId: req.user._id })
+  const bets = await BetLog.find({ userId: getUserId(req) })
     .sort({ createdAt: -1 })
     .lean();
 
