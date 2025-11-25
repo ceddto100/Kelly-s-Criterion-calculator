@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const session = require('express-session');
+const passport = require('passport');
 require('dotenv').config();
 
 // Import custom modules
@@ -18,7 +20,11 @@ const {
   RateLimitError
 } = require('./middleware/errorHandler');
 
+// Import authentication modules
+const { ensureAuthenticated } = require('./middleware/auth');
+
 // Import routes
+const authRoutes = require('./routes/auth');
 
 // Sports Scraper Routes
 const offense = require('./scrapers/offense');
@@ -27,6 +33,9 @@ const differential = require('./scrapers/differential');
 const matchup = require('./scrapers/matchup');
 const { analyzeMatchupRoute } = require('./gemini/chat');
 const { fetchNBATeamStats, findTeamByName } = require('./scrapers/nbaStatsApi');
+
+// Configure Passport
+require('./config/passport')(passport);
 
 const app = express();
 
@@ -45,6 +54,24 @@ app.use(cors({
 // Body parser with size limit
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ==================== SESSION & AUTHENTICATION ====================
+// Session configuration for Google OAuth
+// IMPORTANT: SESSION_SECRET must be set in .env file
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true in production (requires HTTPS)
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport and restore authentication state from session
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -417,6 +444,24 @@ app.get('/api/admin/stats', asyncHandler(async (req, res) => {
     activeToday
   });
 }));
+
+// ==================== AUTHENTICATION ROUTES ====================
+
+// Mount authentication routes
+app.use('/auth', authRoutes);
+
+// Protected Dashboard Route - displays logged-in user information
+app.get('/dashboard', ensureAuthenticated, (req, res) => {
+  res.json({
+    message: 'Welcome to your dashboard!',
+    user: {
+      name: req.user.name,
+      email: req.user.email,
+      avatar: req.user.avatar,
+      googleId: req.user.googleId
+    }
+  });
+});
 
 // ==================== SPORTS SCRAPER ROUTES ====================
 
