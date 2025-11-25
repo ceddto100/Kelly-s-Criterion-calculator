@@ -34,13 +34,13 @@ router.get('/google',
  */
 router.get('/google/callback',
   passport.authenticate('google', {
-    failureRedirect: '/',
+    failureRedirect: 'https://kelly-s-criterion-calculator.vercel.app',
     failureMessage: true
   }),
   (req, res) => {
     // Successful authentication
-    // Redirect to dashboard or home page
-    res.redirect('/dashboard');
+    // Redirect to frontend
+    res.redirect('https://kelly-s-criterion-calculator.vercel.app');
   }
 );
 
@@ -65,8 +65,8 @@ router.get('/logout', (req, res, next) => {
       // Clear the session cookie
       res.clearCookie('connect.sid');
 
-      // Redirect to home page
-      res.redirect('/');
+      // Redirect to frontend
+      res.redirect('https://kelly-s-criterion-calculator.vercel.app');
     });
   });
 });
