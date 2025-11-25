@@ -78,6 +78,30 @@ const GlobalStyle = () => (
       margin: 0 auto 1rem; max-width:900px; }
     .panel-strong{ background:var(--glass-strong); }
 
+    .info-panel{ max-width:1100px; }
+
+    .footer{ color:var(--text-muted); text-align:center; padding:2rem 1rem 3rem; font-size:.95rem;
+      display:flex; justify-content:center; position:relative; z-index:2; }
+    .footer-card{ background: rgba(15,23,42,.82); border:1px solid rgba(100,116,139,.45);
+      border-radius:1rem; padding:1rem 1.4rem; box-shadow: 0 14px 36px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px); max-width:820px; width:100%; }
+    .doc-toggle{ background:transparent; border:none; color:#c7d2fe; font-weight:800; font-size:1rem;
+      cursor:pointer; display:flex; align-items:center; gap:.5rem; justify-content:center; width:100%;
+      padding:.35rem .5rem; border-radius:.75rem; transition:.2s ease; }
+    .doc-toggle:hover{ color:white; background: rgba(99,102,241,.12); }
+    .doc-toggle:focus-visible{ outline:2px solid #818cf8; outline-offset:2px; }
+    .doc-chevron{ transition: transform .2s ease; }
+    .doc-chevron.open{ transform: rotate(180deg); }
+    .doc-hint{ margin:.35rem 0 0; color:var(--text-muted); font-size:.9rem; }
+    .doc-panel-wrapper{ max-width:1100px; margin:0 auto 1rem; transition: all .25s ease; overflow:hidden; }
+    .doc-panel-wrapper.closed{ max-height:0; opacity:0; transform: translateY(8px); pointer-events:none; }
+    .doc-panel-wrapper.open{ max-height:1200px; opacity:1; transform: translateY(0); }
+    .doc-panel{ position:relative; }
+    .doc-close{ position:absolute; top:1rem; right:1rem; background: rgba(99,102,241,.15);
+      border:1px solid rgba(99,102,241,.35); color:#c7d2fe; border-radius:.6rem; padding:.35rem .65rem;
+      cursor:pointer; font-weight:700; transition:.2s ease; }
+    .doc-close:hover{ background: rgba(99,102,241,.25); color:white; }
+
     .input-group{ display:flex; flex-direction:column; gap:.35rem; margin-bottom:1rem; position:relative; }
     .input-field, select{ background:#0f1836; border:1px solid rgba(148,163,184,.35); color:var(--text);
       padding:.65rem .75rem; border-radius:.6rem; outline:none; width:100%; transition: all 0.2s ease; }
@@ -1133,6 +1157,9 @@ function App() {
   const [authUser, setAuthUser] = useState<{name: string; email: string; avatar: string} | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Documentation visibility
+  const [isDocOpen, setIsDocOpen] = useState(false);
+
   // NEW: State for bet logging data flow
   const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
   const [currentEstimation, setCurrentEstimation] = useState<EstimationData | null>(null);
@@ -1330,7 +1357,67 @@ function App() {
               <BetHistory isAuthenticated={!!authUser} />
             </div>
           )}
+
+          <div
+            className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
+            id="app-documentation"
+            aria-hidden={!isDocOpen}
+          >
+            <div className="panel info-panel doc-panel">
+              <button className="doc-close" type="button" onClick={() => setIsDocOpen(false)} aria-label="Close documentation">
+                Close
+              </button>
+              <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
+              <p style={{color:'var(--text-muted)', marginTop:0}}>
+                Follow these steps to move from estimating your edge to logging a bet with confidence:
+              </p>
+              <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+                <li>
+                  Start in <strong>Probability Estimator</strong> to enter matchup stats (Football or Basketball) and calculate a fair win probability.
+                  You can also import stats directly from <strong>NBA Matchup</strong> or <strong>NFL Matchup</strong> using their transfer buttons.
+                </li>
+                <li>
+                  Switch to <strong>Kelly Criterion</strong>, input your bankroll and odds, and paste the estimated win probability. The tool shows your suggested stake and edge.
+                </li>
+                <li>
+                  Use <strong>Unit Betting</strong> if you prefer staking by units instead of Kelly sizing.
+                </li>
+                <li>
+                  (Optional) Review recent recommendations in <strong>📊 Bet History</strong>—saved automatically when you calculate a positive-value bet while authenticated.
+                </li>
+              </ol>
+
+              <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
+              <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+                <li><strong>Kelly Criterion</strong>: Calculates optimal stake size based on bankroll, odds, and your estimated win probability.</li>
+                <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
+                <li><strong>Unit Betting</strong>: Turns your bankroll into unit sizes for flat- or multiple-unit staking.</li>
+                <li><strong>NBA Matchup</strong> / <strong>NFL Matchup</strong>: Pulls team data, compares opponents, and lets you push the results into the estimator.</li>
+                <li><strong>📊 Bet History</strong>: Displays recently logged Kelly recommendations (requires sign-in).</li>
+              </ul>
+            </div>
+          </div>
         </div>
+
+        <footer className="footer">
+          <div className="footer-card">
+            <button
+              type="button"
+              className="doc-toggle"
+              onClick={() => setIsDocOpen((open) => !open)}
+              aria-expanded={isDocOpen}
+              aria-controls="app-documentation"
+            >
+              <span>{isDocOpen ? 'Hide documentation & workflow guide' : 'Show documentation & workflow guide'}</span>
+              <span className={`doc-chevron ${isDocOpen ? 'open' : ''}`} aria-hidden>▾</span>
+            </button>
+            <p className="doc-hint">
+              {isDocOpen
+                ? 'Click to tuck the instructions away once you are comfortable with the flow.'
+                : 'Open the drop-up to review the workflow and feature explanations.'}
+            </p>
+          </div>
+        </footer>
       </div>
     </>
   );
