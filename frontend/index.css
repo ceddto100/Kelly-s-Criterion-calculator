@@ -974,6 +974,36 @@ body::after {
     font-size: 0.95rem;
     padding: 0.9rem 1.25rem;
   }
+
+  /* Mobile Tab Fixes */
+  .tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(0, 0, 0, 0.2);
+  }
+
+  .tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .tabs::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .tabs::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.4);
+    border-radius: 2px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    min-width: 120px;
+    padding: 0.85rem 0.6rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 360px) {
@@ -1007,6 +1037,45 @@ body::after {
 
   .results h2 {
     font-size: 2.25rem;
+  }
+
+  /* Extra small mobile tab adjustments */
+  .tab {
+    min-width: 100px;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Tablet responsiveness for tabs */
+@media (max-width: 768px) and (min-width: 481px) {
+  .tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.4) rgba(0, 0, 0, 0.2);
+  }
+
+  .tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .tabs::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .tabs::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.4);
+    border-radius: 2px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    min-width: 140px;
+    padding: 1rem 0.75rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
   }
 }
 
