@@ -319,7 +319,6 @@ const CONSTANTS = {
   TABS: {
     KELLY: 'kelly',
     ESTIMATOR: 'estimator',
-    UNIT: 'unit',
     MATCHUP: 'matchup',
     NFL_MATCHUP: 'nfl_matchup',
     BET_HISTORY: 'bet_history'  // NEW TAB
@@ -1096,52 +1095,6 @@ function KellyCalculator({
     </div>
   );
 }
-
-/* =========================== Unit Betting Calculator ======================= */
-function UnitBettingCalculator() {
-  const [bankroll, setBankroll] = useState('1000');
-  const [unitSize, setUnitSize] = useState('1');
-  const [unitsToWager, setUnitsToWager] = useState('1');
-
-  const { recommendedStake, calculatedUnitSize } = useMemo(() => {
-    const b = parseFloat(bankroll);
-    const u = parseFloat(unitSize) / 100;
-    const n = parseFloat(unitsToWager);
-
-    if (isNaN(b) || b <= 0 || isNaN(u) || u < 0 || isNaN(n) || n < 0) {
-      return { recommendedStake: 0, calculatedUnitSize: 0 };
-    }
-
-    const unit = b * u;
-    return { recommendedStake: unit * n, calculatedUnitSize: unit };
-  }, [bankroll, unitSize, unitsToWager]);
-
-  return (
-    <div className="panel">
-      <div className="input-group">
-        <label htmlFor="unit-bankroll">Bankroll</label>
-        <input id="unit-bankroll" type="number" className="input-field" value={bankroll} onChange={(e)=>setBankroll(e.target.value)} placeholder="e.g., 1000" />
-      </div>
-      <div className="input-group">
-        <label htmlFor="unit-size">Unit Size (% of Bankroll)</label>
-        <div className="slider-group">
-          <input id="unit-size" type="number" className="input-field" value={unitSize} onChange={(e)=>setUnitSize(e.target.value)} min="0" max="5" step="0.1" />
-          <input type="range" min="0" max="5" step="0.1" value={unitSize} className="slider" onChange={(e)=>setUnitSize(e.target.value)} />
-        </div>
-      </div>
-      <div className="input-group">
-        <label htmlFor="units-wager">Units to Wager</label>
-        <input id="units-wager" type="number" step="0.1" className="input-field" value={unitsToWager} onChange={(e)=>setUnitsToWager(e.target.value)} placeholder="e.g., 1" />
-      </div>
-      <div className="results">
-        <p>Recommended Stake</p>
-        <h2>{formatCurrency(recommendedStake)}</h2>
-        <div className="results-details"><span>Unit Size: {formatCurrency(calculatedUnitSize)}</span></div>
-      </div>
-    </div>
-  );
-}
-
 /* ================================== App =================================== */
 function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
@@ -1287,7 +1240,6 @@ function App() {
               {[
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
-                { key: CONSTANTS.TABS.UNIT, label: 'Unit Betting' },
                 { key: CONSTANTS.TABS.MATCHUP, label: 'NBA Matchup' },
                 { key: CONSTANTS.TABS.NFL_MATCHUP, label: 'NFL Matchup' },
                 { key: CONSTANTS.TABS.BET_HISTORY, label: '📊 Bet History' },  // NEW TAB
@@ -1315,7 +1267,6 @@ function App() {
               onLoginRequired={handleLoginRequired}
             />
           )}
-          {activeTab === CONSTANTS.TABS.UNIT && <UnitBettingCalculator />}
           {activeTab === CONSTANTS.TABS.ESTIMATOR && (
             <ProbabilityEstimator
               setProbability={setProbability}
