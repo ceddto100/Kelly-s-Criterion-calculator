@@ -16,7 +16,6 @@ const __dirname = dirname(__filename);
 // Placeholder HTML for components (will be replaced with built components)
 const placeholderKelly = '<div id="root" style="padding: 20px; font-family: system-ui;">Kelly Calculator Loading...</div>';
 const placeholderProbability = '<div id="root" style="padding: 20px; font-family: system-ui;">Probability Estimator Loading...</div>';
-const placeholderUnit = '<div id="root" style="padding: 20px; font-family: system-ui;">Unit Calculator Loading...</div>';
 
 export function registerComponentResources(server: McpServer) {
   // Kelly Calculator Widget
@@ -107,53 +106,6 @@ export function registerComponentResources(server: McpServer) {
                 resource_domains: ['https://persistent.oaistatic.com']
               },
               'openai/widgetDescription': 'Displays probability estimates for football and basketball games based on team statistics'
-            }
-          }]
-        };
-      }
-    }
-  );
-
-  // Unit Betting Calculator Widget
-  server.registerResource(
-    'unit-widget',
-    'ui://widget/unit-calculator.html',
-    {},
-    async () => {
-      try {
-        const componentPath = join(__dirname, '../../../chatgpt-widgets/dist/unit-calculator.html');
-        const html = readFileSync(componentPath, 'utf8');
-        return {
-          contents: [{
-            uri: 'ui://widget/unit-calculator.html',
-            mimeType: 'text/html+skybridge',
-            text: html.trim(),
-            _meta: {
-              'openai/widgetPrefersBorder': true,
-              'openai/widgetDomain': 'https://chatgpt.com',
-              'openai/widgetCSP': {
-                connect_domains: [],
-                resource_domains: ['https://persistent.oaistatic.com']
-              },
-              'openai/widgetDescription': 'Displays unit betting calculations for simple, consistent bankroll management'
-            }
-          }]
-        };
-      } catch {
-        console.warn('Built unit calculator component not found, using placeholder');
-        return {
-          contents: [{
-            uri: 'ui://widget/unit-calculator.html',
-            mimeType: 'text/html+skybridge',
-            text: placeholderUnit,
-            _meta: {
-              'openai/widgetPrefersBorder': true,
-              'openai/widgetDomain': 'https://chatgpt.com',
-              'openai/widgetCSP': {
-                connect_domains: [],
-                resource_domains: ['https://persistent.oaistatic.com']
-              },
-              'openai/widgetDescription': 'Displays unit betting calculations for simple, consistent bankroll management'
             }
           }]
         };

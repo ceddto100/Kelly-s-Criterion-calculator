@@ -7,7 +7,6 @@ A Model Context Protocol (MCP) server implementation of Kelly's Criterion bettin
 This project provides a conversational betting calculator that helps users:
 - Calculate optimal bet sizing using the Kelly Criterion formula
 - Estimate win/cover probabilities for football and basketball games
-- Use simple unit-based bankroll management
 - Get AI-powered betting insights (optional)
 
 ## Architecture
@@ -40,17 +39,11 @@ The system consists of:
    - Uses team statistics (points, FG%, rebounds, turnovers)
    - Outputs probability for Kelly calculator
 
-4. **Unit Betting Calculator** (`unit-calculate`)
-   - Simple alternative to Kelly Criterion
-   - Calculate stakes based on unit size and number of units
-   - Good for consistent bankroll management
-
 ### Components
 
 Each tool has an associated widget component that renders results in ChatGPT:
 - Kelly Calculator Widget
 - Probability Estimator Widget
-- Unit Betting Calculator Widget
 
 ## Quick Start
 
@@ -175,9 +168,6 @@ Kelly Criterion:
 
 Probability Estimation:
 - "Estimate my cover probability for this NBA game: Lakers score 115/allow 108, Clippers score 112/allow 110, Lakers are -3.5"
-
-Unit Betting:
-- "I use 2% units on my $2000 bankroll and want to bet 2 units. What's my stake?"
 ```
 
 ## Project Structure
@@ -190,8 +180,7 @@ Kelly-s-Criterion-calculator/
 │   │   ├── tools/           # Tool implementations
 │   │   │   ├── kelly.ts
 │   │   │   ├── probabilityFootball.ts
-│   │   │   ├── probabilityBasketball.ts
-│   │   │   └── unitBetting.ts
+│   │   │   └── probabilityBasketball.ts
 │   │   ├── utils/           # Utility functions
 │   │   │   ├── calculations.ts
 │   │   │   └── gemini.ts
@@ -204,8 +193,7 @@ Kelly-s-Criterion-calculator/
 │   │   ├── index.tsx        # Component entry point
 │   │   ├── widgets/         # Individual widgets
 │   │   │   ├── KellyWidget.tsx
-│   │   │   ├── ProbabilityWidget.tsx
-│   │   │   └── UnitWidget.tsx
+│   │   │   └── ProbabilityWidget.tsx
 │   │   └── styles/
 │   │       └── widget.css
 │   ├── build.js             # Build script

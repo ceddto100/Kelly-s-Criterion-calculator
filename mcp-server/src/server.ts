@@ -14,7 +14,6 @@ import dotenv from 'dotenv';
 import { registerKellyTool } from './tools/kelly.js';
 import { registerFootballProbabilityTool } from './tools/probabilityFootball.js';
 import { registerBasketballProbabilityTool } from './tools/probabilityBasketball.js';
-import { registerUnitBettingTool } from './tools/unitBetting.js';
 
 // Import component resources
 import { registerComponentResources } from './components/resources.js';
@@ -77,7 +76,6 @@ registerComponentResources(mcpServer);
 registerKellyTool(mcpServer);
 registerFootballProbabilityTool(mcpServer);
 registerBasketballProbabilityTool(mcpServer);
-registerUnitBettingTool(mcpServer);
 
 // Root discovery endpoint
 app.get('/', (req, res) => {
@@ -90,8 +88,7 @@ app.get('/', (req, res) => {
       tools: [
         'kelly-calculate',
         'probability-estimate-football',
-        'probability-estimate-basketball',
-        'unit-calculate'
+        'probability-estimate-basketball'
       ],
       supports_streaming: true
     }
@@ -155,11 +152,9 @@ app.listen(PORT, () => {
   console.log('  - kelly-calculate');
   console.log('  - probability-estimate-football');
   console.log('  - probability-estimate-basketball');
-  console.log('  - unit-calculate');
   console.log('');
   console.log('Registered Resources:');
   console.log('  - kelly-calculator.html');
   console.log('  - probability-estimator.html');
-  console.log('  - unit-calculator.html');
   console.log('========================================');
 });

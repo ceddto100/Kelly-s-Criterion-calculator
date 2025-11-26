@@ -9,12 +9,11 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import KellyWidget from './widgets/KellyWidget';
 import ProbabilityWidget from './widgets/ProbabilityWidget';
-import UnitWidget from './widgets/UnitWidget';
 import type { DisplayMode } from './types/openai';
 import './styles/widget.css';
 
 function App() {
-  const [widgetType, setWidgetType] = useState<'kelly' | 'probability' | 'unit' | null>(null);
+  const [widgetType, setWidgetType] = useState<'kelly' | 'probability' | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('inline');
   const [maxHeight, setMaxHeight] = useState<number | null>(null);
 
@@ -44,8 +43,6 @@ function App() {
       setWidgetType('kelly');
     } else if ('predictedMargin' in data && 'sport' in data) {
       setWidgetType('probability');
-    } else if ('calculatedUnitSize' in data && 'unitsToWager' in data) {
-      setWidgetType('unit');
     } else {
       console.error('Unknown widget type from tool output:', data);
     }
@@ -82,8 +79,6 @@ function App() {
       return <KellyWidget />;
     case 'probability':
       return <ProbabilityWidget />;
-    case 'unit':
-      return <UnitWidget />;
     default:
       return (
         <div
