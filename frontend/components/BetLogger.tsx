@@ -641,33 +641,27 @@ export function BetHistory({ isAuthenticated }: BetHistoryProps) {
 export const BetLoggerStyles = `
   /* Log Bet Button */
   .log-bet-btn {
-    background: linear-gradient(90deg, #059669, #10b981);
+    background: #0f172a; /* Dark slate */
     color: #fff;
-    border: none;
-    padding: .75rem 1.25rem;
-    border-radius: .7rem;
+    border: 2px solid var(--success);
+    padding: .75rem;
+    border-radius: .5rem;
     cursor: pointer;
     font-weight: 700;
-    font-size: 1rem;
-    transition: .2s ease;
-    box-shadow: 0 6px 18px rgba(16, 185, 129, .35);
-    display: flex;
-    align-items: center;
-    gap: .5rem;
     width: 100%;
-    justify-content: center;
-    margin-top: 1rem;
+    transition: .2s ease;
   }
   .log-bet-btn:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
+    background: var(--success);
+    color: #fff;
   }
 
   /* Log Bet Modal */
   .log-bet-modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -676,46 +670,48 @@ export const BetLoggerStyles = `
     animation: fadeIn 0.2s ease;
   }
   .log-bet-content {
-    background: var(--glass-strong);
-    border: 1px solid var(--border);
+    background: #1e293b; /* Slate 800 */
+    border: 1px solid #334155;
+    color: #f8fafc;
     border-radius: 1rem;
     padding: 1.5rem;
     max-width: 500px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     animation: slideUp 0.3s ease;
   }
   .log-bet-content h3 {
     margin: 0 0 1rem;
-    color: var(--text);
+    color: #f8fafc;
     font-size: 1.25rem;
   }
 
   /* Bet Summary */
   .bet-summary {
-    background: rgba(2, 6, 23, 0.5);
-    border: 1px solid rgba(100, 116, 139, 0.3);
-    border-radius: .6rem;
-    padding: .75rem;
+    background: #0f172a;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid #334155;
     margin-bottom: 1rem;
   }
   .summary-row {
     display: flex;
     justify-content: space-between;
     padding: .35rem 0;
-    border-bottom: 1px solid rgba(100, 116, 139, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
   .summary-row:last-child {
     border-bottom: none;
   }
   .summary-label {
-    color: var(--text-muted);
+    color: #94a3b8;
     font-size: .9rem;
   }
   .summary-value {
-    color: var(--text);
-    font-weight: 600;
+    color: #fff;
+    font-weight: bold;
   }
 
   /* Wager Presets */
@@ -727,16 +723,16 @@ export const BetLoggerStyles = `
   .wager-presets button {
     flex: 1;
     padding: .4rem .6rem;
-    background: rgba(99, 102, 241, 0.14);
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    color: #c7d2fe;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
     border-radius: .4rem;
     cursor: pointer;
     font-size: .8rem;
     transition: .2s ease;
   }
   .wager-presets button:hover {
-    background: rgba(99, 102, 241, 0.25);
+    background: rgba(59, 130, 246, 0.2);
   }
 
   /* Error/Success */
@@ -784,17 +780,17 @@ export const BetLoggerStyles = `
   .bet-history-loading {
     text-align: center;
     padding: 2rem;
-    color: var(--text-muted);
+    color: #94a3b8;
   }
   .bet-history-auth-prompt h3 {
-    color: var(--text);
+    color: #f8fafc;
     margin-bottom: .5rem;
   }
 
   /* Stats Dashboard */
   .stats-dashboard {
-    background: rgba(2, 6, 23, 0.5);
-    border: 1px solid rgba(100, 116, 139, 0.3);
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: .8rem;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -802,7 +798,7 @@ export const BetLoggerStyles = `
   .stats-dashboard h3 {
     margin: 0 0 .75rem;
     font-size: 1rem;
-    color: #a5b4fc;
+    color: #93c5fd;
   }
   .stats-grid-dashboard {
     display: grid;
@@ -815,8 +811,8 @@ export const BetLoggerStyles = `
     }
   }
   .stat-card {
-    background: rgba(30, 27, 75, 0.35);
-    border: 1px solid rgba(100, 116, 139, 0.25);
+    background: #0f172a;
+    border: 1px solid #334155;
     border-radius: .5rem;
     padding: .6rem;
     text-align: center;
@@ -824,11 +820,11 @@ export const BetLoggerStyles = `
   .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text);
+    color: #f8fafc;
   }
   .stat-label {
     font-size: .7rem;
-    color: var(--text-muted);
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: .03em;
   }
@@ -848,7 +844,7 @@ export const BetLoggerStyles = `
   }
   .filter-group label {
     font-size: .85rem;
-    color: var(--text-muted);
+    color: #94a3b8;
   }
   .filter-group select {
     padding: .4rem .6rem;
@@ -857,9 +853,9 @@ export const BetLoggerStyles = `
   .export-btn {
     margin-left: auto;
     padding: .4rem .8rem;
-    background: rgba(99, 102, 241, 0.14);
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    color: #c7d2fe;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
     border-radius: .5rem;
     text-decoration: none;
     font-size: .85rem;
@@ -867,15 +863,15 @@ export const BetLoggerStyles = `
     transition: .2s ease;
   }
   .export-btn:hover {
-    background: rgba(99, 102, 241, 0.25);
+    background: rgba(59, 130, 246, 0.2);
   }
 
   /* No Bets */
   .no-bets {
     text-align: center;
     padding: 2rem;
-    color: var(--text-muted);
-    background: rgba(2, 6, 23, 0.3);
+    color: #94a3b8;
+    background: #1e293b;
     border-radius: .6rem;
   }
 
@@ -888,15 +884,15 @@ export const BetLoggerStyles = `
 
   /* Bet Card */
   .bet-card {
-    background: rgba(30, 27, 75, 0.35);
-    border: 1px solid rgba(100, 116, 139, 0.25);
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: .6rem;
     cursor: pointer;
     transition: .2s ease;
     overflow: hidden;
   }
   .bet-card:hover {
-    border-color: rgba(99, 102, 241, 0.4);
+    border-color: rgba(59, 130, 246, 0.5);
   }
   .bet-card.win {
     border-left: 3px solid #10b981;
@@ -908,7 +904,7 @@ export const BetLoggerStyles = `
     border-left: 3px solid #f59e0b;
   }
   .bet-card.pending {
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #3b82f6;
   }
 
   .bet-card-header {
@@ -928,7 +924,7 @@ export const BetLoggerStyles = `
   }
   .teams {
     font-weight: 600;
-    color: var(--text);
+    color: #f8fafc;
   }
   .bet-status {
     font-size: .8rem;
@@ -937,8 +933,8 @@ export const BetLoggerStyles = `
     border-radius: .35rem;
   }
   .bet-status.pending {
-    background: rgba(99, 102, 241, 0.2);
-    color: #a5b4fc;
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
   }
   .bet-status.win {
     background: rgba(16, 185, 129, 0.2);
@@ -971,19 +967,19 @@ export const BetLoggerStyles = `
   }
   .detail-label {
     font-size: .7rem;
-    color: var(--text-muted);
+    color: #94a3b8;
     text-transform: uppercase;
   }
   .bet-detail span:last-child {
     font-weight: 600;
-    color: var(--text);
+    color: #f8fafc;
   }
 
   /* Expanded Card */
   .bet-card-expanded {
     padding: 1rem;
     background: rgba(0, 0, 0, 0.3);
-    border-top: 1px solid rgba(100, 116, 139, 0.2);
+    border-top: 1px solid #334155;
     animation: slideDown 0.2s ease;
   }
   .expanded-details {
@@ -997,10 +993,10 @@ export const BetLoggerStyles = `
     font-size: .9rem;
   }
   .detail-row span:first-child {
-    color: var(--text-muted);
+    color: #94a3b8;
   }
   .detail-row span:last-child {
-    color: var(--text);
+    color: #f8fafc;
     font-weight: 500;
   }
   .detail-row.notes {
@@ -1012,12 +1008,12 @@ export const BetLoggerStyles = `
   .outcome-actions {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid rgba(100, 116, 139, 0.2);
+    border-top: 1px solid #334155;
   }
   .outcome-actions p {
     margin: 0 0 .5rem;
     font-size: .85rem;
-    color: var(--text-muted);
+    color: #94a3b8;
   }
   .outcome-buttons {
     display: flex;
