@@ -1,33 +1,33 @@
 "team","abbreviation","turnover_diff"
-"Chicago Bears","CHI",16
-"Los Angeles Rams","LAR",10
-"Tampa Bay Buccaneers","TB",9
-"Jacksonville Jaguars","JAX",8
-"Pittsburgh Steelers","PIT",8
-"Houston Texans","HOU",7
-"Philadelphia Eagles","PHI",6
-"Detroit Lions","DET",5
-"Atlanta Falcons","ATL",4
-"Cleveland Browns","CLE",3
-"Kansas City Chiefs","KC",3
-"Indianapolis Colts","IND",2
-"Buffalo Bills","BUF",1
-"Green Bay Packers","GB",1
-"Arizona Cardinals","ARI",0
-"New England Patriots","NE",0
-"Los Angeles Chargers","LAC",-1
-"Baltimore Ravens","BAL",-2
-"Denver Broncos","DEN",-3
-"New Orleans Saints","NO",-3
-"Carolina Panthers","CAR",-4
-"Dallas Cowboys","DAL",-4
-"Las Vegas Raiders","LV",-4
-"Tennessee Titans","TEN",-4
-"Miami Dolphins","MIA",-5
-"San Francisco 49ers","SF",-5
-"New York Giants","NYG",-6
+"New York Jets","NYJ",-13
+"Minnesota Vikings","MIN",-12
+"Washington Commanders","WSH",-8
 "Cincinnati Bengals","CIN",-7
 "Seattle Seahawks","SEA",-7
-"Washington Commanders","WAS",-8
-"Minnesota Vikings","MIN",-9
-"New York Jets","NYJ",-11
+"New York Giants","NYG",-6
+"San Francisco 49ers","SF",-6
+"Miami Dolphins","MIA",-5
+"Dallas Cowboys","DAL",-4
+"New Orleans Saints","NO",-4
+"Tennessee Titans","TEN",-4
+"Carolina Panthers","CAR",-3
+"Denver Broncos","DEN",-3
+"Las Vegas Raiders","LV",-3
+"Buffalo Bills","BUF",-2
+"Los Angeles Chargers","LAC",-1
+"Baltimore Ravens","BAL",0
+"New England Patriots","NE",0
+"Kansas City Chiefs","KC",1
+"Cleveland Browns","CLE",2
+"Arizona Cardinals","ARI",4
+"Green Bay Packers","GB",4
+"Indianapolis Colts","IND",4
+"Jacksonville Jaguars","JAX",4
+"Atlanta Falcons","ATL",5
+"Detroit Lions","DET",5
+"Philadelphia Eagles","PHI",6
+"Tampa Bay Buccaneers","TB",7
+"Pittsburgh Steelers","PIT",8
+"Houston Texans","HOU",10
+"Los Angeles Rams","LAR",12
+"Chicago Bears","CHI",16
