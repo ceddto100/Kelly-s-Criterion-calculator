@@ -32,7 +32,7 @@ export function registerFootballProbabilityTool(server: McpServer) {
     'probability-estimate-football',
     {
       title: 'Estimate Football Game Probability',
-      description: 'Use this when the user wants to estimate the probability of covering a point spread for NFL or college football games using statistical analysis of team performance metrics. Returns win probability, predicted margin, and detailed team statistics. Do not use for basketball games (use probability-estimate-basketball instead), calculating bet sizes (use kelly-calculate after getting probability), or unit betting (use unit-calculate instead).',
+      description: 'Use this when the user wants to estimate the probability of covering a point spread for NFL or college football games using statistical analysis of team performance metrics. Returns win probability, predicted margin, and detailed team statistics. Do not use for basketball games (use probability-estimate-basketball instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
         teamPointsFor: z.number().describe('Your team\'s average points scored per game. Example: 24.5 for a team averaging 24.5 points scored, 31.2 for a high-scoring offense. Valid range: 0-100 points'),
         teamPointsAgainst: z.number().describe('Your team\'s average points allowed per game (defensive stat). Example: 18.3 for a team allowing 18.3 points per game, 28.7 for a weak defense. Valid range: 0-100 points'),

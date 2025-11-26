@@ -26,7 +26,7 @@ export function registerKellyTool(server: McpServer) {
     'kelly-calculate',
     {
       title: 'Calculate Kelly Criterion Stake',
-      description: 'Use this when the user wants to calculate the optimal bet size using the Kelly Criterion formula based on bankroll, odds, and win probability. Returns the recommended stake amount and percentage of bankroll to wager. Do not use for unit-based betting (use unit-calculate instead), probability estimation (use probability-estimate-football or probability-estimate-basketball first), or when the user wants to place a bet without calculating optimal sizing.',
+      description: 'Use this when the user wants to calculate the optimal bet size using the Kelly Criterion formula based on bankroll, odds, and win probability. Returns the recommended stake amount and percentage of bankroll to wager. Do not use for probability estimation (use probability-estimate-football or probability-estimate-basketball first), or when the user wants to place a bet without calculating optimal sizing.',
       inputSchema: {
         bankroll: z.number().positive().describe('Available betting bankroll in USD. Must be a positive number. Example: 1000 for $1,000 bankroll, 5000 for $5,000 bankroll. Valid range: $0.01 to $1,000,000,000'),
         odds: z.number().describe('American odds format. Negative for favorites (team expected to win), positive for underdogs. Example: -110 (bet $110 to win $100), +150 (bet $100 to win $150), -200 (strong favorite), +300 (strong underdog). Must be <= -100 or >= 100'),

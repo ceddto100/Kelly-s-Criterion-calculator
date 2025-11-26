@@ -16,7 +16,7 @@ export function registerBasketballProbabilityTool(server: McpServer) {
     'probability-estimate-basketball',
     {
       title: 'Estimate Basketball Game Probability',
-      description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA or college basketball games using statistical analysis of team performance metrics. Returns win probability, predicted margin, and detailed team statistics. Do not use for football games (use probability-estimate-football instead), calculating bet sizes (use kelly-calculate after getting probability), or unit betting (use unit-calculate instead).',
+      description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA or college basketball games using statistical analysis of team performance metrics. Returns win probability, predicted margin, and detailed team statistics. Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
         teamPointsFor: z.number().describe('Your team\'s average points scored per game. Example: 112.5 for NBA team averaging 112.5 points, 75.8 for college team. Valid range: 0-200 points'),
         teamPointsAgainst: z.number().describe('Your team\'s average points allowed per game (defensive stat). Example: 108.2 for NBA team allowing 108.2 points, 68.4 for strong college defense. Valid range: 0-200 points'),

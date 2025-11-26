@@ -35,12 +35,6 @@ type TranslationKey =
   | 'probability_result_text'
   | 'probability_predicted_margin'
   | 'probability_use_with_kelly'
-  // Unit Betting
-  | 'unit_calculating'
-  | 'unit_calculated'
-  | 'unit_result_text'
-  | 'unit_per_unit'
-  | 'unit_recommended_stake'
   // Common
   | 'bankroll'
   | 'stake'
@@ -53,8 +47,6 @@ type TranslationKey =
   | 'error_invalid_bankroll'
   | 'error_invalid_odds'
   | 'error_invalid_probability'
-  | 'error_invalid_unit_size'
-  | 'error_invalid_units'
   | 'error_bankroll_range'
   | 'error_odds_range'
   | 'error_stat_validation'
@@ -62,8 +54,6 @@ type TranslationKey =
   | 'validation_bankroll_positive'
   | 'validation_odds_american'
   | 'validation_probability_range'
-  | 'validation_unit_size_range'
-  | 'validation_units_range'
   | 'validation_stat_range'
   // Units and formatting
   | 'currency_usd'
@@ -87,12 +77,6 @@ export const translations: Record<string, TranslationDictionary> = {
     probability_result_text: 'Based on the team statistics, your team has an estimated {probability}% probability of covering the {spread} point spread.',
     probability_predicted_margin: 'Predicted Margin',
     probability_use_with_kelly: 'You can use this probability ({probability}%) in the Kelly Criterion calculator to determine your optimal bet size.',
-    // Unit Betting
-    unit_calculating: 'Calculating unit betting stake...',
-    unit_calculated: 'Calculated unit betting stake',
-    unit_result_text: 'Based on your unit betting strategy',
-    unit_per_unit: 'per unit',
-    unit_recommended_stake: 'Recommended Stake',
     // Common
     bankroll: 'Bankroll',
     stake: 'Stake',
@@ -105,8 +89,6 @@ export const translations: Record<string, TranslationDictionary> = {
     error_invalid_bankroll: 'Invalid bankroll',
     error_invalid_odds: 'Invalid odds',
     error_invalid_probability: 'Invalid probability',
-    error_invalid_unit_size: 'Invalid unit size',
-    error_invalid_units: 'Invalid units to wager',
     error_bankroll_range: 'Bankroll must be between 0 and 1,000,000,000',
     error_odds_range: 'American odds must be <= -100 for favorites or >= 100 for underdogs',
     error_stat_validation: 'Validation error',
@@ -114,8 +96,6 @@ export const translations: Record<string, TranslationDictionary> = {
     validation_bankroll_positive: 'Bankroll must be a valid positive number',
     validation_odds_american: 'Odds must be a valid number in American format',
     validation_probability_range: 'Probability must be a valid number between 0.1 and 99.9',
-    validation_unit_size_range: 'Unit size must be between 0% and 5% of bankroll',
-    validation_units_range: 'Units to wager must be a positive number between 1 and 100',
     validation_stat_range: '{stat} must be between {min} and {max}',
     // Units and formatting
     currency_usd: 'USD',
@@ -136,12 +116,6 @@ export const translations: Record<string, TranslationDictionary> = {
     probability_result_text: 'Basado en las estadísticas del equipo, su equipo tiene una probabilidad estimada del {probability}% de cubrir el spread de {spread} puntos.',
     probability_predicted_margin: 'Margen Previsto',
     probability_use_with_kelly: 'Puede usar esta probabilidad ({probability}%) en la calculadora del Criterio de Kelly para determinar su tamaño de apuesta óptimo.',
-    // Unit Betting
-    unit_calculating: 'Calculando apuesta por unidades...',
-    unit_calculated: 'Apuesta por unidades calculada',
-    unit_result_text: 'Basado en su estrategia de apuestas por unidades',
-    unit_per_unit: 'por unidad',
-    unit_recommended_stake: 'Apuesta Recomendada',
     // Common
     bankroll: 'Bankroll',
     stake: 'Apuesta',
@@ -154,8 +128,6 @@ export const translations: Record<string, TranslationDictionary> = {
     error_invalid_bankroll: 'Bankroll inválido',
     error_invalid_odds: 'Cuotas inválidas',
     error_invalid_probability: 'Probabilidad inválida',
-    error_invalid_unit_size: 'Tamaño de unidad inválido',
-    error_invalid_units: 'Unidades a apostar inválidas',
     error_bankroll_range: 'El bankroll debe estar entre 0 y 1,000,000,000',
     error_odds_range: 'Las cuotas americanas deben ser <= -100 para favoritos o >= 100 para no favoritos',
     error_stat_validation: 'Error de validación',
@@ -163,8 +135,6 @@ export const translations: Record<string, TranslationDictionary> = {
     validation_bankroll_positive: 'El bankroll debe ser un número positivo válido',
     validation_odds_american: 'Las cuotas deben ser un número válido en formato americano',
     validation_probability_range: 'La probabilidad debe ser un número válido entre 0.1 y 99.9',
-    validation_unit_size_range: 'El tamaño de unidad debe estar entre 0% y 5% del bankroll',
-    validation_units_range: 'Las unidades a apostar deben ser un número positivo entre 1 y 100',
     validation_stat_range: '{stat} debe estar entre {min} y {max}',
     // Units and formatting
     currency_usd: 'USD',
@@ -185,12 +155,6 @@ export const translations: Record<string, TranslationDictionary> = {
     probability_result_text: 'Basé sur les statistiques de l\'équipe, votre équipe a une probabilité estimée de {probability}% de couvrir le spread de {spread} points.',
     probability_predicted_margin: 'Marge Prévue',
     probability_use_with_kelly: 'Vous pouvez utiliser cette probabilité ({probability}%) dans la calculatrice du Critère de Kelly pour déterminer votre taille de mise optimale.',
-    // Unit Betting
-    unit_calculating: 'Calcul de la mise par unités...',
-    unit_calculated: 'Mise par unités calculée',
-    unit_result_text: 'Basé sur votre stratégie de mise par unités',
-    unit_per_unit: 'par unité',
-    unit_recommended_stake: 'Mise Recommandée',
     // Common
     bankroll: 'Bankroll',
     stake: 'Mise',
@@ -203,8 +167,6 @@ export const translations: Record<string, TranslationDictionary> = {
     error_invalid_bankroll: 'Bankroll invalide',
     error_invalid_odds: 'Cotes invalides',
     error_invalid_probability: 'Probabilité invalide',
-    error_invalid_unit_size: 'Taille d\'unité invalide',
-    error_invalid_units: 'Unités à miser invalides',
     error_bankroll_range: 'Le bankroll doit être entre 0 et 1,000,000,000',
     error_odds_range: 'Les cotes américaines doivent être <= -100 pour les favoris ou >= 100 pour les outsiders',
     error_stat_validation: 'Erreur de validation',
@@ -212,8 +174,6 @@ export const translations: Record<string, TranslationDictionary> = {
     validation_bankroll_positive: 'Le bankroll doit être un nombre positif valide',
     validation_odds_american: 'Les cotes doivent être un nombre valide au format américain',
     validation_probability_range: 'La probabilité doit être un nombre valide entre 0.1 et 99.9',
-    validation_unit_size_range: 'La taille d\'unité doit être entre 0% et 5% du bankroll',
-    validation_units_range: 'Les unités à miser doivent être un nombre positif entre 1 et 100',
     validation_stat_range: '{stat} doit être entre {min} et {max}',
     // Units and formatting
     currency_usd: 'USD',
@@ -234,12 +194,6 @@ export const translations: Record<string, TranslationDictionary> = {
     probability_result_text: 'Basierend auf den Teamstatistiken hat Ihr Team eine geschätzte Wahrscheinlichkeit von {probability}%, den Spread von {spread} Punkten zu decken.',
     probability_predicted_margin: 'Vorhergesagte Marge',
     probability_use_with_kelly: 'Sie können diese Wahrscheinlichkeit ({probability}%) im Kelly-Kriterium-Rechner verwenden, um Ihre optimale Einsatzgröße zu bestimmen.',
-    // Unit Betting
-    unit_calculating: 'Einheiteneinsatz wird berechnet...',
-    unit_calculated: 'Einheiteneinsatz berechnet',
-    unit_result_text: 'Basierend auf Ihrer Einheiten-Wettstrategie',
-    unit_per_unit: 'pro Einheit',
-    unit_recommended_stake: 'Empfohlener Einsatz',
     // Common
     bankroll: 'Bankroll',
     stake: 'Einsatz',
@@ -252,8 +206,6 @@ export const translations: Record<string, TranslationDictionary> = {
     error_invalid_bankroll: 'Ungültige Bankroll',
     error_invalid_odds: 'Ungültige Quoten',
     error_invalid_probability: 'Ungültige Wahrscheinlichkeit',
-    error_invalid_unit_size: 'Ungültige Einheitengröße',
-    error_invalid_units: 'Ungültige Anzahl zu wettender Einheiten',
     error_bankroll_range: 'Bankroll muss zwischen 0 und 1,000,000,000 liegen',
     error_odds_range: 'Amerikanische Quoten müssen <= -100 für Favoriten oder >= 100 für Außenseiter sein',
     error_stat_validation: 'Validierungsfehler',
@@ -261,8 +213,6 @@ export const translations: Record<string, TranslationDictionary> = {
     validation_bankroll_positive: 'Bankroll muss eine gültige positive Zahl sein',
     validation_odds_american: 'Quoten müssen eine gültige Zahl im amerikanischen Format sein',
     validation_probability_range: 'Wahrscheinlichkeit muss eine gültige Zahl zwischen 0.1 und 99.9 sein',
-    validation_unit_size_range: 'Einheitengröße muss zwischen 0% und 5% der Bankroll liegen',
-    validation_units_range: 'Zu wettende Einheiten müssen eine positive Zahl zwischen 1 und 100 sein',
     validation_stat_range: '{stat} muss zwischen {min} und {max} liegen',
     // Units and formatting
     currency_usd: 'USD',
@@ -283,12 +233,6 @@ export const translations: Record<string, TranslationDictionary> = {
     probability_result_text: 'チームの統計に基づくと、あなたのチームは{spread}点のスプレッドをカバーする確率が{probability}%と推定されます。',
     probability_predicted_margin: '予測マージン',
     probability_use_with_kelly: 'この確率（{probability}%）をケリー基準計算機で使用して、最適な賭け金サイズを決定できます。',
-    // Unit Betting
-    unit_calculating: 'ユニット賭け金を計算中...',
-    unit_calculated: 'ユニット賭け金を計算しました',
-    unit_result_text: 'ユニット賭け戦略に基づいて',
-    unit_per_unit: 'ユニットあたり',
-    unit_recommended_stake: '推奨賭け金',
     // Common
     bankroll: 'バンクロール',
     stake: '賭け金',
@@ -301,8 +245,6 @@ export const translations: Record<string, TranslationDictionary> = {
     error_invalid_bankroll: '無効なバンクロール',
     error_invalid_odds: '無効なオッズ',
     error_invalid_probability: '無効な確率',
-    error_invalid_unit_size: '無効なユニットサイズ',
-    error_invalid_units: '無効な賭けユニット数',
     error_bankroll_range: 'バンクロールは0から1,000,000,000の間でなければなりません',
     error_odds_range: 'アメリカンオッズは、本命の場合<=-100、アンダードッグの場合>=100でなければなりません',
     error_stat_validation: '検証エラー',
@@ -310,8 +252,6 @@ export const translations: Record<string, TranslationDictionary> = {
     validation_bankroll_positive: 'バンクロールは有効な正の数でなければなりません',
     validation_odds_american: 'オッズはアメリカ形式の有効な数でなければなりません',
     validation_probability_range: '確率は0.1から99.9の間の有効な数でなければなりません',
-    validation_unit_size_range: 'ユニットサイズはバンクロールの0%から5%の間でなければなりません',
-    validation_units_range: '賭けユニット数は1から100の間の正の数でなければなりません',
     validation_stat_range: '{stat}は{min}から{max}の間でなければなりません',
     // Units and formatting
     currency_usd: 'USD',
