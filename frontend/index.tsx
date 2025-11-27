@@ -1616,7 +1616,8 @@ function App() {
 
         <div className="page-wrap">
           <header className="header">
-            <h1 className="title"> The Science of Bet Like  Pro</h1>
+            <h1 className="title"> Bet Like A Pro
+            Betgistick</h1>
             <AudioOrb audioSrc="/quick_guide.mp3" />
           </header>
 
