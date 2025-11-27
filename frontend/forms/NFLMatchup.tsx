@@ -40,6 +40,14 @@ interface Message {
     teamA: NFLTeamStats;
     teamB: NFLTeamStats;
   };
+  suggestions?: {
+    teamA?: NFLTeamStats[];
+    teamB?: NFLTeamStats[];
+  };
+  notFound?: {
+    teamA?: string;
+    teamB?: string;
+  };
 }
 
 interface NFLMatchupProps {
@@ -275,31 +283,29 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
       const teamB = findTeam(teams.teamB);
 
       if (!teamA || !teamB) {
-        let errorContent = `I couldn't find that team. Did you mean:\n\n`;
+        const errorContent = `⚠️ Team not found`;
+
+        const suggestions: { teamA?: NFLTeamStats[]; teamB?: NFLTeamStats[] } = {};
+        const notFound: { teamA?: string; teamB?: string } = {};
 
         // Get suggestions for teams not found
         if (!teamA) {
-          const suggestions = getSuggestions(teams.teamA);
-          errorContent += `**For "${teams.teamA}":**\n`;
-          suggestions.slice(0, 5).forEach((team: NFLTeamStats) => {
-            errorContent += `• ${team.team} (${team.abbreviation})\n`;
-          });
-          if (!teamB) errorContent += '\n';
+          suggestions.teamA = getSuggestions(teams.teamA).slice(0, 1);
+          notFound.teamA = teams.teamA;
         }
 
         if (!teamB) {
-          const suggestions = getSuggestions(teams.teamB);
-          errorContent += `**For "${teams.teamB}":**\n`;
-          suggestions.slice(0, 5).forEach((team: NFLTeamStats) => {
-            errorContent += `• ${team.team} (${team.abbreviation})\n`;
-          });
+          suggestions.teamB = getSuggestions(teams.teamB).slice(0, 1);
+          notFound.teamB = teams.teamB;
         }
 
         const errorMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
           content: errorContent,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          suggestions,
+          notFound
         };
         setMessages(prev => [...prev, errorMessage]);
         setIsLoading(false);
@@ -445,6 +451,62 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
                 }
                 return <div key={i}>{line || <br />}</div>;
               })}
+
+              {/* Show clickable suggestions if available */}
+              {msg.suggestions && (
+                <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                  <div style={{ marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    💡 Did you mean:
+                  </div>
+                  {msg.suggestions.teamA && msg.suggestions.teamA.length > 0 && msg.suggestions.teamB && msg.suggestions.teamB.length > 0 ? (
+                    // Both teams have suggestions
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        const teamAsuggestion = msg.suggestions!.teamA![0];
+                        const teamBsuggestion = msg.suggestions!.teamB![0];
+                        setInput(`${teamAsuggestion.team} vs ${teamBsuggestion.team}`);
+                      }}
+                      style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                    >
+                      {msg.suggestions.teamA[0].team} vs {msg.suggestions.teamB[0].team}
+                    </button>
+                  ) : msg.suggestions.teamA && msg.suggestions.teamA.length > 0 ? (
+                    // Only teamA has suggestion
+                    <div>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>For "{msg.notFound?.teamA}":</span>
+                      <br />
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          const suggestion = msg.suggestions!.teamA![0];
+                          setInput(`${suggestion.team} vs ${msg.notFound?.teamB || ''}`);
+                        }}
+                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      >
+                        {msg.suggestions.teamA[0].team} ({msg.suggestions.teamA[0].abbreviation})
+                      </button>
+                    </div>
+                  ) : msg.suggestions.teamB && msg.suggestions.teamB.length > 0 ? (
+                    // Only teamB has suggestion
+                    <div>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>For "{msg.notFound?.teamB}":</span>
+                      <br />
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          const suggestion = msg.suggestions!.teamB![0];
+                          setInput(`${msg.notFound?.teamA || ''} vs ${suggestion.team}`);
+                        }}
+                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      >
+                        {msg.suggestions.teamB[0].team} ({msg.suggestions.teamB[0].abbreviation})
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
                 <button
                   className="btn-primary"

@@ -10,6 +10,14 @@ interface Message {
   content: string;
   timestamp: number;
   stats?: any;
+  suggestions?: {
+    teamA?: Array<{ team: string; abbreviation: string }>;
+    teamB?: Array<{ team: string; abbreviation: string }>;
+  };
+  notFound?: {
+    teamA?: string | null;
+    teamB?: string | null;
+  };
 }
 
 interface SportsMatchupProps {
@@ -152,35 +160,19 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
       // Check if error response contains suggestions
-      let errorContent = `⚠️ Error: ${error.message}\n\n`;
+      let errorContent = `⚠️ Error: ${error.message}`;
 
-      // Try to parse error response for suggestions
-      if (error.suggestions) {
-        errorContent += `I couldn't find that team. Did you mean:\n\n`;
-
-        if (error.notFound?.teamA && error.suggestions.teamA) {
-          errorContent += `**For "${error.notFound.teamA}":**\n`;
-          error.suggestions.teamA.forEach((suggestion: any) => {
-            errorContent += `• ${suggestion.team} (${suggestion.abbreviation})\n`;
-          });
-          errorContent += '\n';
-        }
-
-        if (error.notFound?.teamB && error.suggestions.teamB) {
-          errorContent += `**For "${error.notFound.teamB}":**\n`;
-          error.suggestions.teamB.forEach((suggestion: any) => {
-            errorContent += `• ${suggestion.team} (${suggestion.abbreviation})\n`;
-          });
-        }
-      } else {
-        errorContent += `Please make sure:\n• The team names are spelled correctly\n• You're using current NBA teams\n• The backend server is running\n\nTry teams like: Lakers, Warriors, Celtics, Heat, Bucks, Nets, etc.`;
+      if (!error.suggestions) {
+        errorContent += `\n\nPlease make sure:\n• The team names are spelled correctly\n• You're using current NBA teams\n• The backend server is running\n\nTry teams like: Lakers, Warriors, Celtics, Heat, Bucks, Nets, etc.`;
       }
 
       const errorMessage: Message = {
         id: Date.now() + 3,
         role: 'assistant',
         content: errorContent,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        suggestions: error.suggestions,
+        notFound: error.notFound
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -244,6 +236,62 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
                 }
                 return <div key={i}>{line || <br />}</div>;
               })}
+
+              {/* Show clickable suggestions if available */}
+              {msg.suggestions && (
+                <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                  <div style={{ marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    💡 Did you mean:
+                  </div>
+                  {msg.suggestions.teamA && msg.suggestions.teamA.length > 0 && msg.suggestions.teamB && msg.suggestions.teamB.length > 0 ? (
+                    // Both teams have suggestions
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        const teamAsuggestion = msg.suggestions!.teamA![0];
+                        const teamBsuggestion = msg.suggestions!.teamB![0];
+                        setInput(`${teamAsuggestion.team} vs ${teamBsuggestion.team}`);
+                      }}
+                      style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                    >
+                      {msg.suggestions.teamA[0].team} vs {msg.suggestions.teamB[0].team}
+                    </button>
+                  ) : msg.suggestions.teamA && msg.suggestions.teamA.length > 0 ? (
+                    // Only teamA has suggestion
+                    <div>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>For "{msg.notFound?.teamA}":</span>
+                      <br />
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          const suggestion = msg.suggestions!.teamA![0];
+                          setInput(`${suggestion.team} vs ${msg.notFound?.teamB || ''}`);
+                        }}
+                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      >
+                        {msg.suggestions.teamA[0].team} ({msg.suggestions.teamA[0].abbreviation})
+                      </button>
+                    </div>
+                  ) : msg.suggestions.teamB && msg.suggestions.teamB.length > 0 ? (
+                    // Only teamB has suggestion
+                    <div>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>For "{msg.notFound?.teamB}":</span>
+                      <br />
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          const suggestion = msg.suggestions!.teamB![0];
+                          setInput(`${msg.notFound?.teamA || ''} vs ${suggestion.team}`);
+                        }}
+                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      >
+                        {msg.suggestions.teamB[0].team} ({msg.suggestions.teamB[0].abbreviation})
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
                 <button
                   className="btn-primary"

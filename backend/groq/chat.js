@@ -195,11 +195,11 @@ async function analyzeMatchupRoute(req, res) {
         const suggestions = {};
 
         if (!teamAFound) {
-          suggestions.teamA = getTeamSuggestions(teamA, ppgData, 5);
+          suggestions.teamA = getTeamSuggestions(teamA, ppgData, 1);
         }
 
         if (!teamBFound) {
-          suggestions.teamB = getTeamSuggestions(teamB, ppgData, 5);
+          suggestions.teamB = getTeamSuggestions(teamB, ppgData, 1);
         }
 
         return res.status(404).json({
@@ -209,7 +209,7 @@ async function analyzeMatchupRoute(req, res) {
             teamB: !teamBFound ? teamB : null
           },
           suggestions,
-          message: "Did you mean one of these teams?"
+          message: "Did you mean this team?"
         });
       } catch (suggestionError) {
         console.warn('⚠️ Could not generate suggestions:', suggestionError.message);
