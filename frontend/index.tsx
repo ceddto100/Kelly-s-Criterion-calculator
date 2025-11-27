@@ -16,6 +16,9 @@ const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
 
+/* === Audio Orb Component === */
+import { AudioOrb, AudioOrbStyles } from './components/AudioOrb';
+
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -677,6 +680,9 @@ const GlobalStyle = () => (
 
     /* NEW: Include Bet Logger Styles */
     ${BetLoggerStyles}
+
+    /* Audio Orb Styles */
+    ${AudioOrbStyles()}
   `}</style>
 );
 
@@ -1611,7 +1617,7 @@ function App() {
         <div className="page-wrap">
           <header className="header">
             <h1 className="title">Point Spread Bet Calculator</h1>
-            <p className="subtitle">"Analyze matchups, estimate your edge, and get your recommended bet size—step by step."</p>
+            <AudioOrb audioSrc="/quick_guide.mp3" />
           </header>
 
           <div className="panel" style={{maxWidth:900}}>
