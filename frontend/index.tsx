@@ -2,18 +2,18 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * UPDATED: With Bet Logging Integration
+ * UPDATED: With Bet Logging Integration + Performance Optimizations
 */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 
-/* === bring in your committed form input components === */
-import FootballEstimator from "./forms/FootballEstimator";
-import BasketballEstimator from "./forms/BasketballEstimator";
-import SportsMatchup from "./forms/SportsMatchup";
-import NFLMatchup from "./forms/NFLMatchup";
+/* === Lazy load tab components for better performance === */
+const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
+const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
+const SportsMatchup = lazy(() => import("./forms/SportsMatchup"));
+const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
 
-/* === NEW: Import Bet Logger components === */
+/* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
 
 /* === Backend URL configuration === */
@@ -32,7 +32,6 @@ const GlobalStyle = () => (
       -webkit-overflow-scrolling: touch;
     }
 
-    .site-bg video,
     .site-bg img.bg-fallback {
       position: absolute;
       inset: 0;
@@ -42,7 +41,6 @@ const GlobalStyle = () => (
       opacity: 0.15;
       pointer-events: none;
       z-index: 0;
-      filter: blur(10px);
     }
 
     .bg-overlay {
@@ -53,8 +51,6 @@ const GlobalStyle = () => (
         rgba(6, 182, 212, 0.05),
         rgba(139, 92, 246, 0.05)
       );
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
       z-index: 0;
       pointer-events: none;
     }
@@ -77,7 +73,7 @@ const GlobalStyle = () => (
 
     /* Panel Overrides for Glass Effect */
     .panel {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 24px;
       padding: 1.5rem;
@@ -86,8 +82,8 @@ const GlobalStyle = () => (
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
       margin: 0 auto 1rem;
       max-width: 900px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     .panel-strong {
@@ -116,8 +112,8 @@ const GlobalStyle = () => (
       border-radius: 20px;
       padding: 1rem 1.5rem;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       max-width: 820px;
       width: 100%;
     }
@@ -200,8 +196,8 @@ const GlobalStyle = () => (
       cursor: pointer;
       font-weight: 700;
       transition: 0.2s ease;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     /* Mobile-first tab styling to mirror the compact layout */
@@ -240,6 +236,34 @@ const GlobalStyle = () => (
       color: rgba(255, 255, 255, 1);
     }
 
+    /* Brand Logo Circle */
+    .brand-logo-container {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      z-index: 100;
+    }
+
+    .brand-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(59, 130, 246, 0.5);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      object-fit: cover;
+      display: block;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transform: translate3d(0, 0, 0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      contain: layout paint;
+    }
+
+    .brand-logo:hover {
+      transform: translate3d(0, 0, 0) scale(1.05);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+
     /* Auth Container Glass */
     .auth-container {
       position: absolute;
@@ -265,8 +289,8 @@ const GlobalStyle = () => (
       align-items: center;
       gap: 0.5rem;
       text-decoration: none;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     .auth-btn:hover {
@@ -285,8 +309,8 @@ const GlobalStyle = () => (
       align-items: center;
       gap: 0.75rem;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     .user-avatar {
@@ -351,8 +375,8 @@ const GlobalStyle = () => (
       background: rgba(0, 0, 0, 0.3);
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     .example-btn {
@@ -381,8 +405,8 @@ const GlobalStyle = () => (
       border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       margin-bottom: 1rem;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     .chat-messages::-webkit-scrollbar {
@@ -408,8 +432,8 @@ const GlobalStyle = () => (
       padding: 0.75rem 1rem;
       border-radius: 14px;
       animation: fadeInScale 0.3s ease-out;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     .chat-message.user {
@@ -464,8 +488,8 @@ const GlobalStyle = () => (
       border-radius: 12px;
       outline: none;
       transition: all 0.2s ease;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
     .chat-input:focus {
@@ -534,6 +558,21 @@ const GlobalStyle = () => (
 
     /* Responsive Overrides */
     @media (max-width: 640px) {
+      .brand-logo-container {
+        position: relative;
+        left: auto;
+        right: auto;
+        top: auto;
+        margin: 0 auto 1rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .brand-logo {
+        width: 56px;
+        height: 56px;
+      }
+
       .auth-container {
         position: relative;
         left: auto;
@@ -1051,19 +1090,21 @@ function ProbabilityEstimator({
         </select>
       </div>
 
-      {activeSport === CONSTANTS.SPORTS.FOOTBALL ? (
-        <FootballEstimator
-          stats={footballStats}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setFootballStats({ ...footballStats, [e.target.name]: e.target.value })}
-        />
-      ) : (
-        <BasketballEstimator
-          stats={basketballStats}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setBasketballStats({ ...basketballStats, [e.target.name]: e.target.value })}
-        />
-      )}
+      <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
+        {activeSport === CONSTANTS.SPORTS.FOOTBALL ? (
+          <FootballEstimator
+            stats={footballStats}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFootballStats({ ...footballStats, [e.target.name]: e.target.value })}
+          />
+        ) : (
+          <BasketballEstimator
+            stats={basketballStats}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setBasketballStats({ ...basketballStats, [e.target.name]: e.target.value })}
+          />
+        )}
+      </Suspense>
 
       <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
         <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid} style={{flex:'1'}}>
@@ -1523,12 +1564,23 @@ function App() {
   return (
     <>
       <div className="site-bg">
-        <video autoPlay loop muted playsInline>
-          <source src="background.mp4" type="video/mp4" />
-        </video>
         <div className="bg-overlay" />
         <div className="blob blob-a" />
         <div className="blob blob-b" />
+
+        {/* Brand Logo */}
+        <div className="brand-logo-container">
+          <img
+            src="/betgistics.png"
+            alt="Betgistics Logo"
+            className="brand-logo"
+            title="Betgistics - Point Spread Betting Analytics"
+            loading="eager"
+            fetchpriority="high"
+            width="64"
+            height="64"
+          />
+        </div>
 
         {/* Authentication UI */}
         <div className="auth-container">
@@ -1619,17 +1671,21 @@ function App() {
           )}
           {activeTab === CONSTANTS.TABS.MATCHUP && (
             <div className="panel">
-              <SportsMatchup
-                backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'}
-                onTransferToEstimator={handleTransferToEstimator}
-              />
+              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
+                <SportsMatchup
+                  backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'}
+                  onTransferToEstimator={handleTransferToEstimator}
+                />
+              </Suspense>
             </div>
           )}
           {activeTab === CONSTANTS.TABS.NFL_MATCHUP && (
             <div className="panel">
-              <NFLMatchup
-                onTransferToEstimator={handleNFLTransferToEstimator}
-              />
+              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
+                <NFLMatchup
+                  onTransferToEstimator={handleNFLTransferToEstimator}
+                />
+              </Suspense>
             </div>
           )}
           {/* NEW: Bet History Tab */}
