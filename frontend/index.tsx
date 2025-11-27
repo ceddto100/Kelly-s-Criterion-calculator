@@ -260,10 +260,14 @@ const GlobalStyle = () => (
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      will-change: transform;
+      transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
     }
 
     .brand-logo:hover {
-      transform: scale(1.05);
+      transform: scale(1.05) translateZ(0);
       box-shadow:
         0 12px 32px rgba(59, 130, 246, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.2) inset;
@@ -1581,6 +1585,8 @@ function App() {
             alt="Betgistics Logo"
             className="brand-logo"
             title="Betgistics - Point Spread Betting Analytics"
+            loading="lazy"
+            decoding="async"
           />
         </div>
 
