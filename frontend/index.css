@@ -975,15 +975,17 @@ body::after {
     padding: 0.9rem 1.25rem;
   }
 
-  /* Mobile Tab Styling - compress tabs to fit */
+  /* Mobile Tab Styling - wrap into two rows so everything fits */
   .tabs {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
-  .tab {
-    flex: 1;
-    padding: 0.85rem 0.4rem;
-    font-size: 0.7rem;
+  .tabs .tab {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-width: 0;
+    padding: 0.85rem 0.6rem;
+    font-size: 0.75rem;
   }
 }
 
