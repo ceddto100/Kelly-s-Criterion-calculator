@@ -1616,7 +1616,7 @@ function App() {
 
         <div className="page-wrap">
           <header className="header">
-            <h1 className="title">Point Spread Bet Calculator</h1>
+            <h1 className="title"> The Science of Bet Like  Pro</h1>
             <AudioOrb audioSrc="/quick_guide.mp3" />
           </header>
 
@@ -1711,33 +1711,32 @@ function App() {
                 Close
               </button>
               <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
-              <p style={{color:'var(--text-muted)', marginTop:0}}>
-                Follow these steps to move from estimating your edge to logging a bet with confidence:
-              </p>
-              <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                <li>
-                  Start in <strong>Probability Estimator</strong> to enter matchup stats (Football or Basketball) and calculate a fair win probability.
-                  You can also import stats directly from <strong>NBA Matchup</strong> or <strong>NFL Matchup</strong> using their transfer buttons.
-                </li>
-                <li>
-                  Switch to <strong>Kelly Criterion</strong>, input your bankroll and odds, and paste the estimated win probability. The tool shows your suggested stake and edge.
-                </li>
-                <li>
-                  Use <strong>Unit Betting</strong> if you prefer staking by units instead of Kelly sizing.
-                </li>
-                <li>
-                  (Optional) Review recent recommendations in <strong>📊 Bet History</strong>—saved automatically when you calculate a positive-value bet while authenticated.
-                </li>
-              </ol>
-
-              <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
-              <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                <li><strong>Kelly Criterion</strong>: Calculates optimal stake size based on bankroll, odds, and your estimated win probability.</li>
-                <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
-                <li><strong>Unit Betting</strong>: Turns your bankroll into unit sizes for flat- or multiple-unit staking.</li>
-                <li><strong>NBA Matchup</strong> / <strong>NFL Matchup</strong>: Pulls team data, compares opponents, and lets you push the results into the estimator.</li>
-                <li><strong>📊 Bet History</strong>: Displays recently logged Kelly recommendations (requires sign-in).</li>
-              </ul>
+                <p style={{color:'var(--text-muted)', marginTop:0}}>
+                  Follow these steps to move from matchup stats to a fully logged bet:
+                </p>
+                
+                <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+                  <li>
+                    Start in the <strong>NBA Matchup</strong> or <strong>NFL Matchup</strong> tab to load team stats and compare both sides of the game.
+                  </li>
+                  <li>
+                    Move to the <strong>Probability Estimator</strong>, enter your point spread, select whether your team is home or away, and hit <strong>Calculate Probability</strong> to generate your fair win probability.
+                  </li>
+                  <li>
+                    Switch to the <strong>Kelly Criterion</strong>, enter your bankroll and odds, then paste in the win probability to calculate your optimal bet size.
+                  </li>
+                  <li>
+                    Finally, use <strong>Log Bet</strong> to save the wager and track your results over time.
+                  </li>
+                </ol>
+                
+                <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
+                <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
+                  <li><strong>Kelly Criterion</strong>: Calculates your optimal stake based on bankroll, odds, and your win probability.</li>
+                  <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
+                  <li><strong>NBA Matchup</strong> / <strong>NFL Matchup</strong>: Pulls team performance data and pre-fills stats for the estimator.</li>
+                  <li><strong>📊 Bet History</strong>: Stores your logged bets and tracks performance (sign-in required).</li>
+                </ul>
             </div>
           </div>
         </div>
