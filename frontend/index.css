@@ -20,6 +20,7 @@
   --accent-electric: #3b82f6;
   --accent-violet: #8b5cf6;
   --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+  --primary-accent: #4f46e5;
 
   /* Typography - Clean & Computational */
   --text-primary: rgba(255, 255, 255, 1);
@@ -248,15 +249,13 @@ body::after {
 /* ==================== TABS ==================== */
 .tabs {
   display: flex;
-  background: rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.2));
   position: relative;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .tab {
   flex: 1;
-  padding: 1.2rem 1rem;
+  padding: 1.1rem 1rem;
   text-align: center;
   font-weight: 600;
   cursor: pointer;
@@ -265,9 +264,8 @@ body::after {
   color: var(--text-muted);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-bottom: 2px solid transparent;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   position: relative;
-  font-family: var(--font-sans);
 }
 
 .tab:hover {
@@ -277,21 +275,11 @@ body::after {
 
 .tab.active {
   color: var(--text-primary);
-  border-bottom: 2px solid var(--accent-electric);
-  background: var(--glass-surface-hover);
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
-}
-
-.tab.active::before {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 30%;
-  right: 30%;
-  height: 2px;
-  background: var(--accent-electric);
-  filter: blur(3px);
-  opacity: 0.7;
+  border-bottom: 2px solid var(--primary-accent);
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 15px rgba(59, 130, 246, 0.15);
 }
 
 .nested-tabs {
@@ -975,18 +963,6 @@ body::after {
     padding: 0.9rem 1.25rem;
   }
 
-  /* Mobile Tab Styling - wrap into two rows so everything fits */
-  .tabs {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .tabs .tab {
-    flex: 1 1 calc(50% - 0.5rem);
-    min-width: 0;
-    padding: 0.85rem 0.6rem;
-    font-size: 0.75rem;
-  }
 }
 
 @media (max-width: 360px) {
@@ -1022,17 +998,16 @@ body::after {
     font-size: 2.25rem;
   }
 
-  /* Extra small mobile tab adjustments */
-  .tab {
-    padding: 0.7rem 0.3rem;
-    font-size: 0.65rem;
-  }
 }
 
 /* ==================== DESKTOP ENHANCEMENTS ==================== */
 @media (min-width: 768px) {
   body {
     padding: 3rem 1.5rem;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
   }
 
   .header {

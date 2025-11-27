@@ -204,6 +204,37 @@ const GlobalStyle = () => (
       -webkit-backdrop-filter: blur(10px);
     }
 
+    /* Mobile-first tab styling to mirror the compact layout */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin: 1rem auto 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: transparent;
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      padding: 0.6rem 1rem;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-weight: 600;
+    }
+
+    .tab:hover {
+      background: rgba(99, 102, 241, 0.12);
+    }
+
+    .tab.active {
+      color: white;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      border-color: transparent;
+      box-shadow: 0 8px 26px rgba(79, 70, 229, 0.35);
+    }
+
     .doc-close:hover {
       background: rgba(255, 255, 255, 0.08);
       color: rgba(255, 255, 255, 1);
