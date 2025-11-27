@@ -39,19 +39,31 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
   }, [messages]);
 
   const parseTeamInput = (input: string): { teamA: string; teamB: string } | null => {
-    // Try to parse input like "Lakers vs Warriors" or "Lakers Warriors"
-    const vsPattern = /(.+)\s+vs\.?\s+(.+)/i;
-    const match = input.match(vsPattern);
+    // Normalize whitespace
+    const normalized = input.trim().replace(/\s+/g, ' ');
 
-    if (match) {
+    // Try "vs", "vs.", or "versus" pattern
+    const vsPattern = /(.+)\s+(?:vs\.?|versus)\s+(.+)/i;
+    const vsMatch = normalized.match(vsPattern);
+    if (vsMatch) {
       return {
-        teamA: match[1].trim(),
-        teamB: match[2].trim()
+        teamA: vsMatch[1].trim(),
+        teamB: vsMatch[2].trim()
+      };
+    }
+
+    // Try "at" or "@" pattern
+    const atPattern = /(.+)\s+(?:at|@)\s+(.+)/i;
+    const atMatch = normalized.match(atPattern);
+    if (atMatch) {
+      return {
+        teamA: atMatch[1].trim(),
+        teamB: atMatch[2].trim()
       };
     }
 
     // Try space-separated (e.g., "Lakers Warriors")
-    const words = input.trim().split(/\s+/);
+    const words = normalized.split(/\s+/);
     if (words.length === 2) {
       return {
         teamA: words[0],
@@ -85,7 +97,7 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
         const errorMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
-          content: "I couldn't understand the team names. Please use format like:\n\n• Lakers vs Warriors\n• Celtics vs Heat\n• Bucks Nets\n\nTry again!",
+          content: "I couldn't understand the team names. Please use format like:\n\n• Lakers vs Warriors\n• Celtics versus Heat\n• Bucks @ Nets\n• Warriors at Lakers\n\nTry again!",
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, errorMessage]);

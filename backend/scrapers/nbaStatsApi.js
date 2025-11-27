@@ -1,5 +1,6 @@
 // backend/scrapers/nbaStatsApi.js
 const axios = require('axios');
+const { fuzzyFindTeam } = require('../utils/fuzzyTeamMatch');
 
 async function fetchNBATeamStats() {
   console.log('📊 Fetching NBA teams from ESPN API...');
@@ -49,11 +50,15 @@ async function fetchNBATeamStats() {
 }
 
 function findTeamByName(teamStats, searchName) {
-  const search = searchName.toLowerCase();
-  return teamStats.find(team =>
-    team.name.toLowerCase().includes(search) ||
-    team.abbreviation.toLowerCase().includes(search)
-  );
+  // Convert team objects to format expected by fuzzyFindTeam
+  const teamsForMatching = teamStats.map(team => ({
+    team: team.name,
+    abbreviation: team.abbreviation,
+    originalTeam: team  // Keep reference to original team object
+  }));
+
+  const match = fuzzyFindTeam(searchName, teamsForMatching, 0.6);
+  return match ? match.originalTeam : null;
 }
 
 module.exports = { fetchNBATeamStats, findTeamByName };
