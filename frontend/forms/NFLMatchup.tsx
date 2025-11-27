@@ -135,6 +135,46 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Simple string similarity calculator (Levenshtein-inspired)
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    const s1 = str1.toLowerCase();
+    const s2 = str2.toLowerCase();
+
+    if (s1 === s2) return 1;
+    if (s1.includes(s2) || s2.includes(s1)) return 0.8;
+
+    // Calculate character overlap
+    const len1 = s1.length;
+    const len2 = s2.length;
+    let matches = 0;
+
+    for (let i = 0; i < Math.min(len1, len2); i++) {
+      if (s1[i] === s2[i]) matches++;
+    }
+
+    return matches / Math.max(len1, len2);
+  };
+
+  // Get team suggestions based on similarity
+  const getSuggestions = (query: string): NFLTeamStats[] => {
+    const normalizedQuery = query.toLowerCase().trim();
+
+    const scored = nflTeams.map(team => {
+      const teamNameSimilarity = calculateSimilarity(normalizedQuery, team.team);
+      const lastWord = team.team.split(' ').pop() || '';
+      const lastWordSimilarity = calculateSimilarity(normalizedQuery, lastWord);
+      const abbrevSimilarity = calculateSimilarity(normalizedQuery, team.abbreviation);
+
+      const maxSimilarity = Math.max(teamNameSimilarity, lastWordSimilarity, abbrevSimilarity);
+
+      return { team, similarity: maxSimilarity };
+    });
+
+    return scored
+      .sort((a, b) => b.similarity - a.similarity)
+      .map(item => item.team);
+  };
+
   // Find team by name or abbreviation
   const findTeam = (query: string): NFLTeamStats | null => {
     const normalizedQuery = query.toLowerCase().trim();
@@ -235,11 +275,30 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
       const teamB = findTeam(teams.teamB);
 
       if (!teamA || !teamB) {
-        const notFoundTeam = !teamA ? teams.teamA : teams.teamB;
+        let errorContent = `I couldn't find that team. Did you mean:\n\n`;
+
+        // Get suggestions for teams not found
+        if (!teamA) {
+          const suggestions = getSuggestions(teams.teamA);
+          errorContent += `**For "${teams.teamA}":**\n`;
+          suggestions.slice(0, 5).forEach((team: NFLTeamStats) => {
+            errorContent += `• ${team.team} (${team.abbreviation})\n`;
+          });
+          if (!teamB) errorContent += '\n';
+        }
+
+        if (!teamB) {
+          const suggestions = getSuggestions(teams.teamB);
+          errorContent += `**For "${teams.teamB}":**\n`;
+          suggestions.slice(0, 5).forEach((team: NFLTeamStats) => {
+            errorContent += `• ${team.team} (${team.abbreviation})\n`;
+          });
+        }
+
         const errorMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
-          content: `Couldn't find team "${notFoundTeam}". Try using the full city name or abbreviation:\n\n• Kansas City Chiefs or KC\n• San Francisco 49ers or SF\n• New England Patriots or NE\n\nAll 32 NFL teams are available!`,
+          content: errorContent,
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, errorMessage]);

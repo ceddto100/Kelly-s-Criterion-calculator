@@ -91,7 +91,66 @@ function getSimilarity(str1, str2) {
   );
 }
 
+/**
+ * Get multiple team suggestions based on fuzzy matching
+ * @param {string} searchTerm - The team name to search for
+ * @param {Array} teams - Array of team objects with 'team' and 'abbreviation' properties
+ * @param {number} limit - Maximum number of suggestions to return (default: 5)
+ * @returns {Array} - Array of team suggestions with similarity scores, sorted by score
+ */
+function getTeamSuggestions(searchTerm, teams, limit = 5) {
+  if (!searchTerm || !teams || teams.length === 0) {
+    return [];
+  }
+
+  const search = searchTerm.toLowerCase().trim();
+
+  // Build list of all team names with their similarity scores
+  const teamScores = [];
+  const seenTeams = new Set();
+
+  teams.forEach(team => {
+    const teamName = team.team || '';
+    const abbrev = team.abbreviation || '';
+
+    if (!teamName || seenTeams.has(teamName)) {
+      return;
+    }
+
+    seenTeams.add(teamName);
+
+    // Calculate similarity scores for different variations
+    const fullNameScore = stringSimilarity.compareTwoStrings(search, teamName.toLowerCase());
+    const abbrevScore = abbrev ? stringSimilarity.compareTwoStrings(search, abbrev.toLowerCase()) : 0;
+
+    // Check last word (e.g., "Lakers" from "Los Angeles Lakers")
+    const words = teamName.split(' ');
+    const lastWordScore = words.length > 1
+      ? stringSimilarity.compareTwoStrings(search, words[words.length - 1].toLowerCase())
+      : 0;
+
+    // Use the highest score
+    const maxScore = Math.max(fullNameScore, abbrevScore, lastWordScore);
+
+    teamScores.push({
+      team: teamName,
+      abbreviation: abbrev,
+      score: maxScore
+    });
+  });
+
+  // Sort by score descending and return top N
+  return teamScores
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(item => ({
+      team: item.team,
+      abbreviation: item.abbreviation
+    }));
+}
+
 module.exports = {
   fuzzyFindTeam,
-  getSimilarity
+  getSimilarity,
+  getTeamSuggestions
 };

@@ -112,7 +112,11 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to fetch matchup data');
+        const error: any = new Error(errorData.error || 'Failed to fetch matchup data');
+        // Attach suggestions and other metadata to the error object
+        error.suggestions = errorData.suggestions;
+        error.notFound = errorData.notFound;
+        throw error;
       }
 
       const data = await response.json();
@@ -147,10 +151,35 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
+      // Check if error response contains suggestions
+      let errorContent = `⚠️ Error: ${error.message}\n\n`;
+
+      // Try to parse error response for suggestions
+      if (error.suggestions) {
+        errorContent += `I couldn't find that team. Did you mean:\n\n`;
+
+        if (error.notFound?.teamA && error.suggestions.teamA) {
+          errorContent += `**For "${error.notFound.teamA}":**\n`;
+          error.suggestions.teamA.forEach((suggestion: any) => {
+            errorContent += `• ${suggestion.team} (${suggestion.abbreviation})\n`;
+          });
+          errorContent += '\n';
+        }
+
+        if (error.notFound?.teamB && error.suggestions.teamB) {
+          errorContent += `**For "${error.notFound.teamB}":**\n`;
+          error.suggestions.teamB.forEach((suggestion: any) => {
+            errorContent += `• ${suggestion.team} (${suggestion.abbreviation})\n`;
+          });
+        }
+      } else {
+        errorContent += `Please make sure:\n• The team names are spelled correctly\n• You're using current NBA teams\n• The backend server is running\n\nTry teams like: Lakers, Warriors, Celtics, Heat, Bucks, Nets, etc.`;
+      }
+
       const errorMessage: Message = {
         id: Date.now() + 3,
         role: 'assistant',
-        content: `⚠️ Error: ${error.message}\n\nPlease make sure:\n• The team names are spelled correctly\n• You're using current NBA teams\n• The backend server is running\n\nTry teams like: Lakers, Warriors, Celtics, Heat, Bucks, Nets, etc.`,
+        content: errorContent,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
