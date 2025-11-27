@@ -242,12 +242,10 @@ const GlobalStyle = () => (
 
     /* Brand Logo Circle */
     .brand-logo-container {
-      position: fixed;
+      position: absolute;
       top: 1rem;
       left: 1rem;
       z-index: 100;
-      contain: layout paint;
-      pointer-events: auto;
     }
 
     .brand-logo {
@@ -255,20 +253,24 @@ const GlobalStyle = () => (
       height: 64px;
       border-radius: 50%;
       border: 2px solid rgba(59, 130, 246, 0.5);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      box-shadow:
+        0 8px 24px rgba(59, 130, 246, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
       object-fit: cover;
-      display: block;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      transform: translate3d(0, 0, 0);
+      will-change: transform;
+      transform: translateZ(0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
     }
 
     .brand-logo:hover {
-      transform: translate3d(0, 0, 0) scale(1.05);
-      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      transform: scale(1.05) translateZ(0);
+      box-shadow:
+        0 12px 32px rgba(59, 130, 246, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
     }
 
     /* Auth Container Glass */
@@ -566,9 +568,13 @@ const GlobalStyle = () => (
     /* Responsive Overrides */
     @media (max-width: 640px) {
       .brand-logo-container {
-        top: 0.75rem;
-        left: 50%;
-        transform: translateX(-50%);
+        position: relative;
+        left: auto;
+        right: auto;
+        top: auto;
+        margin: 0 auto 1rem;
+        display: flex;
+        justify-content: center;
       }
 
       .brand-logo {
