@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
+const { fuzzyFindTeam } = require('./fuzzyTeamMatch');
 
 /**
  * Load a CSV file and return parsed data as an array of objects
@@ -50,19 +51,13 @@ function loadCSV(filename) {
 
 /**
  * Find a team's stats from CSV data by name or abbreviation
+ * Uses fuzzy matching to handle misspellings and variations
  * @param {Array} csvData - Array of team stat objects
  * @param {string} searchTerm - Team name or abbreviation to search for
  * @returns {Object|null} - Team stats object or null if not found
  */
 function findTeam(csvData, searchTerm) {
-  const search = searchTerm.toLowerCase().trim();
-
-  return csvData.find(row => {
-    const teamName = row.team?.toLowerCase() || '';
-    const abbrev = row.abbreviation?.toLowerCase() || '';
-
-    return teamName.includes(search) || abbrev.includes(search) || search.includes(teamName);
-  }) || null;
+  return fuzzyFindTeam(searchTerm, csvData, 0.6);
 }
 
 module.exports = { loadCSV, findTeam };

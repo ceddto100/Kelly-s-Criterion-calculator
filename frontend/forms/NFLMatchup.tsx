@@ -40,6 +40,14 @@ interface Message {
     teamA: NFLTeamStats;
     teamB: NFLTeamStats;
   };
+  suggestions?: {
+    teamA?: NFLTeamStats[];
+    teamB?: NFLTeamStats[];
+  };
+  notFound?: {
+    teamA?: string;
+    teamB?: string;
+  };
 }
 
 interface NFLMatchupProps {
@@ -135,6 +143,46 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Simple string similarity calculator (Levenshtein-inspired)
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    const s1 = str1.toLowerCase();
+    const s2 = str2.toLowerCase();
+
+    if (s1 === s2) return 1;
+    if (s1.includes(s2) || s2.includes(s1)) return 0.8;
+
+    // Calculate character overlap
+    const len1 = s1.length;
+    const len2 = s2.length;
+    let matches = 0;
+
+    for (let i = 0; i < Math.min(len1, len2); i++) {
+      if (s1[i] === s2[i]) matches++;
+    }
+
+    return matches / Math.max(len1, len2);
+  };
+
+  // Get team suggestions based on similarity
+  const getSuggestions = (query: string): NFLTeamStats[] => {
+    const normalizedQuery = query.toLowerCase().trim();
+
+    const scored = nflTeams.map(team => {
+      const teamNameSimilarity = calculateSimilarity(normalizedQuery, team.team);
+      const lastWord = team.team.split(' ').pop() || '';
+      const lastWordSimilarity = calculateSimilarity(normalizedQuery, lastWord);
+      const abbrevSimilarity = calculateSimilarity(normalizedQuery, team.abbreviation);
+
+      const maxSimilarity = Math.max(teamNameSimilarity, lastWordSimilarity, abbrevSimilarity);
+
+      return { team, similarity: maxSimilarity };
+    });
+
+    return scored
+      .sort((a, b) => b.similarity - a.similarity)
+      .map(item => item.team);
+  };
+
   // Find team by name or abbreviation
   const findTeam = (query: string): NFLTeamStats | null => {
     const normalizedQuery = query.toLowerCase().trim();
@@ -173,22 +221,27 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
   };
 
   const parseTeamInput = (input: string): { teamA: string; teamB: string } | null => {
-    const vsPattern = /(.+)\s+vs\.?\s+(.+)/i;
-    const match = input.match(vsPattern);
+    // Normalize whitespace
+    const normalized = input.trim().replace(/\s+/g, ' ');
 
-    if (match) {
-      return { teamA: match[1].trim(), teamB: match[2].trim() };
+    // Try "vs", "vs.", or "versus" pattern
+    const vsPattern = /(.+)\s+(?:vs\.?|versus)\s+(.+)/i;
+    const vsMatch = normalized.match(vsPattern);
+    if (vsMatch) {
+      return { teamA: vsMatch[1].trim(), teamB: vsMatch[2].trim() };
     }
 
-    const words = input.trim().split(/\s+/);
-    if (words.length === 2) {
-      return { teamA: words[0], teamB: words[1] };
-    }
-
+    // Try "at" or "@" pattern
     const atPattern = /(.+)\s+(?:at|@)\s+(.+)/i;
-    const atMatch = input.match(atPattern);
+    const atMatch = normalized.match(atPattern);
     if (atMatch) {
       return { teamA: atMatch[1].trim(), teamB: atMatch[2].trim() };
+    }
+
+    // Try space-separated (e.g., "Chiefs Bills")
+    const words = normalized.split(/\s+/);
+    if (words.length === 2) {
+      return { teamA: words[0], teamB: words[1] };
     }
 
     return null;
@@ -218,7 +271,7 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
         const errorMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
-          content: "I couldn't understand the team names. Please use format like:\n\n• Chiefs vs Bills\n• Cowboys vs Eagles\n• Dolphins at Rams\n\nTry again!",
+          content: "I couldn't understand the team names. Please use format like:\n\n• Chiefs vs Bills\n• Cowboys versus Eagles\n• Dolphins @ Rams\n• Bills at Chiefs\n\nTry again!",
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -230,12 +283,29 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
       const teamB = findTeam(teams.teamB);
 
       if (!teamA || !teamB) {
-        const notFoundTeam = !teamA ? teams.teamA : teams.teamB;
+        const errorContent = `⚠️ Team not found`;
+
+        const suggestions: { teamA?: NFLTeamStats[]; teamB?: NFLTeamStats[] } = {};
+        const notFound: { teamA?: string; teamB?: string } = {};
+
+        // Get suggestions for teams not found
+        if (!teamA) {
+          suggestions.teamA = getSuggestions(teams.teamA).slice(0, 1);
+          notFound.teamA = teams.teamA;
+        }
+
+        if (!teamB) {
+          suggestions.teamB = getSuggestions(teams.teamB).slice(0, 1);
+          notFound.teamB = teams.teamB;
+        }
+
         const errorMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
-          content: `Couldn't find team "${notFoundTeam}". Try using the full city name or abbreviation:\n\n• Kansas City Chiefs or KC\n• San Francisco 49ers or SF\n• New England Patriots or NE\n\nAll 32 NFL teams are available!`,
-          timestamp: Date.now()
+          content: errorContent,
+          timestamp: Date.now(),
+          suggestions,
+          notFound
         };
         setMessages(prev => [...prev, errorMessage]);
         setIsLoading(false);
@@ -381,6 +451,62 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
                 }
                 return <div key={i}>{line || <br />}</div>;
               })}
+
+              {/* Show clickable suggestions if available */}
+              {msg.suggestions && (
+                <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                  <div style={{ marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    💡 Did you mean:
+                  </div>
+                  {msg.suggestions.teamA && msg.suggestions.teamA.length > 0 && msg.suggestions.teamB && msg.suggestions.teamB.length > 0 ? (
+                    // Both teams have suggestions
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        const teamAsuggestion = msg.suggestions!.teamA![0];
+                        const teamBsuggestion = msg.suggestions!.teamB![0];
+                        setInput(`${teamAsuggestion.team} vs ${teamBsuggestion.team}`);
+                      }}
+                      style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                    >
+                      {msg.suggestions.teamA[0].team} vs {msg.suggestions.teamB[0].team}
+                    </button>
+                  ) : msg.suggestions.teamA && msg.suggestions.teamA.length > 0 ? (
+                    // Only teamA has suggestion
+                    <div>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>For "{msg.notFound?.teamA}":</span>
+                      <br />
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          const suggestion = msg.suggestions!.teamA![0];
+                          setInput(`${suggestion.team} vs ${msg.notFound?.teamB || ''}`);
+                        }}
+                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      >
+                        {msg.suggestions.teamA[0].team} ({msg.suggestions.teamA[0].abbreviation})
+                      </button>
+                    </div>
+                  ) : msg.suggestions.teamB && msg.suggestions.teamB.length > 0 ? (
+                    // Only teamB has suggestion
+                    <div>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>For "{msg.notFound?.teamB}":</span>
+                      <br />
+                      <button
+                        className="btn-primary"
+                        onClick={() => {
+                          const suggestion = msg.suggestions!.teamB![0];
+                          setInput(`${msg.notFound?.teamA || ''} vs ${suggestion.team}`);
+                        }}
+                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      >
+                        {msg.suggestions.teamB[0].team} ({msg.suggestions.teamB[0].abbreviation})
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
                 <button
                   className="btn-primary"

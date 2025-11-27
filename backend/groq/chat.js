@@ -79,11 +79,14 @@ async function analyzeMatchupRoute(req, res) {
 
     let matchupData = null;
     let dataSource = 'unknown';
+    let teamAFound = false;
+    let teamBFound = false;
 
     // STRATEGY 1: Try CSV files first (fastest, updated every 12 hours)
     try {
       console.log('📊 Strategy 1: Trying CSV files...');
       const { loadCSV, findTeam } = require("../utils/loadCSV");
+      const { getTeamSuggestions } = require("../utils/fuzzyTeamMatch");
 
       const [ppgData, allowedData, fieldGoalData, reboundMarginData, turnoverMarginData] = await Promise.all([
         loadCSV('ppg.csv'),
@@ -121,6 +124,13 @@ async function analyzeMatchupRoute(req, res) {
         matchupData = { teamA: teamAStats, teamB: teamBStats };
         dataSource = 'CSV files (updated every 12 hours via GitHub Actions)';
         console.log('✅ Successfully loaded data from CSV files');
+        teamAFound = true;
+        teamBFound = true;
+      } else {
+        // Track which teams were not found in CSV
+        teamAFound = !!teamAStats;
+        teamBFound = !!teamBStats;
+        console.log(`CSV results: teamA=${teamAFound}, teamB=${teamBFound}`);
       }
     } catch (csvError) {
       console.warn('⚠️ CSV loading failed:', csvError.message);
@@ -157,9 +167,52 @@ async function analyzeMatchupRoute(req, res) {
           };
           dataSource = 'ESPN API (live fallback)';
           console.log('✅ Successfully fetched data from ESPN API');
+          teamAFound = true;
+          teamBFound = true;
+        } else {
+          // Track which teams were not found in ESPN API
+          if (!teamAFound) teamAFound = !!teamAStats;
+          if (!teamBFound) teamBFound = !!teamBStats;
+          console.log(`ESPN API results: teamA=${!!teamAStats}, teamB=${!!teamBStats}`);
         }
       } catch (apiError) {
         console.warn('⚠️ ESPN API failed:', apiError.message);
+      }
+    }
+
+    // Before falling back to estimated data, check if teams were not found
+    // If so, return suggestions instead
+    if (!matchupData && (!teamAFound || !teamBFound)) {
+      console.log(`⚠️ Team(s) not found - returning suggestions`);
+
+      try {
+        const { loadCSV } = require("../utils/loadCSV");
+        const { getTeamSuggestions } = require("../utils/fuzzyTeamMatch");
+
+        // Load at least one CSV file to get team list for suggestions
+        const ppgData = await loadCSV('ppg.csv');
+
+        const suggestions = {};
+
+        if (!teamAFound) {
+          suggestions.teamA = getTeamSuggestions(teamA, ppgData, 1);
+        }
+
+        if (!teamBFound) {
+          suggestions.teamB = getTeamSuggestions(teamB, ppgData, 1);
+        }
+
+        return res.status(404).json({
+          error: "Team not found",
+          notFound: {
+            teamA: !teamAFound ? teamA : null,
+            teamB: !teamBFound ? teamB : null
+          },
+          suggestions,
+          message: "Did you mean this team?"
+        });
+      } catch (suggestionError) {
+        console.warn('⚠️ Could not generate suggestions:', suggestionError.message);
       }
     }
 
