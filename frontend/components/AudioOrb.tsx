@@ -92,8 +92,7 @@ export const AudioOrb: React.FC<AudioOrbProps> = ({ audioSrc }) => {
   );
 };
 
-export const AudioOrbStyles = () => (
-  <style>{`
+export const AudioOrbStyles = () => `
     .audio-orb-container {
       display: flex;
       flex-direction: column;
@@ -517,5 +516,4 @@ export const AudioOrbStyles = () => (
         height: 6px;
       }
     }
-  `}</style>
-);
+  `;
