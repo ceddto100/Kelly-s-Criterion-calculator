@@ -240,6 +240,35 @@ const GlobalStyle = () => (
       color: rgba(255, 255, 255, 1);
     }
 
+    /* Brand Logo Circle */
+    .brand-logo-container {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      z-index: 100;
+    }
+
+    .brand-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(59, 130, 246, 0.5);
+      box-shadow:
+        0 8px 24px rgba(59, 130, 246, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      object-fit: cover;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .brand-logo:hover {
+      transform: scale(1.05);
+      box-shadow:
+        0 12px 32px rgba(59, 130, 246, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+    }
+
     /* Auth Container Glass */
     .auth-container {
       position: absolute;
@@ -534,6 +563,21 @@ const GlobalStyle = () => (
 
     /* Responsive Overrides */
     @media (max-width: 640px) {
+      .brand-logo-container {
+        position: relative;
+        left: auto;
+        right: auto;
+        top: auto;
+        margin: 0 auto 1rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .brand-logo {
+        width: 56px;
+        height: 56px;
+      }
+
       .auth-container {
         position: relative;
         left: auto;
@@ -1529,6 +1573,16 @@ function App() {
         <div className="bg-overlay" />
         <div className="blob blob-a" />
         <div className="blob blob-b" />
+
+        {/* Brand Logo */}
+        <div className="brand-logo-container">
+          <img
+            src="/betgistics.png"
+            alt="Betgistics Logo"
+            className="brand-logo"
+            title="Betgistics - Point Spread Betting Analytics"
+          />
+        </div>
 
         {/* Authentication UI */}
         <div className="auth-container">
