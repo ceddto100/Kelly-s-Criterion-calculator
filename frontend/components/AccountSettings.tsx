@@ -53,10 +53,6 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               style={styles.avatar}
             />
           )}
-          <div style={styles.userInfo}>
-            <h3 style={styles.userName}>{user.name || 'User'}</h3>
-            <p style={styles.userEmail}>{user.email || 'No email'}</p>
-          </div>
         </div>
 
         <div style={styles.section}>
@@ -164,9 +160,9 @@ const styles: { [key: string]: React.CSSProperties } = {
   profileSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
+    justifyContent: 'center',
     marginBottom: '30px',
-    padding: '20px',
+    padding: '30px 20px',
     background: 'rgba(255, 255, 255, 0.05)',
     borderRadius: '16px',
     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -177,20 +173,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '50%',
     border: '3px solid rgba(168, 85, 247, 0.5)',
     boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    color: 'white',
-    margin: '0 0 5px 0',
-  },
-  userEmail: {
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.6)',
-    margin: 0,
   },
   section: {
     marginBottom: '30px',
