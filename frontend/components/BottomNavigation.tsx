@@ -19,22 +19,45 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   const navItems = [
     {
       id: TABS.BET_HISTORY,
-      icon: '📊',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="20" x2="12" y2="10"></line>
+          <line x1="18" y1="20" x2="18" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="16"></line>
+        </svg>
+      ),
       label: 'Bets',
     },
     {
       id: TABS.STATS,
-      icon: '📈',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+      ),
       label: 'Stats',
     },
+  ];
+
+  const navItemsRight = [
     {
       id: TABS.PROMO,
-      icon: '🎁',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="7"></circle>
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+        </svg>
+      ),
       label: 'Promos',
     },
     {
       id: TABS.ACCOUNT,
-      icon: '⚙️',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      ),
       label: 'Account',
     },
   ];
@@ -43,6 +66,31 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     <nav style={styles.bottomNav}>
       <div style={styles.navContainer}>
         {navItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onTabChange(item.id)}
+            style={{
+              ...styles.navItem,
+              ...(activeTab === item.id ? styles.navItemActive : {}),
+            }}
+          >
+            <span style={styles.navIcon}>{item.icon}</span>
+            <span style={styles.navLabel}>{item.label}</span>
+          </button>
+        ))}
+
+        {/* Logo in the center */}
+        <div style={styles.logoContainer}>
+          <div style={styles.logo}>
+            <img
+              src="/betgistics.png"
+              alt="Betgistics Logo"
+              style={styles.logoImage}
+            />
+          </div>
+        </div>
+
+        {navItemsRight.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
@@ -105,5 +153,28 @@ const styles: { [key: string]: React.CSSProperties } = {
   navLabel: {
     fontSize: '12px',
     fontWeight: '500',
+  },
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 8px',
+  },
+  logo: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 20px rgba(168, 85, 247, 0.4)',
+    transition: 'all 0.3s ease',
+    overflow: 'hidden',
+    background: 'white',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
   },
 };
