@@ -3,6 +3,7 @@
  * Integrates with the Kelly Calculator workflow
  */
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -124,6 +125,18 @@ export function LogBetButton({
     setActualWager(recommendedStake.toFixed(2));
   }, [recommendedStake]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   const handleLogBet = async () => {
     if (!isAuthenticated) {
       onLoginRequired?.();
@@ -184,27 +197,21 @@ export function LogBetButton({
     }
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        className="log-bet-btn"
-        onClick={() => {
-          if (!isAuthenticated) {
-            onLoginRequired?.();
-          } else {
-            setIsOpen(true);
-          }
-        }}
-      >
-        📝 Log This Bet
-      </button>
-    );
-  }
-
-  return (
-    <div className="log-bet-modal">
+  const modalContent = isOpen && (
+    <div className="log-bet-modal" onClick={(e) => {
+      if (e.target === e.currentTarget) setIsOpen(false);
+    }}>
       <div className="log-bet-content">
-        <h3>Log This Bet</h3>
+        <div className="modal-header">
+          <h3>Log This Bet</h3>
+          <button
+            className="modal-close-btn"
+            onClick={() => setIsOpen(false)}
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
+        </div>
 
         {/* Matchup Summary */}
         <div className="bet-summary">
@@ -312,6 +319,24 @@ export function LogBetButton({
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <button
+        className="log-bet-btn"
+        onClick={() => {
+          if (!isAuthenticated) {
+            onLoginRequired?.();
+          } else {
+            setIsOpen(true);
+          }
+        }}
+      >
+        📝 Log This Bet
+      </button>
+      {modalContent && ReactDOM.createPortal(modalContent, document.body)}
+    </>
   );
 }
 
@@ -717,8 +742,15 @@ export const BetLoggerStyles = `
       flex-direction: column;
     }
   }
-  .log-bet-content h3 {
-    margin: 0 0 1.5rem;
+  /* Modal Header with Close Button */
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .modal-header h3 {
+    margin: 0;
     color: rgba(255, 255, 255, 1);
     font-size: 1.5rem;
     font-weight: 700;
@@ -726,6 +758,25 @@ export const BetLoggerStyles = `
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  .modal-close-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: .2s ease;
+    flex-shrink: 0;
+  }
+  .modal-close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    transform: scale(1.1);
   }
 
   /* Bet Summary - Glass Panel */
@@ -858,10 +909,19 @@ export const BetLoggerStyles = `
       0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   }
   .stats-dashboard h3 {
-    margin: 0 0 1rem;
+    margin: 0 0 1.25rem;
     font-size: 1.1rem;
     font-weight: 700;
     color: #06b6d4;
+  }
+  /* Better spacing on mobile */
+  @media (max-width: 640px) {
+    .stats-dashboard {
+      padding: 1.25rem 1rem;
+    }
+    .stats-dashboard h3 {
+      font-size: 1rem;
+    }
   }
   .stats-grid-dashboard {
     display: grid;
@@ -892,6 +952,12 @@ export const BetLoggerStyles = `
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.12);
     transform: translateY(-2px);
+  }
+  /* Better mobile spacing */
+  @media (max-width: 640px) {
+    .stat-card {
+      padding: 1.25rem 0.5rem;
+    }
   }
   .stat-value {
     font-size: 1.5rem;
