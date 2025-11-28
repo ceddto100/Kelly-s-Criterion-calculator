@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 
 interface AudioOrbProps {
   audioSrc: string;
+  label: string;
+  icon?: string;
 }
 
-export const AudioOrb: React.FC<AudioOrbProps> = ({ audioSrc }) => {
+export const AudioOrb: React.FC<AudioOrbProps> = ({ audioSrc, label, icon = '🎧' }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -86,7 +88,7 @@ export const AudioOrb: React.FC<AudioOrbProps> = ({ audioSrc }) => {
         <div className="orb-ripple-3"></div>
       </button>
       <p className="audio-orb-label">
-        <span className="label-icon">🎧</span> Quick Start Guide
+        <span className="label-icon">{icon}</span> {label}
       </p>
     </div>
   );

@@ -17,7 +17,8 @@ const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
 
 /* === Audio Orb Component === */
-import { AudioOrb, AudioOrbStyles } from './components/AudioOrb';
+import { AudioOrbStyles } from './components/AudioOrb';
+import { SwipeableAudioOrbs } from './components/SwipeableAudioOrbs';
 
 /* === Bottom Navigation and New Pages === */
 import { BottomNavigation } from './components/BottomNavigation';
@@ -1652,7 +1653,20 @@ function App() {
           <header className="header">
             <h1 className="title"> Bet Like A Pro
             Betgistics</h1>
-            <AudioOrb audioSrc="/quick_guide.mp3" />
+            <SwipeableAudioOrbs
+              orbs={[
+                {
+                  audioSrc: '/mission_statement.mp3',
+                  label: 'Mission Statement',
+                  icon: '🎯',
+                },
+                {
+                  audioSrc: '/quick_guide.mp3',
+                  label: 'Quick Start Guide',
+                  icon: '🎧',
+                },
+              ]}
+            />
           </header>
 
           <div className="panel" style={{maxWidth:900}}>
