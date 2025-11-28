@@ -798,6 +798,7 @@ body::after {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 1rem;
   align-items: center;
+  width: 100%;
 }
 
 .stats-grid .grid-header {
@@ -817,6 +818,33 @@ body::after {
 
 .stats-grid .input-field {
   text-align: center;
+}
+
+@media (max-width: 900px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .stats-grid .grid-header:nth-child(3) {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .stats-grid .grid-header,
+  .stats-grid span {
+    text-align: left;
+  }
+
+  .stats-grid .input-field {
+    text-align: left;
+  }
 }
 
 /* ==================== HELP ICONS & TOOLTIPS ==================== */
@@ -850,7 +878,8 @@ body::after {
 
 .tooltip .tooltiptext {
   visibility: hidden;
-  width: 240px;
+  width: max-content;
+  max-width: min(280px, 90vw);
   background: rgba(0, 0, 0, 0.9);
   color: var(--text-primary);
   text-align: center;
@@ -860,7 +889,7 @@ body::after {
   z-index: 1;
   bottom: 125%;
   left: 50%;
-  margin-left: -120px;
+  transform: translateX(-50%);
   opacity: 0;
   transition: 0.3s ease;
   font-size: 0.85rem;
