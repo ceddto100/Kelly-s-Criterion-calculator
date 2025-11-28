@@ -701,6 +701,22 @@ export const BetLoggerStyles = `
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
+  /* Mobile-first: Full screen modal for better UX */
+  @media (max-width: 640px) {
+    .log-bet-modal {
+      padding: 0;
+      align-items: flex-start;
+    }
+    .log-bet-content {
+      max-width: 100%;
+      max-height: 100vh;
+      min-height: 100vh;
+      border-radius: 0;
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+  }
   .log-bet-content h3 {
     margin: 0 0 1.5rem;
     color: rgba(255, 255, 255, 1);
@@ -849,10 +865,15 @@ export const BetLoggerStyles = `
   }
   .stats-grid-dashboard {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
-  @media (min-width: 640px) {
+  @media (min-width: 480px) {
+    .stats-grid-dashboard {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (min-width: 768px) {
     .stats-grid-dashboard {
       grid-template-columns: repeat(6, 1fr);
     }
@@ -880,11 +901,20 @@ export const BetLoggerStyles = `
     margin-bottom: .25rem;
   }
   .stat-label {
-    font-size: .7rem;
+    font-size: .75rem;
     color: rgba(255, 255, 255, 0.5);
     text-transform: uppercase;
     letter-spacing: .05em;
     font-weight: 600;
+  }
+  /* Better readability on mobile */
+  @media (max-width: 640px) {
+    .stat-value {
+      font-size: 1.75rem;
+    }
+    .stat-label {
+      font-size: .8rem;
+    }
   }
 
   /* Filters - Glass Controls */
