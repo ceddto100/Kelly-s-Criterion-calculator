@@ -229,12 +229,81 @@ body::after {
   font-size: 2.5rem;
   font-weight: 800;
   margin-bottom: 0.75rem;
-  background: var(--accent-gradient);
+  letter-spacing: -0.03em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Bet Like A Pro - Gradient with glow */
+.title-part-1 {
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.03em;
   filter: drop-shadow(0 0 20px var(--glow-cyan));
+  animation: gradientShift 6s ease infinite;
+  background-size: 200% 200%;
+}
+
+/* Betgistics - Special animated gradient with multiple effects */
+.title-part-2 {
+  background: linear-gradient(
+    135deg,
+    #ff6b6b 0%,
+    #f06595 15%,
+    #cc5de8 30%,
+    #845ef7 45%,
+    #5c7cfa 60%,
+    #339af0 75%,
+    #22b8cf 90%,
+    #20c997 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 300% 300%;
+  animation: rainbowGradient 8s ease infinite, pulse 3s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 15px rgba(139, 92, 246, 0.4))
+    drop-shadow(0 0 8px rgba(236, 72, 153, 0.3))
+    drop-shadow(0 0 3px rgba(6, 182, 212, 0.2));
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 92, 246, 0.5);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  text-shadow:
+    0 0 20px rgba(139, 92, 246, 0.25),
+    0 0 40px rgba(236, 72, 153, 0.15);
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes rainbowGradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 .header p {

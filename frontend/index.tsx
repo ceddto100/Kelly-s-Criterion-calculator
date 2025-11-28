@@ -1498,7 +1498,7 @@ function KellyCalculator({
 /* ================================== App =================================== */
 function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
-  const [probability, setProbability] = useState('50');
+  const [probability, setProbability] = useState('60');
 
   // Probability estimator state
   const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
@@ -1651,8 +1651,10 @@ function App() {
 
         <div className="page-wrap">
           <header className="header">
-            <h1 className="title"> Bet Like A Pro
-            Betgistics</h1>
+            <h1 className="title">
+              <span className="title-part-1">Bet Like A Pro</span>
+              <span className="title-part-2">Betgistics</span>
+            </h1>
             <SwipeableAudioOrbs
               orbs={[
                 {
