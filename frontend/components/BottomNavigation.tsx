@@ -82,7 +82,11 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         {/* Logo in the center */}
         <div style={styles.logoContainer}>
           <div style={styles.logo}>
-            <span style={styles.logoText}>B</span>
+            <img
+              src="/betgistics.png"
+              alt="Betgistics Logo"
+              style={styles.logoImage}
+            />
           </div>
         </div>
 
@@ -160,18 +164,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '50px',
     height: '50px',
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(168, 85, 247, 0.4), 0 0 0 2px rgba(255, 255, 255, 0.2)',
-    border: '2px solid rgba(255, 255, 255, 0.3)',
+    boxShadow: '0 4px 20px rgba(168, 85, 247, 0.4)',
     transition: 'all 0.3s ease',
+    overflow: 'hidden',
+    background: 'white',
   },
-  logoText: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    color: 'white',
-    textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
   },
 };
