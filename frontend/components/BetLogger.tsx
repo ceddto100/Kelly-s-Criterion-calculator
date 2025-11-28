@@ -215,19 +215,25 @@ export function LogBetButton({
 
         {/* Matchup Summary */}
         <div className="bet-summary">
-          <div className="summary-row">
-            <span className="summary-label">Matchup:</span>
-            <span className="summary-value">
-              {teamA.abbreviation || teamA.name} vs {teamB.abbreviation || teamB.name}
-            </span>
+          <div className="your-pick-banner">
+            <div className="pick-indicator">✓ YOUR PICK</div>
+            <div className="pick-team">{teamA.abbreviation || teamA.name}</div>
+            <div className="pick-details">
+              {pointSpread > 0 ? '+' : ''}{pointSpread} vs {teamB.abbreviation || teamB.name}
+            </div>
           </div>
+
+          <div className="summary-divider"></div>
+
           <div className="summary-row">
             <span className="summary-label">Sport:</span>
             <span className="summary-value">{sport === 'football' ? '🏈 Football' : '🏀 Basketball'}</span>
           </div>
           <div className="summary-row">
-            <span className="summary-label">Spread:</span>
-            <span className="summary-value">{pointSpread > 0 ? '+' : ''}{pointSpread}</span>
+            <span className="summary-label">Venue:</span>
+            <span className="summary-value">
+              {venue === 'home' ? '🏠 Home' : venue === 'away' ? '✈️ Away' : '⚖️ Neutral'}
+            </span>
           </div>
           <div className="summary-row">
             <span className="summary-label">Win Probability:</span>
@@ -788,6 +794,51 @@ export const BetLoggerStyles = `
     margin-bottom: 1.5rem;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+  }
+  /* Your Pick Banner */
+  .your-pick-banner {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15));
+    border: 2px solid rgba(16, 185, 129, 0.4);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .pick-indicator {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #10b981;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .pick-team {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 1);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  }
+  .pick-details {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  /* Mobile adjustments for pick banner */
+  @media (max-width: 640px) {
+    .pick-team {
+      font-size: 1.5rem;
+    }
+    .pick-details {
+      font-size: 1rem;
+    }
+  }
+  .summary-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    margin: 1rem 0;
   }
   .summary-row {
     display: flex;
