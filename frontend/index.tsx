@@ -19,6 +19,12 @@ import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogge
 /* === Audio Orb Component === */
 import { AudioOrb, AudioOrbStyles } from './components/AudioOrb';
 
+/* === Bottom Navigation and New Pages === */
+import { BottomNavigation } from './components/BottomNavigation';
+import { AccountSettings } from './components/AccountSettings';
+import { PromoPage } from './components/PromoPage';
+import { StatsPage } from './components/StatsPage';
+
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -61,17 +67,17 @@ const GlobalStyle = () => (
     .page-wrap {
       position: relative;
       z-index: 1;
-      padding: 3rem 1rem;
+      padding: 3rem 1rem 120px 1rem;
       max-width: 1100px;
       margin: 0 auto;
       width: 100%;
     }
 
     @media (max-width: 480px) {
-      .page-wrap { padding: 2rem 0.75rem; }
+      .page-wrap { padding: 2rem 0.75rem 120px 0.75rem; }
     }
     @media (max-width: 360px) {
-      .page-wrap { padding: 1.5rem 0.5rem; }
+      .page-wrap { padding: 1.5rem 0.5rem 120px 0.5rem; }
     }
 
     /* Panel Overrides for Glass Effect */
@@ -693,7 +699,10 @@ const CONSTANTS = {
     ESTIMATOR: 'estimator',
     MATCHUP: 'matchup',
     NFL_MATCHUP: 'nfl_matchup',
-    BET_HISTORY: 'bet_history'  // NEW TAB
+    BET_HISTORY: 'bet_history',  // Bet tracking
+    STATS: 'stats',  // NBA/NFL statistics
+    ACCOUNT: 'account',  // Account settings
+    PROMO: 'promo'  // Promotional links
   },
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
 };
@@ -1516,6 +1525,15 @@ function App() {
     checkAuth();
   }, []);
 
+  // Authentication handlers
+  const handleGoogleLogin = () => {
+    window.location.href = `${BACKEND_URL}/auth/google`;
+  };
+
+  const handleLogout = () => {
+    window.location.href = `${BACKEND_URL}/auth/logout`;
+  };
+
   const getTeamAbbreviation = (fullName: string): string => {
     if (!fullName) return '';
     const words = fullName.trim().split(' ');
@@ -1702,6 +1720,25 @@ function App() {
             </div>
           )}
 
+          {/* Stats Page Tab */}
+          {activeTab === CONSTANTS.TABS.STATS && (
+            <StatsPage />
+          )}
+
+          {/* Account Settings Tab */}
+          {activeTab === CONSTANTS.TABS.ACCOUNT && (
+            <AccountSettings
+              user={authUser}
+              onLogout={handleLogout}
+              onLogin={handleGoogleLogin}
+            />
+          )}
+
+          {/* Promo Page Tab */}
+          {activeTab === CONSTANTS.TABS.PROMO && (
+            <PromoPage user={authUser} />
+          )}
+
           <div
             className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
             id="app-documentation"
@@ -1761,6 +1798,18 @@ function App() {
             </p>
           </div>
         </footer>
+
+        {/* Bottom Navigation Bar */}
+        <BottomNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          TABS={{
+            BET_HISTORY: CONSTANTS.TABS.BET_HISTORY,
+            STATS: CONSTANTS.TABS.STATS,
+            ACCOUNT: CONSTANTS.TABS.ACCOUNT,
+            PROMO: CONSTANTS.TABS.PROMO,
+          }}
+        />
       </div>
     </>
   );
