@@ -17,7 +17,8 @@ const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
 
 /* === Audio Orb Component === */
-import { AudioOrb, AudioOrbStyles } from './components/AudioOrb';
+import { AudioOrbStyles } from './components/AudioOrb';
+import { SwipeableAudioOrbs } from './components/SwipeableAudioOrbs';
 
 /* === Bottom Navigation and New Pages === */
 import { BottomNavigation } from './components/BottomNavigation';
@@ -67,17 +68,33 @@ const GlobalStyle = () => (
     .page-wrap {
       position: relative;
       z-index: 1;
-      padding: 3rem 1rem 120px 1rem;
+      padding:
+        max(3rem, env(safe-area-inset-top, 3rem))
+        max(1rem, env(safe-area-inset-right, 1rem))
+        max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
+        max(1rem, env(safe-area-inset-left, 1rem));
       max-width: 1100px;
       margin: 0 auto;
       width: 100%;
     }
 
     @media (max-width: 480px) {
-      .page-wrap { padding: 2rem 0.75rem 120px 0.75rem; }
+      .page-wrap {
+        padding:
+          max(2rem, env(safe-area-inset-top, 2rem))
+          max(0.75rem, env(safe-area-inset-right, 0.75rem))
+          max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
+          max(0.75rem, env(safe-area-inset-left, 0.75rem));
+      }
     }
     @media (max-width: 360px) {
-      .page-wrap { padding: 1.5rem 0.5rem 120px 0.5rem; }
+      .page-wrap {
+        padding:
+          max(1.5rem, env(safe-area-inset-top, 1.5rem))
+          max(0.5rem, env(safe-area-inset-right, 0.5rem))
+          max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
+          max(0.5rem, env(safe-area-inset-left, 0.5rem));
+      }
     }
 
     /* Panel Overrides for Glass Effect */
@@ -1636,7 +1653,20 @@ function App() {
           <header className="header">
             <h1 className="title"> Bet Like A Pro
             Betgistics</h1>
-            <AudioOrb audioSrc="/quick_guide.mp3" />
+            <SwipeableAudioOrbs
+              orbs={[
+                {
+                  audioSrc: '/mission_statement.mp3',
+                  label: 'Mission Statement',
+                  icon: '🎯',
+                },
+                {
+                  audioSrc: '/quick_guide.mp3',
+                  label: 'Quick Start Guide',
+                  icon: '🎧',
+                },
+              ]}
+            />
           </header>
 
           <div className="panel" style={{maxWidth:900}}>

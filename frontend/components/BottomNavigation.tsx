@@ -67,7 +67,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     left: 0,
     right: 0,
     zIndex: 1000,
-    padding: '0 0 env(safe-area-inset-bottom, 0)',
+    paddingBottom: 'env(safe-area-inset-bottom, 0)',
   },
   navContainer: {
     display: 'flex',
@@ -77,7 +77,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     backdropFilter: 'blur(10px)',
     borderTop: '1px solid rgba(255, 255, 255, 0.2)',
     boxShadow: '0 -4px 30px rgba(0, 0, 0, 0.1)',
-    padding: '8px 0',
+    padding: '8px max(8px, env(safe-area-inset-right, 8px)) 8px max(8px, env(safe-area-inset-left, 8px))',
   },
   navItem: {
     display: 'flex',
