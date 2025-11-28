@@ -13,7 +13,12 @@ interface PromoPageProps {
   user: { name?: string; email?: string; avatar?: string } | null;
 }
 
+const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
+
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
+  // Check if current user is admin
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   const [promos, setPromos] = useState<Promo[]>([
     {
       id: '1',
@@ -85,7 +90,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
         </p>
       </div>
 
-      {user && (
+      {isAdmin && (
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           style={styles.addButton}
@@ -141,7 +146,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
           <div style={styles.emptyState}>
             <div style={styles.emptyIcon}>📭</div>
             <p style={styles.emptyText}>No promotions yet</p>
-            {user && (
+            {isAdmin && (
               <p style={styles.emptySubtext}>
                 Click "Add New Promo" to get started
               </p>
@@ -176,7 +181,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
                   >
                     🔗 Visit Link
                   </a>
-                  {user && (
+                  {isAdmin && (
                     <button
                       onClick={() => handleDeletePromo(promo.id)}
                       style={styles.deleteButton}
@@ -191,10 +196,10 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
         )}
       </div>
 
-      {!user && (
+      {user && !isAdmin && (
         <div style={styles.loginPrompt}>
           <p style={styles.loginText}>
-            Sign in to add and manage your promotional links
+            Only the site administrator can add and manage promotional links
           </p>
         </div>
       )}
