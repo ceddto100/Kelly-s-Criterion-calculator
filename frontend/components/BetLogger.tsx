@@ -558,9 +558,13 @@ export function BetHistory({ isAuthenticated }: BetHistoryProps) {
                   <span className="sport-icon">
                     {bet.matchup.sport === 'football' ? '🏈' : '🏀'}
                   </span>
-                  <span className="teams">
-                    {bet.matchup.teamA.abbreviation || bet.matchup.teamA.name} vs {bet.matchup.teamB.abbreviation || bet.matchup.teamB.name}
-                  </span>
+                  <div className="teams-container">
+                    <div className="your-pick-label">
+                      <span className="pick-badge">YOUR PICK</span>
+                      <span className="pick-team-name">{bet.matchup.teamA.abbreviation || bet.matchup.teamA.name}</span>
+                    </div>
+                    <span className="vs-text">vs {bet.matchup.teamB.abbreviation || bet.matchup.teamB.name}</span>
+                  </div>
                 </div>
                 <div className={`bet-status ${bet.outcome.result}`}>
                   {bet.outcome.result === 'pending' ? '⏳ Pending' :
@@ -1171,6 +1175,53 @@ export const BetLoggerStyles = `
     font-weight: 700;
     color: rgba(255, 255, 255, 1);
     font-size: 1rem;
+  }
+  /* Pick indicator in bet history cards */
+  .teams-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .your-pick-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pick-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pick-team-name {
+    font-weight: 900;
+    color: rgba(255, 255, 255, 1);
+    font-size: 1.1rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  .vs-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    margin-left: 1.5rem;
+  }
+  @media (max-width: 640px) {
+    .pick-badge {
+      font-size: 0.6rem;
+      padding: 0.15rem 0.4rem;
+    }
+    .pick-team-name {
+      font-size: 1rem;
+    }
+    .vs-text {
+      font-size: 0.85rem;
+      margin-left: 1rem;
+    }
   }
   .bet-status {
     font-size: .85rem;
