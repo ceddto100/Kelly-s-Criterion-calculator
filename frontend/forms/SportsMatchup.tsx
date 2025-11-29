@@ -252,7 +252,7 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
                         const teamBsuggestion = msg.suggestions!.teamB![0];
                         setInput(`${teamAsuggestion.team} vs ${teamBsuggestion.team}`);
                       }}
-                      style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                      style={{ marginTop: '0.5rem', background: 'var(--button-primary)', color: 'white', fontWeight: 500, boxShadow: 'var(--button-glow)', border: 'none' }}
                     >
                       {msg.suggestions.teamA[0].team} vs {msg.suggestions.teamB[0].team}
                     </button>
@@ -267,7 +267,7 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
                           const suggestion = msg.suggestions!.teamA![0];
                           setInput(`${suggestion.team} vs ${msg.notFound?.teamB || ''}`);
                         }}
-                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                        style={{ marginTop: '0.5rem', background: 'var(--button-primary)', color: 'white', fontWeight: 500, boxShadow: 'var(--button-glow)', border: 'none' }}
                       >
                         {msg.suggestions.teamA[0].team} ({msg.suggestions.teamA[0].abbreviation})
                       </button>
@@ -283,7 +283,7 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
                           const suggestion = msg.suggestions!.teamB![0];
                           setInput(`${msg.notFound?.teamA || ''} vs ${suggestion.team}`);
                         }}
-                        style={{ marginTop: '0.5rem', backgroundColor: '#3b82f6', color: 'white', fontWeight: 500 }}
+                        style={{ marginTop: '0.5rem', background: 'var(--button-primary)', color: 'white', fontWeight: 500, boxShadow: 'var(--button-glow)', border: 'none' }}
                       >
                         {msg.suggestions.teamB[0].team} ({msg.suggestions.teamB[0].abbreviation})
                       </button>
