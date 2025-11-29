@@ -1336,3 +1336,18 @@ select:focus-visible {
   outline: 2px solid var(--accent-electric);
   outline-offset: 2px;
 }
+
+/* ==================== BOTTOM NAVIGATION BAR OVERRIDE ==================== */
+/* Ensure bottom navigation bar is ALWAYS visible and accessible */
+#bottom-navigation-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
