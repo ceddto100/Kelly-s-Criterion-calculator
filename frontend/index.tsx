@@ -29,6 +29,32 @@ import { StatsPage } from './components/StatsPage';
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
+const THEME_OPTIONS = [
+  {
+    key: 'midnight',
+    label: 'Midnight Neon',
+    description: 'Cyan + violet glow with the original look',
+    accent: '#8b5cf6',
+    preview: 'linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6)',
+  },
+  {
+    key: 'deep-sea',
+    label: 'Deep Sea',
+    description: 'Ocean gradients with aqua orbs',
+    accent: '#0ea5e9',
+    preview: 'linear-gradient(135deg, #0ea5e9, #14b8a6, #22d3ee)',
+  },
+  {
+    key: 'crimson',
+    label: 'Crimson Pulse',
+    description: 'Rich magenta reds with neon glows',
+    accent: '#f43f5e',
+    preview: 'linear-gradient(135deg, #f43f5e, #fb7185, #e11d48)',
+  },
+] as const;
+
+type ThemeKey = typeof THEME_OPTIONS[number]['key'];
+
 /* =========================== Inline theme tweaks - GLASSMORPHISM =========================== */
 const GlobalStyle = () => (
   <style>{`
@@ -148,7 +174,7 @@ const GlobalStyle = () => (
     .doc-toggle {
       background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       font-weight: 700;
       font-size: 1rem;
       cursor: pointer;
@@ -159,16 +185,16 @@ const GlobalStyle = () => (
       width: 100%;
       padding: 0.5rem 0.75rem;
       border-radius: 12px;
-      transition: 0.2s ease;
+      transition: 0.3s ease;
     }
 
     .doc-toggle:hover {
-      color: rgba(255, 255, 255, 1);
-      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      background: var(--surface-1);
     }
 
     .doc-toggle:focus-visible {
-      outline: 2px solid #3b82f6;
+      outline: 2px solid var(--control-focus);
       outline-offset: 2px;
     }
 
@@ -182,7 +208,7 @@ const GlobalStyle = () => (
 
     .doc-hint {
       margin: 0.5rem 0 0;
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-muted);
       font-size: 0.9rem;
     }
 
@@ -214,14 +240,14 @@ const GlobalStyle = () => (
       position: absolute;
       top: 1rem;
       right: 1rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.7);
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
       border-radius: 10px;
       padding: 0.5rem 0.8rem;
       cursor: pointer;
       font-weight: 700;
-      transition: 0.2s ease;
+      transition: 0.25s ease;
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
     }
@@ -236,25 +262,26 @@ const GlobalStyle = () => (
     }
 
     .tab {
-      background: transparent;
-      color: #c7d2fe;
-      border: 1px solid rgba(99, 102, 241, 0.35);
+      background: var(--surface-1);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
       padding: 0.6rem 1rem;
       border-radius: 0.75rem;
       cursor: pointer;
-      transition: 0.2s ease;
+      transition: 0.25s ease;
       font-weight: 600;
     }
 
     .tab:hover {
-      background: rgba(99, 102, 241, 0.12);
+      background: var(--surface-2);
+      color: var(--text-primary);
     }
 
     .tab.active {
-      color: white;
-      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      color: var(--text-primary);
+      background: var(--button-primary);
       border-color: transparent;
-      box-shadow: 0 8px 26px rgba(79, 70, 229, 0.35);
+      box-shadow: var(--button-glow);
     }
 
     .doc-close:hover {
@@ -274,8 +301,8 @@ const GlobalStyle = () => (
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      border: 2px solid rgba(59, 130, 246, 0.5);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      border: 2px solid color-mix(in srgb, var(--accent-electric) 45%, transparent);
+      box-shadow: 0 4px 12px rgba(var(--accent-electric-rgb), 0.3);
       object-fit: cover;
       display: block;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -287,7 +314,7 @@ const GlobalStyle = () => (
 
     .brand-logo:hover {
       transform: translate3d(0, 0, 0) scale(1.05);
-      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 6px 16px rgba(var(--accent-electric-rgb), 0.4);
     }
 
     /* Auth Container Glass */
@@ -299,16 +326,16 @@ const GlobalStyle = () => (
     }
 
     .auth-btn {
-      background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+      background: var(--button-primary);
       color: #fff;
       border: none;
       padding: 0.75rem 1.25rem;
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
-      transition: 0.2s ease;
+      transition: 0.25s ease;
       box-shadow:
-        0 6px 20px rgba(59, 130, 246, 0.4),
+        0 6px 20px rgba(var(--accent-electric-rgb), 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.2) inset;
       font-size: 0.95rem;
       display: flex;
@@ -322,13 +349,13 @@ const GlobalStyle = () => (
     .auth-btn:hover {
       transform: translateY(-2px);
       box-shadow:
-        0 8px 24px rgba(59, 130, 246, 0.5),
+        0 8px 24px rgba(var(--accent-electric-rgb), 0.5),
         0 0 0 1px rgba(255, 255, 255, 0.3) inset;
     }
 
     .user-info {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--surface-2);
+      border: 1px solid var(--border-subtle);
       border-radius: 14px;
       padding: 0.75rem 1rem;
       display: flex;
@@ -343,7 +370,7 @@ const GlobalStyle = () => (
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      border: 2px solid rgba(59, 130, 246, 0.5);
+      border: 2px solid color-mix(in srgb, var(--accent-electric) 45%, transparent);
     }
 
     .user-details {
@@ -353,34 +380,34 @@ const GlobalStyle = () => (
     }
 
     .user-name {
-      color: rgba(255, 255, 255, 1);
+      color: var(--text-primary);
       font-weight: 600;
       font-size: 0.9rem;
       line-height: 1.2;
     }
 
     .user-email {
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-muted);
       font-size: 0.75rem;
       line-height: 1.2;
     }
 
     .logout-btn {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
+      background: color-mix(in srgb, var(--danger-color) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger-color) 45%, transparent);
+      color: color-mix(in srgb, var(--danger-color) 70%, #fff 30%);
       padding: 0.4rem 0.8rem;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
-      transition: 0.2s ease;
+      transition: 0.25s ease;
       font-size: 0.85rem;
       margin-left: 0.5rem;
       text-decoration: none;
     }
 
     .logout-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
+      background: color-mix(in srgb, var(--danger-color) 28%, transparent);
     }
 
     /* Chat & Sports Matchup Glass Panels */
@@ -398,17 +425,17 @@ const GlobalStyle = () => (
       flex-wrap: wrap;
       align-items: center;
       padding: 0.75rem;
-      background: rgba(0, 0, 0, 0.3);
+      background: var(--surface-2);
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
     }
 
     .example-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.7);
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
       padding: 0.4rem 0.8rem;
       border-radius: 8px;
       cursor: pointer;
@@ -418,18 +445,18 @@ const GlobalStyle = () => (
     }
 
     .example-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--surface-2);
       transform: translateY(-1px);
-      color: rgba(255, 255, 255, 1);
+      color: var(--text-primary);
     }
 
     .chat-messages {
       flex: 1;
       overflow-y: auto;
       padding: 1rem;
-      background: rgba(0, 0, 0, 0.2);
+      background: var(--surface-2);
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
       margin-bottom: 1rem;
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
@@ -484,16 +511,16 @@ const GlobalStyle = () => (
 
     .message-role {
       font-weight: 700;
-      color: #06b6d4;
+      color: var(--accent-cyan);
     }
 
     .message-time {
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-muted);
       font-size: 0.75rem;
     }
 
     .message-content {
-      color: rgba(255, 255, 255, 0.9);
+      color: var(--text-primary);
       line-height: 1.6;
       white-space: pre-wrap;
       word-wrap: break-word;
@@ -507,20 +534,20 @@ const GlobalStyle = () => (
 
     .chat-input {
       flex: 1;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 1);
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
       padding: 0.75rem 1rem;
       border-radius: 12px;
       outline: none;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
     }
 
     .chat-input:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 1px #3b82f6;
+      border-color: var(--control-focus);
+      box-shadow: 0 0 0 1px var(--control-focus);
     }
 
     .chat-input:disabled {
@@ -529,7 +556,7 @@ const GlobalStyle = () => (
     }
 
     .chat-submit-btn {
-      background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+      background: var(--button-primary);
       color: #fff;
       border: none;
       padding: 0.75rem 1.5rem;
@@ -538,13 +565,13 @@ const GlobalStyle = () => (
       font-weight: 700;
       font-size: 1.2rem;
       transition: 0.2s ease;
-      box-shadow: 0 6px 18px rgba(59, 130, 246, 0.35);
+      box-shadow: 0 6px 18px rgba(var(--accent-electric-rgb), 0.35);
       min-width: 60px;
     }
 
     .chat-submit-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.45);
+      box-shadow: 0 8px 24px rgba(var(--accent-electric-rgb), 0.45);
     }
 
     .chat-submit-btn:disabled {
@@ -553,9 +580,9 @@ const GlobalStyle = () => (
     }
 
     .clear-chat-btn {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
+      background: color-mix(in srgb, var(--danger-color) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger-color) 45%, transparent);
+      color: color-mix(in srgb, var(--danger-color) 70%, #fff 30%);
       padding: 0.75rem 1rem;
       border-radius: 12px;
       cursor: pointer;
@@ -564,7 +591,7 @@ const GlobalStyle = () => (
     }
 
     .clear-chat-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
+      background: color-mix(in srgb, var(--danger-color) 28%, transparent);
     }
 
     /* Team Name Label for forms */
@@ -574,7 +601,7 @@ const GlobalStyle = () => (
       left: 0.75rem;
       font-size: 0.65rem;
       font-weight: 600;
-      color: #06b6d4;
+      color: var(--accent-cyan);
       pointer-events: none;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -1500,6 +1527,8 @@ function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
   const [probability, setProbability] = useState('60');
 
+  const [theme, setTheme] = useState<ThemeKey>('midnight');
+
   // Probability estimator state
   const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
   const [footballStats, setFootballStats] = useState(initialFootballState);
@@ -1515,6 +1544,19 @@ function App() {
 
   // Documentation visibility
   const [isDocOpen, setIsDocOpen] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem('betgistics-theme') as ThemeKey | null);
+    if (savedTheme && THEME_OPTIONS.some((option) => option.key === savedTheme)) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem('betgistics-theme', theme);
+  }, [theme]);
 
   // NEW: State for bet logging data flow
   const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
@@ -1763,6 +1805,9 @@ function App() {
               user={authUser}
               onLogout={handleLogout}
               onLogin={handleGoogleLogin}
+              theme={theme}
+              themeOptions={THEME_OPTIONS}
+              onThemeChange={(value) => setTheme(value as ThemeKey)}
             />
           )}
 

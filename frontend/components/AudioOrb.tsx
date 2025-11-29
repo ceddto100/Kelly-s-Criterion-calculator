@@ -131,8 +131,8 @@ export const AudioOrbStyles = () => `
       border-radius: 50%;
       background: radial-gradient(
         circle,
-        rgba(6, 182, 212, 0.6) 0%,
-        rgba(139, 92, 246, 0.4) 40%,
+        rgba(var(--orb-primary-rgb), 0.6) 0%,
+        rgba(var(--orb-secondary-rgb), 0.4) 40%,
         transparent 70%
       );
       filter: blur(30px);
@@ -147,8 +147,8 @@ export const AudioOrbStyles = () => `
       border-radius: 50%;
       background: radial-gradient(
         circle,
-        rgba(6, 182, 212, 0.8) 0%,
-        rgba(236, 72, 153, 0.5) 50%,
+        rgba(var(--orb-primary-rgb), 0.8) 0%,
+        rgba(var(--orb-tertiary-rgb), 0.5) 50%,
         transparent 70%
       );
       filter: blur(25px);
@@ -164,10 +164,10 @@ export const AudioOrbStyles = () => `
       border-radius: 50%;
       background: conic-gradient(
         from 0deg,
-        rgba(6, 182, 212, 0.8),
-        rgba(139, 92, 246, 0.8),
-        rgba(236, 72, 153, 0.8),
-        rgba(6, 182, 212, 0.8)
+        rgba(var(--orb-primary-rgb), 0.8),
+        rgba(var(--orb-secondary-rgb), 0.8),
+        rgba(var(--orb-tertiary-rgb), 0.8),
+        rgba(var(--orb-primary-rgb), 0.8)
       );
       opacity: 0;
       animation: rotate 4s linear infinite;
@@ -190,10 +190,10 @@ export const AudioOrbStyles = () => `
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(6, 182, 212, 1), rgba(6, 182, 212, 0.2));
+      background: radial-gradient(circle, rgba(var(--orb-primary-rgb), 1), rgba(var(--orb-primary-rgb), 0.2));
       opacity: 0;
       z-index: 3;
-      box-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
+      box-shadow: 0 0 12px rgba(var(--orb-primary-rgb), 0.8);
     }
 
     .audio-orb.playing .orb-particle {
@@ -206,14 +206,14 @@ export const AudioOrbStyles = () => `
 
     .orb-particle-2 {
       animation: orbit2 3s linear infinite;
-      background: radial-gradient(circle, rgba(139, 92, 246, 1), rgba(139, 92, 246, 0.2));
-      box-shadow: 0 0 12px rgba(139, 92, 246, 0.8);
+      background: radial-gradient(circle, rgba(var(--orb-secondary-rgb), 1), rgba(var(--orb-secondary-rgb), 0.2));
+      box-shadow: 0 0 12px rgba(var(--orb-secondary-rgb), 0.8);
     }
 
     .orb-particle-3 {
       animation: orbit3 3s linear infinite;
-      background: radial-gradient(circle, rgba(236, 72, 153, 1), rgba(236, 72, 153, 0.2));
-      box-shadow: 0 0 12px rgba(236, 72, 153, 0.8);
+      background: radial-gradient(circle, rgba(var(--orb-tertiary-rgb), 1), rgba(var(--orb-tertiary-rgb), 0.2));
+      box-shadow: 0 0 12px rgba(var(--orb-tertiary-rgb), 0.8);
     }
 
     .orb-particle-4 {
@@ -260,7 +260,7 @@ export const AudioOrbStyles = () => `
       border-radius: 50%;
       background:
         radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), transparent 50%),
-        linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(139, 92, 246, 0.2));
+        linear-gradient(135deg, rgba(var(--orb-primary-rgb), 0.2), rgba(var(--orb-secondary-rgb), 0.2));
       border: 3px solid rgba(255, 255, 255, 0.25);
       display: flex;
       align-items: center;
@@ -271,7 +271,7 @@ export const AudioOrbStyles = () => `
       box-shadow:
         0 10px 40px rgba(0, 0, 0, 0.6),
         0 0 0 1px rgba(255, 255, 255, 0.15) inset,
-        0 0 30px rgba(6, 182, 212, 0.3),
+        0 0 30px rgba(var(--orb-primary-rgb), 0.3),
         inset 0 -20px 40px rgba(0, 0, 0, 0.2);
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       overflow: hidden;
@@ -284,9 +284,9 @@ export const AudioOrbStyles = () => `
       background: conic-gradient(
         from 0deg,
         transparent 0%,
-        rgba(6, 182, 212, 0.3) 25%,
+        rgba(var(--orb-primary-rgb), 0.3) 25%,
         transparent 50%,
-        rgba(139, 92, 246, 0.3) 75%,
+        rgba(var(--orb-secondary-rgb), 0.3) 75%,
         transparent 100%
       );
       animation: rotate 8s linear infinite;
@@ -299,12 +299,12 @@ export const AudioOrbStyles = () => `
     }
 
     .audio-orb:hover .orb-core {
-      border-color: rgba(6, 182, 212, 0.6);
+      border-color: rgba(var(--orb-primary-rgb), 0.6);
       box-shadow:
         0 15px 50px rgba(0, 0, 0, 0.7),
         0 0 0 1px rgba(255, 255, 255, 0.2) inset,
-        0 0 50px rgba(6, 182, 212, 0.5),
-        0 0 80px rgba(139, 92, 246, 0.3),
+        0 0 50px rgba(var(--orb-primary-rgb), 0.5),
+        0 0 80px rgba(var(--orb-secondary-rgb), 0.3),
         inset 0 -20px 40px rgba(0, 0, 0, 0.2);
       transform: translateZ(10px);
     }
@@ -312,13 +312,13 @@ export const AudioOrbStyles = () => `
     .audio-orb.playing .orb-core {
       background:
         radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent 50%),
-        linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(139, 92, 246, 0.35));
-      border-color: rgba(6, 182, 212, 0.8);
+        linear-gradient(135deg, rgba(var(--orb-primary-rgb), 0.35), rgba(var(--orb-secondary-rgb), 0.35));
+      border-color: rgba(var(--orb-primary-rgb), 0.8);
       box-shadow:
         0 15px 50px rgba(0, 0, 0, 0.7),
         0 0 0 1px rgba(255, 255, 255, 0.25) inset,
-        0 0 60px rgba(6, 182, 212, 0.6),
-        0 0 100px rgba(139, 92, 246, 0.4),
+        0 0 60px rgba(var(--orb-primary-rgb), 0.6),
+        0 0 100px rgba(var(--orb-secondary-rgb), 0.4),
         inset 0 -20px 40px rgba(0, 0, 0, 0.2);
     }
 
@@ -345,17 +345,17 @@ export const AudioOrbStyles = () => `
       position: absolute;
       inset: -5px;
       border-radius: 50%;
-      border: 3px solid rgba(6, 182, 212, 0.4);
+      border: 3px solid rgba(var(--orb-primary-rgb), 0.4);
       opacity: 0;
       z-index: 1;
     }
 
     .orb-ripple-2 {
-      border-color: rgba(139, 92, 246, 0.4);
+      border-color: rgba(var(--orb-secondary-rgb), 0.4);
     }
 
     .orb-ripple-3 {
-      border-color: rgba(236, 72, 153, 0.4);
+      border-color: rgba(var(--orb-tertiary-rgb), 0.4);
     }
 
     .audio-orb.playing .orb-ripple {
@@ -379,7 +379,7 @@ export const AudioOrbStyles = () => `
       text-align: center;
       letter-spacing: 1px;
       text-transform: uppercase;
-      background: linear-gradient(135deg, rgba(6, 182, 212, 1), rgba(139, 92, 246, 1));
+      background: linear-gradient(135deg, rgba(var(--orb-primary-rgb), 1), rgba(var(--orb-secondary-rgb), 1));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
