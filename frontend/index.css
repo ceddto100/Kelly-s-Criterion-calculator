@@ -27,6 +27,17 @@
   --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
   --primary-accent: #4f46e5;
 
+  --surface-1: color-mix(in srgb, var(--background-secondary) 84%, #ffffff 16%);
+  --surface-2: color-mix(in srgb, var(--background-secondary) 78%, #ffffff 22%);
+  --surface-strong: color-mix(in srgb, var(--background-secondary) 72%, #ffffff 28%);
+  --border-subtle: color-mix(in srgb, var(--accent-electric) 24%, rgba(255, 255, 255, 0.18));
+  --border-strong: color-mix(in srgb, var(--accent-violet) 24%, rgba(255, 255, 255, 0.28));
+  --control-focus: color-mix(in srgb, var(--accent-electric) 65%, var(--accent-violet) 35%);
+  --shadow-strong: 0 18px 50px rgba(var(--accent-electric-rgb), 0.26), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+
+  --button-primary: linear-gradient(135deg, var(--accent-cyan), var(--accent-electric), var(--accent-violet));
+  --button-glow: 0 14px 32px rgba(var(--accent-electric-rgb), 0.35);
+
   /* Orb Accent Colors */
   --orb-primary: #0ea5e9;
   --orb-primary-rgb: 14, 165, 233;
@@ -56,44 +67,6 @@
   --warning-color: #f59e0b;
 }
 
-:root[data-theme='aurora'] {
-  --background-color: #030712;
-  --background-secondary: #0b1224;
-  --accent-cyan: #22d3ee;
-  --accent-cyan-rgb: 34, 211, 238;
-  --accent-electric: #60a5fa;
-  --accent-electric-rgb: 96, 165, 250;
-  --accent-violet: #a855f7;
-  --accent-violet-rgb: 168, 85, 247;
-  --accent-gradient: linear-gradient(135deg, #22d3ee 0%, #60a5fa 50%, #a855f7 100%);
-  --primary-accent: #22c55e;
-  --orb-primary: #22d3ee;
-  --orb-primary-rgb: 34, 211, 238;
-  --orb-secondary: #a855f7;
-  --orb-secondary-rgb: 168, 85, 247;
-  --orb-tertiary: #7dd3fc;
-  --orb-tertiary-rgb: 125, 211, 252;
-}
-
-:root[data-theme='ember'] {
-  --background-color: #0f0a06;
-  --background-secondary: #170f0b;
-  --accent-cyan: #fb923c;
-  --accent-cyan-rgb: 251, 146, 60;
-  --accent-electric: #f97316;
-  --accent-electric-rgb: 249, 115, 22;
-  --accent-violet: #f59e0b;
-  --accent-violet-rgb: 245, 158, 11;
-  --accent-gradient: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #f59e0b 100%);
-  --primary-accent: #ea580c;
-  --orb-primary: #fb923c;
-  --orb-primary-rgb: 251, 146, 60;
-  --orb-secondary: #f59e0b;
-  --orb-secondary-rgb: 245, 158, 11;
-  --orb-tertiary: #fbbf24;
-  --orb-tertiary-rgb: 251, 191, 36;
-}
-
 :root[data-theme='deep-sea'] {
   --background-color: #020813;
   --background-secondary: #031423;
@@ -111,6 +84,25 @@
   --orb-secondary-rgb: 34, 211, 238;
   --orb-tertiary: #2dd4bf;
   --orb-tertiary-rgb: 45, 212, 191;
+}
+
+:root[data-theme='crimson'] {
+  --background-color: #0b0509;
+  --background-secondary: #14070f;
+  --accent-cyan: #f43f5e;
+  --accent-cyan-rgb: 244, 63, 94;
+  --accent-electric: #fb7185;
+  --accent-electric-rgb: 251, 113, 133;
+  --accent-violet: #e11d48;
+  --accent-violet-rgb: 225, 29, 72;
+  --accent-gradient: linear-gradient(135deg, #f43f5e 0%, #fb7185 50%, #e11d48 100%);
+  --primary-accent: #fb7185;
+  --orb-primary: #fb7185;
+  --orb-primary-rgb: 251, 113, 133;
+  --orb-secondary: #f43f5e;
+  --orb-secondary-rgb: 244, 63, 94;
+  --orb-tertiary: #f472b6;
+  --orb-tertiary-rgb: 244, 114, 182;
 }
 
 /* ==================== GLOBAL RESETS ==================== */
@@ -145,6 +137,10 @@ body {
   -webkit-overflow-scrolling: touch;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body, button, input, select, textarea, .panel, .tab, .doc-toggle, .auth-btn, .user-info, .quick-examples, .chat-messages, .history-item {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 /* ==================== BACKGROUND & ATMOSPHERE ==================== */

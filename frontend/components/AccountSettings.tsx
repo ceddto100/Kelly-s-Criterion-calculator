@@ -11,7 +11,7 @@ interface AccountSettingsProps {
   onLogout: () => void;
   onLogin: () => void;
   theme: string;
-  themeOptions: { key: string; label: string; description: string; accent: string }[];
+  themeOptions: { key: string; label: string; description: string; accent: string; preview?: string }[];
   onThemeChange: (theme: string) => void;
 }
 
@@ -88,33 +88,40 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
             </div>
             <div style={styles.comingSoon}>Coming Soon</div>
           </div>
-          <div style={styles.preferenceItem}>
+          <div style={{ ...styles.preferenceItem, flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
             <div>
               <div style={styles.preferenceLabel}>Theme</div>
               <div style={styles.preferenceDescription}>
-                Swap the UI glow and orb accents
+                Choose the glow you want across the app
               </div>
             </div>
-            <div style={styles.themeControl}>
-              <select
-                value={theme}
-                onChange={(e) => onThemeChange(e.target.value)}
-                style={styles.themeSelect}
-                aria-label="Select theme"
-              >
-                {themeOptions.map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <div style={{
-                ...styles.themeBadge,
-                borderColor: activeTheme?.accent || '#06b6d4',
-                color: activeTheme?.accent || '#06b6d4',
-              }}>
-                {activeTheme?.description}
-              </div>
+            <div style={styles.themeGrid}>
+              {themeOptions.map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => onThemeChange(option.key)}
+                  style={{
+                    ...styles.themeButton,
+                    ...(theme === option.key ? styles.themeButtonActive : {}),
+                    background: option.preview || 'var(--surface-1)',
+                  }}
+                  aria-label={`Activate ${option.label} theme`}
+                  aria-pressed={theme === option.key}
+                >
+                  <div style={styles.themeButtonText}>
+                    <span style={styles.themeTitle}>{option.label}</span>
+                    <span style={styles.themeSub}>{option.description}</span>
+                  </div>
+                  <div style={{
+                    ...styles.themeSwatch,
+                    boxShadow: theme === option.key
+                      ? '0 0 0 2px var(--control-focus), 0 10px 20px rgba(0,0,0,0.35)'
+                      : '0 6px 16px rgba(0,0,0,0.25)',
+                    borderColor: theme === option.key ? 'var(--control-focus)' : 'var(--border-strong)',
+                    background: option.preview || 'var(--accent-gradient)',
+                  }} />
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -139,18 +146,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     paddingBottom: '100px',
   },
   card: {
-    background: 'rgba(255, 255, 255, 0.1)',
+    background: 'var(--surface-2)',
     backdropFilter: 'blur(10px)',
     borderRadius: '20px',
     padding: '30px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+    border: '1px solid var(--border-strong)',
+    boxShadow: 'var(--shadow-strong)',
   },
   title: {
     fontSize: '28px',
     fontWeight: 'bold',
     marginBottom: '30px',
-    background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+    background: 'var(--accent-gradient)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
@@ -164,7 +171,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '20px',
   },
   message: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'var(--text-secondary)',
     fontSize: '16px',
     marginBottom: '30px',
   },
@@ -176,12 +183,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '0.95rem',
     fontWeight: '600',
     color: '#fff',
-    background: 'linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6)',
+    background: 'var(--accent-gradient)',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
     transition: '0.2s ease',
-    boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2) inset',
+    boxShadow: '0 6px 20px rgba(var(--accent-electric-rgb), 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12) inset',
     backdropFilter: 'blur(5px)',
     textDecoration: 'none',
   },
@@ -191,16 +198,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'center',
     marginBottom: '30px',
     padding: '30px 20px',
-    background: 'rgba(255, 255, 255, 0.05)',
+    background: 'var(--surface-1)',
     borderRadius: '16px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid var(--border-subtle)',
   },
   avatar: {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    border: '3px solid rgba(168, 85, 247, 0.5)',
-    boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
+    border: '3px solid color-mix(in srgb, var(--accent-violet) 50%, transparent)',
+    boxShadow: '0 4px 15px rgba(var(--accent-electric-rgb), 0.25)',
   },
   section: {
     marginBottom: '30px',
@@ -208,7 +215,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   sectionTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    color: 'white',
+    color: 'var(--text-primary)',
     marginBottom: '15px',
   },
   infoGrid: {
@@ -219,16 +226,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     justifyContent: 'space-between',
     padding: '15px',
-    background: 'rgba(255, 255, 255, 0.05)',
+    background: 'var(--surface-1)',
     borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid var(--border-subtle)',
   },
   infoLabel: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'var(--text-muted)',
     fontSize: '14px',
   },
   infoValue: {
-    color: 'white',
+    color: 'var(--text-primary)',
     fontSize: '14px',
     fontWeight: '500',
   },
@@ -237,64 +244,86 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '15px',
-    background: 'rgba(255, 255, 255, 0.05)',
+    background: 'var(--surface-1)',
     borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid var(--border-subtle)',
     marginBottom: '10px',
   },
   preferenceLabel: {
-    color: 'white',
+    color: 'var(--text-primary)',
     fontSize: '16px',
     fontWeight: '500',
     marginBottom: '5px',
   },
   preferenceDescription: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'var(--text-secondary)',
     fontSize: '13px',
   },
   comingSoon: {
     padding: '6px 12px',
-    background: 'rgba(168, 85, 247, 0.2)',
-    color: '#a855f7',
+    background: 'color-mix(in srgb, var(--accent-violet) 25%, transparent)',
+    color: 'var(--accent-violet)',
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: '600',
   },
-  themeControl: {
+  themeGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '10px',
+    width: '100%',
+  },
+  themeButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    padding: '12px 14px',
+    borderRadius: '14px',
+    border: '1px solid var(--border-subtle)',
+    color: 'var(--text-primary)',
+    background: 'var(--surface-1)',
+    cursor: 'pointer',
+    transition: 'all 0.35s ease',
+    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.22)',
+  },
+  themeButtonActive: {
+    border: '1px solid var(--control-focus)',
+    boxShadow: '0 10px 30px rgba(var(--accent-electric-rgb), 0.35)',
+    color: 'var(--text-primary)',
+  },
+  themeButtonText: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
-    minWidth: '180px',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
+    gap: '4px',
+    textAlign: 'left',
   },
-  themeSelect: {
-    background: 'rgba(255, 255, 255, 0.08)',
-    color: 'white',
-    borderRadius: '10px',
-    padding: '10px 12px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    fontWeight: 600,
-    cursor: 'pointer',
+  themeTitle: {
+    fontWeight: 700,
+    fontSize: '15px',
   },
-  themeBadge: {
-    padding: '6px 10px',
-    borderRadius: '10px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    background: 'rgba(255, 255, 255, 0.04)',
+  themeSub: {
     fontSize: '12px',
-    fontWeight: 600,
-    textAlign: 'right',
-    minWidth: '180px',
+    color: 'var(--text-secondary)',
+  },
+  themeSwatch: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '12px',
+    border: '1px solid var(--border-strong)',
+    flexShrink: 0,
+    transition: 'all 0.35s ease',
   },
   dangerZone: {
     marginTop: '40px',
     paddingTop: '30px',
-    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    borderTop: '1px solid var(--border-subtle)',
   },
   dangerTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    color: 'white',
+    color: 'var(--text-primary)',
     marginBottom: '15px',
   },
   logoutButton: {
@@ -304,8 +333,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '12px 24px',
     fontSize: '16px',
     fontWeight: '600',
-    color: 'white',
-    background: 'rgba(239, 68, 68, 0.8)',
+    color: 'var(--text-primary)',
+    background: 'color-mix(in srgb, var(--danger-color) 40%, transparent)',
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',

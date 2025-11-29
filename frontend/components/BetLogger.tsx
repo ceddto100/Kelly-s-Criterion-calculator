@@ -764,7 +764,7 @@ export const BetLoggerStyles = `
     color: rgba(255, 255, 255, 1);
     font-size: 1.5rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    background: var(--accent-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -967,7 +967,7 @@ export const BetLoggerStyles = `
     margin: 0 0 1.25rem;
     font-size: 1.1rem;
     font-weight: 700;
-    color: #06b6d4;
+    color: var(--accent-cyan);
   }
   /* Better spacing on mobile */
   @media (max-width: 640px) {
@@ -1078,7 +1078,7 @@ export const BetLoggerStyles = `
   .export-btn {
     margin-left: auto;
     padding: .5rem 1rem;
-    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    background: var(--accent-gradient);
     border: none;
     color: rgba(255, 255, 255, 1);
     border-radius: 10px;
@@ -1148,7 +1148,7 @@ export const BetLoggerStyles = `
       -4px 0 12px rgba(245, 158, 11, 0.15);
   }
   .bet-card.pending {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--accent-electric);
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.2),
       -4px 0 12px rgba(59, 130, 246, 0.15);
@@ -1235,7 +1235,7 @@ export const BetLoggerStyles = `
   }
   .bet-status.pending {
     background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    color: var(--accent-electric);
     border: 1px solid rgba(59, 130, 246, 0.3);
   }
   .bet-status.win {
