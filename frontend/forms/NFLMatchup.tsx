@@ -318,18 +318,18 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
 **${teamA.team} vs ${teamB.team}**
 
 **${teamA.team} (${teamA.abbreviation})**
-• Points Per Game: ${teamA.ppg.toFixed(1)}
-• Points Allowed: ${teamA.allowed.toFixed(1)}
-• Offensive Yards/Game: ${teamA.off_yards.toFixed(1)}
-• Defensive Yards Allowed: ${teamA.def_yards.toFixed(1)}
-• Turnover Differential: ${formatSign(teamA.turnover_diff)}
+• PPG: ${teamA.ppg.toFixed(1)}
+• PA: ${teamA.allowed.toFixed(1)}
+• Off Yds: ${teamA.off_yards.toFixed(1)}
+• Def Yds: ${teamA.def_yards.toFixed(1)}
+• TO: ${formatSign(teamA.turnover_diff)}
 
 **${teamB.team} (${teamB.abbreviation})**
-• Points Per Game: ${teamB.ppg.toFixed(1)}
-• Points Allowed: ${teamB.allowed.toFixed(1)}
-• Offensive Yards/Game: ${teamB.off_yards.toFixed(1)}
-• Defensive Yards Allowed: ${teamB.def_yards.toFixed(1)}
-• Turnover Differential: ${formatSign(teamB.turnover_diff)}
+• PPG: ${teamB.ppg.toFixed(1)}
+• PA: ${teamB.allowed.toFixed(1)}
+• Off Yds: ${teamB.off_yards.toFixed(1)}
+• Def Yds: ${teamB.def_yards.toFixed(1)}
+• TO: ${formatSign(teamB.turnover_diff)}
 `;
 
       const assistantMessage: Message = {

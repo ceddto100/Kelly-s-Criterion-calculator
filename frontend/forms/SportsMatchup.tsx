@@ -134,18 +134,18 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
 **${data.teamA} vs ${data.teamB}**
 
 **${data.stats.teamA.team || teams.teamA}**
-• Points Per Game: ${data.stats.teamA.points_per_game?.toFixed(1) || 'N/A'}
-• Points Allowed: ${data.stats.teamA.points_allowed?.toFixed(1) || 'N/A'}
-• Field Goal %: ${data.stats.teamA.field_goal_pct?.toFixed(1) || 'N/A'}%
-• Rebound Margin: ${data.stats.teamA.rebound_margin !== null ? (data.stats.teamA.rebound_margin > 0 ? '+' : '') + data.stats.teamA.rebound_margin?.toFixed(1) : 'N/A'}
-• Turnover Margin: ${data.stats.teamA.turnover_margin !== null ? (data.stats.teamA.turnover_margin > 0 ? '+' : '') + data.stats.teamA.turnover_margin?.toFixed(1) : 'N/A'}
+• PPG: ${data.stats.teamA.points_per_game?.toFixed(1) || 'N/A'}
+• PA: ${data.stats.teamA.points_allowed?.toFixed(1) || 'N/A'}
+• FG%: ${data.stats.teamA.field_goal_pct?.toFixed(1) || 'N/A'}%
+• REB: ${data.stats.teamA.rebound_margin !== null ? (data.stats.teamA.rebound_margin > 0 ? '+' : '') + data.stats.teamA.rebound_margin?.toFixed(1) : 'N/A'}
+• TO: ${data.stats.teamA.turnover_margin !== null ? (data.stats.teamA.turnover_margin > 0 ? '+' : '') + data.stats.teamA.turnover_margin?.toFixed(1) : 'N/A'}
 
 **${data.stats.teamB.team || teams.teamB}**
-• Points Per Game: ${data.stats.teamB.points_per_game?.toFixed(1) || 'N/A'}
-• Points Allowed: ${data.stats.teamB.points_allowed?.toFixed(1) || 'N/A'}
-• Field Goal %: ${data.stats.teamB.field_goal_pct?.toFixed(1) || 'N/A'}%
-• Rebound Margin: ${data.stats.teamB.rebound_margin !== null ? (data.stats.teamB.rebound_margin > 0 ? '+' : '') + data.stats.teamB.rebound_margin?.toFixed(1) : 'N/A'}
-• Turnover Margin: ${data.stats.teamB.turnover_margin !== null ? (data.stats.teamB.turnover_margin > 0 ? '+' : '') + data.stats.teamB.turnover_margin?.toFixed(1) : 'N/A'}
+• PPG: ${data.stats.teamB.points_per_game?.toFixed(1) || 'N/A'}
+• PA: ${data.stats.teamB.points_allowed?.toFixed(1) || 'N/A'}
+• FG%: ${data.stats.teamB.field_goal_pct?.toFixed(1) || 'N/A'}%
+• REB: ${data.stats.teamB.rebound_margin !== null ? (data.stats.teamB.rebound_margin > 0 ? '+' : '') + data.stats.teamB.rebound_margin?.toFixed(1) : 'N/A'}
+• TO: ${data.stats.teamB.turnover_margin !== null ? (data.stats.teamB.turnover_margin > 0 ? '+' : '') + data.stats.teamB.turnover_margin?.toFixed(1) : 'N/A'}
 ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
 `;
 
