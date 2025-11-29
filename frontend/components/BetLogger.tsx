@@ -725,6 +725,7 @@ export const BetLoggerStyles = `
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 2rem;
+    padding-bottom: calc(2rem + 120px);
     max-width: 520px;
     width: 100%;
     max-height: 90vh;
@@ -748,6 +749,7 @@ export const BetLoggerStyles = `
       min-height: 100vh;
       border-radius: 0;
       padding: 1.5rem 1rem;
+      padding-bottom: calc(1.5rem + 120px);
       display: flex;
       flex-direction: column;
     }
