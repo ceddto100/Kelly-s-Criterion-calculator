@@ -1770,9 +1770,8 @@ function App() {
           )}
           {activeTab === CONSTANTS.TABS.MATCHUP && (
             <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
+              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}> 
                 <SportsMatchup
-                  backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'}
                   onTransferToEstimator={handleTransferToEstimator}
                 />
               </Suspense>

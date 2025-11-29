@@ -4,15 +4,44 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 
+interface NBATeamStats {
+  team: string;
+  abbreviation: string;
+  points_per_game: number;
+  points_allowed: number;
+  field_goal_pct: number;
+  rebound_margin: number;
+  turnover_margin: number;
+}
+
+// Parse CSV string into array of objects
+function parseCsv(csv: string): Record<string, string | number>[] {
+  const lines = csv.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/\"/g, '').trim());
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.replace(/\"/g, '').trim());
+    const obj: Record<string, string | number> = {};
+    headers.forEach((h, i) => {
+      const val = values[i];
+      const num = parseFloat(val);
+      obj[h] = isNaN(num) ? val : num;
+    });
+    return obj;
+  });
+}
+
 interface Message {
   id: number;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  stats?: any;
+  stats?: {
+    teamA: NBATeamStats;
+    teamB: NBATeamStats;
+  };
   suggestions?: {
-    teamA?: Array<{ team: string; abbreviation: string }>;
-    teamB?: Array<{ team: string; abbreviation: string }>;
+    teamA?: NBATeamStats[];
+    teamB?: NBATeamStats[];
   };
   notFound?: {
     teamA?: string | null;
@@ -21,11 +50,13 @@ interface Message {
 }
 
 interface SportsMatchupProps {
-  backendUrl: string;
   onTransferToEstimator?: (matchupData: any) => void;
 }
 
-export default function SportsMatchup({ backendUrl, onTransferToEstimator }: SportsMatchupProps) {
+export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupProps) {
+  const [nbaTeams, setNbaTeams] = useState<NBATeamStats[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -45,6 +76,139 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load NBA stats from public CSV files
+  useEffect(() => {
+    async function loadNBAData() {
+      try {
+        const [ppgRes, allowedRes, fgRes, reboundRes, turnoverRes] = await Promise.all([
+          fetch('/stats/ppg.csv'),
+          fetch('/stats/allowed.csv'),
+          fetch('/stats/fieldgoal.csv'),
+          fetch('/stats/rebound_margin.csv'),
+          fetch('/stats/turnover_margin.csv'),
+        ]);
+
+        if (!ppgRes.ok) throw new Error(`Failed to fetch PPG stats: ${ppgRes.status}`);
+        if (!allowedRes.ok) throw new Error(`Failed to fetch Allowed stats: ${allowedRes.status}`);
+        if (!fgRes.ok) throw new Error(`Failed to fetch FG% stats: ${fgRes.status}`);
+        if (!reboundRes.ok) throw new Error(`Failed to fetch Rebound stats: ${reboundRes.status}`);
+        if (!turnoverRes.ok) throw new Error(`Failed to fetch Turnover stats: ${turnoverRes.status}`);
+
+        const [ppgCsv, allowedCsv, fgCsv, reboundCsv, turnoverCsv] = await Promise.all([
+          ppgRes.text(),
+          allowedRes.text(),
+          fgRes.text(),
+          reboundRes.text(),
+          turnoverRes.text(),
+        ]);
+
+        const ppgData = parseCsv(ppgCsv);
+        const allowedData = parseCsv(allowedCsv);
+        const fgData = parseCsv(fgCsv);
+        const reboundData = parseCsv(reboundCsv);
+        const turnoverData = parseCsv(turnoverCsv);
+
+        const allowedMap = new Map(allowedData.map(d => [d.abbreviation, d.allowed]));
+        const fgMap = new Map(fgData.map(d => [d.abbreviation, d.fg_pct]));
+        const reboundMap = new Map(reboundData.map(d => [d.abbreviation, d.rebound_margin]));
+        const turnoverMap = new Map(turnoverData.map(d => [d.abbreviation, d.turnover_margin]));
+
+        const teams = ppgData.map(team => ({
+          team: team.team as string,
+          abbreviation: team.abbreviation as string,
+          points_per_game: team.ppg as number,
+          points_allowed: (allowedMap.get(team.abbreviation) as number) ?? 0,
+          field_goal_pct: (fgMap.get(team.abbreviation) as number) ?? 0,
+          rebound_margin: (reboundMap.get(team.abbreviation) as number) ?? 0,
+          turnover_margin: (turnoverMap.get(team.abbreviation) as number) ?? 0,
+        }));
+
+        setNbaTeams(teams);
+        setDataLoaded(true);
+        setLoadError(null);
+      } catch (error: any) {
+        console.error('Failed to load NBA stats', error);
+        setLoadError(error.message || 'Unable to load NBA stats');
+        setDataLoaded(false);
+      }
+    }
+
+    loadNBAData();
+  }, []);
+
+  // Simple string similarity calculator (Levenshtein-inspired)
+  const calculateSimilarity = (str1: string, str2: string): number => {
+    const s1 = str1.toLowerCase();
+    const s2 = str2.toLowerCase();
+
+    if (s1 === s2) return 1;
+    if (s1.includes(s2) || s2.includes(s1)) return 0.8;
+
+    const len1 = s1.length;
+    const len2 = s2.length;
+    let matches = 0;
+
+    for (let i = 0; i < Math.min(len1, len2); i++) {
+      if (s1[i] === s2[i]) matches++;
+    }
+
+    return matches / Math.max(len1, len2);
+  };
+
+  const getSuggestions = (query: string): NBATeamStats[] => {
+    const normalizedQuery = query.toLowerCase().trim();
+
+    const scored = nbaTeams.map(team => {
+      const teamNameSimilarity = calculateSimilarity(normalizedQuery, team.team);
+      const lastWord = team.team.split(' ').pop() || '';
+      const lastWordSimilarity = calculateSimilarity(normalizedQuery, lastWord);
+      const abbrevSimilarity = calculateSimilarity(normalizedQuery, team.abbreviation);
+
+      const maxSimilarity = Math.max(teamNameSimilarity, lastWordSimilarity, abbrevSimilarity);
+
+      return { team, similarity: maxSimilarity };
+    });
+
+    return scored
+      .sort((a, b) => b.similarity - a.similarity)
+      .map(item => item.team);
+  };
+
+  const findTeam = (query: string): NBATeamStats | null => {
+    const normalizedQuery = query.toLowerCase().trim();
+
+    const abbrevMatch = nbaTeams.find(t => t.abbreviation.toLowerCase() === normalizedQuery);
+    if (abbrevMatch) return abbrevMatch;
+
+    const nameMatch = nbaTeams.find(t =>
+      t.team.toLowerCase().includes(normalizedQuery) ||
+      normalizedQuery.includes(t.team.split(' ').pop()?.toLowerCase() || '')
+    );
+    if (nameMatch) return nameMatch;
+
+    const fuzzyMatches: { [key: string]: string } = {
+      'dubs': 'GSW',
+      'warriors': 'GSW',
+      'celts': 'BOS',
+      'sixers': 'PHI',
+      'lakers': 'LAL',
+      'clips': 'LAC',
+      'knicks': 'NYK',
+      'nets': 'BKN',
+      'spurs': 'SAS',
+      'pels': 'NOP',
+    };
+
+    const fuzzyKey = Object.keys(fuzzyMatches).find(k => normalizedQuery.includes(k));
+    if (fuzzyKey) {
+      return nbaTeams.find(t => t.abbreviation === fuzzyMatches[fuzzyKey]) || null;
+    }
+
+    return null;
+  };
+
+  const formatSign = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
 
   const parseTeamInput = (input: string): { teamA: string; teamB: string } | null => {
     // Normalize whitespace
@@ -84,7 +248,7 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !dataLoaded) return;
 
     const userMessage: Message = {
       id: Date.now(),
@@ -101,7 +265,6 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
       const teams = parseTeamInput(userMessage.content);
 
       if (!teams) {
-        // If we can't parse, provide helpful feedback
         const errorMessage: Message = {
           id: Date.now() + 1,
           role: 'assistant',
@@ -113,66 +276,74 @@ export default function SportsMatchup({ backendUrl, onTransferToEstimator }: Spo
         return;
       }
 
-      // Fetch matchup analysis
-      const response = await fetch(
-        `${backendUrl}/api/analyze?teamA=${encodeURIComponent(teams.teamA)}&teamB=${encodeURIComponent(teams.teamB)}`
-      );
+      const teamA = findTeam(teams.teamA);
+      const teamB = findTeam(teams.teamB);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        const error: any = new Error(errorData.error || 'Failed to fetch matchup data');
-        // Attach suggestions and other metadata to the error object
-        error.suggestions = errorData.suggestions;
-        error.notFound = errorData.notFound;
-        throw error;
+      if (!teamA || !teamB) {
+        const suggestions: Message['suggestions'] = {};
+        const notFound: Message['notFound'] = {};
+
+        if (!teamA) {
+          suggestions.teamA = getSuggestions(teams.teamA).slice(0, 3);
+          notFound.teamA = teams.teamA;
+        }
+        if (!teamB) {
+          suggestions.teamB = getSuggestions(teams.teamB).slice(0, 3);
+          notFound.teamB = teams.teamB;
+        }
+
+        const missingTeams = [
+          !teamA ? `"${teams.teamA}"` : null,
+          !teamB ? `"${teams.teamB}"` : null,
+        ].filter(Boolean).join(' and ');
+
+        const errorMessage: Message = {
+          id: Date.now() + 2,
+          role: 'assistant',
+          content: `I couldn't find stats for ${missingTeams}.\n\nTry selecting from the suggestions below or check the spelling.`,
+          timestamp: Date.now(),
+          suggestions,
+          notFound,
+        };
+
+        setMessages(prev => [...prev, errorMessage]);
+        setIsLoading(false);
+        return;
       }
 
-      const data = await response.json();
-
-      // Format the response with stats and analysis
       const statsText = `
-**${data.teamA} vs ${data.teamB}**
+**${teamA.team} vs ${teamB.team}**
 
-**${data.stats.teamA.team || teams.teamA}**
-• PPG: ${data.stats.teamA.points_per_game?.toFixed(1) || 'N/A'}
-• PA: ${data.stats.teamA.points_allowed?.toFixed(1) || 'N/A'}
-• FG%: ${data.stats.teamA.field_goal_pct?.toFixed(1) || 'N/A'}%
-• REB: ${data.stats.teamA.rebound_margin !== null ? (data.stats.teamA.rebound_margin > 0 ? '+' : '') + data.stats.teamA.rebound_margin?.toFixed(1) : 'N/A'}
-• TO: ${data.stats.teamA.turnover_margin !== null ? (data.stats.teamA.turnover_margin > 0 ? '+' : '') + data.stats.teamA.turnover_margin?.toFixed(1) : 'N/A'}
+**${teamA.team} (${teamA.abbreviation})**
+• PPG: ${teamA.points_per_game.toFixed(1)}
+• PA: ${teamA.points_allowed.toFixed(1)}
+• FG%: ${teamA.field_goal_pct.toFixed(1)}%
+• REB: ${formatSign(teamA.rebound_margin)}
+• TO: ${formatSign(teamA.turnover_margin)}
 
-**${data.stats.teamB.team || teams.teamB}**
-• PPG: ${data.stats.teamB.points_per_game?.toFixed(1) || 'N/A'}
-• PA: ${data.stats.teamB.points_allowed?.toFixed(1) || 'N/A'}
-• FG%: ${data.stats.teamB.field_goal_pct?.toFixed(1) || 'N/A'}%
-• REB: ${data.stats.teamB.rebound_margin !== null ? (data.stats.teamB.rebound_margin > 0 ? '+' : '') + data.stats.teamB.rebound_margin?.toFixed(1) : 'N/A'}
-• TO: ${data.stats.teamB.turnover_margin !== null ? (data.stats.teamB.turnover_margin > 0 ? '+' : '') + data.stats.teamB.turnover_margin?.toFixed(1) : 'N/A'}
-${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
+**${teamB.team} (${teamB.abbreviation})**
+• PPG: ${teamB.points_per_game.toFixed(1)}
+• PA: ${teamB.points_allowed.toFixed(1)}
+• FG%: ${teamB.field_goal_pct.toFixed(1)}%
+• REB: ${formatSign(teamB.rebound_margin)}
+• TO: ${formatSign(teamB.turnover_margin)}
 `;
 
       const assistantMessage: Message = {
-        id: Date.now() + 2,
+        id: Date.now() + 3,
         role: 'assistant',
         content: statsText,
         timestamp: Date.now(),
-        stats: data.stats
+        stats: { teamA, teamB }
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
-      // Check if error response contains suggestions
-      let errorContent = `⚠️ Error: ${error.message}`;
-
-      if (!error.suggestions) {
-        errorContent += `\n\nPlease make sure:\n• The team names are spelled correctly\n• You're using current NBA teams\n• The backend server is running\n\nTry teams like: Lakers, Warriors, Celtics, Heat, Bucks, Nets, etc.`;
-      }
-
       const errorMessage: Message = {
-        id: Date.now() + 3,
+        id: Date.now() + 4,
         role: 'assistant',
-        content: errorContent,
-        timestamp: Date.now(),
-        suggestions: error.suggestions,
-        notFound: error.notFound
+        content: `⚠️ Error: ${error.message || 'Something went wrong while loading the matchup.'}`,
+        timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -194,6 +365,30 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
       }
     ]);
   };
+
+  if (loadError) {
+    return (
+      <div className="sports-matchup-container">
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+          <p>Failed to load NBA stats: {loadError}</p>
+          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>
+            Make sure the CSV files exist in the public/stats folder.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dataLoaded) {
+    return (
+      <div className="sports-matchup-container">
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <span className="loading-spinner" style={{ marginRight: '.5rem' }}></span>
+          Loading NBA team stats...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sports-matchup-container">
@@ -311,7 +506,7 @@ ${data.analysis ? '\n**AI Analysis:**\n' + data.analysis : ''}
             </div>
             <div className="message-content">
               <span className="loading-spinner"></span>
-              Analyzing matchup and fetching live stats from ESPN...
+              Loading matchup stats from local CSV files...
             </div>
           </div>
         )}
