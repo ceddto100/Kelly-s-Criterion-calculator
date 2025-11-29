@@ -29,6 +29,35 @@ import { StatsPage } from './components/StatsPage';
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
+const THEME_OPTIONS = [
+  {
+    key: 'midnight',
+    label: 'Midnight Neon',
+    description: 'Cyan + violet glow with the original look',
+    accent: '#8b5cf6',
+  },
+  {
+    key: 'aurora',
+    label: 'Aurora Mist',
+    description: 'Teal and lilac lights with a soft backdrop',
+    accent: '#22d3ee',
+  },
+  {
+    key: 'ember',
+    label: 'Ember Forge',
+    description: 'Warm amber embers and molten accents',
+    accent: '#f97316',
+  },
+  {
+    key: 'deep-sea',
+    label: 'Deep Sea',
+    description: 'Ocean gradients with aqua orbs',
+    accent: '#0ea5e9',
+  },
+] as const;
+
+type ThemeKey = typeof THEME_OPTIONS[number]['key'];
+
 /* =========================== Inline theme tweaks - GLASSMORPHISM =========================== */
 const GlobalStyle = () => (
   <style>{`
@@ -1500,6 +1529,8 @@ function App() {
   const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
   const [probability, setProbability] = useState('60');
 
+  const [theme, setTheme] = useState<ThemeKey>('midnight');
+
   // Probability estimator state
   const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
   const [footballStats, setFootballStats] = useState(initialFootballState);
@@ -1515,6 +1546,19 @@ function App() {
 
   // Documentation visibility
   const [isDocOpen, setIsDocOpen] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem('betgistics-theme') as ThemeKey | null);
+    if (savedTheme && THEME_OPTIONS.some((option) => option.key === savedTheme)) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem('betgistics-theme', theme);
+  }, [theme]);
 
   // NEW: State for bet logging data flow
   const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
@@ -1763,6 +1807,9 @@ function App() {
               user={authUser}
               onLogout={handleLogout}
               onLogin={handleGoogleLogin}
+              theme={theme}
+              themeOptions={THEME_OPTIONS}
+              onThemeChange={(value) => setTheme(value as ThemeKey)}
             />
           )}
 

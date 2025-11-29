@@ -188,10 +188,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: 0,
   },
   dotActive: {
-    background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
+    background: 'var(--accent-gradient)',
     width: '12px',
     height: '12px',
-    boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)',
+    boxShadow: '0 0 10px rgba(var(--orb-primary-rgb), 0.5)',
   },
   hint: {
     color: 'rgba(255, 255, 255, 0.5)',
