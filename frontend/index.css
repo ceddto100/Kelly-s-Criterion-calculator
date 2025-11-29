@@ -125,11 +125,14 @@
 }
 
 html {
-  overflow-x: clip;
+  overflow-x: hidden;
+  overflow-y: auto;
   width: 100%;
+  height: 100%;
   position: relative;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -142,13 +145,16 @@ body {
   min-height: 100vh;
   padding: 2rem 1rem;
   position: relative;
-  overflow-x: clip;
+  overflow-x: hidden;
+  overflow-y: auto;
   width: 100%;
   max-width: 100vw;
   line-height: 1.6;
   -webkit-overflow-scrolling: touch;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
 }
 
 body, button, input, select, textarea, .panel, .tab, .doc-toggle, .auth-btn, .user-info, .quick-examples, .chat-messages, .history-item {
@@ -1381,8 +1387,50 @@ select:focus-visible {
   pointer-events: auto !important;
 }
 
-/* Prevent any parent from hiding the navigation */
-body:has(#bottom-navigation-bar) {
+/* Ensure smooth scrolling while keeping navigation visible */
+html, body {
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain !important;
+}
+
+/* Prevent horizontal overflow only */
+html {
   overflow-x: hidden !important;
   overflow-y: auto !important;
+}
+
+body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* ==================== SMOOTH SCROLLING EVERYWHERE ==================== */
+/* Ensure all scrollable areas scroll smoothly */
+* {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Ensure main content area is scrollable */
+#root {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.page-wrap {
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Ensure scrollable areas remain scrollable */
+.chat-messages,
+.log-bet-content,
+.bet-history-content {
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  overscroll-behavior: contain !important;
 }
