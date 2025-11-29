@@ -12,6 +12,7 @@ const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const SportsMatchup = lazy(() => import("./forms/SportsMatchup"));
 const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
+const NBAMatchup = lazy(() => import("./forms/NBAMatchup"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
@@ -1771,8 +1772,7 @@ function App() {
           {activeTab === CONSTANTS.TABS.MATCHUP && (
             <div className="panel">
               <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
-                <SportsMatchup
-                  backendUrl={BACKEND_URL || 'https://kelly-s-criterion-calculator.onrender.com'}
+                <NBAMatchup
                   onTransferToEstimator={handleTransferToEstimator}
                 />
               </Suspense>
