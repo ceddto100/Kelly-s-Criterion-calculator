@@ -10,12 +10,18 @@ interface AccountSettingsProps {
   user: User | null;
   onLogout: () => void;
   onLogin: () => void;
+  theme: string;
+  themeOptions: { key: string; label: string; description: string; accent: string }[];
+  onThemeChange: (theme: string) => void;
 }
 
 export const AccountSettings: React.FC<AccountSettingsProps> = ({
   user,
   onLogout,
   onLogin,
+  theme,
+  themeOptions,
+  onThemeChange,
 }) => {
   if (!user) {
     return (
@@ -39,6 +45,8 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
       </div>
     );
   }
+
+  const activeTheme = themeOptions.find((option) => option.key === theme);
 
   return (
     <div style={styles.container}>
@@ -82,12 +90,32 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
           </div>
           <div style={styles.preferenceItem}>
             <div>
-              <div style={styles.preferenceLabel}>Dark Mode</div>
+              <div style={styles.preferenceLabel}>Theme</div>
               <div style={styles.preferenceDescription}>
-                Switch between light and dark themes
+                Swap the UI glow and orb accents
               </div>
             </div>
-            <div style={styles.comingSoon}>Coming Soon</div>
+            <div style={styles.themeControl}>
+              <select
+                value={theme}
+                onChange={(e) => onThemeChange(e.target.value)}
+                style={styles.themeSelect}
+                aria-label="Select theme"
+              >
+                {themeOptions.map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div style={{
+                ...styles.themeBadge,
+                borderColor: activeTheme?.accent || '#06b6d4',
+                color: activeTheme?.accent || '#06b6d4',
+              }}>
+                {activeTheme?.description}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -231,6 +259,32 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: '600',
+  },
+  themeControl: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    minWidth: '180px',
+    alignItems: 'flex-end',
+  },
+  themeSelect: {
+    background: 'rgba(255, 255, 255, 0.08)',
+    color: 'white',
+    borderRadius: '10px',
+    padding: '10px 12px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  themeBadge: {
+    padding: '6px 10px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    background: 'rgba(255, 255, 255, 0.04)',
+    fontSize: '12px',
+    fontWeight: 600,
+    textAlign: 'right',
+    minWidth: '180px',
   },
   dangerZone: {
     marginTop: '40px',
