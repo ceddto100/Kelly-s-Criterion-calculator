@@ -1148,10 +1148,11 @@ export const BetLoggerStyles = `
       -4px 0 12px rgba(245, 158, 11, 0.15);
   }
   .bet-card.pending {
-    border-left: 4px solid var(--accent-electric);
+    /* Pending bets stay neutral silver across themes */
+    border-left: 4px solid #c0c0c0;
     box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.2),
-      -4px 0 12px rgba(59, 130, 246, 0.15);
+      -4px 0 12px rgba(192, 192, 192, 0.25);
   }
 
   .bet-card-header {
@@ -1234,9 +1235,10 @@ export const BetLoggerStyles = `
     -webkit-backdrop-filter: blur(10px);
   }
   .bet-status.pending {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--accent-electric);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    /* Use a consistent silver badge for pending across themes */
+    background: rgba(192, 192, 192, 0.15);
+    color: #e5e5e5;
+    border: 1px solid rgba(192, 192, 192, 0.35);
   }
   .bet-status.win {
     background: rgba(16, 185, 129, 0.15);
