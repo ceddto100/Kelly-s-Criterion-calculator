@@ -114,7 +114,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     bottom: 0,
     left: 0,
     right: 0,
-    zIndex: 1000,
+    zIndex: 1500,
     paddingBottom: 'env(safe-area-inset-bottom, 0)',
   },
   navContainer: {
