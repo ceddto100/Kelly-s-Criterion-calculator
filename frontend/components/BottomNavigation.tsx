@@ -63,7 +63,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   ];
 
   return (
-    <nav style={styles.bottomNav}>
+    <nav style={styles.bottomNav} id="bottom-navigation-bar">
       <div style={styles.navContainer}>
         {navItems.map((item) => (
           <button
