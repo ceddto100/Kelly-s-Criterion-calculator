@@ -79,17 +79,6 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           </button>
         ))}
 
-        {/* Logo in the center */}
-        <div style={styles.logoContainer}>
-          <div style={styles.logo}>
-            <img
-              src="/betgistics.png"
-              alt="Betgistics Logo"
-              style={styles.logoImage}
-            />
-          </div>
-        </div>
-
         {navItemsRight.map((item) => (
           <button
             key={item.id}
@@ -158,28 +147,5 @@ const styles: { [key: string]: React.CSSProperties } = {
   navLabel: {
     fontSize: '10px',
     fontWeight: '500',
-  },
-  logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0 4px',
-  },
-  logo: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(var(--accent-electric-rgb), 0.35)',
-    transition: 'all 0.3s ease',
-    overflow: 'hidden',
-    background: 'var(--surface-2)',
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
   },
 };
