@@ -14,11 +14,11 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
   const [error, setError] = useState<string | null>(null);
 
   const nbaCategories = [
-    { id: 'ppg', label: 'Points Per Game', file: '/stats/ppg.csv' },
-    { id: 'allowed', label: 'Points Allowed', file: '/stats/allowed.csv' },
-    { id: 'fieldgoal', label: 'Field Goal %', file: '/stats/fieldgoal.csv' },
-    { id: 'rebound', label: 'Rebound Margin', file: '/stats/rebound_margin.csv' },
-    { id: 'turnover', label: 'Turnover Margin', file: '/stats/turnover_margin.csv' },
+    { id: 'ppg', label: 'Points Per Game', file: '/stats/nba/nba_ppg.csv' },
+    { id: 'allowed', label: 'Points Allowed', file: '/stats/nba/nba_allowed.csv' },
+    { id: 'fieldgoal', label: 'Field Goal %', file: '/stats/nba/nba_fieldgoal.csv' },
+    { id: 'rebound', label: 'Rebound Margin', file: '/stats/nba/nba_rebound_margin.csv' },
+    { id: 'turnover', label: 'Turnover Margin', file: '/stats/nba/nba_turnover_margin.csv' },
   ];
 
   const nflCategories = [
