@@ -131,9 +131,23 @@ export function LogBetButton({
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
+      // Force navigation bar to be visible when modal closes
+      const navBar = document.getElementById('bottom-navigation-bar');
+      if (navBar) {
+        navBar.style.visibility = 'visible';
+        navBar.style.opacity = '1';
+        navBar.style.display = 'block';
+      }
     }
     return () => {
       document.body.style.overflow = 'unset';
+      // Ensure navigation bar is visible on cleanup
+      const navBar = document.getElementById('bottom-navigation-bar');
+      if (navBar) {
+        navBar.style.visibility = 'visible';
+        navBar.style.opacity = '1';
+        navBar.style.display = 'block';
+      }
     };
   }, [isOpen]);
 
@@ -189,6 +203,14 @@ export function LogBetButton({
         setIsOpen(false);
         setSuccess(false);
         setNotes('');
+        // Ensure navigation bar is visible and page is scrollable
+        document.body.style.overflow = 'unset';
+        const navBar = document.getElementById('bottom-navigation-bar');
+        if (navBar) {
+          navBar.style.visibility = 'visible';
+          navBar.style.opacity = '1';
+          navBar.style.display = 'block';
+        }
       }, 1500);
     } catch (err: any) {
       setError(err.message);
