@@ -1339,15 +1339,50 @@ select:focus-visible {
 
 /* ==================== BOTTOM NAVIGATION BAR OVERRIDE ==================== */
 /* Ensure bottom navigation bar is ALWAYS visible and accessible */
+/* CRITICAL: This navigation bar must NEVER leave the screen */
 #bottom-navigation-bar {
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  z-index: 9999 !important;
+  z-index: 99999 !important;
   visibility: visible !important;
   opacity: 1 !important;
   display: block !important;
   pointer-events: auto !important;
   transform: none !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  margin: 0 !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Ensure the container inside is also always visible */
+#bottom-navigation-bar > div {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  transform: none !important;
+  overflow: visible !important;
+  width: 100% !important;
+}
+
+/* Ensure all navigation buttons are visible */
+#bottom-navigation-bar button,
+#bottom-navigation-bar > div > button {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+/* Prevent any parent from hiding the navigation */
+body:has(#bottom-navigation-bar) {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
