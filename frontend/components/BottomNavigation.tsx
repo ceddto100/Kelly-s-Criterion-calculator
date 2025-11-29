@@ -79,6 +79,17 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           </button>
         ))}
 
+        {/* Logo in the center */}
+        <div style={styles.logoContainer}>
+          <div style={styles.logo}>
+            <img
+              src="/betgistics.png"
+              alt="Betgistics Logo"
+              style={styles.logoImage}
+            />
+          </div>
+        </div>
+
         {navItemsRight.map((item) => (
           <button
             key={item.id}
@@ -111,14 +122,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   navContainer: {
     display: 'flex',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     alignItems: 'center',
     background: 'var(--surface-2)',
     backdropFilter: 'blur(10px)',
     borderTop: '1px solid var(--border-strong)',
     boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.3)',
-    padding: '6px max(6px, env(safe-area-inset-right, 6px)) 6px max(6px, env(safe-area-inset-left, 6px))',
-    columnGap: '2px',
+    padding: '4px 4px',
+    gap: '2px',
+    flexWrap: 'nowrap',
+    width: '100%',
+    overflowX: 'visible',
   },
   navItem: {
     display: 'flex',
@@ -126,15 +140,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '2px',
-    padding: '6px 6px',
+    padding: '6px 4px',
     background: 'transparent',
     border: 'none',
     cursor: 'pointer',
     color: 'var(--text-secondary)',
     transition: 'all 0.35s ease',
-    borderRadius: '10px',
-    minWidth: 0,
-    flex: 1,
+    borderRadius: '8px',
+    minWidth: '50px',
+    maxWidth: '70px',
+    flex: '0 1 auto',
+    flexShrink: 0,
   },
   navItemActive: {
     background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-violet) 38%, transparent), color-mix(in srgb, var(--accent-electric) 40%, transparent))',
@@ -147,5 +163,29 @@ const styles: { [key: string]: React.CSSProperties } = {
   navLabel: {
     fontSize: '10px',
     fontWeight: '500',
+  },
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 4px',
+    flexShrink: 0,
+  },
+  logo: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 20px rgba(var(--accent-electric-rgb), 0.35)',
+    transition: 'all 0.3s ease',
+    overflow: 'hidden',
+    background: 'var(--surface-2)',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
   },
 };
