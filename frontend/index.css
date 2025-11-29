@@ -70,6 +70,12 @@
 :root[data-theme='deep-sea'] {
   --background-color: #020813;
   --background-secondary: #031423;
+  /* Keep interior surfaces consistent across themes while accents shift */
+  --surface-1: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --border-subtle: color-mix(in srgb, #0ea5e9 20%, rgba(255, 255, 255, 0.18));
+  --border-strong: color-mix(in srgb, #14b8a6 20%, rgba(255, 255, 255, 0.28));
   --accent-cyan: #14b8a6;
   --accent-cyan-rgb: 20, 184, 166;
   --accent-electric: #0ea5e9;
@@ -89,6 +95,12 @@
 :root[data-theme='crimson'] {
   --background-color: #0b0509;
   --background-secondary: #14070f;
+  /* Keep interior surfaces consistent across themes while accents shift */
+  --surface-1: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --border-subtle: color-mix(in srgb, #f43f5e 18%, rgba(255, 255, 255, 0.18));
+  --border-strong: color-mix(in srgb, #fb7185 18%, rgba(255, 255, 255, 0.28));
   --accent-cyan: #f43f5e;
   --accent-cyan-rgb: 244, 63, 94;
   --accent-electric: #fb7185;
