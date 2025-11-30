@@ -1700,6 +1700,11 @@ function App() {
             <SwipeableAudioOrbs
               orbs={[
                 {
+                  audioSrc: '/intro.mp3',
+                  label: 'Introduction',
+                  icon: '🎙️',
+                },
+                {
                   audioSrc: '/mission_statement.mp3',
                   label: 'Mission Statement',
                   icon: '🎯',

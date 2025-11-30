@@ -98,8 +98,8 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
 
   const getStatColumn = () => {
     const headers = getTableHeaders();
-    // Typically the second column is the stat value
-    return headers[1] || headers[0];
+    // The stat value is always the last column in the CSV
+    return headers[headers.length - 1] || headers[0];
   };
 
   const getSortedAndFilteredData = () => {
