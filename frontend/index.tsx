@@ -1714,6 +1714,11 @@ function App() {
                   label: 'Quick Start Guide',
                   icon: '🎧',
                 },
+                {
+                  audioSrc: '/math_stats.mp3',
+                  label: 'Magnify Stats',
+                  icon: '🔍',
+                },
               ]}
             />
           </header>
