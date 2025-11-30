@@ -58,6 +58,13 @@ const THEME_OPTIONS = [
     accent: '#3ECF54',
     preview: 'linear-gradient(135deg, #22c55e, #3ECF54, #84cc16)',
   },
+  {
+    key: 'gold-mouth',
+    label: 'Gold Mouth',
+    description: 'Luxurious gold with amber shine',
+    accent: '#FFD700',
+    preview: 'linear-gradient(135deg, #DAA520, #FFD700, #FFA500)',
+  },
 ] as const;
 
 type ThemeKey = typeof THEME_OPTIONS[number]['key'];

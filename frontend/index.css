@@ -142,6 +142,31 @@
   --orb-tertiary-rgb: 132, 204, 22;
 }
 
+:root[data-theme='gold-mouth'] {
+  --background-color: #0a0703;
+  --background-secondary: #120c05;
+  /* Keep interior surfaces consistent across themes while accents shift */
+  --surface-1: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --border-subtle: color-mix(in srgb, #DAA520 20%, rgba(255, 255, 255, 0.18));
+  --border-strong: color-mix(in srgb, #FFD700 20%, rgba(255, 255, 255, 0.28));
+  --accent-cyan: #DAA520;
+  --accent-cyan-rgb: 218, 165, 32;
+  --accent-electric: #FFD700;
+  --accent-electric-rgb: 255, 215, 0;
+  --accent-violet: #FFA500;
+  --accent-violet-rgb: 255, 165, 0;
+  --accent-gradient: linear-gradient(135deg, #DAA520 0%, #FFD700 50%, #FFA500 100%);
+  --primary-accent: #FFD700;
+  --orb-primary: #FFD700;
+  --orb-primary-rgb: 255, 215, 0;
+  --orb-secondary: #DAA520;
+  --orb-secondary-rgb: 218, 165, 32;
+  --orb-tertiary: #FFA500;
+  --orb-tertiary-rgb: 255, 165, 0;
+}
+
 /* ==================== GLOBAL RESETS ==================== */
 * {
   box-sizing: border-box;
