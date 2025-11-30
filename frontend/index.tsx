@@ -51,6 +51,13 @@ const THEME_OPTIONS = [
     accent: '#f43f5e',
     preview: 'linear-gradient(135deg, #f43f5e, #fb7185, #e11d48)',
   },
+  {
+    key: 'gamma',
+    label: 'Gamma Hulk',
+    description: 'Radioactive green with gamma energy',
+    accent: '#3ECF54',
+    preview: 'linear-gradient(135deg, #22c55e, #3ECF54, #84cc16)',
+  },
 ] as const;
 
 type ThemeKey = typeof THEME_OPTIONS[number]['key'];

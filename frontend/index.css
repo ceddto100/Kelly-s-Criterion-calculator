@@ -117,6 +117,31 @@
   --orb-tertiary-rgb: 244, 114, 182;
 }
 
+:root[data-theme='gamma'] {
+  --background-color: #030a05;
+  --background-secondary: #071408;
+  /* Keep interior surfaces consistent across themes while accents shift */
+  --surface-1: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --border-subtle: color-mix(in srgb, #22c55e 20%, rgba(255, 255, 255, 0.18));
+  --border-strong: color-mix(in srgb, #3ECF54 20%, rgba(255, 255, 255, 0.28));
+  --accent-cyan: #22c55e;
+  --accent-cyan-rgb: 34, 197, 94;
+  --accent-electric: #3ECF54;
+  --accent-electric-rgb: 62, 207, 84;
+  --accent-violet: #84cc16;
+  --accent-violet-rgb: 132, 204, 22;
+  --accent-gradient: linear-gradient(135deg, #22c55e 0%, #3ECF54 50%, #84cc16 100%);
+  --primary-accent: #3ECF54;
+  --orb-primary: #3ECF54;
+  --orb-primary-rgb: 62, 207, 84;
+  --orb-secondary: #22c55e;
+  --orb-secondary-rgb: 34, 197, 94;
+  --orb-tertiary: #84cc16;
+  --orb-tertiary-rgb: 132, 204, 22;
+}
+
 /* ==================== GLOBAL RESETS ==================== */
 * {
   box-sizing: border-box;
