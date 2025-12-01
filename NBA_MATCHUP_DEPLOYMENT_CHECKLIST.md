@@ -109,7 +109,7 @@ Or if you use automatic deployments from GitHub:
 
 #### ☐ 6. Verify Frontend Works
 
-1. Open your deployed frontend: `https://your-app.vercel.app`
+1. Open your deployed frontend: `https://betgistics.com`
 2. You should see a new **"🏀 NBA Matchup"** tab
 3. Click on it to see the chat interface
 4. Try typing: `Lakers vs Warriors`
@@ -293,7 +293,7 @@ Share this with your users:
 
 ### How to Use NBA Matchup Analyzer
 
-1. **Go to your app:** https://your-app.vercel.app
+1. **Go to your app:** https://betgistics.com
 2. **Click "🏀 NBA Matchup" tab**
 3. **Type teams in one of these formats:**
    - `Lakers vs Warriors`
@@ -372,7 +372,7 @@ Once all checkboxes are complete, your NBA Sports Matchup Engine is LIVE!
 
 **Your live URLs:**
 - **Backend API:** https://api.betgistics.com
-- **Frontend App:** https://your-app.vercel.app
+- **Frontend App:** https://betgistics.com
 
 ---
 
