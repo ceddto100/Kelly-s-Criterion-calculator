@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Homepage / Kelly Criterion Calculator -->
+  <url>
+    <loc>https://betgistics.com/</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://betgistics.com/betgistics.png</image:loc>
+      <image:title>Betgistics Logo</image:title>
+      <image:caption>Betgistics - Professional Sports Betting Calculator</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Kelly Criterion Calculator Section -->
+  <url>
+    <loc>https://betgistics.com/#kelly</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Probability Estimator Section -->
+  <url>
+    <loc>https://betgistics.com/#estimator</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- NBA Matchup Analysis -->
+  <url>
+    <loc>https://betgistics.com/#matchup</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- NFL Matchup Analysis -->
+  <url>
+    <loc>https://betgistics.com/#nfl_matchup</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Team Statistics Page -->
+  <url>
+    <loc>https://betgistics.com/#stats</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Bet History Tracker -->
+  <url>
+    <loc>https://betgistics.com/#bet_history</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Account Settings -->
+  <url>
+    <loc>https://betgistics.com/#account</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Promotions Page -->
+  <url>
+    <loc>https://betgistics.com/#promo</loc>
+    <lastmod>2025-12-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>
