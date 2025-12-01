@@ -23,7 +23,7 @@ module.exports = function(passport) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: 'https://kelly-s-criterion-calculator.onrender.com/auth/google/callback',
+        callbackURL: 'https://api.betgistics.com/auth/google/callback',
         // Request user profile and email
         scope: ['profile', 'email']
       },

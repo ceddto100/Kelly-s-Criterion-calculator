@@ -50,7 +50,7 @@ added 184 packages
 
 #### ☐ 3. Add Groq API Key to Render
 
-Since your backend is already deployed at `https://kelly-s-criterion-calculator.onrender.com`, you need to add the Groq API key:
+Since your backend is already deployed at `https://api.betgistics.com`, you need to add the Groq API key:
 
 1. Go to: https://render.com
 2. Log into your Render dashboard
@@ -72,13 +72,13 @@ After Render finishes deploying, test the endpoints:
 
 ```bash
 # Test offense stats
-curl https://kelly-s-criterion-calculator.onrender.com/api/offense
+curl https://api.betgistics.com/api/offense
 
 # Test matchup (no AI)
-curl "https://kelly-s-criterion-calculator.onrender.com/api/matchup?teamA=Lakers&teamB=Warriors"
+curl "https://api.betgistics.com/api/matchup?teamA=Lakers&teamB=Warriors"
 
 # Test AI analysis (requires Groq key)
-curl "https://kelly-s-criterion-calculator.onrender.com/api/analyze?teamA=Lakers&teamB=Celtics"
+curl "https://api.betgistics.com/api/analyze?teamA=Lakers&teamB=Celtics"
 ```
 
 **Expected:** All three should return JSON data (not errors)
@@ -266,7 +266,7 @@ Once deployed, try these tests:
 ### Check Backend Health
 
 ```bash
-curl https://kelly-s-criterion-calculator.onrender.com/health
+curl https://api.betgistics.com/health
 ```
 
 Should return:
@@ -371,7 +371,7 @@ Once all checkboxes are complete, your NBA Sports Matchup Engine is LIVE!
 - Get feedback
 
 **Your live URLs:**
-- **Backend API:** https://kelly-s-criterion-calculator.onrender.com
+- **Backend API:** https://api.betgistics.com
 - **Frontend App:** https://your-app.vercel.app
 
 ---
