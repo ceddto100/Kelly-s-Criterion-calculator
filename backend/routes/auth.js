@@ -34,13 +34,13 @@ router.get('/google',
  */
 router.get('/google/callback',
   passport.authenticate('google', {
-    failureRedirect: 'https://kelly-s-criterion-calculator.vercel.app',
+    failureRedirect: 'https://betgistics.com',
     failureMessage: true
   }),
   (req, res) => {
     // Successful authentication
     // Redirect to frontend
-    res.redirect('https://kelly-s-criterion-calculator.vercel.app');
+    res.redirect('https://betgistics.com');
   }
 );
 
@@ -66,7 +66,7 @@ router.get('/logout', (req, res, next) => {
       res.clearCookie('connect.sid');
 
       // Redirect to frontend
-      res.redirect('https://kelly-s-criterion-calculator.vercel.app');
+      res.redirect('https://betgistics.com');
     });
   });
 });

@@ -50,7 +50,7 @@ app.set('trust proxy', 1);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://kelly-s-criterion-calculator.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://betgistics.com',
   credentials: true,
   allowedHeaders: ['Content-Type', 'x-user-id', 'x-admin-key']
 }));
