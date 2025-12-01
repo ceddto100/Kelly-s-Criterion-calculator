@@ -2,10 +2,11 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * UPDATED: With Bet Logging Integration + Performance Optimizations
+ * UPDATED: With Bet Logging Integration + Performance Optimizations + SEO
 */
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
 
 /* === Lazy load tab components for better performance === */
 const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
@@ -25,6 +26,9 @@ import { BottomNavigation } from './components/BottomNavigation';
 import { AccountSettings } from './components/AccountSettings';
 import { PromoPage } from './components/PromoPage';
 import { StatsPage } from './components/StatsPage';
+
+/* === SEO Component === */
+import { SEO, SEO_CONFIG } from './components/SEO';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -1658,8 +1662,37 @@ function App() {
     window.location.href = `${BACKEND_URL}/auth/google`;
   };
 
+  // Get SEO config based on active tab
+  const getSEOForTab = () => {
+    switch (activeTab) {
+      case CONSTANTS.TABS.KELLY:
+        return SEO_CONFIG.kelly;
+      case CONSTANTS.TABS.ESTIMATOR:
+        return SEO_CONFIG.estimator;
+      case CONSTANTS.TABS.MATCHUP:
+        return SEO_CONFIG.nba_matchup;
+      case CONSTANTS.TABS.NFL_MATCHUP:
+        return SEO_CONFIG.nfl_matchup;
+      case CONSTANTS.TABS.BET_HISTORY:
+        return SEO_CONFIG.bet_history;
+      case CONSTANTS.TABS.STATS:
+        return SEO_CONFIG.stats;
+      case CONSTANTS.TABS.ACCOUNT:
+        return SEO_CONFIG.account;
+      case CONSTANTS.TABS.PROMO:
+        return SEO_CONFIG.promo;
+      default:
+        return SEO_CONFIG.kelly;
+    }
+  };
+
+  const currentSEO = getSEOForTab();
+
   return (
     <>
+      {/* Dynamic SEO meta tags based on active tab */}
+      <SEO {...currentSEO} />
+
       <div className="site-bg">
         <div className="bg-overlay" />
         <div className="blob blob-a" />
@@ -1917,8 +1950,8 @@ function App() {
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(
-  <>
+  <HelmetProvider>
     <GlobalStyle />
     <App />
-  </>
+  </HelmetProvider>
 );

@@ -58,7 +58,11 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
             <img
               src={user.avatar}
               alt={user.name || 'User'}
+              title={`${user.name || 'User'} Profile Picture`}
               style={styles.avatar}
+              width="80"
+              height="80"
+              loading="lazy"
             />
           )}
         </div>

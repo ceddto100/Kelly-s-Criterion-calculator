@@ -160,7 +160,11 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
                   <img
                     src={promo.imageUrl}
                     alt={promo.title}
+                    title={promo.title}
                     style={styles.promoImage}
+                    width="100%"
+                    height="auto"
+                    loading="lazy"
                   />
                 </div>
               )}

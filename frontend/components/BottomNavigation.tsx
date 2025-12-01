@@ -85,7 +85,11 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             <img
               src="/betgistics.png"
               alt="Betgistics Logo"
+              title="Betgistics - Sports Betting Calculator"
               style={styles.logoImage}
+              width="40"
+              height="40"
+              loading="lazy"
             />
           </div>
         </div>
