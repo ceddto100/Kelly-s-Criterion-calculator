@@ -35,15 +35,29 @@ module.exports = function(passport) {
           let user = await User.findOne({ identifier: profile.id });
 
           if (!user) {
-            // Create new user with default bankroll
-            user = await User.create({
-              identifier: profile.id,
-              currentBankroll: 1000, // Default bankroll
-              tokens: 0,
-              dailyCalculations: 0,
-              totalCalculations: 0,
-              isPremium: false
-            });
+            try {
+              // Create new user with default bankroll
+              user = await User.create({
+                identifier: profile.id,
+                currentBankroll: 1000, // Default bankroll
+                tokens: 0,
+                dailyCalculations: 0,
+                totalCalculations: 0,
+                isPremium: false
+              });
+              console.log('Created new user:', profile.id);
+            } catch (createError) {
+              // Handle duplicate key error (race condition)
+              if (createError.code === 11000) {
+                console.log('User already exists (race condition), fetching:', profile.id);
+                user = await User.findOne({ identifier: profile.id });
+                if (!user) {
+                  throw new Error('Failed to create or find user');
+                }
+              } else {
+                throw createError;
+              }
+            }
           } else {
             // Update last active timestamp
             user.lastActive = new Date();

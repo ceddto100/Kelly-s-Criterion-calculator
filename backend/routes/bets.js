@@ -19,15 +19,27 @@ const getOrCreateUser = async (userId) => {
   let user = await User.findOne({ identifier: userId });
 
   if (!user) {
-    // Create user if doesn't exist (for legacy sessions)
-    user = await User.create({
-      identifier: userId,
-      currentBankroll: 1000,
-      tokens: 0,
-      dailyCalculations: 0,
-      totalCalculations: 0,
-      isPremium: false
-    });
+    try {
+      // Create user if doesn't exist (for legacy sessions)
+      user = await User.create({
+        identifier: userId,
+        currentBankroll: 1000,
+        tokens: 0,
+        dailyCalculations: 0,
+        totalCalculations: 0,
+        isPremium: false
+      });
+    } catch (error) {
+      // Handle duplicate key error (race condition)
+      if (error.code === 11000) {
+        user = await User.findOne({ identifier: userId });
+        if (!user) {
+          throw new Error('Failed to create or find user');
+        }
+      } else {
+        throw error;
+      }
+    }
   }
 
   return user;

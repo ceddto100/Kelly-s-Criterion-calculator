@@ -110,14 +110,26 @@ router.get('/bankroll', ensureAuthenticated, async (req, res) => {
 
     // Create user if doesn't exist (for legacy sessions)
     if (!user) {
-      user = await User.create({
-        identifier: userId,
-        currentBankroll: 1000,
-        tokens: 0,
-        dailyCalculations: 0,
-        totalCalculations: 0,
-        isPremium: false
-      });
+      try {
+        user = await User.create({
+          identifier: userId,
+          currentBankroll: 1000,
+          tokens: 0,
+          dailyCalculations: 0,
+          totalCalculations: 0,
+          isPremium: false
+        });
+      } catch (createError) {
+        // Handle duplicate key error (race condition)
+        if (createError.code === 11000) {
+          user = await User.findOne({ identifier: userId });
+          if (!user) {
+            throw new Error('Failed to create or find user');
+          }
+        } else {
+          throw createError;
+        }
+      }
     }
 
     res.json({
@@ -152,14 +164,28 @@ router.patch('/bankroll', ensureAuthenticated, async (req, res) => {
 
     // Create user if doesn't exist (for legacy sessions)
     if (!user) {
-      user = await User.create({
-        identifier: userId,
-        currentBankroll: bankroll,
-        tokens: 0,
-        dailyCalculations: 0,
-        totalCalculations: 0,
-        isPremium: false
-      });
+      try {
+        user = await User.create({
+          identifier: userId,
+          currentBankroll: bankroll,
+          tokens: 0,
+          dailyCalculations: 0,
+          totalCalculations: 0,
+          isPremium: false
+        });
+      } catch (createError) {
+        // Handle duplicate key error (race condition)
+        if (createError.code === 11000) {
+          user = await User.findOne({ identifier: userId });
+          if (!user) {
+            throw new Error('Failed to create or find user');
+          }
+          user.currentBankroll = bankroll;
+          await user.save();
+        } else {
+          throw createError;
+        }
+      }
     } else {
       user.currentBankroll = bankroll;
       await user.save();
