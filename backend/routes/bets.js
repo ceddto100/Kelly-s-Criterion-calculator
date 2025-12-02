@@ -71,10 +71,20 @@ router.post('/', asyncHandler(async (req, res) => {
 
   await betLog.save();
 
+  // Deduct wager from user's bankroll when bet is placed
+  const user = await User.findOne({ identifier: getUserId(req) });
+  if (user) {
+    user.currentBankroll -= actualWager;
+    // Ensure bankroll doesn't go negative
+    if (user.currentBankroll < 0) user.currentBankroll = 0;
+    await user.save();
+  }
+
   res.status(201).json({
     success: true,
     message: 'Bet logged successfully',
-    bet: betLog
+    bet: betLog,
+    newBankroll: user ? user.currentBankroll : null
   });
 }));
 

@@ -88,6 +88,7 @@ interface LogBetButtonProps {
   // User auth state
   isAuthenticated: boolean;
   onLoginRequired?: () => void;
+  onBankrollUpdate?: () => void;
 }
 
 // Helper to format currency
@@ -111,7 +112,8 @@ export function LogBetButton({
   recommendedStake,
   stakePercentage,
   isAuthenticated,
-  onLoginRequired
+  onLoginRequired,
+  onBankrollUpdate
 }: LogBetButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [actualWager, setActualWager] = useState(recommendedStake.toFixed(2));
@@ -199,6 +201,12 @@ export function LogBetButton({
       }
 
       setSuccess(true);
+
+      // Trigger bankroll refresh
+      if (onBankrollUpdate) {
+        onBankrollUpdate();
+      }
+
       setTimeout(() => {
         setIsOpen(false);
         setSuccess(false);
