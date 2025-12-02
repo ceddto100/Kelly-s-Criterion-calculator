@@ -11,6 +11,13 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Identifier too long']
   },
+  email: {
+    type: String,
+    sparse: true,
+    trim: true,
+    lowercase: true,
+    maxlength: [255, 'Email too long']
+  },
   tokens: {
     type: Number,
     default: 0,
@@ -57,6 +64,7 @@ const userSchema = new mongoose.Schema({
 
 // Indexes for User
 userSchema.index({ identifier: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ lastActive: -1 });
 userSchema.index({ lastResetDate: -1 });
 userSchema.index({ isPremium: 1, lastActive: -1 });
@@ -201,6 +209,21 @@ async function connectDatabase() {
       database: mongoose.connection.name,
       host: mongoose.connection.host
     });
+
+    // Fix email index migration: drop old non-sparse index if it exists
+    try {
+      const indexes = await User.collection.getIndexes();
+      if (indexes.email_1 && !indexes.email_1.sparse) {
+        logger.info('Dropping old non-sparse email index');
+        await User.collection.dropIndex('email_1');
+        logger.info('Old email index dropped successfully');
+      }
+    } catch (indexError) {
+      // Index might not exist, which is fine
+      logger.info('Email index migration check completed', {
+        message: indexError.message
+      });
+    }
 
     // Create indexes
     await Promise.all([

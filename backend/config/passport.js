@@ -46,6 +46,7 @@ module.exports = function(passport) {
               // Create new user with default bankroll
               user = await User.create({
                 identifier: googleId,
+                email: email, // Save email from Google profile
                 currentBankroll: 1000, // Default bankroll
                 tokens: 0,
                 dailyCalculations: 0,
