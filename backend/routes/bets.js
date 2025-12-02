@@ -11,7 +11,26 @@ router.use(ensureAuthenticated);
 
 // Helper function to get user ID from various OAuth providers
 const getUserId = (req) => {
-  return req.user._id || req.user.id || req.user.googleId;
+  return req.user.googleId || req.user._id || req.user.id;
+};
+
+// Helper function to get or create user
+const getOrCreateUser = async (userId) => {
+  let user = await User.findOne({ identifier: userId });
+
+  if (!user) {
+    // Create user if doesn't exist (for legacy sessions)
+    user = await User.create({
+      identifier: userId,
+      currentBankroll: 1000,
+      tokens: 0,
+      dailyCalculations: 0,
+      totalCalculations: 0,
+      isPremium: false
+    });
+  }
+
+  return user;
 };
 
 // POST /api/bets - Log a new bet
@@ -72,19 +91,17 @@ router.post('/', asyncHandler(async (req, res) => {
   await betLog.save();
 
   // Deduct wager from user's bankroll when bet is placed
-  const user = await User.findOne({ identifier: getUserId(req) });
-  if (user) {
-    user.currentBankroll -= actualWager;
-    // Ensure bankroll doesn't go negative
-    if (user.currentBankroll < 0) user.currentBankroll = 0;
-    await user.save();
-  }
+  const user = await getOrCreateUser(getUserId(req));
+  user.currentBankroll -= actualWager;
+  // Ensure bankroll doesn't go negative
+  if (user.currentBankroll < 0) user.currentBankroll = 0;
+  await user.save();
 
   res.status(201).json({
     success: true,
     message: 'Bet logged successfully',
     bet: betLog,
-    newBankroll: user ? user.currentBankroll : null
+    newBankroll: user.currentBankroll
   });
 }));
 
@@ -216,28 +233,26 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
   await bet.save();
 
   // Update user's bankroll based on bet outcome
-  const user = await User.findOne({ identifier: getUserId(req) });
-  if (user) {
-    let bankrollChange = 0;
+  const user = await getOrCreateUser(getUserId(req));
+  let bankrollChange = 0;
 
-    if (result === 'win') {
-      // Add net profit to bankroll
-      bankrollChange = bet.outcome.payout - bet.actualWager;
-    } else if (result === 'loss') {
-      // Deduct wager from bankroll
-      bankrollChange = -bet.actualWager;
-    }
-    // For push/cancelled, no change to bankroll
-
-    user.currentBankroll += bankrollChange;
-    await user.save();
+  if (result === 'win') {
+    // Add net profit to bankroll
+    bankrollChange = bet.outcome.payout - bet.actualWager;
+  } else if (result === 'loss') {
+    // Deduct wager from bankroll
+    bankrollChange = -bet.actualWager;
   }
+  // For push/cancelled, no change to bankroll
+
+  user.currentBankroll += bankrollChange;
+  await user.save();
 
   res.json({
     success: true,
     message: `Bet marked as ${result}`,
     bet,
-    bankrollChange: user ? user.currentBankroll : null
+    bankrollChange: user.currentBankroll
   });
 }));
 

@@ -105,12 +105,18 @@ router.get('/status', (req, res) => {
  */
 router.get('/bankroll', ensureAuthenticated, async (req, res) => {
   try {
-    const userId = req.user._id || req.user.id || req.user.googleId;
-    const user = await User.findOne({ identifier: userId });
+    const userId = req.user.googleId || req.user._id || req.user.id;
+    let user = await User.findOne({ identifier: userId });
 
+    // Create user if doesn't exist (for legacy sessions)
     if (!user) {
-      return res.status(404).json({
-        error: 'User not found'
+      user = await User.create({
+        identifier: userId,
+        currentBankroll: 1000,
+        tokens: 0,
+        dailyCalculations: 0,
+        totalCalculations: 0,
+        isPremium: false
       });
     }
 
@@ -141,17 +147,23 @@ router.patch('/bankroll', ensureAuthenticated, async (req, res) => {
       });
     }
 
-    const userId = req.user._id || req.user.id || req.user.googleId;
-    const user = await User.findOne({ identifier: userId });
+    const userId = req.user.googleId || req.user._id || req.user.id;
+    let user = await User.findOne({ identifier: userId });
 
+    // Create user if doesn't exist (for legacy sessions)
     if (!user) {
-      return res.status(404).json({
-        error: 'User not found'
+      user = await User.create({
+        identifier: userId,
+        currentBankroll: bankroll,
+        tokens: 0,
+        dailyCalculations: 0,
+        totalCalculations: 0,
+        isPremium: false
       });
+    } else {
+      user.currentBankroll = bankroll;
+      await user.save();
     }
-
-    user.currentBankroll = bankroll;
-    await user.save();
 
     res.json({
       success: true,
