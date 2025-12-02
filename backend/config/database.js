@@ -210,16 +210,21 @@ async function connectDatabase() {
       host: mongoose.connection.host
     });
 
-    // Fix email index migration: drop old non-sparse index if it exists
+    // Fix email index migration: ensure correct sparse unique email index exists
     try {
       const indexes = await User.collection.getIndexes();
-      if (indexes.email_1 && !indexes.email_1.sparse) {
-        logger.info('Dropping old non-sparse email index');
+      const emailIndex = indexes.email_1;
+
+      // Drop if email index exists but doesn't match our requirements (sparse + unique)
+      if (emailIndex && (!emailIndex.sparse || !emailIndex.unique)) {
+        logger.info('Dropping incorrect email index', {
+          current: { sparse: emailIndex.sparse, unique: emailIndex.unique }
+        });
         await User.collection.dropIndex('email_1');
-        logger.info('Old email index dropped successfully');
+        logger.info('Email index dropped successfully');
       }
     } catch (indexError) {
-      // Index might not exist, which is fine
+      // Index might not exist or might fail to drop, continue anyway
       logger.info('Email index migration check completed', {
         message: indexError.message
       });
