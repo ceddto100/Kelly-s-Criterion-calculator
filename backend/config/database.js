@@ -210,34 +210,40 @@ async function connectDatabase() {
       host: mongoose.connection.host
     });
 
-    // Fix email index migration: ensure correct sparse unique email index exists
+    // Fix email index migration: drop and recreate email index to ensure it's correct
     try {
-      const indexes = await User.collection.getIndexes();
-      const emailIndex = indexes.email_1;
-
-      // Drop if email index exists but doesn't match our requirements (sparse + unique)
-      if (emailIndex && (!emailIndex.sparse || !emailIndex.unique)) {
-        logger.info('Dropping incorrect email index', {
-          current: { sparse: emailIndex.sparse, unique: emailIndex.unique }
-        });
+      // Always try to drop email_1 index if it exists
+      try {
         await User.collection.dropIndex('email_1');
-        logger.info('Email index dropped successfully');
+        logger.info('Dropped existing email index for recreation');
+        // Wait a moment for the drop to propagate across replicas
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (dropError) {
+        // Index might not exist, which is fine
+        logger.info('No existing email index to drop');
       }
-    } catch (indexError) {
-      // Index might not exist or might fail to drop, continue anyway
-      logger.info('Email index migration check completed', {
-        message: indexError.message
-      });
+    } catch (error) {
+      logger.warn('Error during email index migration', { message: error.message });
     }
 
-    // Create indexes
-    await Promise.all([
-      User.createIndexes(),
-      Calculation.createIndexes(),
-      Transaction.createIndexes()
-    ]);
-
-    logger.info('Database indexes created successfully');
+    // Create indexes using syncIndexes to handle conflicts gracefully
+    try {
+      await Promise.all([
+        User.syncIndexes(),
+        Calculation.syncIndexes(),
+        Transaction.syncIndexes()
+      ]);
+      logger.info('Database indexes synchronized successfully');
+    } catch (syncError) {
+      logger.warn('Index sync had issues, trying createIndexes', { error: syncError.message });
+      // Fallback to createIndexes
+      await Promise.all([
+        User.createIndexes(),
+        Calculation.createIndexes(),
+        Transaction.createIndexes()
+      ]);
+      logger.info('Database indexes created successfully');
+    }
 
     // Monitor connection events
     mongoose.connection.on('error', (error) => {
