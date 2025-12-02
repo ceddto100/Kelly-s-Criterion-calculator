@@ -20,6 +20,7 @@ const getOrCreateUser = async (userId) => {
 
   if (!user) {
     try {
+      // Create user if doesn't exist (for legacy sessions)
       user = await User.create({
         identifier: userId,
         currentBankroll: 1000,
@@ -29,9 +30,12 @@ const getOrCreateUser = async (userId) => {
         isPremium: false
       });
     } catch (error) {
+      // Handle duplicate key error (race condition)
       if (error.code === 11000) {
         user = await User.findOne({ identifier: userId });
-        if (!user) throw new Error('Failed to create or find user');
+        if (!user) {
+          throw new Error('Failed to create or find user');
+        }
       } else {
         throw error;
       }
@@ -98,9 +102,10 @@ router.post('/', asyncHandler(async (req, res) => {
 
   await betLog.save();
 
-  // Deduct wager from user's bankroll
+  // Deduct wager from user's bankroll when bet is placed
   const user = await getOrCreateUser(getUserId(req));
   user.currentBankroll -= actualWager;
+  // Ensure bankroll doesn't go negative
   if (user.currentBankroll < 0) user.currentBankroll = 0;
   await user.save();
 
@@ -244,13 +249,13 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
   let bankrollChange = 0;
 
   if (result === 'win') {
-    // Add net profit to bankroll (payout - wager already deducted)
+    // Add net profit to bankroll
     bankrollChange = bet.outcome.payout - bet.actualWager;
-  } else if (result === 'push' || result === 'cancelled') {
-    // Return the wager that was deducted
-    bankrollChange = bet.actualWager;
+  } else if (result === 'loss') {
+    // Deduct wager from bankroll
+    bankrollChange = -bet.actualWager;
   }
-  // For loss, wager was already deducted, so no change
+  // For push/cancelled, no change to bankroll
 
   user.currentBankroll += bankrollChange;
   await user.save();
@@ -259,7 +264,7 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
     success: true,
     message: `Bet marked as ${result}`,
     bet,
-    newBankroll: user.currentBankroll
+    bankrollChange: user.currentBankroll
   });
 }));
 

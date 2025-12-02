@@ -32,24 +32,26 @@ module.exports = function(passport) {
       async function(accessToken, refreshToken, profile, done) {
         try {
           // Find or create user in database
-          let dbUser = await User.findOne({ identifier: profile.id });
+          let user = await User.findOne({ identifier: profile.id });
 
-          if (!dbUser) {
+          if (!user) {
             try {
               // Create new user with default bankroll
-              dbUser = await User.create({
+              user = await User.create({
                 identifier: profile.id,
-                currentBankroll: 1000,
+                currentBankroll: 1000, // Default bankroll
                 tokens: 0,
                 dailyCalculations: 0,
                 totalCalculations: 0,
                 isPremium: false
               });
+              console.log('Created new user:', profile.id);
             } catch (createError) {
               // Handle duplicate key error (race condition)
               if (createError.code === 11000) {
-                dbUser = await User.findOne({ identifier: profile.id });
-                if (!dbUser) {
+                console.log('User already exists (race condition), fetching:', profile.id);
+                user = await User.findOne({ identifier: profile.id });
+                if (!user) {
                   throw new Error('Failed to create or find user');
                 }
               } else {
@@ -58,13 +60,13 @@ module.exports = function(passport) {
             }
           } else {
             // Update last active timestamp
-            dbUser.lastActive = new Date();
-            await dbUser.save();
+            user.lastActive = new Date();
+            await user.save();
           }
 
-          // Return session user with Google profile info
+          // Return user object with Google profile info for session
           const sessionUser = {
-            _id: dbUser._id,
+            _id: user._id,
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,

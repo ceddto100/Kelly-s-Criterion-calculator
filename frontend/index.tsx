@@ -1236,7 +1236,8 @@ function KellyCalculator({
   isAuthenticated,
   matchupData,
   estimationData,
-  onLoginRequired
+  onLoginRequired,
+  bankrollRefreshTrigger
 }: {
   probability: string;
   setProbability: (v: string) => void;
@@ -1244,14 +1245,20 @@ function KellyCalculator({
   matchupData: MatchupData | null;
   estimationData: EstimationData | null;
   onLoginRequired: () => void;
+  bankrollRefreshTrigger?: number;
 }) {
   const [bankroll, setBankroll] = useState('1000');
+  const [savedBankroll, setSavedBankroll] = useState('1000'); // Track saved value
+  const [isSavingBankroll, setIsSavingBankroll] = useState(false);
   const [odds, setOdds] = useState('-110');
   const [fraction, setFraction] = useState('1');
   const [explanation, setExplanation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Check if bankroll has been manually changed
+  const hasBankrollChanged = bankroll !== savedBankroll;
 
   const validation = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
@@ -1314,29 +1321,32 @@ function KellyCalculator({
     }
   }, [stake, hasValue, bankroll, odds, probability]);
 
-  // Fetch bankroll from backend when authenticated
-  useEffect(() => {
+  // Function to fetch bankroll from backend
+  const fetchBankroll = async () => {
     if (!isAuthenticated) return;
 
-    const fetchBankroll = async () => {
-      try {
-        const response = await fetch(`${BACKEND_URL}/auth/bankroll`, {
-          credentials: 'include'
-        });
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/bankroll`, {
+        credentials: 'include'
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.bankroll !== undefined) {
-            setBankroll(data.bankroll.toString());
-          }
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bankroll !== undefined) {
+          const bankrollValue = data.bankroll.toString();
+          setBankroll(bankrollValue);
+          setSavedBankroll(bankrollValue); // Also update saved value
         }
-      } catch (error) {
-        console.error('Failed to fetch bankroll:', error);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch bankroll:', error);
+    }
+  };
 
+  // Fetch bankroll when authenticated or when refresh is triggered
+  useEffect(() => {
     fetchBankroll();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, bankrollRefreshTrigger]);
 
   useEffect(() => {
     if (!probability) return;
@@ -1369,6 +1379,47 @@ function KellyCalculator({
     return isValid ? 'valid' : 'invalid';
   };
 
+  // Save bankroll to backend when user clicks Save button
+  const handleSaveBankroll = async () => {
+    if (!isAuthenticated) {
+      alert('Please login to save your bankroll.');
+      return;
+    }
+
+    const numBankroll = parseFloat(bankroll);
+    if (isNaN(numBankroll) || numBankroll < 0) {
+      alert('Please enter a valid positive bankroll amount.');
+      return;
+    }
+
+    // Confirm save
+    if (!confirm(`Save bankroll as $${numBankroll.toFixed(2)}?`)) {
+      return;
+    }
+
+    setIsSavingBankroll(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/bankroll`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bankroll: numBankroll })
+      });
+
+      if (response.ok) {
+        setSavedBankroll(bankroll); // Update saved value
+        alert('Bankroll saved successfully!');
+      } else {
+        alert('Failed to save bankroll. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to save bankroll:', error);
+      alert('Failed to save bankroll. Please try again.');
+    } finally {
+      setIsSavingBankroll(false);
+    }
+  };
+
   // Check if we have complete data for bet logging
   const canLogBet = hasValue && matchupData && estimationData;
 
@@ -1382,15 +1433,44 @@ function KellyCalculator({
             <span className="tooltiptext">Total amount of money available for betting</span>
           </span>
         </label>
-        <input
-          id="bankroll"
-          type="number"
-          className={`input-field ${getValidationClass(validation.bankroll)}`}
-          value={bankroll}
-          onChange={(e)=>setBankroll(e.target.value)}
-          placeholder="e.g., 1000"
-        />
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+          <input
+            id="bankroll"
+            type="number"
+            className={`input-field ${getValidationClass(validation.bankroll)}`}
+            value={bankroll}
+            onChange={(e)=>setBankroll(e.target.value)}
+            placeholder="e.g., 1000"
+            style={{ flex: 1 }}
+          />
+          {isAuthenticated && hasBankrollChanged && (
+            <button
+              onClick={handleSaveBankroll}
+              disabled={isSavingBankroll || validation.bankroll === false}
+              className="save-bankroll-btn"
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'var(--accent)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: isSavingBankroll ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                whiteSpace: 'nowrap',
+                opacity: validation.bankroll === false ? 0.5 : 1
+              }}
+            >
+              {isSavingBankroll ? 'Saving...' : 'Save'}
+            </button>
+          )}
+        </div>
         {validation.bankroll === false && <div className="error-message">⚠ Bankroll must be positive</div>}
+        {isAuthenticated && hasBankrollChanged && validation.bankroll !== false && (
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            💡 Click "Save" to update your bankroll
+          </div>
+        )}
       </div>
 
       <div className="input-group">
@@ -1478,6 +1558,7 @@ function KellyCalculator({
               stakePercentage={stakePercentage}
               isAuthenticated={isAuthenticated}
               onLoginRequired={onLoginRequired}
+              onBankrollUpdate={fetchBankroll}
             />
           )}
 
@@ -1603,6 +1684,9 @@ function App() {
   // NEW: State for bet logging data flow
   const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
   const [currentEstimation, setCurrentEstimation] = useState<EstimationData | null>(null);
+
+  // Bankroll refresh trigger - increment to force refresh
+  const [bankrollRefreshTrigger, setBankrollRefreshTrigger] = useState(0);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -1824,6 +1908,7 @@ function App() {
               matchupData={currentMatchup}
               estimationData={currentEstimation}
               onLoginRequired={handleLoginRequired}
+              bankrollRefreshTrigger={bankrollRefreshTrigger}
             />
           )}
           {activeTab === CONSTANTS.TABS.ESTIMATOR && (
@@ -1870,7 +1955,10 @@ function App() {
           {/* NEW: Bet History Tab */}
           {activeTab === CONSTANTS.TABS.BET_HISTORY && (
             <div className="panel">
-              <BetHistory isAuthenticated={!!authUser} />
+              <BetHistory
+                isAuthenticated={!!authUser}
+                onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+              />
             </div>
           )}
 

@@ -108,6 +108,7 @@ router.get('/bankroll', ensureAuthenticated, async (req, res) => {
     const userId = req.user.googleId || req.user._id || req.user.id;
     let user = await User.findOne({ identifier: userId });
 
+    // Create user if doesn't exist (for legacy sessions)
     if (!user) {
       try {
         user = await User.create({
@@ -119,9 +120,12 @@ router.get('/bankroll', ensureAuthenticated, async (req, res) => {
           isPremium: false
         });
       } catch (createError) {
+        // Handle duplicate key error (race condition)
         if (createError.code === 11000) {
           user = await User.findOne({ identifier: userId });
-          if (!user) throw new Error('Failed to create or find user');
+          if (!user) {
+            throw new Error('Failed to create or find user');
+          }
         } else {
           throw createError;
         }
@@ -135,6 +139,66 @@ router.get('/bankroll', ensureAuthenticated, async (req, res) => {
     console.error('Error fetching bankroll:', error);
     res.status(500).json({
       error: 'Failed to fetch bankroll'
+    });
+  }
+});
+
+// ==================== UPDATE USER BANKROLL ====================
+/**
+ * PATCH /auth/bankroll
+ * Updates the current user's bankroll
+ * Requires authentication
+ */
+router.patch('/bankroll', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bankroll } = req.body;
+
+    if (bankroll === undefined || typeof bankroll !== 'number' || bankroll < 0) {
+      return res.status(400).json({
+        error: 'Invalid bankroll value. Must be a positive number.'
+      });
+    }
+
+    const userId = req.user.googleId || req.user._id || req.user.id;
+    let user = await User.findOne({ identifier: userId });
+
+    // Create user if doesn't exist (for legacy sessions)
+    if (!user) {
+      try {
+        user = await User.create({
+          identifier: userId,
+          currentBankroll: bankroll,
+          tokens: 0,
+          dailyCalculations: 0,
+          totalCalculations: 0,
+          isPremium: false
+        });
+      } catch (createError) {
+        // Handle duplicate key error (race condition)
+        if (createError.code === 11000) {
+          user = await User.findOne({ identifier: userId });
+          if (!user) {
+            throw new Error('Failed to create or find user');
+          }
+          user.currentBankroll = bankroll;
+          await user.save();
+        } else {
+          throw createError;
+        }
+      }
+    } else {
+      user.currentBankroll = bankroll;
+      await user.save();
+    }
+
+    res.json({
+      success: true,
+      bankroll: user.currentBankroll
+    });
+  } catch (error) {
+    console.error('Error updating bankroll:', error);
+    res.status(500).json({
+      error: 'Failed to update bankroll'
     });
   }
 });
