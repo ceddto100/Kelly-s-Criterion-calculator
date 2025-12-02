@@ -36,13 +36,13 @@ router.get('/google',
  */
 router.get('/google/callback',
   passport.authenticate('google', {
-    failureRedirect: 'https://betgistics.com',
+    failureRedirect: process.env.FRONTEND_URL || 'https://betgistics.com',
     failureMessage: true
   }),
   (req, res) => {
     // Successful authentication
     // Redirect to frontend
-    res.redirect('https://betgistics.com');
+    res.redirect(process.env.FRONTEND_URL || 'https://betgistics.com');
   }
 );
 
@@ -68,7 +68,7 @@ router.get('/logout', (req, res, next) => {
       res.clearCookie('connect.sid');
 
       // Redirect to frontend
-      res.redirect('https://betgistics.com');
+      res.redirect(process.env.FRONTEND_URL || 'https://betgistics.com');
     });
   });
 });
