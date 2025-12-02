@@ -31,34 +31,54 @@ module.exports = function(passport) {
       // Verify callback - called after successful Google authentication
       async function(accessToken, refreshToken, profile, done) {
         try {
+          const googleId = profile.id;
+          const email = profile.emails?.[0]?.value;
+          console.log('=== Google OAuth Login Attempt ===');
+          console.log('Google ID:', googleId);
+          console.log('Email:', email);
+
           // Find or create user in database
-          let user = await User.findOne({ identifier: profile.id });
+          let user = await User.findOne({ identifier: googleId });
 
           if (!user) {
+            console.log('User not found in database, creating new user...');
             try {
               // Create new user with default bankroll
               user = await User.create({
-                identifier: profile.id,
+                identifier: googleId,
                 currentBankroll: 1000, // Default bankroll
                 tokens: 0,
                 dailyCalculations: 0,
                 totalCalculations: 0,
                 isPremium: false
               });
-              console.log('Created new user:', profile.id);
+              console.log('✓ User created successfully:', user._id);
             } catch (createError) {
+              console.error('✗ Error creating user:', {
+                message: createError.message,
+                code: createError.code,
+                name: createError.name
+              });
+
               // Handle duplicate key error (race condition)
               if (createError.code === 11000) {
-                console.log('User already exists (race condition), fetching:', profile.id);
-                user = await User.findOne({ identifier: profile.id });
+                console.log('Duplicate key error detected. Attempting to find existing user...');
+                user = await User.findOne({ identifier: googleId });
                 if (!user) {
-                  throw new Error('Failed to create or find user');
+                  console.error('CRITICAL ERROR: User not found after duplicate key error!');
+                  console.log('Searching for similar users...');
+                  const allUsers = await User.find({}).limit(5).select('identifier _id');
+                  console.log('Recent users:', JSON.stringify(allUsers, null, 2));
+                  throw new Error('Failed to create or find user after duplicate key error');
                 }
+                console.log('✓ Found existing user after duplicate key error:', user._id);
               } else {
+                console.error('Non-duplicate key error. Details:', createError);
                 throw createError;
               }
             }
           } else {
+            console.log('✓ Existing user found:', user._id);
             // Update last active timestamp
             user.lastActive = new Date();
             await user.save();
@@ -67,15 +87,18 @@ module.exports = function(passport) {
           // Return user object with Google profile info for session
           const sessionUser = {
             _id: user._id,
-            googleId: profile.id,
+            googleId: googleId,
             name: profile.displayName,
-            email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,
+            email: email,
             avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : null
           };
 
+          console.log('✓ Login successful for:', email);
+          console.log('==================================');
           return done(null, sessionUser);
         } catch (error) {
-          console.error('Error in Google OAuth strategy:', error);
+          console.error('✗ FATAL ERROR in Google OAuth strategy:', error);
+          console.log('==================================');
           return done(error, null);
         }
       }
