@@ -64,6 +64,15 @@ router.post('/', asyncHandler(async (req, res) => {
     });
   }
 
+  // Sanitize user input to prevent XSS
+  const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[<>]/g, ''); // Remove HTML brackets
+  };
+
+  const sanitizedNotes = sanitizeString(notes);
+  const sanitizedTags = Array.isArray(tags) ? tags.map(sanitizeString) : [];
+
   // Create the bet log
   const betLog = new BetLog({
     userId: getUserId(req),
@@ -96,8 +105,8 @@ router.post('/', asyncHandler(async (req, res) => {
       stakePercentage: kelly.stakePercentage
     },
     actualWager,
-    notes: notes || '',
-    tags: tags || []
+    notes: sanitizedNotes || '',
+    tags: sanitizedTags
   });
 
   await betLog.save();
@@ -249,13 +258,15 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
   let bankrollChange = 0;
 
   if (result === 'win') {
-    // Add net profit to bankroll
-    bankrollChange = bet.outcome.payout - bet.actualWager;
+    // Add the full payout to bankroll (wager was already deducted when bet was placed)
+    bankrollChange = bet.outcome.payout;
   } else if (result === 'loss') {
-    // Deduct wager from bankroll
-    bankrollChange = -bet.actualWager;
+    // Wager was already deducted when bet was placed, no additional change needed
+    bankrollChange = 0;
+  } else if (result === 'push' || result === 'cancelled') {
+    // Return the original wager
+    bankrollChange = bet.actualWager;
   }
-  // For push/cancelled, no change to bankroll
 
   user.currentBankroll += bankrollChange;
   await user.save();
@@ -288,8 +299,14 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     });
   }
 
-  if (notes !== undefined) bet.notes = notes;
-  if (tags !== undefined) bet.tags = tags;
+  // Sanitize user input
+  const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[<>]/g, '');
+  };
+
+  if (notes !== undefined) bet.notes = sanitizeString(notes);
+  if (tags !== undefined) bet.tags = Array.isArray(tags) ? tags.map(sanitizeString) : tags;
   if (actualWager !== undefined) bet.actualWager = actualWager;
 
   await bet.save();

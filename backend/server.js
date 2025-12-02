@@ -40,6 +40,26 @@ require('./config/passport')(passport);
 
 const app = express();
 
+// ==================== ENVIRONMENT VALIDATION ====================
+// Validate critical environment variables on startup
+const requiredEnvVars = [
+  'MONGODB_URI',
+  'GEMINI_API_KEY',
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'FRONTEND_URL'
+];
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  logger.error('Missing required environment variables', {
+    missing: missingEnvVars
+  });
+  logger.error('Please check your .env file and ensure all required variables are set.');
+  process.exit(1);
+}
+
 // ==================== MIDDLEWARE ====================
 
 // Security middleware
@@ -84,10 +104,16 @@ const determineCookieDomain = () => {
   return undefined;
 };
 
+// Validate SESSION_SECRET exists
+if (!process.env.SESSION_SECRET) {
+  logger.error('SESSION_SECRET environment variable is not set. This is required for session security.');
+  process.exit(1);
+}
+
 // Always use SameSite=None + Secure for cross-site OAuth flows (API is on api.betagistics.com)
 // This avoids the login session being dropped when NODE_ENV is misconfigured
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {

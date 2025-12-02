@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    sparse: true,
     trim: true,
     lowercase: true,
     maxlength: [255, 'Email too long']
@@ -63,7 +62,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for User
-userSchema.index({ identifier: 1 }, { unique: true });
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ lastActive: -1 });
 userSchema.index({ lastResetDate: -1 });
