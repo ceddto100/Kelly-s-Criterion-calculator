@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const BetLog = require('../models/BetLog');
+const { User } = require('../config/database');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 
@@ -204,10 +205,29 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
 
   await bet.save();
 
+  // Update user's bankroll based on bet outcome
+  const user = await User.findOne({ identifier: getUserId(req) });
+  if (user) {
+    let bankrollChange = 0;
+
+    if (result === 'win') {
+      // Add net profit to bankroll
+      bankrollChange = bet.outcome.payout - bet.actualWager;
+    } else if (result === 'loss') {
+      // Deduct wager from bankroll
+      bankrollChange = -bet.actualWager;
+    }
+    // For push/cancelled, no change to bankroll
+
+    user.currentBankroll += bankrollChange;
+    await user.save();
+  }
+
   res.json({
     success: true,
     message: `Bet marked as ${result}`,
-    bet
+    bet,
+    bankrollChange: user ? user.currentBankroll : null
   });
 }));
 
