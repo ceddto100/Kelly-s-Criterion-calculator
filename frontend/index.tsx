@@ -1314,6 +1314,30 @@ function KellyCalculator({
     }
   }, [stake, hasValue, bankroll, odds, probability]);
 
+  // Fetch bankroll from backend when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchBankroll = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/auth/bankroll`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.bankroll !== undefined) {
+            setBankroll(data.bankroll.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch bankroll:', error);
+      }
+    };
+
+    fetchBankroll();
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!probability) return;
     const getExplanation = async () => {

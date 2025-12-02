@@ -1,6 +1,8 @@
 // routes/auth.js - Google OAuth Authentication Routes
 const express = require('express');
 const passport = require('passport');
+const { User } = require('../config/database');
+const { ensureAuthenticated } = require('../middleware/auth');
 const router = express.Router();
 
 /**
@@ -91,6 +93,48 @@ router.get('/status', (req, res) => {
     res.json({
       authenticated: false,
       user: null
+    });
+  }
+});
+
+// ==================== GET USER BANKROLL ====================
+/**
+ * GET /auth/bankroll
+ * Returns the current user's bankroll
+ * Requires authentication
+ */
+router.get('/bankroll', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user.googleId || req.user._id || req.user.id;
+    let user = await User.findOne({ identifier: userId });
+
+    if (!user) {
+      try {
+        user = await User.create({
+          identifier: userId,
+          currentBankroll: 1000,
+          tokens: 0,
+          dailyCalculations: 0,
+          totalCalculations: 0,
+          isPremium: false
+        });
+      } catch (createError) {
+        if (createError.code === 11000) {
+          user = await User.findOne({ identifier: userId });
+          if (!user) throw new Error('Failed to create or find user');
+        } else {
+          throw createError;
+        }
+      }
+    }
+
+    res.json({
+      bankroll: user.currentBankroll
+    });
+  } catch (error) {
+    console.error('Error fetching bankroll:', error);
+    res.status(500).json({
+      error: 'Failed to fetch bankroll'
     });
   }
 });

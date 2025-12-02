@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  currentBankroll: {
+    type: Number,
+    default: 1000,
+    min: [0, 'Bankroll cannot be negative']
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -1,5 +1,6 @@
 // config/passport.js - Passport Google OAuth 2.0 Configuration
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const { User } = require('./database');
 
 /**
  * Configure Passport with Google OAuth 2.0 Strategy
@@ -30,32 +31,49 @@ module.exports = function(passport) {
       // Verify callback - called after successful Google authentication
       async function(accessToken, refreshToken, profile, done) {
         try {
-          // Extract user information from Google profile
-          const user = {
+          // Find or create user in database
+          let dbUser = await User.findOne({ identifier: profile.id });
+
+          if (!dbUser) {
+            try {
+              // Create new user with default bankroll
+              dbUser = await User.create({
+                identifier: profile.id,
+                currentBankroll: 1000,
+                tokens: 0,
+                dailyCalculations: 0,
+                totalCalculations: 0,
+                isPremium: false
+              });
+            } catch (createError) {
+              // Handle duplicate key error (race condition)
+              if (createError.code === 11000) {
+                dbUser = await User.findOne({ identifier: profile.id });
+                if (!dbUser) {
+                  throw new Error('Failed to create or find user');
+                }
+              } else {
+                throw createError;
+              }
+            }
+          } else {
+            // Update last active timestamp
+            dbUser.lastActive = new Date();
+            await dbUser.save();
+          }
+
+          // Return session user with Google profile info
+          const sessionUser = {
+            _id: dbUser._id,
             googleId: profile.id,
             name: profile.displayName,
             email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,
-            avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : null,
-            // Store the full profile for debugging (optional)
-            _json: profile._json
+            avatar: profile.photos && profile.photos[0] ? profile.photos[0].value : null
           };
 
-          // TODO: In production, you would:
-          // 1. Check if user exists in database by googleId
-          // 2. If exists, update their info and return existing user
-          // 3. If new, create new user record in database
-          //
-          // Example with database integration:
-          // const User = require('../models/User');
-          // let dbUser = await User.findOne({ googleId: profile.id });
-          // if (!dbUser) {
-          //   dbUser = await User.create(user);
-          // }
-          // return done(null, dbUser);
-
-          // For now, we'll just pass the user object directly
-          return done(null, user);
+          return done(null, sessionUser);
         } catch (error) {
+          console.error('Error in Google OAuth strategy:', error);
           return done(error, null);
         }
       }
@@ -64,21 +82,13 @@ module.exports = function(passport) {
 
   // ==================== SERIALIZE USER ====================
   // Determines what data to store in the session
-  // In production, you'd typically store only the user ID
   passport.serializeUser((user, done) => {
-    // For now, we serialize the entire user object since we're not using a database
-    // In production with database: done(null, user.id);
     done(null, user);
   });
 
   // ==================== DESERIALIZE USER ====================
   // Retrieves the full user object from the session data
   passport.deserializeUser((user, done) => {
-    // For now, we just return the user object directly
-    // In production with database:
-    // User.findById(id, (err, user) => {
-    //   done(err, user);
-    // });
     done(null, user);
   });
 };
