@@ -1229,6 +1229,8 @@ const calculateImpliedProbability = (americanOdds: string): number | null => {
 
 type HistoryEntry = { bankroll:string; odds:string; probability:string; stake:number; timestamp:number };
 
+const DEFAULT_BANKROLL = '1000';
+
 function KellyCalculator({
   probability,
   setProbability,
@@ -1247,8 +1249,8 @@ function KellyCalculator({
   onLoginRequired: () => void;
   bankrollRefreshTrigger?: number;
 }) {
-  const [bankroll, setBankroll] = useState('1000');
-  const [savedBankroll, setSavedBankroll] = useState('1000'); // Track saved value
+  const [bankroll, setBankroll] = useState(DEFAULT_BANKROLL);
+  const [savedBankroll, setSavedBankroll] = useState(DEFAULT_BANKROLL); // Track saved value
   const [isSavingBankroll, setIsSavingBankroll] = useState(false);
   const [odds, setOdds] = useState('-110');
   const [fraction, setFraction] = useState('1');
@@ -1336,6 +1338,9 @@ function KellyCalculator({
           const bankrollValue = data.bankroll.toString();
           setBankroll(bankrollValue);
           setSavedBankroll(bankrollValue); // Also update saved value
+        } else {
+          setBankroll(DEFAULT_BANKROLL);
+          setSavedBankroll(DEFAULT_BANKROLL);
         }
       }
     } catch (error) {
@@ -1469,6 +1474,11 @@ function KellyCalculator({
         {isAuthenticated && hasBankrollChanged && validation.bankroll !== false && (
           <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             💡 Click "Save" to update your bankroll
+          </div>
+        )}
+        {!isAuthenticated && (
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            Default bankroll is set to $1,000. Sign in with Google to save your preferred bankroll size.
           </div>
         )}
       </div>
