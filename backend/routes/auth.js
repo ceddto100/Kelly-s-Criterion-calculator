@@ -1,6 +1,8 @@
 // routes/auth.js - Google OAuth Authentication Routes
 const express = require('express');
 const passport = require('passport');
+const { User } = require('../config/database');
+const { ensureAuthenticated } = require('../middleware/auth');
 const router = express.Router();
 
 /**
@@ -91,6 +93,74 @@ router.get('/status', (req, res) => {
     res.json({
       authenticated: false,
       user: null
+    });
+  }
+});
+
+// ==================== GET USER BANKROLL ====================
+/**
+ * GET /auth/bankroll
+ * Returns the current user's bankroll
+ * Requires authentication
+ */
+router.get('/bankroll', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id || req.user.googleId;
+    const user = await User.findOne({ identifier: userId });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      bankroll: user.currentBankroll
+    });
+  } catch (error) {
+    console.error('Error fetching bankroll:', error);
+    res.status(500).json({
+      error: 'Failed to fetch bankroll'
+    });
+  }
+});
+
+// ==================== UPDATE USER BANKROLL ====================
+/**
+ * PATCH /auth/bankroll
+ * Updates the current user's bankroll
+ * Requires authentication
+ */
+router.patch('/bankroll', ensureAuthenticated, async (req, res) => {
+  try {
+    const { bankroll } = req.body;
+
+    if (bankroll === undefined || typeof bankroll !== 'number' || bankroll < 0) {
+      return res.status(400).json({
+        error: 'Invalid bankroll value. Must be a positive number.'
+      });
+    }
+
+    const userId = req.user._id || req.user.id || req.user.googleId;
+    const user = await User.findOne({ identifier: userId });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    user.currentBankroll = bankroll;
+    await user.save();
+
+    res.json({
+      success: true,
+      bankroll: user.currentBankroll
+    });
+  } catch (error) {
+    console.error('Error updating bankroll:', error);
+    res.status(500).json({
+      error: 'Failed to update bankroll'
     });
   }
 });

@@ -371,9 +371,10 @@ export function LogBetButton({
 // ==================== Bet History Component ====================
 interface BetHistoryProps {
   isAuthenticated: boolean;
+  onBankrollUpdate?: () => void;
 }
 
-export function BetHistory({ isAuthenticated }: BetHistoryProps) {
+export function BetHistory({ isAuthenticated, onBankrollUpdate }: BetHistoryProps) {
   const [bets, setBets] = useState<SavedBet[]>([]);
   const [stats, setStats] = useState<BetStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -442,6 +443,11 @@ export function BetHistory({ isAuthenticated }: BetHistoryProps) {
         const statsRes = await fetch(`${BACKEND_URL}/api/bets/stats`, { credentials: 'include' });
         if (statsRes.ok) {
           setStats(await statsRes.json());
+        }
+
+        // Notify parent to refresh bankroll
+        if (onBankrollUpdate) {
+          onBankrollUpdate();
         }
       }
     } catch (err) {
