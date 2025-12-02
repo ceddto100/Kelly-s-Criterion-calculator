@@ -62,15 +62,40 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // ==================== SESSION & AUTHENTICATION ====================
 // Session configuration for Google OAuth
 // IMPORTANT: SESSION_SECRET must be set in .env file
+const determineCookieDomain = () => {
+  // Allow explicit override via env
+  if (process.env.SESSION_COOKIE_DOMAIN) return process.env.SESSION_COOKIE_DOMAIN;
+
+  // Derive from FRONTEND_URL when possible so the cookie is shared across subdomains
+  try {
+    const frontendUrl = new URL(process.env.FRONTEND_URL || 'https://betgistics.com');
+    const hostname = frontendUrl.hostname;
+
+    // If the hostname already contains subdomain parts, strip to the registrable domain
+    const hostParts = hostname.split('.');
+    if (hostParts.length >= 2) {
+      return `.${hostParts.slice(-2).join('.')}`; // e.g. betgistics.com -> .betgistics.com
+    }
+  } catch (error) {
+    logger.warn('Unable to derive session cookie domain from FRONTEND_URL', { error });
+  }
+
+  // Fallback to undefined which lets the browser default to the API host
+  return undefined;
+};
+
+// Always use SameSite=None + Secure for cross-site OAuth flows (API is on api.betagistics.com)
+// This avoids the login session being dropped when NODE_ENV is misconfigured
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true in production (requires HTTPS)
+    secure: true, // Required when SameSite is 'none'
     httpOnly: true,
+    domain: determineCookieDomain(),
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // 'none' required for cross-origin cookies
+    sameSite: 'none'
   }
 }));
 
