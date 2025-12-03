@@ -111,12 +111,8 @@ router.post('/', asyncHandler(async (req, res) => {
 
   await betLog.save();
 
-  // Deduct wager from user's bankroll when bet is placed
+  // Bankroll is no longer auto-adjusted on bet placement
   const user = await getOrCreateUser(getUserId(req));
-  user.currentBankroll -= actualWager;
-  // Ensure bankroll doesn't go negative
-  if (user.currentBankroll < 0) user.currentBankroll = 0;
-  await user.save();
 
   res.status(201).json({
     success: true,
@@ -253,23 +249,8 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
 
   await bet.save();
 
-  // Update user's bankroll based on bet outcome
+  // Bankroll is no longer auto-adjusted based on bet outcomes
   const user = await getOrCreateUser(getUserId(req));
-  let bankrollChange = 0;
-
-  if (result === 'win') {
-    // Add the full payout to bankroll (wager was already deducted when bet was placed)
-    bankrollChange = bet.outcome.payout;
-  } else if (result === 'loss') {
-    // Wager was already deducted when bet was placed, no additional change needed
-    bankrollChange = 0;
-  } else if (result === 'push' || result === 'cancelled') {
-    // Return the original wager
-    bankrollChange = bet.actualWager;
-  }
-
-  user.currentBankroll += bankrollChange;
-  await user.save();
 
   res.json({
     success: true,
