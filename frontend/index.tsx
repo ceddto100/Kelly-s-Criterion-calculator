@@ -845,6 +845,13 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
 const formatCurrency = (v: any) => isNaN(Number(v)) ? '$0.00' :
   new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v));
 
+const formatBankrollValue = (value: string | number) => {
+  if (value === '') return '';
+  const numValue = typeof value === 'number' ? value : parseFloat(value);
+  if (isNaN(numValue)) return '';
+  return numValue.toFixed(2);
+};
+
 export const initialFootballState = {
   teamPointsFor: '', opponentPointsFor: '',
   teamPointsAgainst: '', opponentPointsAgainst: '',
@@ -1229,7 +1236,7 @@ const calculateImpliedProbability = (americanOdds: string): number | null => {
 
 type HistoryEntry = { bankroll:string; odds:string; probability:string; stake:number; timestamp:number };
 
-const DEFAULT_BANKROLL = '1000';
+const DEFAULT_BANKROLL = '1000.00';
 
 function KellyCalculator({
   probability,
@@ -1323,6 +1330,16 @@ function KellyCalculator({
     }
   }, [stake, hasValue, bankroll, odds, probability]);
 
+  const handleBankrollChange = (value: string) => {
+    if (value === '') {
+      setBankroll('');
+      return;
+    }
+
+    const formattedValue = formatBankrollValue(value);
+    setBankroll(formattedValue);
+  };
+
   // Function to fetch bankroll from backend
   const fetchBankroll = async () => {
     if (!isAuthenticated) return;
@@ -1335,7 +1352,7 @@ function KellyCalculator({
       if (response.ok) {
         const data = await response.json();
         if (data.bankroll !== undefined) {
-          const bankrollValue = data.bankroll.toString();
+          const bankrollValue = formatBankrollValue(data.bankroll);
           setBankroll(bankrollValue);
           setSavedBankroll(bankrollValue); // Also update saved value
         } else {
@@ -1374,7 +1391,7 @@ function KellyCalculator({
   }, [stake, stakePercentage, hasValue, bankroll, odds, probability]);
 
   const loadHistoryItem = (item: HistoryEntry) => {
-    setBankroll(item.bankroll);
+    setBankroll(formatBankrollValue(item.bankroll));
     setOdds(item.odds);
     setProbability(item.probability);
   };
@@ -1444,7 +1461,7 @@ function KellyCalculator({
             type="number"
             className={`input-field ${getValidationClass(validation.bankroll)}`}
             value={bankroll}
-            onChange={(e)=>setBankroll(e.target.value)}
+            onChange={(e)=>handleBankrollChange(e.target.value)}
             placeholder="e.g., 1000"
             style={{ flex: 1 }}
           />
