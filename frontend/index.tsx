@@ -834,7 +834,8 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
 
   const teamATov = parseFloat(stats.teamTurnoverMargin) || 0;
   const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
-  const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.15;
+  // Turnovers: positive margin = worse ball security, so invert the edge
+  const turnoverComponent = (teamBTov - teamATov) * 1.0 * 0.15;
 
   const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
 
