@@ -1003,6 +1003,16 @@ function ProbabilityEstimator({
     }
   };
 
+  const selectedTeamName = useMemo(() => {
+    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+    return current.teamAName?.trim() || 'Your Team';
+  }, [activeSport, basketballStats, footballStats]);
+
+  const formattedMargin = useMemo(() => {
+    if (expectedDiff === null) return null;
+    return `${expectedDiff > 0 ? '+' : ''}${expectedDiff.toFixed(1)}`;
+  }, [expectedDiff]);
+
   // UPDATED: Store matchup data when applying to Kelly
   const handleApplyAndSwitch = (prob: number) => {
     setProbability(prob.toFixed(2));
@@ -1208,12 +1218,11 @@ function ProbabilityEstimator({
       {calculatedProb !== null && (
         <div className="results" role="status" aria-live="polite">
           <p>Estimated Cover Probability</p>
-          <h2 style={{margin:'0.25rem 0 0.35rem'}}>{calculatedProb.toFixed(2)}%</h2>
-          {expectedDiff !== null && (
-            <div className="results-details">
-              Predicted Margin: {expectedDiff > 0 ? '+' : ''}{expectedDiff.toFixed(1)} pts
-            </div>
-          )}
+          <h2 style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
+          <div className="results-details">
+            {selectedTeamName} — Win Probability: {calculatedProb.toFixed(2)}%
+            {formattedMargin !== null && ` | Predicted Margin: ${formattedMargin} pts`}
+          </div>
           <div style={{marginTop:'.6rem'}}>
             <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>
               Use in Kelly Calculator →
@@ -1269,6 +1278,24 @@ function KellyCalculator({
 
   // Check if bankroll has been manually changed
   const hasBankrollChanged = bankroll !== savedBankroll;
+
+  // Load persisted bankroll on mount
+  useEffect(() => {
+    const storedBankroll = localStorage.getItem('kelly-bankroll');
+    if (storedBankroll !== null) {
+      setBankroll(storedBankroll);
+      setSavedBankroll(storedBankroll);
+    }
+  }, []);
+
+  // Persist bankroll changes without interfering with typing (debounced)
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      localStorage.setItem('kelly-bankroll', bankroll);
+    }, 500);
+
+    return () => clearTimeout(handle);
+  }, [bankroll]);
 
   const validation = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
@@ -1332,13 +1359,7 @@ function KellyCalculator({
   }, [stake, hasValue, bankroll, odds, probability]);
 
   const handleBankrollChange = (value: string) => {
-    if (value === '') {
-      setBankroll('');
-      return;
-    }
-
-    const formattedValue = formatBankrollValue(value);
-    setBankroll(formattedValue);
+    setBankroll(value);
   };
 
   // Function to fetch bankroll from backend
@@ -1459,12 +1480,13 @@ function KellyCalculator({
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
           <input
             id="bankroll"
-            type="number"
+            type="text"
             className={`input-field ${getValidationClass(validation.bankroll)}`}
             value={bankroll}
             onChange={(e)=>handleBankrollChange(e.target.value)}
             placeholder="e.g., 1000"
             style={{ flex: 1 }}
+            inputMode="decimal"
           />
           {isAuthenticated && hasBankrollChanged && (
             <button
