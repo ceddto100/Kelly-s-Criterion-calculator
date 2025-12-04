@@ -1270,6 +1270,24 @@ function KellyCalculator({
   // Check if bankroll has been manually changed
   const hasBankrollChanged = bankroll !== savedBankroll;
 
+  // Load persisted bankroll on mount
+  useEffect(() => {
+    const storedBankroll = localStorage.getItem('kelly-bankroll');
+    if (storedBankroll !== null) {
+      setBankroll(storedBankroll);
+      setSavedBankroll(storedBankroll);
+    }
+  }, []);
+
+  // Persist bankroll changes without interfering with typing (debounced)
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      localStorage.setItem('kelly-bankroll', bankroll);
+    }, 500);
+
+    return () => clearTimeout(handle);
+  }, [bankroll]);
+
   const validation = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
     const americanOdds = parseFloat(odds);
@@ -1332,13 +1350,7 @@ function KellyCalculator({
   }, [stake, hasValue, bankroll, odds, probability]);
 
   const handleBankrollChange = (value: string) => {
-    if (value === '') {
-      setBankroll('');
-      return;
-    }
-
-    const formattedValue = formatBankrollValue(value);
-    setBankroll(formattedValue);
+    setBankroll(value);
   };
 
   // Function to fetch bankroll from backend
@@ -1459,12 +1471,13 @@ function KellyCalculator({
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
           <input
             id="bankroll"
-            type="number"
+            type="text"
             className={`input-field ${getValidationClass(validation.bankroll)}`}
             value={bankroll}
             onChange={(e)=>handleBankrollChange(e.target.value)}
             placeholder="e.g., 1000"
             style={{ flex: 1 }}
+            inputMode="decimal"
           />
           {isAuthenticated && hasBankrollChanged && (
             <button
