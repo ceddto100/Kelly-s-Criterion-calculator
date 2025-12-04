@@ -1003,6 +1003,16 @@ function ProbabilityEstimator({
     }
   };
 
+  const selectedTeamName = useMemo(() => {
+    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+    return current.teamAName?.trim() || 'Your Team';
+  }, [activeSport, basketballStats, footballStats]);
+
+  const formattedMargin = useMemo(() => {
+    if (expectedDiff === null) return null;
+    return `${expectedDiff > 0 ? '+' : ''}${expectedDiff.toFixed(1)}`;
+  }, [expectedDiff]);
+
   // UPDATED: Store matchup data when applying to Kelly
   const handleApplyAndSwitch = (prob: number) => {
     setProbability(prob.toFixed(2));
@@ -1208,12 +1218,15 @@ function ProbabilityEstimator({
       {calculatedProb !== null && (
         <div className="results" role="status" aria-live="polite">
           <p>Estimated Cover Probability</p>
-          <h2 style={{margin:'0.25rem 0 0.35rem'}}>{calculatedProb.toFixed(2)}%</h2>
-          {expectedDiff !== null && (
-            <div className="results-details">
-              Predicted Margin: {expectedDiff > 0 ? '+' : ''}{expectedDiff.toFixed(1)} pts
+          <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
+          <div className="matchup-result-stats">
+            <div className="matchup-result-value">
+              {calculatedProb.toFixed(2)}%
             </div>
-          )}
+            {formattedMargin !== null && (
+              <div className="matchup-result-margin">Predicted Margin: {formattedMargin} pts</div>
+            )}
+          </div>
           <div style={{marginTop:'.6rem'}}>
             <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>
               Use in Kelly Calculator →
