@@ -1218,10 +1218,14 @@ function ProbabilityEstimator({
       {calculatedProb !== null && (
         <div className="results" role="status" aria-live="polite">
           <p>Estimated Cover Probability</p>
-          <h2 style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
-          <div className="results-details">
-            {selectedTeamName} — Win Probability: {calculatedProb.toFixed(2)}%
-            {formattedMargin !== null && ` | Predicted Margin: ${formattedMargin} pts`}
+          <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
+          <div className="matchup-result-stats">
+            <div className="matchup-result-value">
+              {calculatedProb.toFixed(2)}%
+            </div>
+            {formattedMargin !== null && (
+              <div className="matchup-result-margin">Predicted Margin: {formattedMargin} pts</div>
+            )}
           </div>
           <div style={{marginTop:'.6rem'}}>
             <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>

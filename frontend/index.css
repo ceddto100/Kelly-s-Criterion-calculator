@@ -739,6 +739,34 @@ body::after {
   font-family: var(--font-mono);
 }
 
+.matchup-result-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.matchup-result-value {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #e0f2fe;
+  text-shadow:
+    0 0 24px rgba(var(--accent-electric-rgb), 0.45),
+    0 0 48px rgba(var(--accent-violet-rgb), 0.35);
+}
+
+.matchup-result-margin {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(var(--accent-cyan-rgb), 0.12), rgba(var(--accent-violet-rgb), 0.12));
+  box-shadow: 0 0 18px rgba(var(--accent-electric-rgb), 0.18);
+}
+
 /* ==================== ANALYST INSIGHT ==================== */
 .analyst-insight {
   background: var(--glass-surface);
