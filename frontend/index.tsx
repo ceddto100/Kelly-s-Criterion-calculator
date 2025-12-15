@@ -13,6 +13,7 @@ const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const SportsMatchup = lazy(() => import("./forms/SportsMatchup"));
 const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
+const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
@@ -759,6 +760,7 @@ const CONSTANTS = {
   TABS: {
     KELLY: 'kelly',
     ESTIMATOR: 'estimator',
+    WALTERS: 'walters',
     MATCHUP: 'matchup',
     NFL_MATCHUP: 'nfl_matchup',
     BET_HISTORY: 'bet_history',  // Bet tracking
@@ -1819,6 +1821,14 @@ function App() {
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);
   };
 
+  // Handler for Walters Protocol to apply to Kelly Calculator
+  const handleWaltersApplyToKelly = (probability: number, matchupData: any, estimationData: any) => {
+    setProbability(probability.toFixed(2));
+    setCurrentMatchup(matchupData);
+    setCurrentEstimation(estimationData);
+    setActiveTab(CONSTANTS.TABS.KELLY);
+  };
+
   // Login redirect handler
   const handleLoginRequired = () => {
     window.location.href = `${BACKEND_URL}/auth/google`;
@@ -1937,6 +1947,7 @@ function App() {
               {[
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
+                { key: CONSTANTS.TABS.WALTERS, label: '⚡ Walters Protocol' },
                 { key: CONSTANTS.TABS.MATCHUP, label: 'NBA Matchup' },
                 { key: CONSTANTS.TABS.NFL_MATCHUP, label: 'NFL Matchup' },
                 { key: CONSTANTS.TABS.BET_HISTORY, label: '📊 Bet History' },  // NEW TAB
@@ -1988,9 +1999,16 @@ function App() {
               setCurrentEstimation={setCurrentEstimation}
             />
           )}
+          {activeTab === CONSTANTS.TABS.WALTERS && (
+            <div className="panel">
+              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading Walters Protocol...</div>}>
+                <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
+              </Suspense>
+            </div>
+          )}
           {activeTab === CONSTANTS.TABS.MATCHUP && (
             <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}> 
+              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
                 <SportsMatchup
                   onTransferToEstimator={handleTransferToEstimator}
                 />
