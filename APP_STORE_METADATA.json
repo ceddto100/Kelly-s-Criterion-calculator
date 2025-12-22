@@ -1,0 +1,175 @@
+{
+  "app_metadata": {
+    "app_name": "Kelly's Criterion Calculator",
+    "version": "1.0.0",
+    "short_description": "Calculate optimal bet sizing using the Kelly Criterion formula with probability estimation tools.",
+    "full_description": "Kelly's Criterion Calculator is a mathematical utility that helps users determine optimal bet sizing using the Kelly Criterion formula. The app provides three core tools:\n\n1. **Kelly Criterion Calculator**: Input your bankroll, betting odds (American format), and estimated win probability to receive a mathematically optimal stake recommendation. Supports full, half, and quarter Kelly fractions for varying risk tolerance.\n\n2. **Football Probability Estimator**: Estimate the probability of a team covering a point spread based on statistical inputs including points for/against, offensive/defensive yards, and turnover differential.\n\n3. **Basketball Probability Estimator**: Similar probability estimation tailored for basketball, incorporating field goal percentage, rebound margin, and turnover metrics.\n\nKey Features:\n- Pure mathematical calculations with no gambling facilitation\n- Stateless design - no user data stored\n- Optional AI-powered analytical insights\n- Support for 12 languages\n- Educational tool for understanding betting mathematics\n\nIMPORTANT: This app is for educational purposes only. It does not provide betting advice, does not guarantee outcomes, and does not facilitate gambling. Users must be 18+ (21+ where required by law).",
+    "category": "Utilities",
+    "subcategory": "Calculators",
+    "age_restriction": {
+      "minimum_age": 18,
+      "rating": "Mature",
+      "content_descriptors": [
+        "Gambling references (educational/mathematical)",
+        "Financial calculations"
+      ],
+      "notes": "App involves betting calculations. Users must be of legal gambling age in their jurisdiction (18+ or 21+ depending on location)."
+    }
+  },
+
+  "data_usage_summary": {
+    "data_collection": "minimal",
+    "persistent_storage": false,
+    "description": "The app operates in a stateless manner. User inputs (bankroll, odds, probability) are processed in memory for calculations and are not stored or logged.",
+    "data_points_processed": [
+      {
+        "type": "Bankroll amount",
+        "purpose": "Calculate optimal stake",
+        "stored": false
+      },
+      {
+        "type": "Betting odds",
+        "purpose": "Calculate expected value",
+        "stored": false
+      },
+      {
+        "type": "Win probability",
+        "purpose": "Calculate Kelly fraction",
+        "stored": false
+      },
+      {
+        "type": "Locale preference",
+        "purpose": "Localize responses",
+        "stored": false
+      }
+    ],
+    "user_authentication": "none_required",
+    "cookies_or_tracking": false
+  },
+
+  "third_party_services": [
+    {
+      "name": "Google Gemini API",
+      "provider": "Google LLC",
+      "purpose": "Generate optional AI-powered analytical insights",
+      "data_shared": [
+        "Bankroll amount",
+        "Betting odds",
+        "Win probability",
+        "Calculated stake"
+      ],
+      "pii_shared": false,
+      "required": false,
+      "opt_out_available": true,
+      "privacy_policy": "https://policies.google.com/privacy",
+      "terms_of_service": "https://ai.google.dev/terms"
+    }
+  ],
+
+  "developer_information": {
+    "developer_name": "Kelly's Criterion Calculator Team",
+    "developer_contact_email": "support@kellyscriterion.app",
+    "privacy_contact_email": "privacy@kellyscriterion.app",
+    "legal_contact_email": "legal@kellyscriterion.app",
+    "support_url": "https://kellyscriterion.app/support",
+    "website_url": "https://kellyscriterion.app"
+  },
+
+  "policy_urls": {
+    "privacy_policy_url": "https://kellyscriterion.app/privacy",
+    "terms_of_service_url": "https://kellyscriterion.app/terms",
+    "gemini_disclosure_url": "https://kellyscriterion.app/gemini-disclosure"
+  },
+
+  "mcp_configuration": {
+    "server_name": "kelly-criterion-calculator",
+    "mcp_endpoint": "/mcp",
+    "transport": "SSE",
+    "health_endpoint": "/health",
+    "cors_origins": ["https://chatgpt.com"],
+    "tools": [
+      {
+        "name": "kelly-calculate",
+        "description": "Calculate optimal bet size using Kelly Criterion",
+        "has_widget": true
+      },
+      {
+        "name": "probability-estimate-football",
+        "description": "Estimate probability of covering a football point spread",
+        "has_widget": true
+      },
+      {
+        "name": "probability-estimate-basketball",
+        "description": "Estimate probability of covering a basketball point spread",
+        "has_widget": true
+      }
+    ]
+  },
+
+  "compliance": {
+    "openai_usage_policies": true,
+    "safety_content_guidelines": true,
+    "privacy_policy_provided": true,
+    "terms_of_service_provided": true,
+    "age_verification_noted": true,
+    "responsible_gambling_statement": true,
+    "no_betting_advice_disclaimer": true,
+    "third_party_disclosure": true
+  },
+
+  "localization": {
+    "default_language": "en",
+    "supported_languages": [
+      "en",
+      "es",
+      "fr",
+      "de",
+      "it",
+      "pt",
+      "ja",
+      "ko",
+      "zh",
+      "ru",
+      "ar",
+      "hi"
+    ]
+  },
+
+  "technical_requirements": {
+    "node_version": ">=18.0.0",
+    "mcp_sdk_version": "^1.0.0",
+    "requires_authentication": false,
+    "rate_limiting": true,
+    "https_required": true
+  },
+
+  "submission_checklist": {
+    "owner_role_verified": "PENDING - Verify in OpenAI dashboard",
+    "developer_account_verified": "PENDING - Verify in OpenAI dashboard",
+    "public_mcp_endpoint": true,
+    "privacy_policy_accessible": true,
+    "terms_of_service_accessible": true,
+    "app_description_complete": true,
+    "category_selected": true,
+    "contact_information_provided": true,
+    "app_icon_provided": "PENDING - Create 512x512px icon",
+    "screenshots_provided": "PENDING - Create app screenshots",
+    "third_party_disclosures_complete": true,
+    "tested_end_to_end": "PENDING - Complete testing"
+  },
+
+  "review_notes": {
+    "special_considerations": [
+      "App involves betting/gambling calculations - educational purpose only",
+      "No actual gambling facilitation or wagering",
+      "Stateless design minimizes privacy concerns",
+      "Optional AI feature uses Google Gemini with full disclosure",
+      "Responsible gambling resources provided in Terms of Service"
+    ],
+    "similar_approved_apps": [
+      "Calculator utilities",
+      "Financial planning tools",
+      "Educational math apps"
+    ]
+  }
+}
