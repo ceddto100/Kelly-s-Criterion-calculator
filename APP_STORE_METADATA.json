@@ -76,9 +76,9 @@
   },
 
   "policy_urls": {
-    "privacy_policy_url": "https://kellyscriterion.app/privacy",
-    "terms_of_service_url": "https://kellyscriterion.app/terms",
-    "gemini_disclosure_url": "https://kellyscriterion.app/gemini-disclosure"
+    "privacy_policy_url": "https://ceddto100.github.io/Kelly-s-Criterion-calculator/privacy.html",
+    "terms_of_service_url": "https://ceddto100.github.io/Kelly-s-Criterion-calculator/terms.html",
+    "gemini_disclosure_url": "https://ceddto100.github.io/Kelly-s-Criterion-calculator/gemini-disclosure.html"
   },
 
   "mcp_configuration": {
