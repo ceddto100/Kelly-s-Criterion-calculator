@@ -14,6 +14,10 @@ import dotenv from 'dotenv';
 import { registerKellyTool } from './tools/kelly.js';
 import { registerFootballProbabilityTool } from './tools/probabilityFootball.js';
 import { registerBasketballProbabilityTool } from './tools/probabilityBasketball.js';
+import { registerTeamStatsTool, registerMatchupTool } from './tools/teamStats.js';
+import { registerAnalyzeMatchupTool } from './tools/analyzeMatchup.js';
+import { registerBetLoggerTool } from './tools/betLogger.js';
+import { registerBankrollTools } from './tools/bankroll.js';
 
 // Import component resources
 import { registerComponentResources } from './components/resources.js';
@@ -73,22 +77,46 @@ export function setCurrentLocale(locale: string): void {
 registerComponentResources(mcpServer);
 
 // Register all tools
+// Core calculation tools
 registerKellyTool(mcpServer);
 registerFootballProbabilityTool(mcpServer);
 registerBasketballProbabilityTool(mcpServer);
+
+// Team stats and matchup tools
+registerTeamStatsTool(mcpServer);
+registerMatchupTool(mcpServer);
+registerAnalyzeMatchupTool(mcpServer);
+
+// Bet logging and bankroll management
+registerBetLoggerTool(mcpServer);
+registerBankrollTools(mcpServer);
 
 // Root discovery endpoint
 app.get('/', (req, res) => {
   res.json({
     name: 'Kelly Criterion MCP Server',
-    version: '1.0.0',
-    description: 'Custom MCP server for Kelly Criterion calculations and probability estimation.',
+    version: '2.0.0',
+    description: 'Full-featured MCP server for sports betting calculations, team stats, and bet management.',
     mcp_endpoint: '/mcp',
     capabilities: {
       tools: [
+        // Core calculations
         'kelly-calculate',
         'probability-estimate-football',
-        'probability-estimate-basketball'
+        'probability-estimate-basketball',
+        // Team stats and matchups
+        'get-team-stats',
+        'get-matchup-stats',
+        'analyze-matchup',
+        // Bet management
+        'log-bet',
+        'get-bet-history',
+        'update-bet-outcome',
+        // Bankroll management
+        'get-bankroll',
+        'set-bankroll',
+        'adjust-bankroll',
+        'get-bankroll-history'
       ],
       supports_streaming: true
     }
@@ -141,17 +169,30 @@ app.post('/mcp/message', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log('========================================');
-  console.log('Kelly Criterion MCP Server');
+  console.log('Kelly Criterion MCP Server v2.0.0');
   console.log('========================================');
-  console.log(`Server: kelly-criterion-calculator v1.0.0`);
   console.log(`Port: ${PORT}`);
   console.log(`MCP Endpoint: http://localhost:${PORT}/mcp`);
   console.log(`Health Check: http://localhost:${PORT}/health`);
   console.log('');
   console.log('Registered Tools:');
-  console.log('  - kelly-calculate');
-  console.log('  - probability-estimate-football');
-  console.log('  - probability-estimate-basketball');
+  console.log('  Core Calculations:');
+  console.log('    - kelly-calculate');
+  console.log('    - probability-estimate-football');
+  console.log('    - probability-estimate-basketball');
+  console.log('  Team Stats & Matchups:');
+  console.log('    - get-team-stats');
+  console.log('    - get-matchup-stats');
+  console.log('    - analyze-matchup');
+  console.log('  Bet Management:');
+  console.log('    - log-bet');
+  console.log('    - get-bet-history');
+  console.log('    - update-bet-outcome');
+  console.log('  Bankroll Management:');
+  console.log('    - get-bankroll');
+  console.log('    - set-bankroll');
+  console.log('    - adjust-bankroll');
+  console.log('    - get-bankroll-history');
   console.log('');
   console.log('Registered Resources:');
   console.log('  - kelly-calculator.html');
