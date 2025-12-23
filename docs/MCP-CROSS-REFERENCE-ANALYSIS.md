@@ -30,22 +30,38 @@ This document provides a comprehensive mapping of workflows across the **MCP Ser
            │                                   │
            ▼                                   ▼
 ┌─────────────────────────┐       ┌───────────────────────────────────────────┐
-│      MCP SERVER         │       │            BACKEND API                     │
+│      MCP SERVER v2.0    │       │            BACKEND API                     │
 │  (Express + MCP SDK)    │       │         (Express + MongoDB)                │
 │                         │       │                                            │
-│  Tools:                 │       │  Routes:                                   │
+│  Core Tools:            │       │  Routes:                                   │
 │  - kelly-calculate      │       │  - /auth/* (Google OAuth)                  │
 │  - probability-football │       │  - /api/bets/* (CRUD)                      │
 │  - probability-basketball       │  - /api/calculate (Gemini)                 │
 │                         │       │  - /api/offense, defense, matchup          │
-│  Resources:             │       │  - /api/user/status                        │
+│  Stats & Matchup Tools: │       │  - /api/user/status                        │
+│  - get-team-stats       │       │                                            │
+│  - get-matchup-stats    │       │  External Services:                        │
+│  - analyze-matchup      │       │  - MongoDB (persistence)                   │
+│                         │       │  - Google OAuth                            │
+│  Bet Management:        │       │  - Gemini AI                               │
+│  - log-bet              │       │  - ESPN API (scrapers)                     │
+│  - get-bet-history      │       │                                            │
+│  - update-bet-outcome   │       │                                            │
+│                         │       │                                            │
+│  Bankroll Management:   │       │                                            │
+│  - get-bankroll         │       │                                            │
+│  - set-bankroll         │       │                                            │
+│  - adjust-bankroll      │       │                                            │
+│  - get-bankroll-history │       │                                            │
+│                         │       │                                            │
+│  Resources:             │       │                                            │
 │  - kelly-calculator.html│       │                                            │
-│  - probability.html     │       │  External Services:                        │
-└──────────┬──────────────┘       │  - MongoDB (persistence)                   │
-           │                       │  - Google OAuth                            │
-           ▼                       │  - Gemini AI                               │
-┌─────────────────────────┐       │  - ESPN API (scrapers)                     │
-│   CHATGPT WIDGETS       │       └───────────────────────────────────────────┘
+│  - probability.html     │       │                                            │
+└──────────┬──────────────┘       └───────────────────────────────────────────┘
+           │
+           ▼
+┌─────────────────────────┐
+│   CHATGPT WIDGETS       │
 │   (React Components)    │
 │                         │
 │  - KellyWidget.tsx      │
@@ -58,13 +74,27 @@ This document provides a comprehensive mapping of workflows across the **MCP Ser
 
 ## 2. Workflow Component Mapping
 
-### 2.1 MCP Server Tools → Widget Mapping
+### 2.1 MCP Server Tools → Backend Mapping
 
-| MCP Tool | Widget Component | Resource URI | Data Shape |
-|----------|------------------|--------------|------------|
-| `kelly-calculate` | `KellyWidget.tsx` | `ui://widget/kelly-calculator.html` | `KellyData` |
-| `probability-estimate-football` | `ProbabilityWidget.tsx` | `ui://widget/probability-estimator.html` | `ProbabilityData` (sport: 'football') |
-| `probability-estimate-basketball` | `ProbabilityWidget.tsx` | `ui://widget/probability-estimator.html` | `ProbabilityData` (sport: 'basketball') |
+| MCP Tool | Backend Equivalent | Widget | Purpose |
+|----------|-------------------|--------|---------|
+| **Core Calculations** ||||
+| `kelly-calculate` | - | `KellyWidget.tsx` | Calculate optimal bet size |
+| `probability-estimate-football` | - | `ProbabilityWidget.tsx` | NFL/CFB probability |
+| `probability-estimate-basketball` | - | `ProbabilityWidget.tsx` | NBA/CBB probability |
+| **Team Stats & Matchups** ||||
+| `get-team-stats` | `/api/matchup` (single) | - | Get team statistics |
+| `get-matchup-stats` | `/api/matchup` | - | Compare two teams |
+| `analyze-matchup` | `/api/analyze` | - | AI matchup analysis |
+| **Bet Management** ||||
+| `log-bet` | `POST /api/bets` | - | Record a bet |
+| `get-bet-history` | `GET /api/bets` | - | View betting history |
+| `update-bet-outcome` | `PATCH /api/bets/:id/outcome` | - | Record win/loss/push |
+| **Bankroll Management** ||||
+| `get-bankroll` | `GET /auth/bankroll` | - | Check current bankroll |
+| `set-bankroll` | `PATCH /auth/bankroll` | - | Set bankroll amount |
+| `adjust-bankroll` | - | - | Add/subtract from bankroll |
+| `get-bankroll-history` | - | - | View bankroll changes |
 
 ### 2.2 Backend Route → Service Mapping
 
