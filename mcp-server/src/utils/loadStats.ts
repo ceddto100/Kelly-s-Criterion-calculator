@@ -257,3 +257,19 @@ export function getMatchupStats(teamA: string, teamB: string, sport: 'nba' | 'nf
     dataSource: 'CSV files (NBA stats)',
   };
 }
+
+/**
+ * Get all NBA team names for suggestions
+ */
+export function getAllNBATeamNames(): string[] {
+  const ppgData = loadCSVFile('ppg.csv');
+  return ppgData.map(row => row.team).filter(Boolean);
+}
+
+/**
+ * Get all NFL team names for suggestions
+ */
+export function getAllNFLTeamNames(): string[] {
+  const ppgData = loadCSVFile('nfl_ppg.csv', 'nfl');
+  return ppgData.map(row => row.team).filter(Boolean);
+}
