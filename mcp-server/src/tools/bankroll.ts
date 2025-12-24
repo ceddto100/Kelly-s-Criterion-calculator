@@ -49,7 +49,9 @@ export function registerBankrollTools(server: McpServer) {
       description: 'Use this when the user wants to check their current bankroll amount. Returns the current bankroll balance that should be used for Kelly calculations.',
       inputSchema: {},
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Only reads current bankroll amount
+        openWorldHint: false, // Reads from local in-memory storage only
+        destructiveHint: false // No data modification or deletion
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Checking bankroll...',
@@ -92,7 +94,9 @@ export function registerBankrollTools(server: McpServer) {
         reason: z.string().default('Manual update').describe('Optional reason for the change. Examples: "Initial deposit", "Weekly withdrawal", "Correction"')
       },
       annotations: {
-        readOnlyHint: false
+        readOnlyHint: false, // Sets/updates bankroll amount
+        openWorldHint: false, // Modifies local storage only
+        destructiveHint: false // Maintains history, changes are tracked and reversible
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Updating bankroll...',
@@ -170,7 +174,9 @@ export function registerBankrollTools(server: McpServer) {
         reason: z.string().default('Adjustment').describe('Reason for the adjustment. Examples: "Bet won", "Bet lost", "Deposit", "Withdrawal"')
       },
       annotations: {
-        readOnlyHint: false
+        readOnlyHint: false, // Adjusts bankroll by adding/subtracting amount
+        openWorldHint: false, // Modifies local storage only
+        destructiveHint: false // Maintains history, adjustments are tracked and reversible
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Adjusting bankroll...',
@@ -247,7 +253,9 @@ export function registerBankrollTools(server: McpServer) {
         limit: z.number().min(1).max(50).default(10).describe('Maximum number of history entries to return. Default is 10.')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Only reads bankroll history
+        openWorldHint: false, // Reads from local in-memory storage only
+        destructiveHint: false // No data modification or deletion
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Loading bankroll history...',

@@ -31,7 +31,9 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         spread: z.number().describe('Point spread for your team. Negative if favored (expected to win), positive if underdog. Example: -5.5 if your team is 5.5-point favorite, +7 if your team is 7-point underdog. Valid range: -100 to +100')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Only performs calculations, no data modification
+        openWorldHint: false, // All calculations are local, no external API calls
+        destructiveHint: false // No data deletion or permanent modification
       },
       _meta: {
         'openai/outputTemplate': 'ui://widget/probability-estimator.html',

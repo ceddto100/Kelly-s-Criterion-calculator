@@ -34,7 +34,9 @@ export function registerKellyTool(server: McpServer) {
         fraction: z.enum(['1', '0.5', '0.25']).default('1').describe('Kelly fraction multiplier for conservative betting. Options: "1" (full Kelly, aggressive), "0.5" (half Kelly, moderate - recommended for most bettors), "0.25" (quarter Kelly, conservative). Example: "0.5" to bet half the Kelly recommendation. Defaults to "1"')
       },
       annotations: {
-        readOnlyHint: false
+        readOnlyHint: false,
+        openWorldHint: true, // Calls external Gemini API for analyst insights
+        destructiveHint: false // Only performs calculations, no data deletion
       },
       _meta: {
         'openai/outputTemplate': 'ui://widget/kelly-calculator.html',
