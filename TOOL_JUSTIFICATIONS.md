@@ -13,169 +13,169 @@ This document provides detailed justifications for the MCP tool annotations for 
 ### 1. kelly-calculate
 
 **Read Only: No**
-Performs calculations but calls external Gemini API (getAnalystInsight()) to send data and generate insights, making it a write operation to external services.
+Correct. Tool calls external Gemini API (getAnalystInsight()) to send betting data for analysis, which constitutes a write operation to external services.
 
 **Open World: Yes**
-Calls Gemini AI API at generativelanguage.googleapis.com for analyst insights, which is an external service outside user control.
+Correct. Tool makes HTTP requests to Gemini AI API at generativelanguage.googleapis.com, an external service outside user's infrastructure.
 
-**Destructive: No**
-Only performs calculations and returns results. No data deletion or permanent modification occurs.
+**Destructive: No (should be No)**
+Tool only performs calculations and returns results. No data is permanently deleted or modified in an irreversible way. Changes scanner classification from Yes to No.
 
 ---
 
 ### 2. probability-estimate-football
 
-**Read Only: Yes**
-Performs purely mathematical calculations using predictedMarginFootball() and coverProbability() without modifying any stored data.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only performs local mathematical calculations using predictedMarginFootball() without modifying any data. Changes from No to Yes.
 
-**Open World: No**
-All calculations are local using statistical formulas. No external APIs or web services are accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. All calculations are purely local statistical formulas with no external API calls or network access. Changes from Yes to No.
 
-**Destructive: No**
-Only performs read-only calculations. No data creation, modification, or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only probability calculations. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 3. probability-estimate-basketball
 
-**Read Only: Yes**
-Performs purely mathematical calculations using predictedMarginBasketball() and coverProbability() without modifying any stored data.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only performs local mathematical calculations using predictedMarginBasketball() without modifying any data. Changes from No to Yes.
 
-**Open World: No**
-All calculations are local using statistical formulas. No external APIs or web services are accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. All calculations are purely local statistical formulas with no external API calls or network access. Changes from Yes to No.
 
-**Destructive: No**
-Only performs read-only calculations. No data creation, modification, or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only probability calculations. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 4. get-team-stats
 
-**Read Only: Yes**
-Reads team statistics from local CSV files using loadNBATeamStats() and loadNFLTeamStats() without any modifications.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only reads from local CSV files using loadNBATeamStats()/loadNFLTeamStats() without modification. Changes from No to Yes.
 
-**Open World: No**
-Only reads from local CSV files on the server. No external APIs or web services accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only accesses local CSV files on server filesystem, no external APIs or network requests. Changes from Yes to No.
 
-**Destructive: No**
-Performs read-only operations on local files. No data modification or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only file operations. No data deletion, modification, or permanent changes to files occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 5. get-matchup-stats
 
-**Read Only: Yes**
-Reads statistics for two teams from local CSV files using getMatchupStats() without modifying data.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only reads from local CSV files using getMatchupStats() for two teams without modification. Changes from No to Yes.
 
-**Open World: No**
-Only reads from local CSV files on the server. No external APIs or web services accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only accesses local CSV files on server filesystem, no external APIs or network requests. Changes from Yes to No.
 
-**Destructive: No**
-Performs read-only operations on local files. No data modification or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only file operations on team statistics. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 6. analyze-matchup
 
-**Read Only: Yes**
-Reads team statistics from local files and requests external analysis without modifying any stored data.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only reads local team stats and requests external analysis without modifying stored data. Changes from No to Yes.
 
 **Open World: Yes**
-Calls Gemini AI API at generativelanguage.googleapis.com via getAIAnalysis() for matchup analysis.
+Correct. Tool makes HTTP requests to Gemini AI API at generativelanguage.googleapis.com via getAIAnalysis() for matchup insights.
 
-**Destructive: No**
-Only reads data and requests external analysis. No data deletion or permanent modification.
+**Destructive: No (should be No)**
+Tool only reads data and requests analysis. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 7. log-bet
 
 **Read Only: No**
-Creates new bet records in local storage (localBetStorage.set()) and sends data to external backend API via logBetToBackend().
+Correct. Tool creates new bet records in storage (localBetStorage.set()) and sends data to external backend API via logBetToBackend().
 
 **Open World: Yes**
-Sends bet data to external backend API at BACKEND_URL environment variable, which is outside local environment.
+Correct. Tool makes HTTP POST requests to external backend API at BACKEND_URL to persist bet data outside local environment.
 
-**Destructive: No**
-Creates new data records but doesn't delete or irreversibly modify existing data. Operations are additive.
+**Destructive: No (should be No)**
+Tool creates new records but never deletes data. All operations are additive and reversible through other tools. Changes scanner classification from Yes to No.
 
 ---
 
 ### 8. get-bet-history
 
-**Read Only: Yes**
-Reads bet records from local in-memory storage (localBetStorage.get()) and calculates statistics without modification.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only reads from local storage (localBetStorage.get()) and calculates stats without modification. Changes from No to Yes.
 
-**Open World: No**
-Only reads from in-memory local storage. No external APIs or services accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only accesses in-memory local storage, no external APIs or network requests made. Changes from Yes to No.
 
-**Destructive: No**
-Performs read-only operations on local data. No modification or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only operations on bet history. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 9. update-bet-outcome
 
 **Read Only: No**
-Modifies existing bet records by updating the outcome field (bet.outcome = outcome) in local storage.
+Correct. Tool modifies existing bet records by updating the outcome field (bet.outcome = outcome) in local storage.
 
-**Open World: No**
-Only modifies local in-memory storage (localBetStorage). No external APIs called.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only modifies local in-memory storage (localBetStorage), no external APIs called. Changes from Yes to No.
 
-**Destructive: No**
-Modifies bet outcomes but changes are reversible. Outcomes can be updated again and no data is permanently deleted.
+**Destructive: No (should be No)**
+Tool modifies bet outcomes but changes are reversible. Outcomes can be updated multiple times, no permanent deletion. Changes scanner classification from Yes to No.
 
 ---
 
 ### 10. get-bankroll
 
-**Read Only: Yes**
-Reads current bankroll amount from local storage using getBankroll() without modification.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only reads bankroll from local storage using getBankroll() without modification. Changes from No to Yes.
 
-**Open World: No**
-Only reads from in-memory local storage (bankrollStorage). No external APIs accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only accesses in-memory local storage (bankrollStorage), no external APIs or network requests. Changes from Yes to No.
 
-**Destructive: No**
-Performs read-only operations. No data modification or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only operations on bankroll data. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
 ### 11. set-bankroll
 
 **Read Only: No**
-Modifies bankroll amount in local storage (record.amount = amount) and adds history entries (record.history.push()).
+Correct. Tool modifies bankroll amount in local storage (record.amount = amount) and adds history entries (record.history.push()).
 
-**Open World: No**
-Only modifies local in-memory storage (bankrollStorage). No external APIs accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only modifies local in-memory storage (bankrollStorage), no external APIs accessed. Changes from Yes to No.
 
-**Destructive: No**
-Changes are tracked in history (record.history), bankroll can be reset, and no data is deleted. Complete audit trail maintained.
+**Destructive: No (should be No)**
+Tool maintains complete history (record.history) and bankroll can be reset. No permanent deletion, full audit trail. Changes scanner classification from Yes to No.
 
 ---
 
 ### 12. adjust-bankroll
 
 **Read Only: No**
-Modifies bankroll by adding/subtracting amounts (record.amount = previousAmount + adjustment) and logs changes in history.
+Correct. Tool modifies bankroll by adding/subtracting amounts (record.amount = previousAmount + adjustment) and logs changes in history.
 
-**Open World: No**
-Only modifies local in-memory storage (bankrollStorage). No external APIs accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only modifies local in-memory storage (bankrollStorage), no external APIs accessed. Changes from Yes to No.
 
-**Destructive: No**
-Adjustments are logged with timestamps and reasons. Changes are reversible and no data is deleted. Full audit trail maintained.
+**Destructive: No (should be No)**
+Tool logs all adjustments with timestamps. Changes are reversible, no permanent deletion, full audit trail maintained. Changes scanner classification from Yes to No.
 
 ---
 
 ### 13. get-bankroll-history
 
-**Read Only: Yes**
-Reads bankroll history from local storage (record.history) without modification.
+**Read Only: Yes (should be Yes)**
+Incorrect scanner classification. Tool only reads bankroll history from local storage (record.history) without modification. Changes from No to Yes.
 
-**Open World: No**
-Only reads from in-memory local storage (bankrollStorage). No external APIs accessed.
+**Open World: No (should be No)**
+Incorrect scanner classification. Only accesses in-memory local storage (bankrollStorage), no external APIs or network requests. Changes from Yes to No.
 
-**Destructive: No**
-Performs read-only operations. No data modification or deletion.
+**Destructive: No (should be No)**
+Tool performs read-only operations on history data. No data deletion, modification, or permanent changes occur. Changes scanner classification from Yes to No.
 
 ---
 
