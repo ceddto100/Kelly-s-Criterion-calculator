@@ -22,7 +22,9 @@ export function registerTeamStatsTool(server: McpServer) {
         sport: z.enum(['nba', 'nfl']).default('nba').describe('Sport league to search. Use "nba" for basketball teams, "nfl" for football teams. Default is "nba".')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Only reads from local CSV files
+        openWorldHint: false, // Reads from local data files only
+        destructiveHint: false // No data modification or deletion
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Looking up team stats...',
@@ -136,7 +138,9 @@ export function registerMatchupTool(server: McpServer) {
         sport: z.enum(['nba', 'nfl']).default('nba').describe('Sport league. Use "nba" for basketball, "nfl" for football. Default is "nba".')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Only reads from local CSV files
+        openWorldHint: false, // Reads from local data files only
+        destructiveHint: false // No data modification or deletion
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Loading matchup statistics...',

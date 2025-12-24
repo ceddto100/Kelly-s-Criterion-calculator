@@ -87,7 +87,9 @@ export function registerBetLoggerTool(server: McpServer) {
         notes: z.string().default('').describe('Optional notes about the bet. Example: "Home game, key player injured"')
       },
       annotations: {
-        readOnlyHint: false
+        readOnlyHint: false, // Creates new bet records in storage
+        openWorldHint: true, // May call external backend API to persist data
+        destructiveHint: false // Creates new data but doesn't delete existing
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Logging bet...',
@@ -217,7 +219,9 @@ export function registerBetLoggerTool(server: McpServer) {
         limit: z.number().min(1).max(50).default(10).describe('Maximum number of bets to return. Default is 10.')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Only reads bet history from storage
+        openWorldHint: false, // Reads from local in-memory storage only
+        destructiveHint: false // No data modification or deletion
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Loading bet history...',
@@ -318,7 +322,9 @@ export function registerBetLoggerTool(server: McpServer) {
         payout: z.number().optional().describe('Optional: Actual payout amount if different from calculated')
       },
       annotations: {
-        readOnlyHint: false
+        readOnlyHint: false, // Modifies existing bet outcome
+        openWorldHint: false, // Updates local storage only
+        destructiveHint: false // Modifies data but can be updated again, non-destructive
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Updating bet outcome...',

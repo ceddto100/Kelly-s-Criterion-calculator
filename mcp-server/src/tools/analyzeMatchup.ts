@@ -84,7 +84,9 @@ export function registerAnalyzeMatchupTool(server: McpServer) {
         sport: z.enum(['nba', 'nfl']).default('nba').describe('Sport league. Use "nba" for basketball, "nfl" for football. Default is "nba".')
       },
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true, // Reads data and requests analysis, no modifications
+        openWorldHint: true, // Calls external Gemini API for AI analysis
+        destructiveHint: false // No data deletion or permanent modification
       },
       _meta: {
         'openai/toolInvocation/invoking': 'Analyzing matchup...',
