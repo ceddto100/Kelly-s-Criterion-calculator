@@ -72,7 +72,7 @@ export function registerBankrollTools(server: McpServer) {
         },
         content: [{
           type: 'text' as const,
-          text: `**Current Bankroll:** $${record.amount.toFixed(2)}\n\n_Use this value with the kelly-calculate tool to determine optimal bet sizes._`
+          text: `**Current Bankroll:** ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(record.amount)}\n\n_Use this value with the kelly-calculate tool to determine optimal bet sizes._`
         }],
         _meta: {
           'openai/locale': locale
