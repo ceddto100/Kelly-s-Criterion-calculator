@@ -752,6 +752,100 @@ const GlobalStyle = () => (
 
     /* Audio Orb Styles */
     ${AudioOrbStyles()}
+
+    /* Demo Popover Button & Popover */
+    .demo-btn {
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .demo-btn:hover {
+      background: rgba(255, 255, 255, 0.10);
+      transform: translateY(-1px);
+    }
+
+    /* Popover */
+    .demo-popover {
+      position: absolute;
+      margin-top: 10px;
+      width: min(420px, calc(100vw - 24px));
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(10, 12, 18, 0.92);
+      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.55);
+      padding: 10px;
+      display: none;
+      z-index: 9999;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .demo-popover.is-open {
+      display: block;
+    }
+
+    .demo-popover__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 6px 10px;
+    }
+
+    .demo-popover__title {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .demo-popover__close {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s ease;
+    }
+
+    .demo-popover__close:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .demo-popover__video {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .demo-popover__video iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    @media (max-width: 640px) {
+      .demo-popover {
+        width: calc(100vw - 32px);
+      }
+    }
   `}</style>
 );
 
@@ -1766,6 +1860,135 @@ function App() {
     checkAuth();
   }, []);
 
+  // Demo Popover functionality
+  useEffect(() => {
+    const VIDEO_ID = "A6RZpBjjIns";
+
+    const btn = document.getElementById("demoPopoverBtn");
+    const popover = document.getElementById("demoPopover");
+    const closeBtn = document.getElementById("demoPopoverClose");
+    const iframe = document.getElementById("demoPopoverIframe") as HTMLIFrameElement | null;
+
+    if (!btn || !popover || !closeBtn || !iframe) return;
+
+    function setPopoverPosition() {
+      if (!btn || !popover) return;
+      const r = btn.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+
+      // Left aligned to button, but keep on-screen
+      const desiredLeft = r.left + scrollX;
+      const maxLeft = scrollX + document.documentElement.clientWidth - popover.offsetWidth - 12;
+      const left = Math.max(scrollX + 12, Math.min(desiredLeft, maxLeft));
+
+      // Position above the button
+      const top = r.top + scrollY - popover.offsetHeight - 10;
+
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    }
+
+    function openPopover(pushUrl = true) {
+      if (!popover || !iframe) return;
+      popover.classList.add("is-open");
+      popover.setAttribute("aria-hidden", "false");
+
+      setPopoverPosition();
+
+      // load video only when open
+      iframe.src = `https://www.youtube.com/embed/${VIDEO_ID}`;
+
+      // set shareable URL: ?demo=1
+      if (pushUrl) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("demo", "1");
+        history.pushState({ demo: true }, "", url.toString());
+      }
+    }
+
+    function closePopover(pushUrl = true) {
+      if (!popover || !iframe) return;
+      popover.classList.remove("is-open");
+      popover.setAttribute("aria-hidden", "true");
+
+      // stop playback
+      iframe.src = "";
+
+      // remove param
+      if (pushUrl) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("demo");
+        history.pushState({ demo: false }, "", url.toString());
+      }
+    }
+
+    const handleBtnClick = () => {
+      if (!popover) return;
+      const isOpen = popover.classList.contains("is-open");
+      if (isOpen) closePopover(true);
+      else openPopover(true);
+    };
+
+    const handleCloseClick = () => closePopover(true);
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (!popover || !btn) return;
+      if (!popover.classList.contains("is-open")) return;
+      if (popover.contains(e.target as Node) || btn.contains(e.target as Node)) return;
+      closePopover(true);
+    };
+
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (!popover) return;
+      if (e.key === "Escape" && popover.classList.contains("is-open")) closePopover(true);
+    };
+
+    const handleResize = () => {
+      if (!popover) return;
+      if (popover.classList.contains("is-open")) setPopoverPosition();
+    };
+
+    const handleScroll = () => {
+      if (!popover) return;
+      if (popover.classList.contains("is-open")) setPopoverPosition();
+    };
+
+    const handlePopstate = () => {
+      if (!popover) return;
+      const url = new URL(window.location.href);
+      const shouldOpen = url.searchParams.get("demo") === "1";
+      const isOpen = popover.classList.contains("is-open");
+
+      if (shouldOpen && !isOpen) openPopover(false);
+      if (!shouldOpen && isOpen) closePopover(false);
+    };
+
+    // auto-open if page loads with ?demo=1
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("demo") === "1") openPopover(false);
+
+    // Add event listeners
+    btn.addEventListener("click", handleBtnClick);
+    closeBtn.addEventListener("click", handleCloseClick);
+    document.addEventListener("click", handleDocumentClick);
+    window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, { passive: true } as any);
+    window.addEventListener("popstate", handlePopstate);
+
+    // Cleanup
+    return () => {
+      btn.removeEventListener("click", handleBtnClick);
+      closeBtn.removeEventListener("click", handleCloseClick);
+      document.removeEventListener("click", handleDocumentClick);
+      window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("popstate", handlePopstate);
+    };
+  }, []);
+
   // Authentication handlers
   const handleGoogleLogin = () => {
     window.location.href = `${BACKEND_URL}/auth/google`;
@@ -2125,6 +2348,14 @@ function App() {
                 ? 'Click to tuck the instructions away once you are comfortable with the flow.'
                 : 'Open the drop-up to review the workflow and feature explanations.'}
             </p>
+
+            {/* Watch Demo Button */}
+            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+              <button id="demoPopoverBtn" className="demo-btn" type="button">
+                🎬 Watch Demo
+              </button>
+            </div>
+
             <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.5rem 0' }}>
                 <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none', marginRight: '1.5rem' }}>
@@ -2137,6 +2368,24 @@ function App() {
             </div>
           </div>
         </footer>
+
+        {/* Demo Popover (place right after footer) */}
+        <div id="demoPopover" className="demo-popover" role="dialog" aria-hidden="true" aria-label="Demo video popover">
+          <div className="demo-popover__header">
+            <span className="demo-popover__title">Demo</span>
+            <button id="demoPopoverClose" className="demo-popover__close" type="button" aria-label="Close">✕</button>
+          </div>
+
+          <div className="demo-popover__video">
+            <iframe
+              id="demoPopoverIframe"
+              src=""
+              title="Demo video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen>
+            </iframe>
+          </div>
+        </div>
 
         {/* Bottom Navigation Bar */}
         <BottomNavigation
