@@ -8,6 +8,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { predictedMarginBasketball, coverProbability, type BasketballStats } from '../utils/calculations.js';
+import { loadNBATeamStats } from '../utils/loadStats.js';
 import { t } from '../utils/translations.js';
 import { getCurrentLocale } from '../server.js';
 
@@ -16,19 +17,12 @@ export function registerBasketballProbabilityTool(server: McpServer) {
     'probability-estimate-basketball',
     {
       title: 'Estimate Basketball Game Probability',
-      description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA or college basketball games using statistical analysis of team performance metrics. Returns win probability, predicted margin, and detailed team statistics. Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
+      description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA basketball games. Accepts team names and spread, returns probabilities for both favorite and underdog. Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
-        teamPointsFor: z.number().describe('Your team\'s average points scored per game. Example: 112.5 for NBA team averaging 112.5 points, 75.8 for college team. Valid range: 0-200 points'),
-        teamPointsAgainst: z.number().describe('Your team\'s average points allowed per game (defensive stat). Example: 108.2 for NBA team allowing 108.2 points, 68.4 for strong college defense. Valid range: 0-200 points'),
-        opponentPointsFor: z.number().describe('Opponent\'s average points scored per game. Example: 115.3 for high-scoring NBA opponent, 72.1 for college opponent. Valid range: 0-200 points'),
-        opponentPointsAgainst: z.number().describe('Opponent\'s average points allowed per game. Example: 110.7 for NBA opponent, 70.5 for college opponent. Valid range: 0-200 points'),
-        teamFgPct: z.number().describe('Your team\'s field goal percentage as a decimal (0-1). Example: 0.465 for 46.5% shooting, 0.52 for excellent 52% shooting, 0.42 for poor 42% shooting. Valid range: 0-1'),
-        opponentFgPct: z.number().describe('Opponent\'s field goal percentage as a decimal (0-1). Example: 0.48 for 48% shooting, 0.445 for 44.5% shooting. Valid range: 0-1'),
-        teamReboundMargin: z.number().describe('Your team\'s rebound margin per game (rebounds grabbed minus rebounds allowed). Positive is better. Example: +3.5 for team with +3.5 rebound advantage, -2.1 for team being outrebounded. Valid range: -50 to +50'),
-        opponentReboundMargin: z.number().describe('Opponent\'s rebound margin per game. Example: +1.8 for opponent with slight rebounding advantage, -4.2 for weak rebounding team. Valid range: -50 to +50'),
-        teamTurnoverMargin: z.number().describe('Your team\'s turnover margin per game (turnovers forced minus turnovers committed). Positive is better. Example: +2.3 for team forcing more turnovers, -1.5 for turnover-prone team. Valid range: -50 to +50'),
-        opponentTurnoverMargin: z.number().describe('Opponent\'s turnover margin per game. Example: +0.8 for opponent with positive margin, -2.7 for careless opponent. Valid range: -50 to +50'),
-        spread: z.number().describe('Point spread for your team. Negative if favored (expected to win), positive if underdog. Example: -5.5 if your team is 5.5-point favorite, +7 if your team is 7-point underdog. Valid range: -100 to +100')
+        sport: z.literal('basketball').default('basketball').describe('Sport type - must be "basketball"'),
+        team_favorite: z.string().describe('Name of the favored team. Can be full name (e.g., "Houston Rockets"), city (e.g., "Rockets"), or abbreviation (e.g., "HOU"). The favorite is the team expected to win.'),
+        team_underdog: z.string().describe('Name of the underdog team. Can be full name (e.g., "Los Angeles Lakers"), city (e.g., "Lakers"), or abbreviation (e.g., "LAL"). The underdog is the team expected to lose.'),
+        spread: z.number().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -3.5 means favorite must win by more than 3.5 points to cover, -6.5 means favorite must win by more than 6.5 points). Valid range: -50 to -0.5')
       },
       annotations: {
         readOnlyHint: true, // Only performs calculations, no data modification
@@ -49,137 +43,226 @@ export function registerBasketballProbabilityTool(server: McpServer) {
                   || getCurrentLocale();
 
       // Input validation
-      const validateStat = (value: number, name: string, min: number, max: number) => {
-        if (typeof value !== 'number' || isNaN(value)) {
-          throw new Error(t('validation_stat_range', locale, { stat: name, min: String(min), max: String(max) }));
-        }
-        if (value < min || value > max) {
-          throw new Error(t('validation_stat_range', locale, { stat: name, min: String(min), max: String(max) }));
-        }
-      };
-
-      try {
-        // Validate all inputs
-        validateStat(args.teamPointsFor, 'Team points for', 0, 200);
-        validateStat(args.teamPointsAgainst, 'Team points against', 0, 200);
-        validateStat(args.opponentPointsFor, 'Opponent points for', 0, 200);
-        validateStat(args.opponentPointsAgainst, 'Opponent points against', 0, 200);
-        validateStat(args.teamFgPct, 'Team FG%', 0, 1);
-        validateStat(args.opponentFgPct, 'Opponent FG%', 0, 1);
-        validateStat(args.teamReboundMargin, 'Team rebound margin', -50, 50);
-        validateStat(args.opponentReboundMargin, 'Opponent rebound margin', -50, 50);
-        validateStat(args.teamTurnoverMargin, 'Team turnover margin', -50, 50);
-        validateStat(args.opponentTurnoverMargin, 'Opponent turnover margin', -50, 50);
-        validateStat(args.spread, 'Spread', -100, 100);
-      } catch (error) {
+      if (!args.team_favorite || typeof args.team_favorite !== 'string' || args.team_favorite.trim() === '') {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: error instanceof Error ? error.message : t('error_invalid_input', locale)
+            message: 'Favorite team name is required'
           },
           content: [{
             type: 'text',
-            text: `${t('error_stat_validation', locale)}: ${error instanceof Error ? error.message : t('error_invalid_input', locale)}`
+            text: 'Error: Favorite team name is required and must be a non-empty string.'
           }],
           isError: true,
-          _meta: {
-            'openai/locale': locale
-          }
+          _meta: { 'openai/locale': locale }
         };
       }
-      // Calculate predicted margin
+
+      if (!args.team_underdog || typeof args.team_underdog !== 'string' || args.team_underdog.trim() === '') {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Underdog team name is required'
+          },
+          content: [{
+            type: 'text',
+            text: 'Error: Underdog team name is required and must be a non-empty string.'
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      if (typeof args.spread !== 'number' || isNaN(args.spread)) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Spread must be a valid number'
+          },
+          content: [{
+            type: 'text',
+            text: 'Error: Spread is required and must be a valid number.'
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      if (args.spread >= 0) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Spread must be negative (from favorite\'s perspective)'
+          },
+          content: [{
+            type: 'text',
+            text: 'Error: Spread must be negative (e.g., -3.5) from the favorite\'s perspective. The favorite is expected to win, so the spread should be negative.'
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      if (args.spread < -50 || args.spread > -0.5) {
+        return {
+          structuredContent: {
+            error: 'invalid_input',
+            message: 'Spread out of valid range (-50 to -0.5)'
+          },
+          content: [{
+            type: 'text',
+            text: 'Error: Spread must be between -50 and -0.5 points.'
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      // Load team statistics
+      const favoriteStats = loadNBATeamStats(args.team_favorite);
+      const underdogStats = loadNBATeamStats(args.team_underdog);
+
+      if (!favoriteStats) {
+        return {
+          structuredContent: {
+            error: 'team_not_found',
+            message: `Favorite team "${args.team_favorite}" not found in NBA database`,
+            searchedTerm: args.team_favorite
+          },
+          content: [{
+            type: 'text',
+            text: `Error: Could not find team "${args.team_favorite}" in NBA statistics. Please check the team name and try again. You can use full names (e.g., "Houston Rockets"), city names (e.g., "Rockets"), or abbreviations (e.g., "HOU").`
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      if (!underdogStats) {
+        return {
+          structuredContent: {
+            error: 'team_not_found',
+            message: `Underdog team "${args.team_underdog}" not found in NBA database`,
+            searchedTerm: args.team_underdog
+          },
+          content: [{
+            type: 'text',
+            text: `Error: Could not find team "${args.team_underdog}" in NBA statistics. Please check the team name and try again. You can use full names (e.g., "Los Angeles Lakers"), city names (e.g., "Lakers"), or abbreviations (e.g., "LAL").`
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      // Validate that we have the required stats
+      if (favoriteStats.pointsPerGame === null || favoriteStats.pointsAllowed === null ||
+          underdogStats.pointsPerGame === null || underdogStats.pointsAllowed === null) {
+        return {
+          structuredContent: {
+            error: 'insufficient_data',
+            message: 'Insufficient team statistics available'
+          },
+          content: [{
+            type: 'text',
+            text: 'Error: One or both teams are missing required statistics (points per game, points allowed). Cannot calculate probability.'
+          }],
+          isError: true,
+          _meta: { 'openai/locale': locale }
+        };
+      }
+
+      // Build stats object for calculation
       const stats: BasketballStats = {
-        teamPointsFor: args.teamPointsFor,
-        teamPointsAgainst: args.teamPointsAgainst,
-        opponentPointsFor: args.opponentPointsFor,
-        opponentPointsAgainst: args.opponentPointsAgainst,
-        teamFgPct: args.teamFgPct,
-        opponentFgPct: args.opponentFgPct,
-        teamReboundMargin: args.teamReboundMargin,
-        opponentReboundMargin: args.opponentReboundMargin,
-        teamTurnoverMargin: args.teamTurnoverMargin,
-        opponentTurnoverMargin: args.opponentTurnoverMargin
+        teamPointsFor: favoriteStats.pointsPerGame,
+        teamPointsAgainst: favoriteStats.pointsAllowed,
+        opponentPointsFor: underdogStats.pointsPerGame,
+        opponentPointsAgainst: underdogStats.pointsAllowed,
+        teamFgPct: favoriteStats.fieldGoalPct ?? 0.45, // Default to league average if missing
+        opponentFgPct: underdogStats.fieldGoalPct ?? 0.45,
+        teamReboundMargin: favoriteStats.reboundMargin ?? 0,
+        opponentReboundMargin: underdogStats.reboundMargin ?? 0,
+        teamTurnoverMargin: favoriteStats.turnoverMargin ?? 0,
+        opponentTurnoverMargin: underdogStats.turnoverMargin ?? 0
       };
 
+      // Calculate predicted margin and probabilities
       const predictedMargin = predictedMarginBasketball(stats);
       const sigma = 12.0; // Standard deviation for basketball
-      const probability = coverProbability(predictedMargin, args.spread, sigma);
 
-      const teamStats = {
-        pointsFor: args.teamPointsFor,
-        pointsAgainst: args.teamPointsAgainst,
-        fgPct: args.teamFgPct,
-        reboundMargin: args.teamReboundMargin,
-        turnoverMargin: args.teamTurnoverMargin,
-        netRating: args.teamPointsFor - args.teamPointsAgainst
+      // Favorite's probability to cover (beat spread)
+      const favoriteCoverProb = coverProbability(predictedMargin, args.spread, sigma);
+
+      // Underdog's probability to cover
+      const underdogCoverProb = 100 - favoriteCoverProb;
+
+      // Determine confidence level based on spread and predicted margin
+      let modelConfidence: 'high' | 'medium' | 'low';
+      const probDiff = Math.abs(favoriteCoverProb - 50);
+      if (probDiff > 20) {
+        modelConfidence = 'high';
+      } else if (probDiff > 10) {
+        modelConfidence = 'medium';
+      } else {
+        modelConfidence = 'low';
+      }
+
+      // Normalize probabilities to ensure they sum to exactly 1.00
+      const favorite_cover_probability = Number((favoriteCoverProb / 100).toFixed(2));
+      const underdog_cover_probability = Number((1 - favorite_cover_probability).toFixed(2));
+
+      // Format result
+      const result = {
+        favorite_cover_probability,
+        underdog_cover_probability,
+        model_confidence: modelConfidence,
+        inputs_normalized: true
       };
-
-      const opponentStats = {
-        pointsFor: args.opponentPointsFor,
-        pointsAgainst: args.opponentPointsAgainst,
-        fgPct: args.opponentFgPct,
-        reboundMargin: args.opponentReboundMargin,
-        turnoverMargin: args.opponentTurnoverMargin,
-        netRating: args.opponentPointsFor - args.opponentPointsAgainst
-      };
-
-      // Format result text
-      const spreadText = `${args.spread > 0 ? '+' : ''}${args.spread}`;
-      const resultText = t('probability_result_text', locale, {
-        probability: probability.toFixed(2),
-        spread: spreadText
-      }) + '\n\n' +
-        `${t('probability_predicted_margin', locale)}: ${predictedMargin > 0 ? '+' : ''}${predictedMargin.toFixed(1)} ${t('points', locale)}\n\n` +
-        t('probability_use_with_kelly', locale, { probability: probability.toFixed(2) });
 
       return {
-        // Model sees: concise summary of probability estimate
-        structuredContent: {
-          sport: 'basketball',
-          probability,
-          predictedMargin,
-          spread: args.spread,
-          sigma,
-          teamStats,
-          opponentStats,
-          estimatedAt: new Date().toISOString()
-        },
+        // Model sees: required output format
+        structuredContent: result,
 
         // Optional: natural language text for model
         content: [{
           type: 'text' as const,
-          text: resultText
+          text: JSON.stringify(result, null, 2)
         }],
 
         // Component sees: complete data for UI rendering
         _meta: {
           'openai/outputTemplate': 'ui://widget/probability-estimator.html',
           'openai/widgetAccessible': true,
-          'openai/toolInvocation/invoking': t('probability_estimating', locale),
-          'openai/toolInvocation/invoked': t('probability_estimated', locale),
           'openai/locale': locale,
 
-          // Complete calculation details
+          // Additional metadata
           calculation: {
             sport: 'basketball',
-            predictedMargin,
+            favorite: favoriteStats.team,
+            underdog: underdogStats.team,
             spread: args.spread,
-            probability,
+            predictedMargin,
             sigma,
             method: 'statistical_analysis'
           },
 
-          // Full team statistics for charting
-          teamStats,
+          favoriteStats: {
+            team: favoriteStats.team,
+            pointsPerGame: favoriteStats.pointsPerGame,
+            pointsAllowed: favoriteStats.pointsAllowed,
+            fieldGoalPct: favoriteStats.fieldGoalPct,
+            reboundMargin: favoriteStats.reboundMargin,
+            turnoverMargin: favoriteStats.turnoverMargin,
+            netRating: favoriteStats.pointsPerGame - favoriteStats.pointsAllowed
+          },
 
-          // Full opponent statistics for charting
-          opponentStats,
-
-          // UI display settings
-          displaySettings: {
-            sportType: 'basketball',
-            showAdvancedStats: true,
-            locale
+          underdogStats: {
+            team: underdogStats.team,
+            pointsPerGame: underdogStats.pointsPerGame,
+            pointsAllowed: underdogStats.pointsAllowed,
+            fieldGoalPct: underdogStats.fieldGoalPct,
+            reboundMargin: underdogStats.reboundMargin,
+            turnoverMargin: underdogStats.turnoverMargin,
+            netRating: underdogStats.pointsPerGame - underdogStats.pointsAllowed
           }
         }
       };
