@@ -68,7 +68,7 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       title: 'Estimate Basketball Game Probability',
       description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA basketball games. Accepts team names and spread, returns probabilities for both favorite and underdog. Supports field aliases: team_favorite (or favorite_team, favorite, fav) and team_underdog (or underdog_team, underdog, dog). Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
-        sport: z.literal('basketball').optional().default('basketball').describe('Sport type - "basketball"'),
+        sport: z.literal('basketball').default('basketball').describe('Sport type - "basketball"'),
         team_favorite: z.string().optional().describe('Name of the favored team. Can be full name (e.g., "Houston Rockets"), city (e.g., "Rockets"), or abbreviation (e.g., "HOU"). Aliases: favorite_team, favorite, fav'),
         team_underdog: z.string().optional().describe('Name of the underdog team. Can be full name (e.g., "Los Angeles Lakers"), city (e.g., "Lakers"), or abbreviation (e.g., "LAL"). Aliases: underdog_team, underdog, dog'),
         spread: z.number().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -3.5 means favorite must win by more than 3.5 points to cover). Valid range: -50 to -0.5'),
