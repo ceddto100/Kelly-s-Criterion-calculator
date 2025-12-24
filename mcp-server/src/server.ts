@@ -7,8 +7,10 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import express from 'express';
 import dotenv from 'dotenv';
+import { randomUUID } from 'crypto';
 
 // Import tool registrations
 import { registerKellyTool } from './tools/kelly.js';
@@ -29,10 +31,14 @@ import { negotiateLocale } from './utils/translations.js';
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
+const DEBUG_MCP = process.env.DEBUG_MCP === '1' || process.env.DEBUG_MCP === 'true';
 
 // Create Express app
 const app = express();
-app.use(express.json());
+
+// JSON body parser MUST come before MCP routes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // CORS middleware for ChatGPT and Render deployment
 app.use((req, res, next) => {
@@ -43,8 +49,8 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
 
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-Id');
 
   if (req.method === 'OPTIONS') {
     res.sendStatus(204);
@@ -53,10 +59,24 @@ app.use((req, res, next) => {
   }
 });
 
+// Debug logging middleware for /mcp routes
+app.use('/mcp', (req, res, next) => {
+  if (DEBUG_MCP) {
+    console.log('[MCP DEBUG] Request received:', {
+      method: req.method,
+      path: req.path,
+      contentType: req.get('content-type'),
+      sessionId: req.get('x-session-id'),
+      bodyPreview: JSON.stringify(req.body || {}).substring(0, 2048)
+    });
+  }
+  next();
+});
+
 // Create MCP server
 const mcpServer = new McpServer({
   name: 'kelly-criterion-calculator',
-  version: '1.0.0'
+  version: '2.0.0'
 });
 
 // Store current locale (default to English)
@@ -148,60 +168,103 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     name: 'kelly-criterion-calculator',
-    version: '1.0.0',
+    version: '2.0.0',
     timestamp: new Date().toISOString()
   });
 });
 
-// MCP endpoint using SSE transport
-app.get('/mcp', async (req, res) => {
-  console.log('New MCP connection established');
+// ==================== MCP PROTOCOL HANDLERS ====================
 
-  const transport = new SSEServerTransport('/mcp', res);
-  await mcpServer.connect(transport);
+/**
+ * Unified MCP endpoint using StreamableHTTPServerTransport
+ * Handles both GET (SSE) and POST (JSON-RPC) requests
+ * This is what OpenAI's scanner expects
+ */
+app.use('/mcp', async (req, res, next) => {
+  try {
+    // Create a new transport for each request with stateless mode
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined, // Stateless mode for OpenAI scanner compatibility
+      enableJsonResponse: true // Enable JSON responses for POST requests
+    });
 
-  // Log when connection closes
-  req.on('close', () => {
-    console.log('MCP connection closed');
+    // Connect the transport to the MCP server
+    await mcpServer.connect(transport);
+
+    if (DEBUG_MCP) {
+      console.log('[MCP DEBUG] Transport connected, handling request');
+    }
+
+    // Handle the request (GET, POST, or DELETE)
+    await transport.handleRequest(req, res, req.body);
+
+    if (DEBUG_MCP) {
+      console.log('[MCP DEBUG] Request handled successfully');
+    }
+  } catch (error: any) {
+    if (DEBUG_MCP) {
+      console.error('[MCP DEBUG] Request handler error:', error);
+    }
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Internal server error',
+        message: error.message
+      });
+    }
+  }
+});
+
+// Handle trailing slash for /mcp/
+app.use('/mcp/', (req, res, next) => {
+  req.url = req.url.replace(/^\/+/, '/');
+  req.originalUrl = req.originalUrl.replace('/mcp/', '/mcp');
+  next();
+});
+
+// Export the MCP server instance for testing
+export { mcpServer };
+
+// Export the app for testing
+export default app;
+
+// Start server only when not imported (i.e., when run directly)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  app.listen(PORT, () => {
+    console.log('========================================');
+    console.log('Kelly Criterion MCP Server v2.0.0');
+    console.log('========================================');
+    console.log(`Port: ${PORT}`);
+    console.log(`MCP Endpoint: http://localhost:${PORT}/mcp`);
+    console.log(`Health Check: http://localhost:${PORT}/health`);
+    console.log(`Debug Mode: ${DEBUG_MCP ? 'ENABLED' : 'DISABLED'}`);
+    console.log('');
+    console.log('Supported Methods:');
+    console.log('  - GET /mcp  (SSE streaming)');
+    console.log('  - POST /mcp (JSON-RPC over HTTP)');
+    console.log('');
+    console.log('Registered Tools:');
+    console.log('  Core Calculations:');
+    console.log('    - kelly-calculate');
+    console.log('    - probability-estimate-football');
+    console.log('    - probability-estimate-basketball');
+    console.log('  Team Stats & Matchups:');
+    console.log('    - get-team-stats');
+    console.log('    - get-matchup-stats');
+    console.log('    - analyze-matchup');
+    console.log('  Bet Management:');
+    console.log('    - log-bet');
+    console.log('    - get-bet-history');
+    console.log('    - update-bet-outcome');
+    console.log('  Bankroll Management:');
+    console.log('    - get-bankroll');
+    console.log('    - set-bankroll');
+    console.log('    - adjust-bankroll');
+    console.log('    - get-bankroll-history');
+    console.log('');
+    console.log('Registered Resources:');
+    console.log('  - kelly-calculator.html');
+    console.log('  - probability-estimator.html');
+    console.log('========================================');
   });
-});
-
-// POST endpoint for MCP messages (handled via transport)
-app.post('/mcp/message', (req, res) => {
-  console.log('MCP POST message received');
-  res.status(405).json({ error: 'Use GET /mcp with SSE for MCP protocol' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log('========================================');
-  console.log('Kelly Criterion MCP Server v2.0.0');
-  console.log('========================================');
-  console.log(`Port: ${PORT}`);
-  console.log(`MCP Endpoint: http://localhost:${PORT}/mcp`);
-  console.log(`Health Check: http://localhost:${PORT}/health`);
-  console.log('');
-  console.log('Registered Tools:');
-  console.log('  Core Calculations:');
-  console.log('    - kelly-calculate');
-  console.log('    - probability-estimate-football');
-  console.log('    - probability-estimate-basketball');
-  console.log('  Team Stats & Matchups:');
-  console.log('    - get-team-stats');
-  console.log('    - get-matchup-stats');
-  console.log('    - analyze-matchup');
-  console.log('  Bet Management:');
-  console.log('    - log-bet');
-  console.log('    - get-bet-history');
-  console.log('    - update-bet-outcome');
-  console.log('  Bankroll Management:');
-  console.log('    - get-bankroll');
-  console.log('    - set-bankroll');
-  console.log('    - adjust-bankroll');
-  console.log('    - get-bankroll-history');
-  console.log('');
-  console.log('Registered Resources:');
-  console.log('  - kelly-calculator.html');
-  console.log('  - probability-estimator.html');
-  console.log('========================================');
-});
+}
