@@ -16,6 +16,7 @@ import { randomUUID } from 'crypto';
 import { registerKellyTool } from './tools/kelly.js';
 import { registerFootballProbabilityTool } from './tools/probabilityFootball.js';
 import { registerBasketballProbabilityTool } from './tools/probabilityBasketball.js';
+import { registerUnifiedProbabilityTool } from './tools/probabilityUnified.js';
 import { registerTeamStatsTool, registerMatchupTool } from './tools/teamStats.js';
 import { registerAnalyzeMatchupTool } from './tools/analyzeMatchup.js';
 import { registerBetLoggerTool } from './tools/betLogger.js';
@@ -99,6 +100,7 @@ registerComponentResources(mcpServer);
 // Register all tools
 // Core calculation tools
 registerKellyTool(mcpServer);
+registerUnifiedProbabilityTool(mcpServer); // Primary probability tool - auto-detects sport
 registerFootballProbabilityTool(mcpServer);
 registerBasketballProbabilityTool(mcpServer);
 
@@ -122,6 +124,7 @@ app.get('/', (req, res) => {
       tools: [
         // Core calculations
         'kelly-calculate',
+        'probability-estimate', // PRIMARY - auto-detects NBA/NFL from team names
         'probability-estimate-football',
         'probability-estimate-basketball',
         // Team stats and matchups
@@ -246,6 +249,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('Registered Tools:');
     console.log('  Core Calculations:');
     console.log('    - kelly-calculate');
+    console.log('    - probability-estimate (PRIMARY - auto-detects sport)');
     console.log('    - probability-estimate-football');
     console.log('    - probability-estimate-basketball');
     console.log('  Team Stats & Matchups:');
