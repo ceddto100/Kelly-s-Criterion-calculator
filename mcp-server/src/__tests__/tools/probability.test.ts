@@ -32,233 +32,144 @@ describe('probability-estimate-football tool', () => {
   });
 
   describe('valid inputs', () => {
-    it('should estimate probability for football matchup', async () => {
+    it('should estimate probability for Eagles -7 vs Commanders', async () => {
       const result = await toolHandler({
-        teamPointsFor: 28,
-        teamPointsAgainst: 20,
-        opponentPointsFor: 21,
-        opponentPointsAgainst: 24,
-        teamOffYards: 380,
-        teamDefYards: 310,
-        opponentOffYards: 330,
-        opponentDefYards: 360,
-        teamTurnoverDiff: 1.5,
-        opponentTurnoverDiff: -0.5,
-        spread: -3.5,
-      });
-
-      expect(result.structuredContent.sport).toBe('football');
-      expect(result.structuredContent.probability).toBeGreaterThan(0);
-      expect(result.structuredContent.probability).toBeLessThan(100);
-      expect(result.structuredContent.predictedMargin).toBeDefined();
-      expect(result.structuredContent.sigma).toBe(13.5);
-    });
-
-    it('should return >50% for favorite expected to cover', async () => {
-      const result = await toolHandler({
-        teamPointsFor: 31,
-        teamPointsAgainst: 18,
-        opponentPointsFor: 20,
-        opponentPointsAgainst: 26,
-        teamOffYards: 420,
-        teamDefYards: 290,
-        opponentOffYards: 310,
-        opponentDefYards: 380,
-        teamTurnoverDiff: 2.5,
-        opponentTurnoverDiff: -1.8,
+        sport: 'football',
+        team_favorite: 'Eagles',
+        team_underdog: 'Commanders',
         spread: -7,
       });
 
-      expect(result.structuredContent.probability).toBeGreaterThan(50);
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent.favorite_cover_probability).toBeGreaterThan(0);
+      expect(result.structuredContent.favorite_cover_probability).toBeLessThan(1);
+      expect(result.structuredContent.underdog_cover_probability).toBeGreaterThan(0);
+      expect(result.structuredContent.underdog_cover_probability).toBeLessThan(1);
+      expect(result.structuredContent.model_confidence).toMatch(/^(high|medium|low)$/);
+      expect(result.structuredContent.inputs_normalized).toBe(true);
+
+      // Probabilities should sum to 1.00
+      const sum = result.structuredContent.favorite_cover_probability +
+                  result.structuredContent.underdog_cover_probability;
+      expect(sum).toBeCloseTo(1.0, 2);
     });
 
-    it('should return <50% when unlikely to cover', async () => {
+    it('should accept team abbreviations', async () => {
       const result = await toolHandler({
-        teamPointsFor: 18,
-        teamPointsAgainst: 28,
-        opponentPointsFor: 27,
-        opponentPointsAgainst: 19,
-        teamOffYards: 300,
-        teamDefYards: 400,
-        opponentOffYards: 390,
-        opponentDefYards: 320,
-        teamTurnoverDiff: -1.2,
-        opponentTurnoverDiff: 1.8,
-        spread: -3,
+        sport: 'football',
+        team_favorite: 'KC',
+        team_underdog: 'LV',
+        spread: -3.5,
       });
 
-      expect(result.structuredContent.probability).toBeLessThan(50);
+      // Should work with abbreviations
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent.favorite_cover_probability).toBeDefined();
     });
 
-    it('should include team and opponent stats in output', async () => {
+    it('should return JSON-only output', async () => {
       const result = await toolHandler({
-        teamPointsFor: 24,
-        teamPointsAgainst: 21,
-        opponentPointsFor: 22,
-        opponentPointsAgainst: 23,
-        teamOffYards: 360,
-        teamDefYards: 340,
-        opponentOffYards: 350,
-        opponentDefYards: 350,
-        teamTurnoverDiff: 0.5,
-        opponentTurnoverDiff: 0,
-        spread: -2.5,
+        sport: 'football',
+        team_favorite: 'Eagles',
+        team_underdog: 'Commanders',
+        spread: -7,
       });
 
-      expect(result.structuredContent.teamStats).toBeDefined();
-      expect(result.structuredContent.opponentStats).toBeDefined();
-      expect(result.structuredContent.teamStats.pointsFor).toBe(24);
-      expect(result.structuredContent.opponentStats.pointsFor).toBe(22);
+      // Content should be JSON string
+      expect(result.content[0].text).toContain('favorite_cover_probability');
+      expect(result.content[0].text).toContain('underdog_cover_probability');
+      expect(result.content[0].text).toContain('model_confidence');
+      expect(result.content[0].text).toContain('inputs_normalized');
     });
   });
 
   describe('input validation', () => {
-    it('should reject NaN values', async () => {
+    it('should reject missing favorite team name', async () => {
       const result = await toolHandler({
-        teamPointsFor: NaN,
-        teamPointsAgainst: 20,
-        opponentPointsFor: 21,
-        opponentPointsAgainst: 24,
-        teamOffYards: 380,
-        teamDefYards: 310,
-        opponentOffYards: 330,
-        opponentDefYards: 360,
-        teamTurnoverDiff: 1.5,
-        opponentTurnoverDiff: -0.5,
-        spread: -3.5,
+        sport: 'football',
+        team_favorite: '',
+        team_underdog: 'Commanders',
+        spread: -7,
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+      expect(result.structuredContent.message).toContain('Favorite team name is required');
+    });
+
+    it('should reject missing underdog team name', async () => {
+      const result = await toolHandler({
+        sport: 'football',
+        team_favorite: 'Eagles',
+        team_underdog: '',
+        spread: -7,
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+      expect(result.structuredContent.message).toContain('Underdog team name is required');
+    });
+
+    it('should reject missing spread', async () => {
+      const result = await toolHandler({
+        sport: 'football',
+        team_favorite: 'Eagles',
+        team_underdog: 'Commanders',
+        spread: NaN,
       });
 
       expect(result.isError).toBe(true);
       expect(result.structuredContent.error).toBe('invalid_input');
     });
 
-    it('should reject out-of-range points', async () => {
+    it('should reject positive spread', async () => {
       const result = await toolHandler({
-        teamPointsFor: 150, // > 100
-        teamPointsAgainst: 20,
-        opponentPointsFor: 21,
-        opponentPointsAgainst: 24,
-        teamOffYards: 380,
-        teamDefYards: 310,
-        opponentOffYards: 330,
-        opponentDefYards: 360,
-        teamTurnoverDiff: 1.5,
-        opponentTurnoverDiff: -0.5,
-        spread: -3.5,
+        sport: 'football',
+        team_favorite: 'Eagles',
+        team_underdog: 'Commanders',
+        spread: 7,
       });
 
       expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+      expect(result.structuredContent.message).toContain('negative');
     });
 
-    it('should reject out-of-range yards', async () => {
+    it('should reject invalid team names', async () => {
       const result = await toolHandler({
-        teamPointsFor: 28,
-        teamPointsAgainst: 20,
-        opponentPointsFor: 21,
-        opponentPointsAgainst: 24,
-        teamOffYards: 1500, // > 1000
-        teamDefYards: 310,
-        opponentOffYards: 330,
-        opponentDefYards: 360,
-        teamTurnoverDiff: 1.5,
-        opponentTurnoverDiff: -0.5,
-        spread: -3.5,
+        sport: 'football',
+        team_favorite: 'InvalidTeamXYZ',
+        team_underdog: 'Commanders',
+        spread: -7,
       });
 
       expect(result.isError).toBe(true);
-    });
-
-    it('should reject out-of-range turnover differential', async () => {
-      const result = await toolHandler({
-        teamPointsFor: 28,
-        teamPointsAgainst: 20,
-        opponentPointsFor: 21,
-        opponentPointsAgainst: 24,
-        teamOffYards: 380,
-        teamDefYards: 310,
-        opponentOffYards: 330,
-        opponentDefYards: 360,
-        teamTurnoverDiff: 100, // > 50
-        opponentTurnoverDiff: -0.5,
-        spread: -3.5,
-      });
-
-      expect(result.isError).toBe(true);
-    });
-
-    it('should reject out-of-range spread', async () => {
-      const result = await toolHandler({
-        teamPointsFor: 28,
-        teamPointsAgainst: 20,
-        opponentPointsFor: 21,
-        opponentPointsAgainst: 24,
-        teamOffYards: 380,
-        teamDefYards: 310,
-        opponentOffYards: 330,
-        opponentDefYards: 360,
-        teamTurnoverDiff: 1.5,
-        opponentTurnoverDiff: -0.5,
-        spread: 150, // > 100
-      });
-
-      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('team_not_found');
+      expect(result.structuredContent.searchedTerm).toBe('InvalidTeamXYZ');
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle zero values', async () => {
+  describe('output format', () => {
+    it('should match required schema exactly', async () => {
       const result = await toolHandler({
-        teamPointsFor: 0,
-        teamPointsAgainst: 0,
-        opponentPointsFor: 0,
-        opponentPointsAgainst: 0,
-        teamOffYards: 0,
-        teamDefYards: 0,
-        opponentOffYards: 0,
-        opponentDefYards: 0,
-        teamTurnoverDiff: 0,
-        opponentTurnoverDiff: 0,
-        spread: 0,
+        sport: 'football',
+        team_favorite: 'Eagles',
+        team_underdog: 'Commanders',
+        spread: -7,
       });
 
       expect(result.isError).toBeFalsy();
-      expect(result.structuredContent.probability).toBeCloseTo(50, 0);
-    });
 
-    it('should cap probability at 99.9', async () => {
-      const result = await toolHandler({
-        teamPointsFor: 50,
-        teamPointsAgainst: 10,
-        opponentPointsFor: 10,
-        opponentPointsAgainst: 50,
-        teamOffYards: 600,
-        teamDefYards: 200,
-        opponentOffYards: 200,
-        opponentDefYards: 600,
-        teamTurnoverDiff: 10,
-        opponentTurnoverDiff: -10,
-        spread: 50,
-      });
+      const output = result.structuredContent;
+      expect(output).toHaveProperty('favorite_cover_probability');
+      expect(output).toHaveProperty('underdog_cover_probability');
+      expect(output).toHaveProperty('model_confidence');
+      expect(output).toHaveProperty('inputs_normalized');
 
-      expect(result.structuredContent.probability).toBeLessThanOrEqual(99.9);
-    });
-
-    it('should cap probability at 0.1', async () => {
-      const result = await toolHandler({
-        teamPointsFor: 10,
-        teamPointsAgainst: 50,
-        opponentPointsFor: 50,
-        opponentPointsAgainst: 10,
-        teamOffYards: 200,
-        teamDefYards: 600,
-        opponentOffYards: 600,
-        opponentDefYards: 200,
-        teamTurnoverDiff: -10,
-        opponentTurnoverDiff: 10,
-        spread: -50,
-      });
-
-      expect(result.structuredContent.probability).toBeGreaterThanOrEqual(0.1);
+      expect(typeof output.favorite_cover_probability).toBe('number');
+      expect(typeof output.underdog_cover_probability).toBe('number');
+      expect(typeof output.model_confidence).toBe('string');
+      expect(output.inputs_normalized).toBe(true);
     });
   });
 });
@@ -285,141 +196,176 @@ describe('probability-estimate-basketball tool', () => {
   });
 
   describe('valid inputs', () => {
-    it('should estimate probability for basketball matchup', async () => {
+    it('should estimate probability for Knicks -5.5 vs Cavaliers', async () => {
       const result = await toolHandler({
-        teamPointsFor: 115,
-        teamPointsAgainst: 108,
-        opponentPointsFor: 110,
-        opponentPointsAgainst: 112,
-        teamFgPct: 0.475,
-        opponentFgPct: 0.445,
-        teamReboundMargin: 3.5,
-        opponentReboundMargin: -1.2,
-        teamTurnoverMargin: 1.8,
-        opponentTurnoverMargin: -0.5,
-        spread: -4.5,
+        sport: 'basketball',
+        team_favorite: 'Knicks',
+        team_underdog: 'Cavaliers',
+        spread: -5.5,
       });
 
-      expect(result.structuredContent.sport).toBe('basketball');
-      expect(result.structuredContent.probability).toBeGreaterThan(0);
-      expect(result.structuredContent.probability).toBeLessThan(100);
-      expect(result.structuredContent.sigma).toBe(12.0);
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent.favorite_cover_probability).toBeGreaterThan(0);
+      expect(result.structuredContent.favorite_cover_probability).toBeLessThan(1);
+      expect(result.structuredContent.underdog_cover_probability).toBeGreaterThan(0);
+      expect(result.structuredContent.underdog_cover_probability).toBeLessThan(1);
+      expect(result.structuredContent.model_confidence).toMatch(/^(high|medium|low)$/);
+      expect(result.structuredContent.inputs_normalized).toBe(true);
+
+      // Probabilities should sum to 1.00
+      const sum = result.structuredContent.favorite_cover_probability +
+                  result.structuredContent.underdog_cover_probability;
+      expect(sum).toBeCloseTo(1.0, 2);
     });
 
-    it('should validate field goal percentage range', async () => {
+    it('should estimate probability for Rockets -3.5 vs Lakers', async () => {
       const result = await toolHandler({
-        teamPointsFor: 115,
-        teamPointsAgainst: 108,
-        opponentPointsFor: 110,
-        opponentPointsAgainst: 112,
-        teamFgPct: 1.5, // Invalid: > 1
-        opponentFgPct: 0.445,
-        teamReboundMargin: 3.5,
-        opponentReboundMargin: -1.2,
-        teamTurnoverMargin: 1.8,
-        opponentTurnoverMargin: -0.5,
-        spread: -4.5,
+        sport: 'basketball',
+        team_favorite: 'Houston Rockets',
+        team_underdog: 'Los Angeles Lakers',
+        spread: -3.5,
       });
 
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent.favorite_cover_probability).toBeDefined();
+      expect(result.structuredContent.underdog_cover_probability).toBeDefined();
+      expect(result.structuredContent.model_confidence).toBeDefined();
+
+      // Probabilities should sum to 1.00
+      const sum = result.structuredContent.favorite_cover_probability +
+                  result.structuredContent.underdog_cover_probability;
+      expect(sum).toBeCloseTo(1.0, 2);
     });
 
-    it('should include team statistics', async () => {
+    it('should accept team abbreviations', async () => {
       const result = await toolHandler({
-        teamPointsFor: 112,
-        teamPointsAgainst: 110,
-        opponentPointsFor: 108,
-        opponentPointsAgainst: 106,
-        teamFgPct: 0.465,
-        opponentFgPct: 0.445,
-        teamReboundMargin: 2.5,
-        opponentReboundMargin: 1.0,
-        teamTurnoverMargin: 0.8,
-        opponentTurnoverMargin: 0.3,
-        spread: -3,
+        sport: 'basketball',
+        team_favorite: 'HOU',
+        team_underdog: 'LAL',
+        spread: -3.5,
       });
 
-      expect(result.structuredContent.teamStats).toBeDefined();
-      expect(result.structuredContent.teamStats.fgPct).toBe(0.465);
-      expect(result.structuredContent.opponentStats).toBeDefined();
+      // Should work with abbreviations
+      expect(result.isError).toBeFalsy();
+      expect(result.structuredContent.favorite_cover_probability).toBeDefined();
+    });
+
+    it('should return JSON-only output', async () => {
+      const result = await toolHandler({
+        sport: 'basketball',
+        team_favorite: 'Knicks',
+        team_underdog: 'Cavaliers',
+        spread: -5.5,
+      });
+
+      // Content should be JSON string
+      expect(result.content[0].text).toContain('favorite_cover_probability');
+      expect(result.content[0].text).toContain('underdog_cover_probability');
+      expect(result.content[0].text).toContain('model_confidence');
+      expect(result.content[0].text).toContain('inputs_normalized');
     });
   });
 
   describe('input validation', () => {
-    it('should reject negative field goal percentage', async () => {
+    it('should reject missing favorite team name', async () => {
       const result = await toolHandler({
-        teamPointsFor: 115,
-        teamPointsAgainst: 108,
-        opponentPointsFor: 110,
-        opponentPointsAgainst: 112,
-        teamFgPct: -0.1,
-        opponentFgPct: 0.445,
-        teamReboundMargin: 3.5,
-        opponentReboundMargin: -1.2,
-        teamTurnoverMargin: 1.8,
-        opponentTurnoverMargin: -0.5,
-        spread: -4.5,
+        sport: 'basketball',
+        team_favorite: '',
+        team_underdog: 'Cavaliers',
+        spread: -5.5,
       });
 
       expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+      expect(result.structuredContent.message).toContain('Favorite team name is required');
     });
 
-    it('should reject out-of-range points', async () => {
+    it('should reject missing underdog team name', async () => {
       const result = await toolHandler({
-        teamPointsFor: 250, // > 200
-        teamPointsAgainst: 108,
-        opponentPointsFor: 110,
-        opponentPointsAgainst: 112,
-        teamFgPct: 0.475,
-        opponentFgPct: 0.445,
-        teamReboundMargin: 3.5,
-        opponentReboundMargin: -1.2,
-        teamTurnoverMargin: 1.8,
-        opponentTurnoverMargin: -0.5,
-        spread: -4.5,
+        sport: 'basketball',
+        team_favorite: 'Knicks',
+        team_underdog: '',
+        spread: -5.5,
       });
 
       expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+      expect(result.structuredContent.message).toContain('Underdog team name is required');
+    });
+
+    it('should reject missing spread', async () => {
+      const result = await toolHandler({
+        sport: 'basketball',
+        team_favorite: 'Knicks',
+        team_underdog: 'Cavaliers',
+        spread: NaN,
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+    });
+
+    it('should reject positive spread', async () => {
+      const result = await toolHandler({
+        sport: 'basketball',
+        team_favorite: 'Knicks',
+        team_underdog: 'Cavaliers',
+        spread: 5.5,
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('invalid_input');
+      expect(result.structuredContent.message).toContain('negative');
+    });
+
+    it('should reject invalid team names', async () => {
+      const result = await toolHandler({
+        sport: 'basketball',
+        team_favorite: 'InvalidTeamXYZ',
+        team_underdog: 'Cavaliers',
+        spread: -5.5,
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error).toBe('team_not_found');
+      expect(result.structuredContent.searchedTerm).toBe('InvalidTeamXYZ');
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle perfect shooting percentage', async () => {
+  describe('output format', () => {
+    it('should match required schema exactly', async () => {
       const result = await toolHandler({
-        teamPointsFor: 120,
-        teamPointsAgainst: 100,
-        opponentPointsFor: 100,
-        opponentPointsAgainst: 105,
-        teamFgPct: 1.0,
-        opponentFgPct: 0.4,
-        teamReboundMargin: 5,
-        opponentReboundMargin: -5,
-        teamTurnoverMargin: 3,
-        opponentTurnoverMargin: -3,
-        spread: -10,
+        sport: 'basketball',
+        team_favorite: 'Knicks',
+        team_underdog: 'Cavaliers',
+        spread: -5.5,
       });
 
       expect(result.isError).toBeFalsy();
-      expect(result.structuredContent.probability).toBeGreaterThan(50);
+
+      const output = result.structuredContent;
+      expect(output).toHaveProperty('favorite_cover_probability');
+      expect(output).toHaveProperty('underdog_cover_probability');
+      expect(output).toHaveProperty('model_confidence');
+      expect(output).toHaveProperty('inputs_normalized');
+
+      expect(typeof output.favorite_cover_probability).toBe('number');
+      expect(typeof output.underdog_cover_probability).toBe('number');
+      expect(typeof output.model_confidence).toBe('string');
+      expect(output.inputs_normalized).toBe(true);
     });
 
-    it('should handle zero margins', async () => {
+    it('should ensure probabilities sum to 1.00', async () => {
       const result = await toolHandler({
-        teamPointsFor: 110,
-        teamPointsAgainst: 110,
-        opponentPointsFor: 110,
-        opponentPointsAgainst: 110,
-        teamFgPct: 0.45,
-        opponentFgPct: 0.45,
-        teamReboundMargin: 0,
-        opponentReboundMargin: 0,
-        teamTurnoverMargin: 0,
-        opponentTurnoverMargin: 0,
-        spread: 0,
+        sport: 'basketball',
+        team_favorite: 'Rockets',
+        team_underdog: 'Lakers',
+        spread: -3.5,
       });
 
-      expect(result.isError).toBeFalsy();
-      expect(result.structuredContent.probability).toBeCloseTo(50, 0);
+      const sum = result.structuredContent.favorite_cover_probability +
+                  result.structuredContent.underdog_cover_probability;
+      expect(sum).toBeCloseTo(1.0, 2);
     });
   });
 });

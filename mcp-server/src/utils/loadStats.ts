@@ -41,11 +41,13 @@ function parseCSV(content: string): CSVRow[] {
   const lines = content.trim().split('\n');
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  // Remove quotes from headers and convert to lowercase
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
   const rows: CSVRow[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim());
+    // Remove quotes from values
+    const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
     const row: CSVRow = {};
     headers.forEach((header, index) => {
       row[header] = values[index] || '';
@@ -98,7 +100,7 @@ function normalizeTeamName(name: string): string {
 function findTeamInData(data: CSVRow[], searchTerm: string): CSVRow | null {
   const normalized = normalizeTeamName(searchTerm);
 
-  // Try exact match first
+  // Try exact match first (team name)
   for (const row of data) {
     const teamName = row.team || row.name || '';
     if (normalizeTeamName(teamName) === normalized) {
@@ -106,7 +108,15 @@ function findTeamInData(data: CSVRow[], searchTerm: string): CSVRow | null {
     }
   }
 
-  // Try partial match
+  // Try exact abbreviation match
+  for (const row of data) {
+    const abbrev = row.abbreviation || '';
+    if (normalizeTeamName(abbrev) === normalized) {
+      return row;
+    }
+  }
+
+  // Try partial match (team name)
   for (const row of data) {
     const teamName = row.team || row.name || '';
     if (normalizeTeamName(teamName).includes(normalized) ||
@@ -189,7 +199,7 @@ export function loadNBATeamStats(teamName: string): NBATeamStats | null {
     team: ppgTeam?.team || allowedTeam?.team || fgTeam?.team || reboundTeam?.team || turnoverTeam?.team || teamName,
     pointsPerGame: ppgTeam?.ppg ? parseFloat(ppgTeam.ppg) : null,
     pointsAllowed: allowedTeam?.allowed ? parseFloat(allowedTeam.allowed) : null,
-    fieldGoalPct: fgTeam?.fg_pct ? parseFloat(fgTeam.fg_pct) : null,
+    fieldGoalPct: fgTeam?.fg_pct ? parseFloat(fgTeam.fg_pct) / 100 : null, // Convert from percentage to decimal
     reboundMargin: reboundTeam?.rebound_margin ? parseFloat(reboundTeam.rebound_margin) : null,
     turnoverMargin: turnoverTeam?.turnover_margin ? parseFloat(turnoverTeam.turnover_margin) : null,
   };

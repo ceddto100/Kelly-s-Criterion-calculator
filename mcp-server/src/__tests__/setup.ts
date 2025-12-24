@@ -7,12 +7,8 @@
 
 import { vi } from 'vitest';
 
-// Mock the server module preserving actual exports but allowing locale mocks
-vi.mock('../server.js', async (importOriginal) => {
-  const actual = await importOriginal() as any;
-  return {
-    ...actual,
-    getCurrentLocale: vi.fn(() => 'en'),
-    setCurrentLocale: vi.fn(),
-  };
-});
+// Mock getCurrentLocale to avoid importing the full server
+vi.mock('../server.js', () => ({
+  getCurrentLocale: vi.fn(() => 'en'),
+  setCurrentLocale: vi.fn(),
+}));
