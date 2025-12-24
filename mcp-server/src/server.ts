@@ -137,6 +137,12 @@ app.get('/.well-known/openid-configuration', (req, res) => {
   });
 });
 
+// OpenAI domain verification endpoint
+app.get('/.well-known/openai-apps-challenge', (req, res) => {
+  res.type('text/plain');
+  res.send('QphJXcnbOxYcoU7_XrjYgVss4BgeQfOUUWtz12ALEcc');
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
