@@ -8,26 +8,82 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { predictedMarginBasketball, coverProbability, type BasketballStats } from '../utils/calculations.js';
-import { loadNBATeamStats } from '../utils/loadStats.js';
+import { loadNBATeamStats, getAllNBATeamNames } from '../utils/loadStats.js';
 import { t } from '../utils/translations.js';
 import { getCurrentLocale } from '../server.js';
+
+/**
+ * Normalize input arguments to handle aliases
+ */
+function normalizeBasketballArgs(rawArgs: any): {
+  sport: string;
+  team_favorite: string;
+  team_underdog: string;
+  spread: number;
+} {
+  // Handle team_favorite aliases
+  const team_favorite = rawArgs.team_favorite
+    || rawArgs.favorite_team
+    || rawArgs.favorite
+    || rawArgs.fav
+    || '';
+
+  // Handle team_underdog aliases
+  const team_underdog = rawArgs.team_underdog
+    || rawArgs.underdog_team
+    || rawArgs.underdog
+    || rawArgs.dog
+    || '';
+
+  return {
+    sport: rawArgs.sport || 'basketball',
+    team_favorite: String(team_favorite).trim(),
+    team_underdog: String(team_underdog).trim(),
+    spread: Number(rawArgs.spread)
+  };
+}
+
+/**
+ * Find closest matching team names for suggestions
+ */
+function getSuggestedTeams(searchTerm: string, sport: 'nba' | 'nfl' = 'nba'): string[] {
+  if (sport !== 'nba') return [];
+
+  const allTeams = getAllNBATeamNames();
+  const normalized = searchTerm.toLowerCase();
+
+  // Find teams that partially match
+  const matches = allTeams.filter(team =>
+    team.toLowerCase().includes(normalized) ||
+    normalized.includes(team.toLowerCase())
+  );
+
+  return matches.slice(0, 5); // Return top 5 suggestions
+}
 
 export function registerBasketballProbabilityTool(server: McpServer) {
   server.tool(
     'probability-estimate-basketball',
     {
       title: 'Estimate Basketball Game Probability',
-      description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA basketball games. Accepts team names and spread, returns probabilities for both favorite and underdog. Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
+      description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA basketball games. Accepts team names and spread, returns probabilities for both favorite and underdog. Supports field aliases: team_favorite (or favorite_team, favorite, fav) and team_underdog (or underdog_team, underdog, dog). Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
-        sport: z.literal('basketball').default('basketball').describe('Sport type - must be "basketball"'),
-        team_favorite: z.string().describe('Name of the favored team. Can be full name (e.g., "Houston Rockets"), city (e.g., "Rockets"), or abbreviation (e.g., "HOU"). The favorite is the team expected to win.'),
-        team_underdog: z.string().describe('Name of the underdog team. Can be full name (e.g., "Los Angeles Lakers"), city (e.g., "Lakers"), or abbreviation (e.g., "LAL"). The underdog is the team expected to lose.'),
-        spread: z.number().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -3.5 means favorite must win by more than 3.5 points to cover, -6.5 means favorite must win by more than 6.5 points). Valid range: -50 to -0.5')
+        sport: z.literal('basketball').optional().default('basketball').describe('Sport type - "basketball"'),
+        team_favorite: z.string().optional().describe('Name of the favored team. Can be full name (e.g., "Houston Rockets"), city (e.g., "Rockets"), or abbreviation (e.g., "HOU"). Aliases: favorite_team, favorite, fav'),
+        team_underdog: z.string().optional().describe('Name of the underdog team. Can be full name (e.g., "Los Angeles Lakers"), city (e.g., "Lakers"), or abbreviation (e.g., "LAL"). Aliases: underdog_team, underdog, dog'),
+        spread: z.number().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -3.5 means favorite must win by more than 3.5 points to cover). Valid range: -50 to -0.5'),
+        // Alias fields
+        favorite_team: z.string().optional().describe('Alias for team_favorite'),
+        favorite: z.string().optional().describe('Alias for team_favorite'),
+        fav: z.string().optional().describe('Alias for team_favorite'),
+        underdog_team: z.string().optional().describe('Alias for team_underdog'),
+        underdog: z.string().optional().describe('Alias for team_underdog'),
+        dog: z.string().optional().describe('Alias for team_underdog')
       },
       annotations: {
-        readOnlyHint: true, // Only performs calculations, no data modification
-        openWorldHint: false, // All calculations are local, no external API calls
-        destructiveHint: false // No data deletion or permanent modification
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
       },
       _meta: {
         'openai/outputTemplate': 'ui://widget/probability-estimator.html',
@@ -36,63 +92,52 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         'openai/widgetAccessible': true
       }
     },
-    async (args, extra?: any) => {
-      // Extract locale from request or use current server locale
+    async (rawArgs, extra?: any) => {
       const locale: string = (extra?._meta?.['openai/locale'] as string)
                   || (extra?._meta?.['webplus/i18n'] as string)
                   || getCurrentLocale();
 
-      // Input validation
-      if (!args.team_favorite || typeof args.team_favorite !== 'string' || args.team_favorite.trim() === '') {
-        return {
-          structuredContent: {
-            error: 'invalid_input',
-            message: 'Favorite team name is required'
-          },
-          content: [{
-            type: 'text',
-            text: 'Error: Favorite team name is required and must be a non-empty string.'
-          }],
-          isError: true,
-          _meta: { 'openai/locale': locale }
-        };
+      // Normalize arguments to handle aliases
+      const args = normalizeBasketballArgs(rawArgs);
+
+      // Validate required fields AFTER normalization
+      const missingFields: string[] = [];
+
+      if (!args.team_favorite || args.team_favorite === '') {
+        missingFields.push('team_favorite (or favorite_team, favorite, fav)');
       }
 
-      if (!args.team_underdog || typeof args.team_underdog !== 'string' || args.team_underdog.trim() === '') {
-        return {
-          structuredContent: {
-            error: 'invalid_input',
-            message: 'Underdog team name is required'
-          },
-          content: [{
-            type: 'text',
-            text: 'Error: Underdog team name is required and must be a non-empty string.'
-          }],
-          isError: true,
-          _meta: { 'openai/locale': locale }
-        };
+      if (!args.team_underdog || args.team_underdog === '') {
+        missingFields.push('team_underdog (or underdog_team, underdog, dog)');
       }
 
       if (typeof args.spread !== 'number' || isNaN(args.spread)) {
+        missingFields.push('spread');
+      }
+
+      if (missingFields.length > 0) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Spread must be a valid number'
+            message: `Missing required field(s): ${missingFields.join(', ')}`,
+            missing_fields: missingFields
           },
           content: [{
             type: 'text',
-            text: 'Error: Spread is required and must be a valid number.'
+            text: `Error: Missing required field(s): ${missingFields.join(', ')}`
           }],
           isError: true,
           _meta: { 'openai/locale': locale }
         };
       }
 
+      // Validate spread
       if (args.spread >= 0) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Spread must be negative (from favorite\'s perspective)'
+            message: 'Spread must be negative (from favorite\'s perspective)',
+            hint: 'The favorite is expected to win, so the spread should be negative (e.g., -3.5)'
           },
           content: [{
             type: 'text',
@@ -122,16 +167,19 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       const favoriteStats = loadNBATeamStats(args.team_favorite);
       const underdogStats = loadNBATeamStats(args.team_underdog);
 
+      // Handle team not found with suggestions
       if (!favoriteStats) {
+        const suggestions = getSuggestedTeams(args.team_favorite, 'nba');
         return {
           structuredContent: {
-            error: 'team_not_found',
-            message: `Favorite team "${args.team_favorite}" not found in NBA database`,
-            searchedTerm: args.team_favorite
+            error: 'invalid_input',
+            message: `Unknown team name: "${args.team_favorite}"`,
+            team_searched: args.team_favorite,
+            suggestions: suggestions.length > 0 ? suggestions : ['Please check team name or use abbreviation (e.g., HOU, LAL, NYK)']
           },
           content: [{
             type: 'text',
-            text: `Error: Could not find team "${args.team_favorite}" in NBA statistics. Please check the team name and try again. You can use full names (e.g., "Houston Rockets"), city names (e.g., "Rockets"), or abbreviations (e.g., "HOU").`
+            text: `Error: Unknown team name "${args.team_favorite}". ${suggestions.length > 0 ? `Did you mean: ${suggestions.join(', ')}?` : 'Please check the team name and try again.'}`
           }],
           isError: true,
           _meta: { 'openai/locale': locale }
@@ -139,15 +187,17 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       }
 
       if (!underdogStats) {
+        const suggestions = getSuggestedTeams(args.team_underdog, 'nba');
         return {
           structuredContent: {
-            error: 'team_not_found',
-            message: `Underdog team "${args.team_underdog}" not found in NBA database`,
-            searchedTerm: args.team_underdog
+            error: 'invalid_input',
+            message: `Unknown team name: "${args.team_underdog}"`,
+            team_searched: args.team_underdog,
+            suggestions: suggestions.length > 0 ? suggestions : ['Please check team name or use abbreviation (e.g., HOU, LAL, NYK)']
           },
           content: [{
             type: 'text',
-            text: `Error: Could not find team "${args.team_underdog}" in NBA statistics. Please check the team name and try again. You can use full names (e.g., "Los Angeles Lakers"), city names (e.g., "Lakers"), or abbreviations (e.g., "LAL").`
+            text: `Error: Unknown team name "${args.team_underdog}". ${suggestions.length > 0 ? `Did you mean: ${suggestions.join(', ')}?` : 'Please check the team name and try again.'}`
           }],
           isError: true,
           _meta: { 'openai/locale': locale }
@@ -160,11 +210,15 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         return {
           structuredContent: {
             error: 'insufficient_data',
-            message: 'Insufficient team statistics available'
+            message: 'Insufficient team statistics available',
+            teams: {
+              favorite: favoriteStats.team,
+              underdog: underdogStats.team
+            }
           },
           content: [{
             type: 'text',
-            text: 'Error: One or both teams are missing required statistics (points per game, points allowed). Cannot calculate probability.'
+            text: `Error: One or both teams (${favoriteStats.team}, ${underdogStats.team}) are missing required statistics (points per game, points allowed). Cannot calculate probability.`
           }],
           isError: true,
           _meta: { 'openai/locale': locale }
@@ -177,7 +231,7 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         teamPointsAgainst: favoriteStats.pointsAllowed,
         opponentPointsFor: underdogStats.pointsPerGame,
         opponentPointsAgainst: underdogStats.pointsAllowed,
-        teamFgPct: favoriteStats.fieldGoalPct ?? 0.45, // Default to league average if missing
+        teamFgPct: favoriteStats.fieldGoalPct ?? 0.45,
         opponentFgPct: underdogStats.fieldGoalPct ?? 0.45,
         teamReboundMargin: favoriteStats.reboundMargin ?? 0,
         opponentReboundMargin: underdogStats.reboundMargin ?? 0,
@@ -187,54 +241,46 @@ export function registerBasketballProbabilityTool(server: McpServer) {
 
       // Calculate predicted margin and probabilities
       const predictedMargin = predictedMarginBasketball(stats);
-      const sigma = 12.0; // Standard deviation for basketball
+      const sigma = 12.0;
 
-      // Favorite's probability to cover (beat spread)
       const favoriteCoverProb = coverProbability(predictedMargin, args.spread, sigma);
-
-      // Underdog's probability to cover
       const underdogCoverProb = 100 - favoriteCoverProb;
-
-      // Determine confidence level based on spread and predicted margin
-      let modelConfidence: 'high' | 'medium' | 'low';
-      const probDiff = Math.abs(favoriteCoverProb - 50);
-      if (probDiff > 20) {
-        modelConfidence = 'high';
-      } else if (probDiff > 10) {
-        modelConfidence = 'medium';
-      } else {
-        modelConfidence = 'low';
-      }
 
       // Normalize probabilities to ensure they sum to exactly 1.00
       const favorite_cover_probability = Number((favoriteCoverProb / 100).toFixed(2));
-      const underdog_cover_probability = Number((1 - favorite_cover_probability).toFixed(2));
+      const underdog_cover_probability = Number((underdogCoverProb / 100).toFixed(2));
 
-      // Format result
+      // Ensure sum is exactly 1.00
+      const sum = favorite_cover_probability + underdog_cover_probability;
+      const adjustedUnderdog = sum !== 1.0
+        ? Number((1.0 - favorite_cover_probability).toFixed(2))
+        : underdog_cover_probability;
+
+      // Format result with required schema
       const result = {
         favorite_cover_probability,
-        underdog_cover_probability,
-        model_confidence: modelConfidence,
-        inputs_normalized: true
+        underdog_cover_probability: adjustedUnderdog,
+        inputs: {
+          team_favorite: args.team_favorite,
+          team_underdog: args.team_underdog,
+          spread: args.spread
+        },
+        normalized: {
+          team_favorite: favoriteStats.team,
+          team_underdog: underdogStats.team
+        }
       };
 
       return {
-        // Model sees: required output format
         structuredContent: result,
-
-        // Optional: natural language text for model
         content: [{
           type: 'text' as const,
           text: JSON.stringify(result, null, 2)
         }],
-
-        // Component sees: complete data for UI rendering
         _meta: {
           'openai/outputTemplate': 'ui://widget/probability-estimator.html',
           'openai/widgetAccessible': true,
           'openai/locale': locale,
-
-          // Additional metadata
           calculation: {
             sport: 'basketball',
             favorite: favoriteStats.team,
@@ -244,7 +290,6 @@ export function registerBasketballProbabilityTool(server: McpServer) {
             sigma,
             method: 'statistical_analysis'
           },
-
           favoriteStats: {
             team: favoriteStats.team,
             pointsPerGame: favoriteStats.pointsPerGame,
@@ -254,7 +299,6 @@ export function registerBasketballProbabilityTool(server: McpServer) {
             turnoverMargin: favoriteStats.turnoverMargin,
             netRating: favoriteStats.pointsPerGame - favoriteStats.pointsAllowed
           },
-
           underdogStats: {
             team: underdogStats.team,
             pointsPerGame: underdogStats.pointsPerGame,
