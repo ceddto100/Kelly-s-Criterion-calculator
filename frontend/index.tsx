@@ -1882,7 +1882,8 @@ function App() {
       const maxLeft = scrollX + document.documentElement.clientWidth - popover.offsetWidth - 12;
       const left = Math.max(scrollX + 12, Math.min(desiredLeft, maxLeft));
 
-      const top = r.bottom + scrollY + 10;
+      // Position above the button
+      const top = r.top + scrollY - popover.offsetHeight - 10;
 
       popover.style.left = `${left}px`;
       popover.style.top = `${top}px`;
