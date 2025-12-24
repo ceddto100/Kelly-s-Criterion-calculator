@@ -14,6 +14,7 @@ import { getCurrentLocale } from '../server.js';
 
 /**
  * Normalize input arguments to handle aliases
+ * Supports many parameter name variations for LLM flexibility
  */
 function normalizeBasketballArgs(rawArgs: any): {
   sport: string;
@@ -21,25 +22,46 @@ function normalizeBasketballArgs(rawArgs: any): {
   team_underdog: string;
   spread: number;
 } {
-  // Handle team_favorite aliases
+  // Handle team_favorite aliases (extensive list for LLM compatibility)
   const team_favorite = rawArgs.team_favorite
     || rawArgs.favorite_team
     || rawArgs.favorite
     || rawArgs.fav
+    || rawArgs.team1
+    || rawArgs.team_1
+    || rawArgs.teamA
+    || rawArgs.team_a
+    || rawArgs.home_team
+    || rawArgs.home
+    || rawArgs.homeTeam
+    || rawArgs.first_team
+    || rawArgs.firstTeam
     || '';
 
-  // Handle team_underdog aliases
+  // Handle team_underdog aliases (extensive list for LLM compatibility)
   const team_underdog = rawArgs.team_underdog
     || rawArgs.underdog_team
     || rawArgs.underdog
     || rawArgs.dog
+    || rawArgs.team2
+    || rawArgs.team_2
+    || rawArgs.teamB
+    || rawArgs.team_b
+    || rawArgs.away_team
+    || rawArgs.away
+    || rawArgs.awayTeam
+    || rawArgs.second_team
+    || rawArgs.secondTeam
     || '';
+
+  // Handle spread aliases
+  const spreadRaw = rawArgs.spread ?? rawArgs.point_spread ?? rawArgs.pointSpread ?? rawArgs.line ?? rawArgs.points ?? 0;
 
   return {
     sport: rawArgs.sport || 'basketball',
     team_favorite: String(team_favorite).trim(),
     team_underdog: String(team_underdog).trim(),
-    spread: Number(rawArgs.spread)
+    spread: Number(spreadRaw)
   };
 }
 
@@ -69,16 +91,40 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       description: 'Use this when the user wants to estimate the probability of covering a point spread for NBA basketball games. Accepts team names and spread, returns probabilities for both favorite and underdog. Supports field aliases: team_favorite (or favorite_team, favorite, fav) and team_underdog (or underdog_team, underdog, dog). Do not use for football games (use probability-estimate-football instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
         sport: z.literal('basketball').default('basketball').describe('Sport type - "basketball"'),
-        team_favorite: z.string().optional().describe('Name of the favored team. Can be full name (e.g., "Houston Rockets"), city (e.g., "Rockets"), or abbreviation (e.g., "HOU"). Aliases: favorite_team, favorite, fav'),
-        team_underdog: z.string().optional().describe('Name of the underdog team. Can be full name (e.g., "Los Angeles Lakers"), city (e.g., "Lakers"), or abbreviation (e.g., "LAL"). Aliases: underdog_team, underdog, dog'),
-        spread: z.number().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -3.5 means favorite must win by more than 3.5 points to cover). Valid range: -50 to -0.5'),
-        // Alias fields
+        team_favorite: z.string().optional().describe('Name of the favored team. Can be full name (e.g., "Houston Rockets"), city (e.g., "Rockets"), or abbreviation (e.g., "HOU"). Many aliases supported.'),
+        team_underdog: z.string().optional().describe('Name of the underdog team. Can be full name (e.g., "Los Angeles Lakers"), city (e.g., "Lakers"), or abbreviation (e.g., "LAL"). Many aliases supported.'),
+        spread: z.number().optional().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -3.5 means favorite must win by more than 3.5 points to cover). Valid range: -50 to -0.5'),
+        // Team 1 aliases
         favorite_team: z.string().optional().describe('Alias for team_favorite'),
         favorite: z.string().optional().describe('Alias for team_favorite'),
         fav: z.string().optional().describe('Alias for team_favorite'),
+        team1: z.string().optional().describe('Alias for team_favorite'),
+        team_1: z.string().optional().describe('Alias for team_favorite'),
+        teamA: z.string().optional().describe('Alias for team_favorite'),
+        team_a: z.string().optional().describe('Alias for team_favorite'),
+        home_team: z.string().optional().describe('Alias for team_favorite'),
+        home: z.string().optional().describe('Alias for team_favorite'),
+        homeTeam: z.string().optional().describe('Alias for team_favorite'),
+        first_team: z.string().optional().describe('Alias for team_favorite'),
+        firstTeam: z.string().optional().describe('Alias for team_favorite'),
+        // Team 2 aliases
         underdog_team: z.string().optional().describe('Alias for team_underdog'),
         underdog: z.string().optional().describe('Alias for team_underdog'),
-        dog: z.string().optional().describe('Alias for team_underdog')
+        dog: z.string().optional().describe('Alias for team_underdog'),
+        team2: z.string().optional().describe('Alias for team_underdog'),
+        team_2: z.string().optional().describe('Alias for team_underdog'),
+        teamB: z.string().optional().describe('Alias for team_underdog'),
+        team_b: z.string().optional().describe('Alias for team_underdog'),
+        away_team: z.string().optional().describe('Alias for team_underdog'),
+        away: z.string().optional().describe('Alias for team_underdog'),
+        awayTeam: z.string().optional().describe('Alias for team_underdog'),
+        second_team: z.string().optional().describe('Alias for team_underdog'),
+        secondTeam: z.string().optional().describe('Alias for team_underdog'),
+        // Spread aliases
+        point_spread: z.number().optional().describe('Alias for spread'),
+        pointSpread: z.number().optional().describe('Alias for spread'),
+        line: z.number().optional().describe('Alias for spread'),
+        points: z.number().optional().describe('Alias for spread')
       },
       annotations: {
         readOnlyHint: true,

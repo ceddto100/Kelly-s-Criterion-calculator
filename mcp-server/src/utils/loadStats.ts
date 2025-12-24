@@ -273,3 +273,117 @@ export function getAllNFLTeamNames(): string[] {
   const ppgData = loadCSVFile('nfl_ppg.csv', 'nfl');
   return ppgData.map(row => row.team).filter(Boolean);
 }
+
+/**
+ * NBA team name patterns for sport detection
+ */
+const NBA_TEAM_PATTERNS = [
+  // Full names
+  'atlanta hawks', 'boston celtics', 'brooklyn nets', 'charlotte hornets',
+  'chicago bulls', 'cleveland cavaliers', 'dallas mavericks', 'denver nuggets',
+  'detroit pistons', 'golden state warriors', 'houston rockets', 'indiana pacers',
+  'los angeles clippers', 'los angeles lakers', 'memphis grizzlies', 'miami heat',
+  'milwaukee bucks', 'minnesota timberwolves', 'new orleans pelicans', 'new york knicks',
+  'oklahoma city thunder', 'orlando magic', 'philadelphia 76ers', 'phoenix suns',
+  'portland trail blazers', 'sacramento kings', 'san antonio spurs', 'toronto raptors',
+  'utah jazz', 'washington wizards',
+  // Short names / nicknames
+  'hawks', 'celtics', 'nets', 'hornets', 'bulls', 'cavaliers', 'cavs',
+  'mavericks', 'mavs', 'nuggets', 'pistons', 'warriors', 'dubs', 'rockets',
+  'pacers', 'clippers', 'lakers', 'grizzlies', 'grizz', 'heat', 'bucks',
+  'timberwolves', 'wolves', 'pelicans', 'pels', 'knicks', 'thunder', 'magic',
+  '76ers', 'sixers', 'suns', 'trail blazers', 'blazers', 'kings', 'spurs',
+  'raptors', 'jazz', 'wizards',
+  // Abbreviations
+  'atl', 'bos', 'bkn', 'cha', 'chi', 'cle', 'dal', 'den', 'det', 'gsw', 'gs',
+  'hou', 'ind', 'lac', 'lal', 'mem', 'mia', 'mil', 'min', 'nop', 'nyk', 'ny',
+  'okc', 'orl', 'phi', 'phx', 'por', 'sac', 'sas', 'sa', 'tor', 'uta', 'was', 'wsh'
+];
+
+/**
+ * NFL team name patterns for sport detection
+ */
+const NFL_TEAM_PATTERNS = [
+  // Full names
+  'arizona cardinals', 'atlanta falcons', 'baltimore ravens', 'buffalo bills',
+  'carolina panthers', 'chicago bears', 'cincinnati bengals', 'cleveland browns',
+  'dallas cowboys', 'denver broncos', 'detroit lions', 'green bay packers',
+  'houston texans', 'indianapolis colts', 'jacksonville jaguars', 'kansas city chiefs',
+  'las vegas raiders', 'los angeles chargers', 'los angeles rams', 'miami dolphins',
+  'minnesota vikings', 'new england patriots', 'new orleans saints', 'new york giants',
+  'new york jets', 'philadelphia eagles', 'pittsburgh steelers', 'san francisco 49ers',
+  'seattle seahawks', 'tampa bay buccaneers', 'tennessee titans', 'washington commanders',
+  // Short names / nicknames
+  'cardinals', 'falcons', 'ravens', 'bills', 'panthers', 'bears', 'bengals',
+  'browns', 'cowboys', 'broncos', 'lions', 'packers', 'texans', 'colts',
+  'jaguars', 'jags', 'chiefs', 'raiders', 'chargers', 'rams', 'dolphins', 'phins',
+  'vikings', 'vikes', 'patriots', 'pats', 'saints', 'giants', 'jets', 'eagles',
+  'steelers', '49ers', 'niners', 'seahawks', 'hawks', 'buccaneers', 'bucs', 'titans', 'commanders',
+  // Abbreviations
+  'ari', 'atl', 'bal', 'buf', 'car', 'chi', 'cin', 'cle', 'dal', 'den', 'det',
+  'gb', 'hou', 'ind', 'jax', 'kc', 'lv', 'lac', 'lar', 'mia', 'min', 'ne',
+  'no', 'nyg', 'nyj', 'phi', 'pit', 'sf', 'sea', 'tb', 'ten', 'was', 'wsh'
+];
+
+/**
+ * Detect sport from team name
+ * Returns 'nba', 'nfl', or null if cannot determine
+ */
+export function detectSportFromTeam(teamName: string): 'nba' | 'nfl' | null {
+  const normalized = teamName.toLowerCase().trim();
+
+  // Check for exact matches in NBA patterns
+  for (const pattern of NBA_TEAM_PATTERNS) {
+    if (normalized === pattern || normalized.includes(pattern) || pattern.includes(normalized)) {
+      // Special case: some terms appear in both (like 'hawks', 'hou', 'atl', 'chi', 'cle', 'dal', 'den', 'det', 'ind', 'mia', 'min')
+      // For these, we need additional context
+      if (['hawks'].includes(normalized)) {
+        // Could be Atlanta Hawks (NBA) or Seattle Seahawks (NFL) - check more context
+        if (normalized.includes('atlanta') || normalized === 'hawks') {
+          // Default to NBA for just 'hawks' since it's more commonly used
+          return 'nba';
+        }
+      }
+      return 'nba';
+    }
+  }
+
+  // Check for exact matches in NFL patterns
+  for (const pattern of NFL_TEAM_PATTERNS) {
+    if (normalized === pattern || normalized.includes(pattern) || pattern.includes(normalized)) {
+      return 'nfl';
+    }
+  }
+
+  // Try partial matching with stronger indicators
+  // NBA-specific terms
+  const nbaOnlyTerms = ['rockets', 'celtics', 'lakers', 'warriors', 'nuggets', 'knicks',
+    'jazz', 'spurs', 'bucks', 'pelicans', 'suns', 'magic', 'grizzlies', 'pacers',
+    '76ers', 'sixers', 'clippers', 'nets', 'pistons', 'blazers', 'raptors', 'wizards',
+    'cavaliers', 'cavs', 'mavericks', 'mavs', 'timberwolves', 'hornets', 'heat',
+    'thunder', 'kings', 'gsw', 'bkn', 'nyk', 'okc', 'lal', 'lac', 'phx', 'por',
+    'sac', 'sas', 'uta', 'tor', 'orl', 'mem', 'mil', 'nop'];
+
+  for (const term of nbaOnlyTerms) {
+    if (normalized.includes(term)) {
+      return 'nba';
+    }
+  }
+
+  // NFL-specific terms
+  const nflOnlyTerms = ['cowboys', 'patriots', 'chiefs', 'eagles', 'steelers',
+    '49ers', 'niners', 'seahawks', 'packers', 'broncos', 'raiders', 'chargers',
+    'rams', 'dolphins', 'bills', 'ravens', 'bengals', 'browns', 'titans',
+    'jaguars', 'jags', 'colts', 'texans', 'commanders', 'saints', 'falcons',
+    'panthers', 'buccaneers', 'bucs', 'cardinals', 'giants', 'jets', 'lions',
+    'bears', 'vikings', 'kc', 'ne', 'gb', 'sf', 'tb', 'lv', 'nyg', 'nyj',
+    'jax', 'pit', 'buf', 'bal', 'cin', 'ten', 'car', 'sea', 'lar', 'ari'];
+
+  for (const term of nflOnlyTerms) {
+    if (normalized.includes(term)) {
+      return 'nfl';
+    }
+  }
+
+  return null;
+}
