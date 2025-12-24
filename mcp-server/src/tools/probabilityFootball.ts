@@ -68,7 +68,7 @@ export function registerFootballProbabilityTool(server: McpServer) {
       title: 'Estimate Football Game Probability',
       description: 'Use this when the user wants to estimate the probability of covering a point spread for NFL football games. Accepts team names and spread, returns probabilities for both favorite and underdog. Supports field aliases: team_favorite (or favorite_team, favorite, fav) and team_underdog (or underdog_team, underdog, dog). Do not use for basketball games (use probability-estimate-basketball instead) or calculating bet sizes (use kelly-calculate after getting probability).',
       inputSchema: {
-        sport: z.literal('football').optional().default('football').describe('Sport type - "football"'),
+        sport: z.literal('football').default('football').describe('Sport type - "football"'),
         team_favorite: z.string().optional().describe('Name of the favored team. Can be full name (e.g., "Dallas Cowboys"), city (e.g., "Cowboys"), or abbreviation (e.g., "DAL"). Aliases: favorite_team, favorite, fav'),
         team_underdog: z.string().optional().describe('Name of the underdog team. Can be full name (e.g., "New York Giants"), city (e.g., "Giants"), or abbreviation (e.g., "NYG"). Aliases: underdog_team, underdog, dog'),
         spread: z.number().describe('Point spread from the favorite\'s perspective. Must be negative (e.g., -6.5 means favorite must win by more than 6.5 points to cover). Valid range: -50 to -0.5'),
