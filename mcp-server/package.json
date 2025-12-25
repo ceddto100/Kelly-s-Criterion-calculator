@@ -1,7 +1,7 @@
 {
-  "name": "kelly-criterion-mcp-server",
-  "version": "2.0.0",
-  "description": "Full-featured MCP server for sports betting calculations, team stats, and bet management",
+  "name": "betgistics-mcp-server",
+  "version": "3.0.0",
+  "description": "Complete MCP server for Betgistics betting calculator - mirrors all frontend functionality",
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
@@ -14,11 +14,13 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "mongoose": "^8.0.0",
     "typescript": "^5.3.3",
     "zod": "^3.22.4"
   },

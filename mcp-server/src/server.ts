@@ -1,274 +1,731 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * Betgistics MCP Server
+ * Complete MCP server for sports betting calculations and management
  *
- * Main MCP server for Kelly's Criterion Calculator
+ * This server provides MCP tools that mirror all frontend functionality:
+ * - Kelly Criterion bet sizing
+ * - AI-powered probability estimation (Gemini)
+ * - Statistical probability calculations (Walters Protocol)
+ * - Bet logging and history
+ * - User authentication and bankroll management
+ * - Odds format conversions
  */
 
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import express from 'express';
-import dotenv from 'dotenv';
-import { randomUUID } from 'crypto';
+import { z } from 'zod';
 
-// Import tool registrations
-import { registerKellyTool } from './tools/kelly.js';
-import { registerFootballProbabilityTool } from './tools/probabilityFootball.js';
-import { registerBasketballProbabilityTool } from './tools/probabilityBasketball.js';
-import { registerUnifiedProbabilityTool } from './tools/probabilityUnified.js';
-import { registerTeamStatsTool, registerMatchupTool } from './tools/teamStats.js';
-import { registerAnalyzeMatchupTool } from './tools/analyzeMatchup.js';
-import { registerBetLoggerTool } from './tools/betLogger.js';
-import { registerBankrollTools } from './tools/bankroll.js';
+// Database connection
+import { connectToDatabase, isDatabaseConnected } from './config/database.js';
 
-// Import component resources
-import { registerComponentResources } from './components/resources.js';
+// Initialize Gemini (if configured)
+import { isGeminiConfigured, initializeGemini } from './config/gemini.js';
 
-// Import localization utilities
-import { negotiateLocale } from './utils/translations.js';
+// Tool handlers
+import { kellyToolDefinition, handleKellyCalculation } from './tools/kelly.js';
+import {
+  footballProbabilityToolDefinition,
+  basketballProbabilityToolDefinition,
+  handleFootballProbability,
+  handleBasketballProbability
+} from './tools/probability.js';
+import {
+  aiProbabilityToolDefinition,
+  matchupAnalysisToolDefinition,
+  handleAIProbability,
+  handleMatchupAnalysis
+} from './tools/aiProbability.js';
+import { logBetToolDefinition, handleLogBet } from './tools/betLogging.js';
+import {
+  getBetHistoryToolDefinition,
+  getBetByIdToolDefinition,
+  getPendingBetsToolDefinition,
+  handleGetBetHistory,
+  handleGetBetById,
+  handleGetPendingBets
+} from './tools/betHistory.js';
+import { updateBetOutcomeToolDefinition, handleUpdateBetOutcome } from './tools/betOutcome.js';
+import {
+  checkAuthToolDefinition,
+  getUserProfileToolDefinition,
+  registerUserToolDefinition,
+  handleCheckAuth,
+  handleGetUserProfile,
+  handleRegisterUser
+} from './tools/auth.js';
+import { getUserStatsToolDefinition, handleGetUserStats } from './tools/userStats.js';
+import {
+  convertOddsToolDefinition,
+  calculateVigToolDefinition,
+  impliedProbabilityToolDefinition,
+  handleConvertOdds,
+  handleCalculateVig,
+  handleImpliedProbability
+} from './tools/oddsConversion.js';
+import {
+  getBankrollToolDefinition,
+  setBankrollToolDefinition,
+  adjustBankrollToolDefinition,
+  handleGetBankroll,
+  handleSetBankroll,
+  handleAdjustBankroll
+} from './tools/bankroll.js';
 
-// Load environment variables
-dotenv.config();
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const DEBUG_MCP = process.env.DEBUG_MCP === '1' || process.env.DEBUG_MCP === 'true';
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://chatgpt.com').split(',');
+const DEBUG = process.env.DEBUG_MCP === '1';
 
-// Create Express app
+function log(...args: unknown[]) {
+  if (DEBUG) {
+    console.log('[MCP]', new Date().toISOString(), ...args);
+  }
+}
+
+// ============================================================================
+// EXPRESS APP SETUP
+// ============================================================================
+
 const app = express();
 
-// JSON body parser MUST come before MCP routes
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// CORS middleware for ChatGPT and Render deployment
-app.use((req, res, next) => {
-  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['https://chatgpt.com'];
+// CORS middleware for ChatGPT and other clients
+app.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
-
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-Id');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, mcp-session-id');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
-    res.sendStatus(204);
-  } else {
-    next();
+    res.status(200).end();
+    return;
   }
-});
 
-// Debug logging middleware for /mcp routes
-app.use('/mcp', (req, res, next) => {
-  if (DEBUG_MCP) {
-    console.log('[MCP DEBUG] Request received:', {
-      method: req.method,
-      path: req.path,
-      contentType: req.get('content-type'),
-      sessionId: req.get('x-session-id'),
-      bodyPreview: JSON.stringify(req.body || {}).substring(0, 2048)
-    });
-  }
   next();
 });
 
-// Create MCP server
-const mcpServer = new McpServer({
-  name: 'kelly-criterion-calculator',
-  version: '2.0.0'
-});
-
-// Store current locale (default to English)
-// This can be updated per-request in each tool
-let currentLocale = 'en';
-
-// Export locale accessor for tools
-export function getCurrentLocale(): string {
-  return currentLocale;
-}
-
-// Export locale setter for tools (if they want to update global locale)
-export function setCurrentLocale(locale: string): void {
-  currentLocale = negotiateLocale(locale);
-}
-
-// Register all component resources
-registerComponentResources(mcpServer);
-
-// Register all tools
-// Core calculation tools
-registerKellyTool(mcpServer);
-registerUnifiedProbabilityTool(mcpServer); // Primary probability tool - auto-detects sport
-registerFootballProbabilityTool(mcpServer);
-registerBasketballProbabilityTool(mcpServer);
-
-// Team stats and matchup tools
-registerTeamStatsTool(mcpServer);
-registerMatchupTool(mcpServer);
-registerAnalyzeMatchupTool(mcpServer);
-
-// Bet logging and bankroll management
-registerBetLoggerTool(mcpServer);
-registerBankrollTools(mcpServer);
-
-// Root discovery endpoint
-app.get('/', (req, res) => {
-  res.json({
-    name: 'Kelly Criterion MCP Server',
-    version: '2.0.0',
-    description: 'Full-featured MCP server for sports betting calculations, team stats, and bet management.',
-    mcp_endpoint: '/mcp',
-    capabilities: {
-      tools: [
-        // Core calculations
-        'kelly-calculate',
-        'probability-estimate', // PRIMARY - auto-detects NBA/NFL from team names
-        'probability-estimate-football',
-        'probability-estimate-basketball',
-        // Team stats and matchups
-        'get-team-stats',
-        'get-matchup-stats',
-        'analyze-matchup',
-        // Bet management
-        'log-bet',
-        'get-bet-history',
-        'update-bet-outcome',
-        // Bankroll management
-        'get-bankroll',
-        'set-bankroll',
-        'adjust-bankroll',
-        'get-bankroll-history'
-      ],
-      supports_streaming: true
-    }
-  });
-});
-
-// OpenID configuration endpoint
-app.get('/.well-known/openid-configuration', (req, res) => {
-  const baseUrl = `https://${req.get('host')}`; // Auto-detects ngrok URL
-
-  res.json({
-    issuer: baseUrl,
-    authorization_endpoint: `${baseUrl}/auth`,
-    token_endpoint: `${baseUrl}/token`,
-    response_types_supported: ['code'],
-    subject_types_supported: ['public'],
-    id_token_signing_alg_values_supported: ['RS256']
-  });
-});
-
-// OpenAI domain verification endpoint
-app.get('/.well-known/openai-apps-challenge', (req, res) => {
-  res.type('text/plain');
-  res.send('QphJXcnbOxYcoU7_XrjYgVss4BgeQfOUUWtz12ALEcc');
-});
+app.use(express.json());
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response) => {
   res.json({
-    status: 'ok',
-    name: 'kelly-criterion-calculator',
-    version: '2.0.0',
+    status: 'healthy',
+    version: '3.0.0',
+    database: isDatabaseConnected() ? 'connected' : 'disconnected',
+    gemini: isGeminiConfigured() ? 'configured' : 'not configured',
     timestamp: new Date().toISOString()
   });
 });
 
-// ==================== MCP PROTOCOL HANDLERS ====================
+// ============================================================================
+// MCP SERVER SETUP
+// ============================================================================
 
-/**
- * Unified MCP endpoint using StreamableHTTPServerTransport
- * Handles both GET (SSE) and POST (JSON-RPC) requests
- * This is what OpenAI's scanner expects
- */
-app.use('/mcp', async (req, res, next) => {
+function createMcpServer(): McpServer {
+  const server = new McpServer({
+    name: 'betgistics-mcp-server',
+    version: '3.0.0'
+  });
+
+  // ===========================================================================
+  // KELLY CRITERION TOOL
+  // ===========================================================================
+
+  server.tool(
+    kellyToolDefinition.name,
+    kellyToolDefinition.description,
+    kellyToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', kellyToolDefinition.name, params);
+      try {
+        const result = await handleKellyCalculation(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // PROBABILITY ESTIMATION TOOLS
+  // ===========================================================================
+
+  server.tool(
+    footballProbabilityToolDefinition.name,
+    footballProbabilityToolDefinition.description,
+    footballProbabilityToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', footballProbabilityToolDefinition.name, params);
+      try {
+        const result = await handleFootballProbability(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    basketballProbabilityToolDefinition.name,
+    basketballProbabilityToolDefinition.description,
+    basketballProbabilityToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', basketballProbabilityToolDefinition.name, params);
+      try {
+        const result = await handleBasketballProbability(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // AI PROBABILITY TOOLS
+  // ===========================================================================
+
+  server.tool(
+    aiProbabilityToolDefinition.name,
+    aiProbabilityToolDefinition.description,
+    aiProbabilityToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', aiProbabilityToolDefinition.name, params);
+      try {
+        const result = await handleAIProbability(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    matchupAnalysisToolDefinition.name,
+    matchupAnalysisToolDefinition.description,
+    matchupAnalysisToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', matchupAnalysisToolDefinition.name, params);
+      try {
+        const result = await handleMatchupAnalysis(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // BET LOGGING TOOLS
+  // ===========================================================================
+
+  server.tool(
+    logBetToolDefinition.name,
+    logBetToolDefinition.description,
+    logBetToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', logBetToolDefinition.name, params);
+      try {
+        const result = await handleLogBet(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // BET HISTORY TOOLS
+  // ===========================================================================
+
+  server.tool(
+    getBetHistoryToolDefinition.name,
+    getBetHistoryToolDefinition.description,
+    getBetHistoryToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getBetHistoryToolDefinition.name, params);
+      try {
+        const result = await handleGetBetHistory(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    getBetByIdToolDefinition.name,
+    getBetByIdToolDefinition.description,
+    getBetByIdToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getBetByIdToolDefinition.name, params);
+      try {
+        const result = await handleGetBetById(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    getPendingBetsToolDefinition.name,
+    getPendingBetsToolDefinition.description,
+    getPendingBetsToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getPendingBetsToolDefinition.name, params);
+      try {
+        const result = await handleGetPendingBets(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // BET OUTCOME TOOL
+  // ===========================================================================
+
+  server.tool(
+    updateBetOutcomeToolDefinition.name,
+    updateBetOutcomeToolDefinition.description,
+    updateBetOutcomeToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', updateBetOutcomeToolDefinition.name, params);
+      try {
+        const result = await handleUpdateBetOutcome(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // AUTH TOOLS
+  // ===========================================================================
+
+  server.tool(
+    checkAuthToolDefinition.name,
+    checkAuthToolDefinition.description,
+    checkAuthToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', checkAuthToolDefinition.name, params);
+      try {
+        const result = await handleCheckAuth(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    getUserProfileToolDefinition.name,
+    getUserProfileToolDefinition.description,
+    getUserProfileToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getUserProfileToolDefinition.name, params);
+      try {
+        const result = await handleGetUserProfile(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    registerUserToolDefinition.name,
+    registerUserToolDefinition.description,
+    registerUserToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', registerUserToolDefinition.name, params);
+      try {
+        const result = await handleRegisterUser(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // USER STATS TOOL
+  // ===========================================================================
+
+  server.tool(
+    getUserStatsToolDefinition.name,
+    getUserStatsToolDefinition.description,
+    getUserStatsToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getUserStatsToolDefinition.name, params);
+      try {
+        const result = await handleGetUserStats(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // ODDS CONVERSION TOOLS
+  // ===========================================================================
+
+  server.tool(
+    convertOddsToolDefinition.name,
+    convertOddsToolDefinition.description,
+    convertOddsToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', convertOddsToolDefinition.name, params);
+      try {
+        const result = await handleConvertOdds(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    calculateVigToolDefinition.name,
+    calculateVigToolDefinition.description,
+    calculateVigToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', calculateVigToolDefinition.name, params);
+      try {
+        const result = await handleCalculateVig(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    impliedProbabilityToolDefinition.name,
+    impliedProbabilityToolDefinition.description,
+    impliedProbabilityToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', impliedProbabilityToolDefinition.name, params);
+      try {
+        const result = await handleImpliedProbability(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // BANKROLL TOOLS
+  // ===========================================================================
+
+  server.tool(
+    getBankrollToolDefinition.name,
+    getBankrollToolDefinition.description,
+    getBankrollToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getBankrollToolDefinition.name, params);
+      try {
+        const result = await handleGetBankroll(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    setBankrollToolDefinition.name,
+    setBankrollToolDefinition.description,
+    setBankrollToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', setBankrollToolDefinition.name, params);
+      try {
+        const result = await handleSetBankroll(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    adjustBankrollToolDefinition.name,
+    adjustBankrollToolDefinition.description,
+    adjustBankrollToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', adjustBankrollToolDefinition.name, params);
+      try {
+        const result = await handleAdjustBankroll(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  return server;
+}
+
+// ============================================================================
+// MCP ENDPOINT
+// ============================================================================
+
+// Store active transports for session management
+const activeTransports = new Map<string, StreamableHTTPServerTransport>();
+
+app.post('/mcp', async (req: Request, res: Response) => {
+  log('MCP request received');
+
   try {
-    // Create a new transport for each request with stateless mode
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined, // Stateless mode for OpenAI scanner compatibility
-      enableJsonResponse: true // Enable JSON responses for POST requests
-    });
+    // Get or create session
+    const sessionId = req.headers['mcp-session-id'] as string || `session-${Date.now()}`;
 
-    // Connect the transport to the MCP server
-    await mcpServer.connect(transport);
+    let transport = activeTransports.get(sessionId);
 
-    if (DEBUG_MCP) {
-      console.log('[MCP DEBUG] Transport connected, handling request');
-    }
+    if (!transport) {
+      log('Creating new MCP transport for session:', sessionId);
 
-    // Handle the request (GET, POST, or DELETE)
-    await transport.handleRequest(req, res, req.body);
-
-    if (DEBUG_MCP) {
-      console.log('[MCP DEBUG] Request handled successfully');
-    }
-  } catch (error: any) {
-    if (DEBUG_MCP) {
-      console.error('[MCP DEBUG] Request handler error:', error);
-    }
-
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: 'Internal server error',
-        message: error.message
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => sessionId,
+        onsessioninitialized: (id) => {
+          log('Session initialized:', id);
+        }
       });
+
+      const server = createMcpServer();
+      await server.connect(transport);
+
+      activeTransports.set(sessionId, transport);
+
+      // Clean up old sessions after 30 minutes
+      setTimeout(() => {
+        activeTransports.delete(sessionId);
+        log('Session cleaned up:', sessionId);
+      }, 30 * 60 * 1000);
     }
+
+    // Handle the request
+    await transport.handleRequest(req, res, req.body);
+  } catch (error) {
+    log('MCP error:', error);
+    res.status(500).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32603,
+        message: error instanceof Error ? error.message : 'Internal server error'
+      },
+      id: null
+    });
   }
 });
 
-// Handle trailing slash for /mcp/
-app.use('/mcp/', (req, res, next) => {
-  req.url = req.url.replace(/^\/+/, '/');
-  req.originalUrl = req.originalUrl.replace('/mcp/', '/mcp');
-  next();
+// Session cleanup endpoint
+app.delete('/mcp', async (req: Request, res: Response) => {
+  const sessionId = req.headers['mcp-session-id'] as string;
+
+  if (sessionId && activeTransports.has(sessionId)) {
+    activeTransports.delete(sessionId);
+    log('Session terminated:', sessionId);
+    res.status(200).json({ message: 'Session terminated' });
+  } else {
+    res.status(404).json({ error: 'Session not found' });
+  }
 });
 
-// Export the MCP server instance for testing
-export { mcpServer };
+// ============================================================================
+// SERVER STARTUP
+// ============================================================================
 
-// Export the app for testing
-export default app;
+async function start() {
+  console.log('='.repeat(60));
+  console.log('  Betgistics MCP Server v3.0.0');
+  console.log('='.repeat(60));
 
-// Start server only when not imported (i.e., when run directly)
-if (import.meta.url === `file://${process.argv[1]}`) {
+  // Connect to MongoDB
+  try {
+    console.log('\n[Startup] Connecting to MongoDB...');
+    await connectToDatabase();
+    console.log('[Startup] MongoDB connected successfully');
+  } catch (error) {
+    console.error('[Startup] MongoDB connection failed:', error);
+    console.log('[Startup] Server will start but database features will be unavailable');
+  }
+
+  // Initialize Gemini if configured
+  if (isGeminiConfigured()) {
+    try {
+      console.log('[Startup] Initializing Gemini AI...');
+      initializeGemini();
+      console.log('[Startup] Gemini AI initialized successfully');
+    } catch (error) {
+      console.error('[Startup] Gemini initialization failed:', error);
+    }
+  } else {
+    console.log('[Startup] Gemini API key not configured - AI features disabled');
+  }
+
+  // Start server
   app.listen(PORT, () => {
-    console.log('========================================');
-    console.log('Kelly Criterion MCP Server v2.0.0');
-    console.log('========================================');
-    console.log(`Port: ${PORT}`);
-    console.log(`MCP Endpoint: http://localhost:${PORT}/mcp`);
-    console.log(`Health Check: http://localhost:${PORT}/health`);
-    console.log(`Debug Mode: ${DEBUG_MCP ? 'ENABLED' : 'DISABLED'}`);
-    console.log('');
-    console.log('Supported Methods:');
-    console.log('  - GET /mcp  (SSE streaming)');
-    console.log('  - POST /mcp (JSON-RPC over HTTP)');
-    console.log('');
-    console.log('Registered Tools:');
-    console.log('  Core Calculations:');
-    console.log('    - kelly-calculate');
-    console.log('    - probability-estimate (PRIMARY - auto-detects sport)');
-    console.log('    - probability-estimate-football');
-    console.log('    - probability-estimate-basketball');
-    console.log('  Team Stats & Matchups:');
-    console.log('    - get-team-stats');
-    console.log('    - get-matchup-stats');
-    console.log('    - analyze-matchup');
-    console.log('  Bet Management:');
-    console.log('    - log-bet');
-    console.log('    - get-bet-history');
-    console.log('    - update-bet-outcome');
-    console.log('  Bankroll Management:');
-    console.log('    - get-bankroll');
-    console.log('    - set-bankroll');
-    console.log('    - adjust-bankroll');
-    console.log('    - get-bankroll-history');
-    console.log('');
-    console.log('Registered Resources:');
-    console.log('  - kelly-calculator.html');
-    console.log('  - probability-estimator.html');
-    console.log('========================================');
+    console.log('\n[Server] Running on port', PORT);
+    console.log('[Server] MCP endpoint: POST /mcp');
+    console.log('[Server] Health check: GET /health');
+    console.log('\n[Tools Available]');
+    console.log('  - kelly_calculate');
+    console.log('  - estimate_football_probability');
+    console.log('  - estimate_basketball_probability');
+    console.log('  - ai_estimate_probability');
+    console.log('  - ai_analyze_matchup');
+    console.log('  - log_bet');
+    console.log('  - get_bet_history');
+    console.log('  - get_bet');
+    console.log('  - get_pending_bets');
+    console.log('  - update_bet_outcome');
+    console.log('  - check_auth_status');
+    console.log('  - get_user_profile');
+    console.log('  - register_user');
+    console.log('  - get_user_stats');
+    console.log('  - convert_odds');
+    console.log('  - calculate_vig');
+    console.log('  - calculate_implied_probability');
+    console.log('  - get_bankroll');
+    console.log('  - set_bankroll');
+    console.log('  - adjust_bankroll');
+    console.log('\n' + '='.repeat(60));
   });
 }
+
+start().catch((error) => {
+  console.error('[Fatal] Server startup failed:', error);
+  process.exit(1);
+});
