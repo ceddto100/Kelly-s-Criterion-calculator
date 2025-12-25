@@ -10,6 +10,12 @@ export type NormalizedProbabilityArgs = {
   spread: number;
 };
 
+export type NormalizedMatchupArgs = {
+  teamA: string;
+  teamB: string;
+  sport: 'nba' | 'nfl';
+};
+
 const favoriteAliases = [
   'team_favorite',
   'favorite_team',
@@ -143,6 +149,81 @@ export function normalizeProbabilityArgs(
     team_favorite: teamFavoriteValue || '',
     team_underdog: teamUnderdogValue || '',
     spread: spreadValue ?? Number.NaN
+  };
+
+  return { normalized, missingFields };
+}
+
+// Team A aliases (first team / home / favorite)
+const teamAAliases = [
+  'teamA',
+  'team_a',
+  'team1',
+  'team_1',
+  'home_team',
+  'home',
+  'homeTeam',
+  'first_team',
+  'firstTeam',
+  'team_favorite',
+  'favorite_team',
+  'favorite',
+  'fav'
+] as const;
+
+// Team B aliases (second team / away / underdog)
+const teamBAliases = [
+  'teamB',
+  'team_b',
+  'team2',
+  'team_2',
+  'away_team',
+  'away',
+  'awayTeam',
+  'second_team',
+  'secondTeam',
+  'team_underdog',
+  'underdog_team',
+  'underdog',
+  'dog'
+] as const;
+
+export const teamAAliasLabel = `teamA (aliases: ${teamAAliases.join(', ')})`;
+export const teamBAliasLabel = `teamB (aliases: ${teamBAliases.join(', ')})`;
+
+/**
+ * Normalize matchup arguments to handle flexible team name parameter aliases
+ * Used by analyze-matchup and get-matchup-stats tools
+ */
+export function normalizeMatchupArgs(
+  rawArgs: unknown,
+  options?: { defaultSport?: 'nba' | 'nfl' }
+): { normalized: NormalizedMatchupArgs; missingFields: string[] } {
+  const args = extractArgs(rawArgs);
+
+  const teamAValue = coerceString(pickFirstAlias(args, teamAAliases));
+  const teamBValue = coerceString(pickFirstAlias(args, teamBAliases));
+  const sportRaw = coerceString(args.sport || args.league);
+
+  // Parse sport - support 'basketball' -> 'nba' and 'football' -> 'nfl'
+  let sport: 'nba' | 'nfl' = options?.defaultSport || 'nba';
+  if (sportRaw) {
+    const lower = sportRaw.toLowerCase();
+    if (lower === 'nfl' || lower === 'football') {
+      sport = 'nfl';
+    } else if (lower === 'nba' || lower === 'basketball') {
+      sport = 'nba';
+    }
+  }
+
+  const missingFields: string[] = [];
+  if (!teamAValue) missingFields.push(teamAAliasLabel);
+  if (!teamBValue) missingFields.push(teamBAliasLabel);
+
+  const normalized: NormalizedMatchupArgs = {
+    teamA: teamAValue || '',
+    teamB: teamBValue || '',
+    sport
   };
 
   return { normalized, missingFields };
