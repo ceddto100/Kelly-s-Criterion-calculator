@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { loadNBATeamStats, loadNFLTeamStats, getMatchupStats } from '../utils/loadStats.js';
 import { t } from '../utils/translations.js';
 import { getCurrentLocale } from '../server.js';
+import { normalizeMatchupArgs, teamAAliasLabel, teamBAliasLabel } from '../utils/probabilityArgs.js';
 
 export function registerTeamStatsTool(server: McpServer) {
   server.tool(
@@ -36,7 +37,9 @@ export function registerTeamStatsTool(server: McpServer) {
                   || (extra?._meta?.['webplus/i18n'] as string)
                   || getCurrentLocale();
 
-      const { teamName, sport } = args;
+      const { teamName } = args;
+      // Default to 'nba' if sport not specified
+      const sport = args.sport || 'nba';
 
       if (!teamName || typeof teamName !== 'string') {
         return {
@@ -131,11 +134,44 @@ export function registerMatchupTool(server: McpServer) {
     'get-matchup-stats',
     {
       title: 'Get Matchup Statistics',
-      description: 'Use this when the user wants to compare two teams head-to-head. Returns statistics for both teams side by side, making it easy to use with probability estimation tools. This is more efficient than calling get-team-stats twice.',
+      description: `Use this when the user wants to compare two teams head-to-head. Returns statistics for both teams side by side, making it easy to use with probability estimation tools. This is more efficient than calling get-team-stats twice.
+
+**Flexible Input - Use ANY of these parameter names:**
+- Team A: teamA, team_a, team1, home_team, favorite, fav
+- Team B: teamB, team_b, team2, away_team, underdog, dog
+- Sport: sport (nba/nfl/basketball/football), default is nba`,
       inputSchema: {
-        teamA: z.string().describe('First team name. Can be full name, city, or abbreviation. Example: "Lakers", "Los Angeles Lakers", "LAL"'),
-        teamB: z.string().describe('Second team name. Can be full name, city, or abbreviation. Example: "Warriors", "Golden State", "GSW"'),
-        sport: z.enum(['nba', 'nfl']).default('nba').describe('Sport league. Use "nba" for basketball, "nfl" for football. Default is "nba".')
+        teamA: z.string().optional().describe('First team name. Can be full name, city, or abbreviation. Example: "Lakers", "Los Angeles Lakers", "LAL"'),
+        teamB: z.string().optional().describe('Second team name. Can be full name, city, or abbreviation. Example: "Warriors", "Golden State", "GSW"'),
+        sport: z.enum(['nba', 'nfl', 'basketball', 'football']).optional().default('nba').describe('Sport league. Use "nba"/"basketball" for NBA, "nfl"/"football" for NFL. Default is "nba".'),
+        // Team A aliases
+        team_a: z.string().optional().describe('Alias for teamA'),
+        team1: z.string().optional().describe('Alias for teamA'),
+        team_1: z.string().optional().describe('Alias for teamA'),
+        home_team: z.string().optional().describe('Alias for teamA'),
+        home: z.string().optional().describe('Alias for teamA'),
+        homeTeam: z.string().optional().describe('Alias for teamA'),
+        favorite: z.string().optional().describe('Alias for teamA'),
+        fav: z.string().optional().describe('Alias for teamA'),
+        team_favorite: z.string().optional().describe('Alias for teamA'),
+        favorite_team: z.string().optional().describe('Alias for teamA'),
+        first_team: z.string().optional().describe('Alias for teamA'),
+        firstTeam: z.string().optional().describe('Alias for teamA'),
+        // Team B aliases
+        team_b: z.string().optional().describe('Alias for teamB'),
+        team2: z.string().optional().describe('Alias for teamB'),
+        team_2: z.string().optional().describe('Alias for teamB'),
+        away_team: z.string().optional().describe('Alias for teamB'),
+        away: z.string().optional().describe('Alias for teamB'),
+        awayTeam: z.string().optional().describe('Alias for teamB'),
+        underdog: z.string().optional().describe('Alias for teamB'),
+        dog: z.string().optional().describe('Alias for teamB'),
+        team_underdog: z.string().optional().describe('Alias for teamB'),
+        underdog_team: z.string().optional().describe('Alias for teamB'),
+        second_team: z.string().optional().describe('Alias for teamB'),
+        secondTeam: z.string().optional().describe('Alias for teamB'),
+        // Sport alias
+        league: z.string().optional().describe('Alias for sport')
       },
       annotations: {
         readOnlyHint: true, // Only reads from local CSV files
@@ -147,22 +183,26 @@ export function registerMatchupTool(server: McpServer) {
         'openai/toolInvocation/invoked': 'Retrieved matchup statistics'
       }
     },
-    async (args, extra?: any) => {
+    async (rawArgs, extra?: any) => {
       const locale: string = (extra?._meta?.['openai/locale'] as string)
                   || (extra?._meta?.['webplus/i18n'] as string)
                   || getCurrentLocale();
 
+      // Normalize arguments to handle aliases
+      const { normalized: args, missingFields } = normalizeMatchupArgs(rawArgs, { defaultSport: 'nba' });
       const { teamA, teamB, sport } = args;
 
-      if (!teamA || !teamB) {
+      if (missingFields.length > 0) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Both team names are required'
+            message: `Missing required field(s): ${missingFields.join(', ')}`,
+            missing_fields: missingFields,
+            hint: 'Provide two team names. Example: teamA="Lakers", teamB="Warriors"'
           },
           content: [{
             type: 'text' as const,
-            text: 'Please provide both team names for the matchup.'
+            text: `Error: Missing required field(s): ${missingFields.join(', ')}\n\nHint: Provide two team names.\nExample: teamA="Lakers", teamB="Warriors"`
           }],
           isError: true
         };

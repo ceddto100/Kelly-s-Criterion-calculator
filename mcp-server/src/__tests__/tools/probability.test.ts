@@ -161,16 +161,18 @@ describe('probability-estimate-football tool', () => {
       expect(result.structuredContent.message).toContain('team_underdog');
     });
 
-    it('should reject positive spread', async () => {
+    it('should auto-convert positive spread to negative', async () => {
       const result = await toolHandler({
         team_favorite: 'Eagles',
         team_underdog: 'Commanders',
         spread: 7
       });
 
-      expect(result.isError).toBe(true);
-      expect(result.structuredContent.error).toBe('invalid_input');
-      expect(result.structuredContent.message).toContain('negative');
+      // Positive spread should be auto-converted to -7
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent.inputs.spread).toBe(7);
+      expect(result.structuredContent.inputs.spread_normalized).toBe(-7);
+      expect(result.structuredContent.favorite_cover_probability).toBeDefined();
     });
 
     it('should provide suggestions for unknown teams', async () => {
@@ -367,16 +369,18 @@ describe('probability-estimate-basketball tool', () => {
       expect(result.structuredContent.message).toContain('team_underdog');
     });
 
-    it('should reject positive spread', async () => {
+    it('should auto-convert positive spread to negative', async () => {
       const result = await toolHandler({
         team_favorite: 'Knicks',
         team_underdog: 'Cavaliers',
         spread: 5.5
       });
 
-      expect(result.isError).toBe(true);
-      expect(result.structuredContent.error).toBe('invalid_input');
-      expect(result.structuredContent.message).toContain('negative');
+      // Positive spread should be auto-converted to -5.5
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent.inputs.spread).toBe(5.5);
+      expect(result.structuredContent.inputs.spread_normalized).toBe(-5.5);
+      expect(result.structuredContent.favorite_cover_probability).toBeDefined();
     });
 
     it('should provide suggestions for unknown teams', async () => {

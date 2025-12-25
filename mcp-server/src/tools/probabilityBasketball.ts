@@ -110,32 +110,40 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         };
       }
 
-      // Validate spread
-      if (args.spread >= 0) {
+      // Handle spread - auto-convert positive to negative (favorite's perspective)
+      let spread = args.spread;
+      if (spread > 0) {
+        spread = -spread; // Convert to favorite's perspective
+      }
+
+      // Validate spread is not zero
+      if (spread === 0) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Spread must be negative (from favorite\'s perspective)',
-            hint: 'The favorite is expected to win, so the spread should be negative (e.g., -3.5)'
+            message: 'Spread cannot be zero - there must be a point spread',
+            hint: 'Provide a non-zero spread (e.g., -3.5 or 3.5 for the favorite)'
           },
           content: [{
             type: 'text',
-            text: 'Error: Spread must be negative (e.g., -3.5) from the favorite\'s perspective. The favorite is expected to win, so the spread should be negative.'
+            text: 'Error: Spread cannot be zero. Please provide a point spread (e.g., -3.5 or 3.5).'
           }],
           isError: true,
           _meta: { 'openai/locale': locale }
         };
       }
 
-      if (args.spread < -50 || args.spread > -0.5) {
+      if (spread < -50 || spread > -0.5) {
         return {
           structuredContent: {
             error: 'invalid_input',
-            message: 'Spread out of valid range (-50 to -0.5)'
+            message: 'Spread out of valid range (should be between 0.5 and 50 points)',
+            spread_provided: args.spread,
+            spread_converted: spread
           },
           content: [{
             type: 'text',
-            text: 'Error: Spread must be between -50 and -0.5 points.'
+            text: `Error: Spread ${args.spread} is out of valid range. Spread should be between 0.5 and 50 points.`
           }],
           isError: true,
           _meta: { 'openai/locale': locale }
@@ -222,7 +230,7 @@ export function registerBasketballProbabilityTool(server: McpServer) {
       const predictedMargin = predictedMarginBasketball(stats);
       const sigma = 12.0;
 
-      const favoriteCoverProb = coverProbability(predictedMargin, args.spread, sigma);
+      const favoriteCoverProb = coverProbability(predictedMargin, spread, sigma);
       const underdogCoverProb = 100 - favoriteCoverProb;
 
       // Normalize probabilities to ensure they sum to exactly 1.00
@@ -242,7 +250,8 @@ export function registerBasketballProbabilityTool(server: McpServer) {
         inputs: {
           team_favorite: args.team_favorite,
           team_underdog: args.team_underdog,
-          spread: args.spread
+          spread: args.spread,
+          spread_normalized: spread
         },
         normalized: {
           team_favorite: favoriteStats.team,
@@ -264,7 +273,8 @@ export function registerBasketballProbabilityTool(server: McpServer) {
             sport: 'basketball',
             favorite: favoriteStats.team,
             underdog: underdogStats.team,
-            spread: args.spread,
+            spread,
+            spread_input: args.spread,
             predictedMargin,
             sigma,
             method: 'statistical_analysis'
