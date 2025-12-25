@@ -11,59 +11,7 @@ import { predictedMarginFootball, coverProbability, type FootballStats } from '.
 import { loadNFLTeamStats, getAllNFLTeamNames } from '../utils/loadStats.js';
 import { t } from '../utils/translations.js';
 import { getCurrentLocale } from '../server.js';
-
-/**
- * Normalize input arguments to handle aliases
- * Supports many parameter name variations for LLM flexibility
- */
-function normalizeFootballArgs(rawArgs: any): {
-  sport: string;
-  team_favorite: string;
-  team_underdog: string;
-  spread: number;
-} {
-  // Handle team_favorite aliases (extensive list for LLM compatibility)
-  const team_favorite = rawArgs.team_favorite
-    || rawArgs.favorite_team
-    || rawArgs.favorite
-    || rawArgs.fav
-    || rawArgs.team1
-    || rawArgs.team_1
-    || rawArgs.teamA
-    || rawArgs.team_a
-    || rawArgs.home_team
-    || rawArgs.home
-    || rawArgs.homeTeam
-    || rawArgs.first_team
-    || rawArgs.firstTeam
-    || '';
-
-  // Handle team_underdog aliases (extensive list for LLM compatibility)
-  const team_underdog = rawArgs.team_underdog
-    || rawArgs.underdog_team
-    || rawArgs.underdog
-    || rawArgs.dog
-    || rawArgs.team2
-    || rawArgs.team_2
-    || rawArgs.teamB
-    || rawArgs.team_b
-    || rawArgs.away_team
-    || rawArgs.away
-    || rawArgs.awayTeam
-    || rawArgs.second_team
-    || rawArgs.secondTeam
-    || '';
-
-  // Handle spread aliases
-  const spreadRaw = rawArgs.spread ?? rawArgs.point_spread ?? rawArgs.pointSpread ?? rawArgs.line ?? rawArgs.points ?? 0;
-
-  return {
-    sport: rawArgs.sport || 'football',
-    team_favorite: String(team_favorite).trim(),
-    team_underdog: String(team_underdog).trim(),
-    spread: Number(spreadRaw)
-  };
-}
+import { normalizeProbabilityArgs } from '../utils/probabilityArgs.js';
 
 /**
  * Find closest matching team names for suggestions
@@ -143,23 +91,8 @@ export function registerFootballProbabilityTool(server: McpServer) {
                   || (extra?._meta?.['webplus/i18n'] as string)
                   || getCurrentLocale();
 
-      // Normalize arguments to handle aliases
-      const args = normalizeFootballArgs(rawArgs);
-
-      // Validate required fields AFTER normalization
-      const missingFields: string[] = [];
-
-      if (!args.team_favorite || args.team_favorite === '') {
-        missingFields.push('team_favorite (or favorite_team, favorite, fav)');
-      }
-
-      if (!args.team_underdog || args.team_underdog === '') {
-        missingFields.push('team_underdog (or underdog_team, underdog, dog)');
-      }
-
-      if (typeof args.spread !== 'number' || isNaN(args.spread)) {
-        missingFields.push('spread');
-      }
+      // Normalize arguments to handle aliases and JSON-string inputs
+      const { normalized: args, missingFields } = normalizeProbabilityArgs(rawArgs, { defaultSport: 'football' });
 
       if (missingFields.length > 0) {
         return {
