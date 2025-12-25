@@ -1,314 +1,259 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- *
- * Bankroll management tool for MCP
+ * Bankroll Management Tools
+ * Manage user bankroll for bet sizing calculations
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { t } from '../utils/translations.js';
-import { getCurrentLocale } from '../server.js';
+import { User } from '../models/User.js';
+import { isDatabaseConnected } from '../config/database.js';
 
-// In-memory bankroll storage per session
-const bankrollStorage: Map<string, BankrollRecord> = new Map();
+// ============================================================================
+// INPUT SCHEMAS
+// ============================================================================
 
-interface BankrollRecord {
-  amount: number;
-  currency: string;
-  lastUpdated: string;
-  history: { amount: number; reason: string; timestamp: string }[];
-}
+export const getBankrollInputSchema = z.object({
+  userId: z
+    .string()
+    .min(1)
+    .describe('User identifier to get bankroll for')
+});
 
-function getSessionId(extra?: any): string {
-  return extra?._meta?.sessionId || 'default';
-}
+export const setBankrollInputSchema = z.object({
+  userId: z
+    .string()
+    .min(1)
+    .describe('User identifier'),
 
-function getBankroll(sessionId: string): BankrollRecord {
-  if (!bankrollStorage.has(sessionId)) {
-    bankrollStorage.set(sessionId, {
-      amount: 1000, // Default starting bankroll
-      currency: 'USD',
-      lastUpdated: new Date().toISOString(),
-      history: [{
-        amount: 1000,
-        reason: 'Initial bankroll',
-        timestamp: new Date().toISOString()
-      }]
-    });
+  amount: z
+    .number()
+    .min(0)
+    .describe('New bankroll amount in USD')
+});
+
+export const adjustBankrollInputSchema = z.object({
+  userId: z
+    .string()
+    .min(1)
+    .describe('User identifier'),
+
+  adjustment: z
+    .number()
+    .describe('Amount to add (positive) or subtract (negative) from bankroll'),
+
+  reason: z
+    .enum(['deposit', 'withdrawal', 'bet_win', 'bet_loss', 'correction', 'other'])
+    .default('other')
+    .describe('Reason for the adjustment')
+});
+
+export type GetBankrollInput = z.infer<typeof getBankrollInputSchema>;
+export type SetBankrollInput = z.infer<typeof setBankrollInputSchema>;
+export type AdjustBankrollInput = z.infer<typeof adjustBankrollInputSchema>;
+
+// ============================================================================
+// TOOL DEFINITIONS
+// ============================================================================
+
+export const getBankrollToolDefinition = {
+  name: 'get_bankroll',
+  description: `Get the current bankroll amount for a user.
+
+Returns the user's total betting bankroll used for Kelly Criterion calculations.
+If the user doesn't exist, returns an error.`,
+
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      userId: {
+        type: 'string',
+        description: 'User identifier to get bankroll for',
+        minLength: 1
+      }
+    },
+    required: ['userId']
   }
-  return bankrollStorage.get(sessionId)!;
+};
+
+export const setBankrollToolDefinition = {
+  name: 'set_bankroll',
+  description: `Set the bankroll amount for a user.
+
+Use this to set an absolute bankroll value (e.g., after depositing funds or reconciling account).
+For incremental changes (wins/losses), use adjust_bankroll instead.`,
+
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      userId: {
+        type: 'string',
+        description: 'User identifier',
+        minLength: 1
+      },
+      amount: {
+        type: 'number',
+        description: 'New bankroll amount in USD',
+        minimum: 0
+      }
+    },
+    required: ['userId', 'amount']
+  }
+};
+
+export const adjustBankrollToolDefinition = {
+  name: 'adjust_bankroll',
+  description: `Adjust the bankroll by adding or subtracting an amount.
+
+Use for:
+- Recording bet wins (positive adjustment)
+- Recording bet losses (negative adjustment)
+- Deposits (positive adjustment)
+- Withdrawals (negative adjustment)
+
+Tracks the reason for the adjustment for record-keeping.`,
+
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      userId: {
+        type: 'string',
+        description: 'User identifier',
+        minLength: 1
+      },
+      adjustment: {
+        type: 'number',
+        description: 'Amount to add (positive) or subtract (negative)'
+      },
+      reason: {
+        type: 'string',
+        enum: ['deposit', 'withdrawal', 'bet_win', 'bet_loss', 'correction', 'other'],
+        description: 'Reason for the adjustment',
+        default: 'other'
+      }
+    },
+    required: ['userId', 'adjustment']
+  }
+};
+
+// ============================================================================
+// HANDLERS
+// ============================================================================
+
+export async function handleGetBankroll(input: unknown): Promise<BankrollOutput> {
+  if (!isDatabaseConnected()) {
+    throw new Error('Database is not connected.');
+  }
+
+  const parsed = getBankrollInputSchema.parse(input);
+
+  const user = await User.findOne({ identifier: parsed.userId });
+
+  if (!user) {
+    throw new Error(`User not found with ID: ${parsed.userId}`);
+  }
+
+  return {
+    success: true,
+    userId: parsed.userId,
+    bankroll: user.currentBankroll,
+    lastUpdated: user.lastActive.toISOString()
+  };
 }
 
-export function registerBankrollTools(server: McpServer) {
-  // Get current bankroll
-  server.tool(
-    'get-bankroll',
-    {
-      title: 'Get Current Bankroll',
-      description: 'Use this when the user wants to check their current bankroll amount. Returns the current bankroll balance that should be used for Kelly calculations.',
-      inputSchema: {},
-      annotations: {
-        readOnlyHint: true, // Only reads current bankroll amount
-        openWorldHint: false, // Reads from local in-memory storage only
-        destructiveHint: false // No data modification or deletion
-      },
-      _meta: {
-        'openai/toolInvocation/invoking': 'Checking bankroll...',
-        'openai/toolInvocation/invoked': 'Retrieved bankroll'
-      }
+export async function handleSetBankroll(input: unknown): Promise<BankrollOutput> {
+  if (!isDatabaseConnected()) {
+    throw new Error('Database is not connected.');
+  }
+
+  const parsed = setBankrollInputSchema.parse(input);
+
+  const user = await User.findOne({ identifier: parsed.userId });
+
+  if (!user) {
+    throw new Error(`User not found with ID: ${parsed.userId}`);
+  }
+
+  const previousBankroll = user.currentBankroll;
+  await user.updateBankroll(parsed.amount);
+
+  return {
+    success: true,
+    userId: parsed.userId,
+    bankroll: parsed.amount,
+    previousBankroll,
+    change: Math.round((parsed.amount - previousBankroll) * 100) / 100,
+    lastUpdated: new Date().toISOString(),
+    message: `Bankroll updated from $${previousBankroll.toFixed(2)} to $${parsed.amount.toFixed(2)}`
+  };
+}
+
+export async function handleAdjustBankroll(input: unknown): Promise<BankrollAdjustOutput> {
+  if (!isDatabaseConnected()) {
+    throw new Error('Database is not connected.');
+  }
+
+  const parsed = adjustBankrollInputSchema.parse(input);
+
+  const user = await User.findOne({ identifier: parsed.userId });
+
+  if (!user) {
+    throw new Error(`User not found with ID: ${parsed.userId}`);
+  }
+
+  const previousBankroll = user.currentBankroll;
+  const newBankroll = Math.max(0, previousBankroll + parsed.adjustment);
+
+  await user.updateBankroll(newBankroll);
+
+  const reasonDescriptions: Record<string, string> = {
+    deposit: 'Deposit',
+    withdrawal: 'Withdrawal',
+    bet_win: 'Bet win',
+    bet_loss: 'Bet loss',
+    correction: 'Correction',
+    other: 'Adjustment'
+  };
+
+  return {
+    success: true,
+    userId: parsed.userId,
+    adjustment: {
+      amount: parsed.adjustment,
+      reason: parsed.reason,
+      description: reasonDescriptions[parsed.reason]
     },
-    async (args, extra?: any) => {
-      const locale: string = (extra?._meta?.['openai/locale'] as string)
-                  || (extra?._meta?.['webplus/i18n'] as string)
-                  || getCurrentLocale();
-
-      const sessionId = getSessionId(extra);
-      const record = getBankroll(sessionId);
-
-      return {
-        structuredContent: {
-          bankroll: record.amount,
-          currency: record.currency,
-          lastUpdated: record.lastUpdated
-        },
-        content: [{
-          type: 'text' as const,
-          text: `**Current Bankroll:** ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(record.amount)}\n\n_Use this value with the kelly-calculate tool to determine optimal bet sizes._`
-        }],
-        _meta: {
-          'openai/locale': locale
-        }
-      };
-    }
-  );
-
-  // Set/update bankroll
-  server.tool(
-    'set-bankroll',
-    {
-      title: 'Set Bankroll Amount',
-      description: 'Use this when the user wants to set or update their bankroll amount. This should be called when starting a new betting session, after making deposits/withdrawals, or to correct the bankroll amount.',
-      inputSchema: {
-        amount: z.number().positive().describe('New bankroll amount in USD. Must be positive. Example: 1500 for $1,500'),
-        reason: z.string().default('Manual update').describe('Optional reason for the change. Examples: "Initial deposit", "Weekly withdrawal", "Correction"')
-      },
-      annotations: {
-        readOnlyHint: false, // Sets/updates bankroll amount
-        openWorldHint: false, // Modifies local storage only
-        destructiveHint: false // Maintains history, changes are tracked and reversible
-      },
-      _meta: {
-        'openai/toolInvocation/invoking': 'Updating bankroll...',
-        'openai/toolInvocation/invoked': 'Bankroll updated'
-      }
+    bankroll: {
+      previous: previousBankroll,
+      current: newBankroll,
+      change: Math.round((newBankroll - previousBankroll) * 100) / 100
     },
-    async (args, extra?: any) => {
-      const locale: string = (extra?._meta?.['openai/locale'] as string)
-                  || (extra?._meta?.['webplus/i18n'] as string)
-                  || getCurrentLocale();
+    lastUpdated: new Date().toISOString(),
+    message: `${reasonDescriptions[parsed.reason]}: ${parsed.adjustment >= 0 ? '+' : ''}$${parsed.adjustment.toFixed(2)}. New bankroll: $${newBankroll.toFixed(2)}`
+  };
+}
 
-      const { amount, reason } = args;
+export interface BankrollOutput {
+  success: boolean;
+  userId: string;
+  bankroll: number;
+  previousBankroll?: number;
+  change?: number;
+  lastUpdated: string;
+  message?: string;
+}
 
-      if (amount <= 0) {
-        return {
-          structuredContent: {
-            error: 'invalid_amount',
-            message: 'Bankroll amount must be positive'
-          },
-          content: [{
-            type: 'text' as const,
-            text: 'Bankroll amount must be greater than $0.'
-          }],
-          isError: true
-        };
-      }
-
-      const sessionId = getSessionId(extra);
-      const record = getBankroll(sessionId);
-      const previousAmount = record.amount;
-
-      record.amount = amount;
-      record.lastUpdated = new Date().toISOString();
-      record.history.push({
-        amount,
-        reason: reason || 'Manual update',
-        timestamp: record.lastUpdated
-      });
-
-      const change = amount - previousAmount;
-      const changeText = change >= 0 ? `+$${change.toFixed(2)}` : `-$${Math.abs(change).toFixed(2)}`;
-
-      return {
-        structuredContent: {
-          bankroll: amount,
-          previousAmount,
-          change,
-          reason,
-          updatedAt: record.lastUpdated
-        },
-        content: [{
-          type: 'text' as const,
-          text: `## Bankroll Updated\n\n` +
-            `- **New Balance:** $${amount.toFixed(2)}\n` +
-            `- **Previous:** $${previousAmount.toFixed(2)}\n` +
-            `- **Change:** ${changeText}\n` +
-            `- **Reason:** ${reason || 'Manual update'}\n\n` +
-            `_Your new bankroll of $${amount.toFixed(2)} will be used for future Kelly calculations._`
-        }],
-        _meta: {
-          'openai/locale': locale
-        }
-      };
-    }
-  );
-
-  // Adjust bankroll (add/subtract)
-  server.tool(
-    'adjust-bankroll',
-    {
-      title: 'Adjust Bankroll',
-      description: 'Use this when the user wants to add or subtract money from their bankroll. Use positive numbers for deposits/wins, negative numbers for withdrawals/losses. This is more convenient than set-bankroll when making incremental changes.',
-      inputSchema: {
-        adjustment: z.number().describe('Amount to add (positive) or subtract (negative) from bankroll. Example: 100 to add $100, -50 to subtract $50'),
-        reason: z.string().default('Adjustment').describe('Reason for the adjustment. Examples: "Bet won", "Bet lost", "Deposit", "Withdrawal"')
-      },
-      annotations: {
-        readOnlyHint: false, // Adjusts bankroll by adding/subtracting amount
-        openWorldHint: false, // Modifies local storage only
-        destructiveHint: false // Maintains history, adjustments are tracked and reversible
-      },
-      _meta: {
-        'openai/toolInvocation/invoking': 'Adjusting bankroll...',
-        'openai/toolInvocation/invoked': 'Bankroll adjusted'
-      }
-    },
-    async (args, extra?: any) => {
-      const locale: string = (extra?._meta?.['openai/locale'] as string)
-                  || (extra?._meta?.['webplus/i18n'] as string)
-                  || getCurrentLocale();
-
-      const { adjustment, reason } = args;
-      const sessionId = getSessionId(extra);
-      const record = getBankroll(sessionId);
-      const previousAmount = record.amount;
-      const newAmount = previousAmount + adjustment;
-
-      if (newAmount < 0) {
-        return {
-          structuredContent: {
-            error: 'insufficient_funds',
-            message: 'Adjustment would result in negative bankroll',
-            currentBankroll: previousAmount,
-            attemptedAdjustment: adjustment
-          },
-          content: [{
-            type: 'text' as const,
-            text: `Cannot subtract $${Math.abs(adjustment).toFixed(2)} from bankroll of $${previousAmount.toFixed(2)}. This would result in a negative balance.`
-          }],
-          isError: true
-        };
-      }
-
-      record.amount = newAmount;
-      record.lastUpdated = new Date().toISOString();
-      record.history.push({
-        amount: newAmount,
-        reason: reason || (adjustment >= 0 ? 'Deposit' : 'Withdrawal'),
-        timestamp: record.lastUpdated
-      });
-
-      const changeText = adjustment >= 0 ? `+$${adjustment.toFixed(2)}` : `-$${Math.abs(adjustment).toFixed(2)}`;
-      const emoji = adjustment >= 0 ? '📈' : '📉';
-
-      return {
-        structuredContent: {
-          bankroll: newAmount,
-          previousAmount,
-          adjustment,
-          reason,
-          updatedAt: record.lastUpdated
-        },
-        content: [{
-          type: 'text' as const,
-          text: `## Bankroll Adjusted ${emoji}\n\n` +
-            `- **New Balance:** $${newAmount.toFixed(2)}\n` +
-            `- **Change:** ${changeText}\n` +
-            `- **Reason:** ${reason || 'Adjustment'}\n`
-        }],
-        _meta: {
-          'openai/locale': locale
-        }
-      };
-    }
-  );
-
-  // Get bankroll history
-  server.tool(
-    'get-bankroll-history',
-    {
-      title: 'Get Bankroll History',
-      description: 'Use this when the user wants to see the history of their bankroll changes. Shows deposits, withdrawals, and adjustments over time.',
-      inputSchema: {
-        limit: z.number().min(1).max(50).default(10).describe('Maximum number of history entries to return. Default is 10.')
-      },
-      annotations: {
-        readOnlyHint: true, // Only reads bankroll history
-        openWorldHint: false, // Reads from local in-memory storage only
-        destructiveHint: false // No data modification or deletion
-      },
-      _meta: {
-        'openai/toolInvocation/invoking': 'Loading bankroll history...',
-        'openai/toolInvocation/invoked': 'History loaded'
-      }
-    },
-    async (args, extra?: any) => {
-      const locale: string = (extra?._meta?.['openai/locale'] as string)
-                  || (extra?._meta?.['webplus/i18n'] as string)
-                  || getCurrentLocale();
-
-      const { limit } = args;
-      const sessionId = getSessionId(extra);
-      const record = getBankroll(sessionId);
-
-      const recentHistory = record.history.slice(-limit).reverse();
-
-      let responseText = `## Bankroll History\n\n` +
-        `**Current Balance:** $${record.amount.toFixed(2)}\n\n` +
-        `| Date | Amount | Reason |\n` +
-        `|------|--------|--------|\n`;
-
-      for (const entry of recentHistory) {
-        const date = new Date(entry.timestamp).toLocaleDateString();
-        responseText += `| ${date} | $${entry.amount.toFixed(2)} | ${entry.reason} |\n`;
-      }
-
-      // Calculate stats
-      if (record.history.length >= 2) {
-        const firstEntry = record.history[0];
-        const totalChange = record.amount - firstEntry.amount;
-        const changePercent = ((record.amount - firstEntry.amount) / firstEntry.amount) * 100;
-
-        responseText += `\n### Performance\n` +
-          `- **Starting Bankroll:** $${firstEntry.amount.toFixed(2)}\n` +
-          `- **Current Bankroll:** $${record.amount.toFixed(2)}\n` +
-          `- **Net Change:** ${totalChange >= 0 ? '+' : ''}$${totalChange.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%)\n`;
-      }
-
-      return {
-        structuredContent: {
-          currentBankroll: record.amount,
-          history: recentHistory,
-          totalEntries: record.history.length
-        },
-        content: [{
-          type: 'text' as const,
-          text: responseText
-        }],
-        _meta: {
-          'openai/locale': locale
-        }
-      };
-    }
-  );
+export interface BankrollAdjustOutput {
+  success: boolean;
+  userId: string;
+  adjustment: {
+    amount: number;
+    reason: string;
+    description: string;
+  };
+  bankroll: {
+    previous: number;
+    current: number;
+    change: number;
+  };
+  lastUpdated: string;
+  message: string;
 }
