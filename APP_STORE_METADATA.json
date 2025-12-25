@@ -1,19 +1,22 @@
 {
   "app_metadata": {
-    "app_name": "Kelly's Criterion Calculator",
-    "version": "1.0.0",
-    "short_description": "Calculate optimal bet sizing using the Kelly Criterion formula with probability estimation tools.",
-    "full_description": "Kelly's Criterion Calculator is a mathematical utility that helps users determine optimal bet sizing using the Kelly Criterion formula. The app provides three core tools:\n\n1. **Kelly Criterion Calculator**: Input your bankroll, betting odds (American format), and estimated win probability to receive a mathematically optimal stake recommendation. Supports full, half, and quarter Kelly fractions for varying risk tolerance.\n\n2. **Football Probability Estimator**: Estimate the probability of a team covering a point spread based on statistical inputs including points for/against, offensive/defensive yards, and turnover differential.\n\n3. **Basketball Probability Estimator**: Similar probability estimation tailored for basketball, incorporating field goal percentage, rebound margin, and turnover metrics.\n\nKey Features:\n- Pure mathematical calculations with no gambling facilitation\n- Stateless design - no user data stored\n- Optional AI-powered analytical insights\n- Support for 12 languages\n- Educational tool for understanding betting mathematics\n\nIMPORTANT: This app is for educational purposes only. It does not provide betting advice, does not guarantee outcomes, and does not facilitate gambling. Users must be 18+ (21+ where required by law).",
-    "category": "Utilities",
-    "subcategory": "Calculators",
+    "app_name": "Betgistics",
+    "brand_tagline": "Sports Analytics & Probability Education",
+    "version": "2.0.0",
+    "short_description": "Educational sports analytics assistant for probability theory and statistical analysis.",
+    "full_description": "**Betgistics: Sports Analytics & Probability Education**\n\nBetgistics is an educational assistant designed to help users understand probability theory, statistical analysis, and risk management concepts through the lens of sports data.\n\n**What Betgistics Provides:**\n\n• **Probability Modeling Education**: Learn how to estimate probabilities using historical sports data and statistical methods\n• **Statistical Analysis Tools**: Explore sports statistics, team performance metrics, and data visualization techniques\n• **Bankroll Theory Concepts**: Understand theoretical frameworks for resource allocation, including Kelly Criterion and other mathematical models\n• **Record Keeping**: Track hypothetical scenarios and decisions for self-reflection and learning\n• **Responsible Decision-Making**: Educational content emphasizing critical thinking and analytical discipline\n\n**What Betgistics Does NOT Do:**\n\n• Does not facilitate real-money wagering or betting\n• Does not connect to sportsbooks or gambling platforms\n• Does not place bets or handle financial transactions\n• Does not guarantee outcomes or provide betting advice\n• Does not encourage gambling behavior\n\n**Educational Focus:**\n\nBetgistics is designed for adults interested in learning about:\n- Probability theory and statistical inference\n- Data-driven decision analysis\n- Risk assessment methodologies\n- Sports analytics and performance evaluation\n- Mathematical modeling concepts\n\nAll outputs are informational probability estimates based on statistical models, not predictions or guarantees. Users are solely responsible for their own decisions.\n\n**Target Audience:** Students, educators, sports enthusiasts, data analysts, and anyone interested in learning probability theory through practical sports data applications.\n\n**IMPORTANT**: This app is for educational purposes only. It does not provide betting advice, does not guarantee outcomes, and does not facilitate gambling. Users must be 18+ (21+ where required by law).",
+    "category": "Education",
+    "subcategory": "Educational Tools & Reference",
+    "alternate_categories": ["Sports (Analytics/Statistics)", "Utilities (Calculators)"],
     "age_restriction": {
       "minimum_age": 18,
-      "rating": "Mature",
+      "rating": "Mature 17+",
       "content_descriptors": [
-        "Gambling references (educational/mathematical)",
-        "Financial calculations"
+        "Educational content related to probability and statistics",
+        "Sports data and analytics",
+        "Theoretical risk management concepts"
       ],
-      "notes": "App involves betting calculations. Users must be of legal gambling age in their jurisdiction (18+ or 21+ depending on location)."
+      "notes": "App teaches probability concepts using sports betting as a context. Requires users to be 18+ for educational content involving gambling-related mathematics. No actual gambling or wagering functionality."
     }
   },
 
@@ -67,12 +70,12 @@
   ],
 
   "developer_information": {
-    "developer_name": "Kelly's Criterion Calculator Team",
-    "developer_contact_email": "support@kellyscriterion.app",
-    "privacy_contact_email": "privacy@kellyscriterion.app",
-    "legal_contact_email": "legal@kellyscriterion.app",
-    "support_url": "https://kellyscriterion.app/support",
-    "website_url": "https://kellyscriterion.app"
+    "developer_name": "Betgistics Team",
+    "developer_contact_email": "support@betgistics.app",
+    "privacy_contact_email": "privacy@betgistics.app",
+    "legal_contact_email": "legal@betgistics.app",
+    "support_url": "https://betgistics.app/support",
+    "website_url": "https://betgistics.app"
   },
 
   "policy_urls": {
@@ -82,39 +85,76 @@
   },
 
   "mcp_configuration": {
-    "server_name": "kelly-criterion-calculator",
+    "server_name": "betgistics",
+    "display_name": "Betgistics - Sports Analytics Education",
     "mcp_endpoint": "/mcp",
-    "transport": "SSE",
+    "transport": "StreamableHTTP",
     "health_endpoint": "/health",
     "cors_origins": ["https://chatgpt.com"],
     "tools": [
       {
         "name": "kelly-calculate",
-        "description": "Calculate optimal bet size using Kelly Criterion",
-        "has_widget": true
+        "display_name": "Kelly Criterion Educational Calculator",
+        "description": "Educational demonstration of Kelly Criterion theory for hypothetical resource allocation under uncertainty. Learn how this mathematical model works. For educational purposes only, not financial advice.",
+        "has_widget": true,
+        "educational": true
+      },
+      {
+        "name": "probability-estimate",
+        "display_name": "Unified Probability Estimation Tool",
+        "description": "Educational tool for learning probability estimation techniques using historical sports data. Auto-detects sport (NBA/NFL) from team names. Demonstrates statistical inference methods. Outputs are informational probability models, not predictions.",
+        "has_widget": true,
+        "educational": true
       },
       {
         "name": "probability-estimate-football",
-        "description": "Estimate probability of covering a football point spread",
-        "has_widget": true
+        "display_name": "Football Probability Education Tool",
+        "description": "Learn probability estimation for NFL football using historical statistical data. Educational demonstration of statistical modeling, not predictions or betting advice.",
+        "has_widget": true,
+        "educational": true
       },
       {
         "name": "probability-estimate-basketball",
-        "description": "Estimate probability of covering a basketball point spread",
-        "has_widget": true
+        "display_name": "Basketball Probability Education Tool",
+        "description": "Learn probability estimation for NBA basketball using historical statistical data. Educational demonstration of statistical modeling, not predictions or betting advice.",
+        "has_widget": true,
+        "educational": true
+      },
+      {
+        "name": "get-team-stats",
+        "display_name": "Team Statistics Analysis",
+        "description": "Explore historical team statistics and performance metrics for educational analysis and data literacy development.",
+        "has_widget": false,
+        "educational": true
+      },
+      {
+        "name": "analyze-matchup",
+        "display_name": "Matchup Analysis Education",
+        "description": "Learn how to analyze team matchups using comparative statistics. Educational tool for developing analytical thinking skills.",
+        "has_widget": false,
+        "educational": true
       }
     ]
   },
 
   "compliance": {
     "openai_usage_policies": true,
+    "openai_safety_best_practices": true,
+    "google_play_content_policy": true,
+    "google_play_gambling_policy": true,
     "safety_content_guidelines": true,
     "privacy_policy_provided": true,
     "terms_of_service_provided": true,
     "age_verification_noted": true,
-    "responsible_gambling_statement": true,
+    "educational_positioning": true,
+    "no_gambling_facilitation": true,
     "no_betting_advice_disclaimer": true,
-    "third_party_disclosure": true
+    "no_outcome_guarantees": true,
+    "user_responsibility_emphasized": true,
+    "third_party_disclosure": true,
+    "assistant_guard_rails_implemented": true,
+    "compliant_tool_descriptions": true,
+    "educational_disclaimers": true
   },
 
   "localization": {
@@ -160,16 +200,28 @@
 
   "review_notes": {
     "special_considerations": [
-      "App involves betting/gambling calculations - educational purpose only",
-      "No actual gambling facilitation or wagering",
+      "Educational sports analytics assistant - NOT a gambling application",
+      "Teaches probability theory and statistical analysis using sports data context",
+      "No actual gambling facilitation, wagering, or sportsbook integration",
+      "Does not provide betting advice or guarantee outcomes",
       "Stateless design minimizes privacy concerns",
       "Optional AI feature uses Google Gemini with full disclosure",
-      "Responsible gambling resources provided in Terms of Service"
+      "Comprehensive behavioral guard rails prevent gambling encouragement",
+      "All tool descriptions use educational, non-prescriptive language",
+      "Positioned as learning tool for probability and statistics education"
     ],
     "similar_approved_apps": [
-      "Calculator utilities",
-      "Financial planning tools",
-      "Educational math apps"
-    ]
+      "Educational statistics and probability apps",
+      "Sports analytics and data visualization tools",
+      "Calculator utilities for mathematical education",
+      "Data science learning platforms"
+    ],
+    "compliance_documentation": [
+      "PLATFORM_METADATA.md - Comprehensive compliance framework",
+      "ASSISTANT_SYSTEM_PROMPT.md - AI behavioral guard rails",
+      "APP_STORE_METADATA.json - Complete app metadata",
+      "OPENAI_COMPLIANCE_AUDIT.json - Technical compliance audit"
+    ],
+    "positioning_statement": "Betgistics is an educational analytics and learning assistant, not a gambling service. Users are responsible for their own decisions. The app does not interact with real-money systems or facilitate betting."
   }
 }
