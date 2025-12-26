@@ -72,6 +72,10 @@ import {
   handleSetBankroll,
   handleAdjustBankroll
 } from './tools/bankroll.js';
+import {
+  orchestrationToolDefinition,
+  handleOrchestration
+} from './tools/orchestration.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -594,6 +598,31 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // ===========================================================================
+  // ORCHESTRATION TOOL (End-to-End Workflow)
+  // ===========================================================================
+
+  server.tool(
+    orchestrationToolDefinition.name,
+    orchestrationToolDefinition.description,
+    orchestrationToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', orchestrationToolDefinition.name, params);
+      try {
+        const result = await handleOrchestration(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
   return server;
 }
 
@@ -721,6 +750,7 @@ async function start() {
     console.log('  - get_bankroll');
     console.log('  - set_bankroll');
     console.log('  - adjust_bankroll');
+    console.log('  - analyze_matchup_and_log_bet (orchestration)');
     console.log('\n' + '='.repeat(60));
   });
 }
