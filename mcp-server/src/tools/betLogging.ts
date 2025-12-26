@@ -1,6 +1,28 @@
 /**
  * Bet Logging Tool
- * Records bets to MongoDB for tracking and analysis
+ *
+ * This module provides the fundamental MCP tool for recording new bets to the MongoDB database. This is a critical
+ * component of the Betgistics platform, as it creates permanent records of betting decisions that can be analyzed for
+ * performance tracking, ROI calculation, and strategy refinement. Every time a user calculates a Kelly Criterion bet
+ * size and decides to place the bet, this tool should be used to log all relevant details about the matchup, probability
+ * assessment, Kelly calculations, and actual wager amount. The logged data forms the foundation for all historical
+ * analysis and performance metrics provided by the platform.
+ *
+ * TOOL: log_bet
+ * Creates a new bet record in the MongoDB database with comprehensive information about the betting decision. This tool
+ * captures three categories of data: matchup information (sport type, team names and abbreviations, venue, point spread,
+ * and optional team statistics used in analysis), probability estimation data (calculated win probability percentage,
+ * expected margin of victory, bookmaker's implied probability, and edge over the bookmaker), and Kelly Criterion
+ * calculations (current bankroll at time of bet, American odds format, Kelly fraction used for conservative sizing,
+ * recommended stake amount, and stake as percentage of bankroll). The tool also accepts the actual wager amount if it
+ * differs from the Kelly recommendation, allowing tracking of whether users followed the mathematical guidance. Users can
+ * add optional notes to record their reasoning or specific factors influencing the bet, and tags for categorizing bets
+ * (such as "primetime", "rivalry", "weather-dependent", etc.) for later filtering and analysis. When a bet is logged,
+ * it's created with a "pending" outcome status, meaning the game hasn't been played yet. After the game concludes, the
+ * update_bet_outcome tool should be used to record the actual result. The tool returns a unique bet ID that can be used
+ * for future updates and queries, along with a summary of the logged bet details. This tool requires an active MongoDB
+ * connection configured via the MONGODB_URI environment variable and validates all inputs to ensure data quality and
+ * consistency across the betting history database.
  */
 
 import { z } from 'zod';

@@ -1,6 +1,46 @@
 /**
  * Statistical Probability Estimation Tools (Walters Protocol)
- * Calculates win/cover probabilities using team statistics
+ *
+ * This module implements the Walters Protocol, a sophisticated statistical methodology for estimating the probability
+ * that a team will cover a given point spread based on team performance statistics. Named after legendary sports bettor
+ * Billy Walters, this approach uses weighted analysis of multiple statistical factors combined with normal distribution
+ * modeling to generate objective probability estimates. Unlike subjective handicapping or gut-feel betting, the Walters
+ * Protocol provides data-driven probability calculations that can be fed into the Kelly Criterion for optimal bet sizing.
+ * The module provides separate tools for football and basketball, each calibrated with sport-specific weights, home
+ * field/court advantages, and standard deviation values that reflect the statistical realities of each sport.
+ *
+ * TOOL: estimate_football_probability
+ * Calculates the probability that a football team will cover the spread using a weighted statistical model that analyzes
+ * points differential (50% weight), yards differential (30% weight), and turnover differential (20% weight). The tool
+ * requires team statistics for both teams including points per game scored, points per game allowed, and optionally
+ * offensive yards per game, defensive yards allowed per game, and turnover differential (positive indicates more takeaways).
+ * The tool supports both NFL and college football (CFB) with different calibration constants - NFL uses a 2.5-point home
+ * field advantage and 13.5-point standard deviation, while CFB uses a 3.0-point advantage and 16.0-point standard deviation
+ * to account for greater variance in college games. The venue parameter (home/away/neutral) automatically applies the
+ * appropriate home field advantage adjustment when Team A is playing at home or penalizes them when playing away. The
+ * calculation first estimates the expected margin of victory by comparing offensive and defensive efficiency metrics,
+ * applies home field adjustment, then uses normal distribution (z-score) to determine the probability of covering the
+ * given spread. For example, if Team A is expected to win by 7 points and the spread is -3.5, the model calculates the
+ * probability they'll win by more than 3.5 points. The response includes the cover probability percentage, predicted
+ * margin of victory, the sigma (standard deviation) used, applied home field advantage, and a human-readable interpretation
+ * categorizing the bet quality (strong cover, favorable, coin flip, unfavorable, or poor value).
+ *
+ * TOOL: estimate_basketball_probability
+ * Calculates the probability that a basketball team will cover the spread using a weighted statistical model optimized
+ * for basketball's unique characteristics. The model analyzes points differential (40% weight), field goal percentage
+ * differential (30% weight), rebound margin (20% weight), and turnover margin (10% weight). The tool requires team
+ * statistics for both teams including points per game scored, points allowed, and optionally field goal percentage (e.g.,
+ * 45.5 for 45.5%), rebound margin per game, and turnover margin per game (positive means fewer turnovers than opponent).
+ * Like the football tool, it supports both professional (NBA) and college (CBB) basketball with different calibrations -
+ * NBA uses a 3.0-point home court advantage and 11.5-point standard deviation, while CBB uses a 3.5-point advantage and
+ * 10.5-point standard deviation, reflecting the slightly lower variance in college basketball due to shorter shot clocks
+ * and different game dynamics. The venue parameter (home/away/neutral) applies the appropriate home court advantage or
+ * disadvantage. The calculation methodology mirrors the football tool: calculate expected margin using weighted statistical
+ * differentials, apply venue adjustment, then use normal distribution to determine cover probability. The response format
+ * is identical to the football tool, providing probability, predicted margin, sigma, home court advantage applied, and an
+ * interpretation of bet quality. Both probability tools form the statistical foundation for value betting, allowing users
+ * to compare their calculated probabilities against bookmaker implied probabilities to identify positive expected value
+ * opportunities that warrant Kelly Criterion bet sizing.
  */
 
 import { z } from 'zod';

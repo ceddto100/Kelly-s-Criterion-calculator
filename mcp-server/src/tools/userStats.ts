@@ -1,6 +1,34 @@
 /**
  * User Statistics Tool
- * Retrieves betting performance metrics and statistics
+ *
+ * This module provides a comprehensive MCP tool for analyzing user betting performance through detailed statistical
+ * aggregation and metrics calculation. For serious sports bettors, understanding performance trends is crucial for
+ * refining strategy, identifying strengths and weaknesses, and maintaining discipline. This tool goes beyond simple
+ * win/loss tracking to provide deep insights into betting behavior, including return on investment, edge analysis,
+ * stake sizing patterns, and performance breakdowns by sport. By regularly reviewing these statistics, users can
+ * identify which types of bets are profitable, whether they're properly following Kelly Criterion recommendations,
+ * and how their actual results compare to their probability estimates.
+ *
+ * TOOL: get_user_stats
+ * Generates comprehensive betting performance statistics for a user by aggregating and analyzing all their historical
+ * bet data from the MongoDB database. The tool accepts a user ID and optional filters for sport (football, basketball,
+ * or all combined) and date range (ISO format start and end dates) to focus the analysis on specific time periods or
+ * betting markets. The tool executes a sophisticated MongoDB aggregation pipeline that calculates summary statistics
+ * (total bets placed, pending bets awaiting settlement, settled bets with outcomes, wins, losses, pushes, and cancelled
+ * bets), performance metrics (win rate percentage for settled bets, return on investment percentage measuring profitability,
+ * total amount wagered across all settled bets, total amount returned from wins and pushes, and net profit or loss),
+ * average metrics (average probability estimated across all bets, average edge over bookmaker, and average stake percentage
+ * of bankroll), and record tracking (biggest single win payout and biggest single loss). The tool intelligently handles
+ * edge cases, returning appropriate zero values when no betting data exists and providing a message that insufficient
+ * data is available for meaningful analysis when fewer than 10 bets have been settled. For users with adequate betting
+ * history, the tool generates an automated analysis paragraph that interprets the statistics and provides actionable
+ * insights. The analysis evaluates win rate (strong ≥55%, solid ≥50%, below break-even <50%), ROI performance (excellent
+ * >10%, positive >0%, slightly negative <0%, concerning <-10%), and average edge quality (strong >5%, acceptable >2%,
+ * thin >0%). This automated analysis helps users quickly understand whether their betting approach is working and where
+ * improvements might be needed. For example, a high win rate but negative ROI might indicate poor stake sizing, while
+ * positive average edge but low win rate could suggest overestimating probabilities. The statistics returned by this
+ * tool are essential for maintaining a professional, analytical approach to sports betting and avoiding the emotional
+ * decision-making that causes most bettors to lose money over time.
  */
 
 import { z } from 'zod';

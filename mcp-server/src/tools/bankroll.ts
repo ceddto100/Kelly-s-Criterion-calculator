@@ -1,6 +1,29 @@
 /**
  * Bankroll Management Tools
- * Manage user bankroll for bet sizing calculations
+ *
+ * This module provides three essential MCP tools for managing user bankroll, which is the total amount of money
+ * a user has dedicated for betting purposes. Proper bankroll management is crucial for Kelly Criterion calculations
+ * and long-term betting success. The tools enable retrieving current bankroll, setting absolute bankroll values,
+ * and making incremental adjustments based on betting activity (wins, losses, deposits, withdrawals, etc.).
+ *
+ * TOOL: get_bankroll
+ * Retrieves the current bankroll amount for a specified user from the MongoDB database. This is used to understand
+ * how much capital a user currently has available for betting, which is essential for calculating optimal bet sizes
+ * using the Kelly Criterion. The tool returns the bankroll value along with the last updated timestamp, allowing
+ * users and AI agents to make informed betting decisions based on current capital levels.
+ *
+ * TOOL: set_bankroll
+ * Sets an absolute bankroll value for a user, completely replacing the previous amount. This tool is typically used
+ * when users make significant deposits, withdraw funds, or need to reconcile their account balance with actual funds.
+ * Unlike the adjust_bankroll tool which makes incremental changes, set_bankroll establishes a new baseline amount.
+ * The tool tracks both the previous and new bankroll values and calculates the change for audit purposes.
+ *
+ * TOOL: adjust_bankroll
+ * Makes incremental adjustments to a user's bankroll by adding or subtracting a specified amount. This is the primary
+ * tool for recording betting outcomes (wins add to bankroll, losses subtract), as well as tracking deposits and
+ * withdrawals. The tool requires a reason parameter to categorize the adjustment (bet_win, bet_loss, deposit, withdrawal,
+ * correction, or other), which helps maintain a clear audit trail of bankroll changes. The adjustment amount can be
+ * positive or negative, and the tool ensures the bankroll never goes below zero to prevent invalid states.
  */
 
 import { z } from 'zod';

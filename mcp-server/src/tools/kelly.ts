@@ -1,6 +1,31 @@
 /**
  * Kelly Criterion Calculation Tool
- * Calculates optimal bet sizing using the Kelly Criterion formula
+ *
+ * This module provides the core MCP tool that implements the Kelly Criterion formula, a mathematical approach to
+ * determining the optimal bet size for maximizing long-term bankroll growth while minimizing the risk of ruin. Developed
+ * by John L. Kelly Jr. in 1956, the Kelly Criterion has become the gold standard for bet sizing among professional
+ * gamblers and investors. The formula balances the desire to capitalize on positive expected value opportunities against
+ * the need to preserve capital during inevitable losing streaks. By betting the mathematically optimal fraction of your
+ * bankroll, you maximize the geometric growth rate of your capital over time.
+ *
+ * TOOL: kelly_calculate
+ * Calculates the optimal bet size using the Kelly Criterion formula: f* = (bp - q) / b, where f* is the optimal fraction
+ * of bankroll to wager, b is the decimal odds minus one (net odds), p is your estimated probability of winning, and q is
+ * the probability of losing (1 - p). The tool requires four inputs: your total bankroll in USD (the capital you have
+ * available for betting), your estimated win probability as a percentage (1-99%, representing your edge assessment based
+ * on statistical analysis or other methods), American odds format from the sportsbook (positive for underdogs like +150,
+ * negative for favorites like -110), and an optional Kelly fraction multiplier (0.1-1, default 1) for conservative bet
+ * sizing. The fraction parameter is particularly important because full Kelly betting can lead to significant bankroll
+ * volatility - many professional bettors use half Kelly (0.5) or quarter Kelly (0.25) to reduce variance while still
+ * achieving good long-term growth. The tool returns comprehensive output including: the recommended stake amount in
+ * dollars, stake as a percentage of bankroll, the full Kelly percentage and the adjusted percentage after applying the
+ * fraction, a boolean indicating whether the bet has positive expected value, your edge over the bookmaker (the difference
+ * between your probability and the implied probability), the bookmaker's implied probability derived from the odds,
+ * decimal odds format, potential win amount and total payout. The tool also provides a human-readable recommendation that
+ * interprets your edge level and suggests appropriate action - strong value bets (>10% edge) are highlighted for
+ * verification, while negative expected value bets are flagged with a recommendation not to bet. The Kelly Criterion is
+ * most effective when your probability estimates are accurate, so this tool should be used in conjunction with the
+ * statistical probability estimation tools and careful analysis of matchups.
  */
 
 import { z } from 'zod';
