@@ -1,6 +1,49 @@
 /**
  * Odds Conversion Tools
- * Convert between American, Decimal, and Fractional odds formats
+ *
+ * This module provides three essential MCP tools for working with betting odds in different formats and understanding
+ * bookmaker margins. Different sportsbooks and regions use different odds formats (American, Decimal, Fractional), and
+ * bettors need to convert between them to compare odds across platforms, understand potential payouts, and calculate
+ * implied probabilities. Additionally, understanding the bookmaker's vigorish (vig/juice) helps bettors identify whether
+ * they're getting fair odds or if the bookmaker has built in excessive profit margins. These tools are fundamental for
+ * making informed betting decisions and finding the best value in the marketplace.
+ *
+ * TOOL: convert_odds
+ * Converts betting odds between American, Decimal, and Fractional formats, enabling bettors to work with odds from any
+ * sportsbook regardless of their preferred format. American odds use positive numbers for underdogs (e.g., +150 means
+ * win $150 on a $100 bet) and negative numbers for favorites (e.g., -110 means bet $110 to win $100). Decimal odds
+ * represent the total payout per unit bet including the original stake (e.g., 2.50 means a $100 bet returns $250 total).
+ * Fractional odds show profit per unit bet (e.g., 3/2 means win $3 for every $2 bet). The tool accepts odds in any of
+ * these three formats and can convert to a specific target format or return all three formats simultaneously. For
+ * fractional input, a denominator parameter is required (e.g., for 5/2 odds, pass odds=5 and denominator=2). The response
+ * includes all three format conversions plus the implied probability percentage, which represents the bookmaker's assessed
+ * likelihood of the outcome occurring. This comprehensive conversion capability allows bettors to quickly understand odds
+ * from any source and compare them across different sportsbooks to find the best value.
+ *
+ * TOOL: calculate_vig
+ * Calculates the vigorish (vig/juice) on a two-way betting market by analyzing both sides' odds to determine the bookmaker's
+ * profit margin. In a perfectly efficient market with no bookmaker margin, the implied probabilities of both outcomes would
+ * sum to exactly 100%. However, bookmakers build in a profit margin by setting odds that make the implied probabilities sum
+ * to more than 100% - this excess is the vig. The tool accepts American odds for both sides of a two-way market (e.g., Team
+ * A at -110 and Team B at -110) and calculates: the total vig percentage (standard vig is around 4.5% for -110/-110 odds),
+ * a descriptive interpretation of whether the vig is favorable for bettors or excessive, the implied probabilities for each
+ * side including the bookmaker's margin, and the fair probabilities for each side after removing the vig. Understanding vig
+ * is crucial because high-vig markets reduce your expected value even if you have an edge in probability estimation. Bettors
+ * should seek out low-vig sportsbooks (2-4% vig) and avoid high-vig markets (7%+) where possible, as the vig directly reduces
+ * long-term profitability. This tool helps identify whether you're getting fair odds or being charged excessive juice.
+ *
+ * TOOL: calculate_implied_probability
+ * Calculates the implied probability percentage from American odds, which represents the bookmaker's assessment of how likely
+ * an outcome is to occur, including their built-in profit margin. This is a fundamental calculation for value betting - by
+ * comparing the bookmaker's implied probability to your own probability estimate, you can identify whether a bet offers
+ * positive expected value. For example, if a team has +150 odds (40% implied probability) but your statistical analysis
+ * suggests they have a 50% chance of winning, you've found a value bet with a 10% edge. The tool accepts American odds and
+ * returns: the implied probability percentage, the equivalent decimal odds, the break-even win rate needed to profit at these
+ * odds over many bets, and a human-readable interpretation explaining what the odds mean in terms of bet amounts and win
+ * likelihood. This tool is essential for the Kelly Criterion calculation workflow, as the Kelly formula requires both your
+ * estimated probability and the bookmaker's implied probability (derived from odds) to determine optimal bet sizing. The
+ * difference between these probabilities is your edge, and without understanding implied probability, it's impossible to
+ * assess whether a betting opportunity represents true value.
  */
 
 import { z } from 'zod';

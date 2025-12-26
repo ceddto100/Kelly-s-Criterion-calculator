@@ -1,6 +1,38 @@
 /**
  * User Authentication Tools
- * Handles user authentication status and session management
+ *
+ * This module provides three MCP tools for managing user authentication and user account information within the
+ * Betgistics platform. These tools integrate with Google OAuth authentication to verify user identity, retrieve
+ * user profiles, and register new users in the system. While the MCP server itself doesn't handle the OAuth flow
+ * directly (that occurs on the web frontend), these tools manage the server-side user data and authentication state
+ * that results from successful OAuth logins. They're essential for associating bets, bankroll data, and statistics
+ * with specific user accounts, and for enforcing usage limits on free-tier users.
+ *
+ * TOOL: check_auth_status
+ * Verifies whether a user is authenticated and retrieves their current authentication status and account capabilities.
+ * This tool accepts a userId (Google OAuth ID) and checks if the user exists in the MongoDB database. If the user
+ * is found, it returns comprehensive authentication information including: the user's basic profile (email, display
+ * name), premium status, current bankroll, and calculation usage statistics. The calculation statistics show whether
+ * the user can perform additional Kelly Criterion calculations, how many daily calculations they've used, the daily
+ * limit (10 for free users), total calculations performed, and remaining tokens. This tool is crucial for determining
+ * whether a user has permission to use the system's features and for displaying accurate account status information.
+ *
+ * TOOL: get_user_profile
+ * Retrieves detailed profile information for an authenticated user from the database. This tool provides more comprehensive
+ * user data than check_auth_status, including the user's email, display name, profile photo URL, premium status, current
+ * bankroll, available tokens, and detailed statistics about their calculation usage (total calculations, daily calculations,
+ * last reset date). It also returns account metadata such as when the account was created and when the user was last active.
+ * This tool is used for displaying user profile information, populating account settings pages, and providing users with
+ * insights into their account history and usage patterns.
+ *
+ * TOOL: register_user
+ * Registers a new user account or updates an existing user's information based on Google OAuth data. This tool is typically
+ * called immediately after a user successfully authenticates through Google OAuth on the web frontend. It accepts the user's
+ * Google ID (required), and optionally their email, display name, and profile photo URL. The tool uses a "find or create"
+ * pattern, meaning it will create a new user account if one doesn't exist with the given Google ID, or update the existing
+ * user's information if they're already registered. The response indicates whether this was a new user registration or an
+ * update to an existing account, and returns the user's basic profile information including their premium status and initial
+ * bankroll. This ensures that all authenticated users have a corresponding account in the system for tracking their betting activity.
  */
 
 import { z } from 'zod';

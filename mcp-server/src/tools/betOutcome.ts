@@ -1,6 +1,24 @@
 /**
  * Bet Outcome Update Tool
- * Updates bet results (win/loss/push/cancelled)
+ *
+ * This module provides a single critical MCP tool for updating the outcome of previously logged bets once the sporting
+ * event has concluded. After a user places a bet using the log_bet tool, the bet initially has a "pending" status.
+ * Once the game is complete and the result is known, this tool allows updating the bet with the actual outcome, final
+ * score, and payout information. Accurate outcome tracking is essential for calculating return on investment (ROI),
+ * analyzing betting performance over time, and maintaining comprehensive betting records for statistical analysis.
+ *
+ * TOOL: update_bet_outcome
+ * Updates the result of a previously logged bet by setting its outcome to win, loss, push, or cancelled. This tool
+ * requires the unique bet ID (obtained when the bet was originally logged) and the result type. For wins, the bet is
+ * marked as won and the payout is calculated based on the original wager and odds - if a specific payout amount is
+ * provided, it uses that value, otherwise it calculates the expected payout using the American odds format (positive
+ * odds: wager × odds/100, negative odds: wager × 100/|odds|). For losses, the bet is marked as lost with a zero payout.
+ * For pushes (ties where the spread was hit exactly), the original wager is returned as the payout. For cancelled bets
+ * (when a game is postponed or voided), the payout is zero. The tool also accepts optional parameters for the actual
+ * final score of the game, which is valuable for post-game analysis and verifying the correctness of the outcome. Once
+ * updated, the bet's settledAt timestamp is automatically set to record when the outcome was determined. The tool prevents
+ * double-updating by throwing an error if you attempt to change a bet that has already been settled, ensuring data integrity
+ * and preventing accidental overwrites of historical records.
  */
 
 import { z } from 'zod';

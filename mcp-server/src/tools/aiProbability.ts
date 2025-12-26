@@ -1,6 +1,32 @@
 /**
  * AI-Powered Probability Estimation Tool
- * Uses Gemini AI to estimate betting probabilities and analyze matchups
+ *
+ * This module provides two advanced MCP tools that leverage Google's Gemini AI to analyze sports betting matchups
+ * and estimate win probabilities. These tools are particularly valuable when statistical data is limited or when
+ * bettors want a second opinion on their probability estimates. The AI analyzes team names, recent performance,
+ * injuries, venue advantages, and other contextual factors to generate probability estimates and comprehensive
+ * matchup analyses. This complements the statistical Walters Protocol tools by incorporating qualitative factors
+ * and real-time information that may not be captured in season-long statistics.
+ *
+ * TOOL: ai_estimate_probability
+ * Uses Google Gemini AI to estimate the probability of a team covering a specific point spread. This tool accepts
+ * team names, point spread, venue information (home/away/neutral), and optional additional context (such as injury
+ * reports, weather conditions, or recent team form). The AI analyzes historical matchup data, current team performance,
+ * home/away advantages, and any provided context to generate a probability estimate expressed as a percentage (0-100).
+ * The response includes the probability estimate, a confidence level (low/medium/high), key factors that influenced
+ * the estimate, and a detailed textual analysis explaining the reasoning. This tool requires a valid GEMINI_API_KEY
+ * environment variable and is best used when you don't have detailed team statistics or want to validate your own
+ * probability calculations against AI-powered analysis.
+ *
+ * TOOL: ai_analyze_matchup
+ * Provides a comprehensive AI-powered analysis of a sports matchup, offering deeper insights than just a probability
+ * estimate. This tool accepts sport type, team information (including optional team statistics), and an optional point
+ * spread. The AI generates a detailed breakdown that includes: the favored team and predicted margin of victory, win
+ * probability, confidence level, key matchup advantages, each team's strengths and weaknesses, and specific betting
+ * insights with recommendations. The analysis can be performed with or without a specific spread, making it useful
+ * for both spread betting and moneyline evaluations. When team statistics are provided, the AI incorporates them into
+ * the analysis for more accurate predictions. This tool is ideal for gaining a holistic understanding of a matchup
+ * before placing a bet, identifying value opportunities, and understanding the factors that could influence the game outcome.
  */
 
 import { z } from 'zod';

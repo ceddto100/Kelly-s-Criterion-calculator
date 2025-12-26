@@ -1,6 +1,45 @@
 /**
  * Bet History Tool
- * Retrieves betting history from MongoDB
+ *
+ * This module provides three MCP tools for querying and retrieving betting history from the MongoDB database. These
+ * tools enable users to review their past betting decisions, analyze patterns in their betting behavior, track pending
+ * bets that need outcome updates, and retrieve detailed information about specific bets. The ability to query historical
+ * data is crucial for performance analysis, identifying successful betting strategies, learning from mistakes, and
+ * maintaining comprehensive records for tax and accounting purposes. The tools support pagination, filtering, and
+ * sorting to help users efficiently navigate potentially large bet histories.
+ *
+ * TOOL: get_bet_history
+ * Retrieves a paginated, filterable, and sortable list of all bets for a specific user. This is the primary tool for
+ * browsing betting history and supports multiple query options: pagination with configurable page size (1-100 bets per
+ * page, default 20), filtering by sport (football or basketball) to focus on specific betting markets, filtering by
+ * outcome status (pending, win, loss, push, cancelled, or all) to analyze performance or find bets needing updates,
+ * sorting by creation date, update date, stake percentage, or edge to organize results meaningfully, and ascending or
+ * descending sort order. The tool returns a comprehensive list of bet summaries, each containing matchup details (teams,
+ * sport, venue), probability estimations (spread, calculated probability, edge), Kelly Criterion data (bankroll, odds,
+ * recommended stake), actual wager amount, outcome information (result, payout, score, settlement date), notes and tags,
+ * and creation/update timestamps. The response includes pagination metadata showing the current page, total number of
+ * bets, total pages, and whether more results are available, making it easy to implement infinite scroll or pagination
+ * controls in user interfaces.
+ *
+ * TOOL: get_bet
+ * Retrieves complete details for a single specific bet using its unique bet ID. While get_bet_history returns summarized
+ * information for multiple bets, this tool provides the full, comprehensive data for one bet, including all fields stored
+ * in the database. This is useful when users want to review the complete details of a particular betting decision, verify
+ * calculations, or display a detailed bet summary page. The bet ID is obtained from the log_bet tool when the bet is
+ * initially created, or from the results of get_bet_history queries. The tool returns all matchup information, complete
+ * probability estimations including expected margin and implied probability, full Kelly Criterion calculations, actual
+ * wager details, complete outcome data, user notes and tags, and precise creation and update timestamps. This level of
+ * detail supports thorough post-bet analysis and record-keeping.
+ *
+ * TOOL: get_pending_bets
+ * Retrieves all bets that have a "pending" outcome status for a specific user, sorted by creation date with newest first.
+ * This tool is specifically designed to help users identify bets that were placed but haven't been settled yet, making it
+ * easy to find bets that need outcome updates after games conclude. The tool accepts a user ID and an optional limit
+ * parameter (1-50, default 20) to control how many pending bets are returned. This is particularly useful for creating
+ * a "needs attention" list in user interfaces, allowing users to quickly update results after game days, and ensuring
+ * that no bets are forgotten without having their outcomes recorded. The response includes the same comprehensive bet
+ * information as get_bet_history, but filtered exclusively to pending bets, making it a streamlined workflow for bet
+ * settlement and record maintenance.
  */
 
 import { z } from 'zod';
