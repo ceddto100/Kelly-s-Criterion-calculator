@@ -52,7 +52,12 @@ export const getMatchupStatsInputSchema = z.object({
 
   sport: z
     .enum(['NBA', 'NFL', 'CBB', 'CFB'])
-    .describe('Sport league')
+    .describe('Sport league'),
+
+  venue: z
+    .enum(['home', 'away', 'neutral'])
+    .default('neutral')
+    .describe('Where Team A is playing: home, away, or neutral site. Affects probability calculation.')
 });
 
 export type GetTeamStatsInput = z.infer<typeof getTeamStatsInputSchema>;
@@ -108,16 +113,19 @@ export const getMatchupStatsToolDefinition = {
 SIMPLE INPUTS: Just provide team names as strings!
 
 Examples:
-- { teamA: "Hawks", teamB: "Heat", sport: "NBA" }
-- { teamA: "Cowboys", teamB: "Eagles", sport: "NFL" }
-- { teamA: "ATL", teamB: "MIA", sport: "NBA" }
+- { teamA: "Hawks", teamB: "Heat", sport: "NBA", venue: "home" }
+- { teamA: "Cowboys", teamB: "Eagles", sport: "NFL", venue: "away" }
+- { teamA: "Knicks", teamB: "Celtics", sport: "NBA", venue: "neutral" }
+
+VENUE is important for probability calculation:
+- "home" = Team A playing at home (gets home court/field advantage)
+- "away" = Team A playing away (opponent has advantage)
+- "neutral" = Neutral site (no advantage)
 
 Returns complete stats for both teams:
 - All offensive and defensive metrics
 - Ready to use for probability estimation
-- Formatted for direct use in betting calculations
-
-Use this when you need stats for a specific matchup!`,
+- Venue-adjusted data for betting calculations`,
 
   inputSchema: {
     type: 'object' as const,
@@ -136,6 +144,12 @@ Use this when you need stats for a specific matchup!`,
         type: 'string',
         enum: ['NBA', 'NFL', 'CBB', 'CFB'],
         description: 'Sport league (NBA, NFL, CBB, CFB)'
+      },
+      venue: {
+        type: 'string',
+        enum: ['home', 'away', 'neutral'],
+        description: 'Where Team A is playing: home, away, or neutral. Default: neutral',
+        default: 'neutral'
       }
     },
     required: ['teamA', 'teamB', 'sport']
@@ -165,6 +179,8 @@ export interface TeamStatsOutput {
 export interface MatchupStatsOutput {
   success: boolean;
   sport: string;
+  venue: 'home' | 'away' | 'neutral';
+  homeAdvantage: number;
   teamA: {
     team: string;
     abbreviation: string;
@@ -180,6 +196,7 @@ export interface MatchupStatsOutput {
   statsAvailability: {
     nba: boolean;
     nfl: boolean;
+    path: string | null;
   };
 }
 
@@ -211,6 +228,14 @@ export async function handleGetTeamStats(input: unknown): Promise<TeamStatsOutpu
   };
 }
 
+// Home advantage constants (points)
+const HOME_ADVANTAGE = {
+  NBA: 3.0,
+  CBB: 3.5,
+  NFL: 2.5,
+  CFB: 3.0
+};
+
 export async function handleGetMatchupStats(input: unknown): Promise<MatchupStatsOutput> {
   const parsed = getMatchupStatsInputSchema.parse(input);
 
@@ -219,22 +244,37 @@ export async function handleGetMatchupStats(input: unknown): Promise<MatchupStat
 
   if (!statsA) {
     throw new Error(
-      `Could not find stats for team "${parsed.teamA}" in ${parsed.sport}.`
+      `Could not find stats for team "${parsed.teamA}" in ${parsed.sport}. ` +
+      `Try using the team nickname (e.g., "Knicks"), city (e.g., "New York"), ` +
+      `or abbreviation (e.g., "NYK").`
     );
   }
 
   if (!statsB) {
     throw new Error(
-      `Could not find stats for team "${parsed.teamB}" in ${parsed.sport}.`
+      `Could not find stats for team "${parsed.teamB}" in ${parsed.sport}. ` +
+      `Try using the team nickname (e.g., "Hawks"), city (e.g., "Atlanta"), ` +
+      `or abbreviation (e.g., "ATL").`
     );
   }
 
   const isBasketball = parsed.sport === 'NBA' || parsed.sport === 'CBB';
   const availability = areStatsAvailable();
+  const venue = parsed.venue || 'neutral';
+
+  // Calculate home advantage based on venue
+  let homeAdvantage = 0;
+  if (venue === 'home') {
+    homeAdvantage = HOME_ADVANTAGE[parsed.sport];
+  } else if (venue === 'away') {
+    homeAdvantage = -HOME_ADVANTAGE[parsed.sport];
+  }
 
   return {
     success: true,
     sport: parsed.sport,
+    venue,
+    homeAdvantage,
     teamA: {
       team: statsA.team,
       abbreviation: statsA.abbreviation,
