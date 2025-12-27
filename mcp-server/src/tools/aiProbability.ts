@@ -63,17 +63,11 @@ export const matchupAnalysisInputSchema = z.object({
     .enum(['NFL', 'NBA', 'CFB', 'CBB', 'MLB', 'NHL', 'soccer', 'other'])
     .describe('Sport type for the matchup'),
 
-  teamA: z.object({
-    name: z.string().min(1).describe('Team A name'),
-    stats: z.record(z.number()).optional().describe('Key statistics as key-value pairs')
-  }).describe('Team A information'),
+  teamA: z.string().min(1).describe('Team A name (the team you are betting on). Example: "Hawks", "Atlanta", or "ATL"'),
 
-  teamB: z.object({
-    name: z.string().min(1).describe('Team B name'),
-    stats: z.record(z.number()).optional().describe('Key statistics as key-value pairs')
-  }).describe('Team B information'),
+  teamB: z.string().min(1).describe('Team B name (the opponent). Example: "Heat", "Miami", or "MIA"'),
 
-  spread: z.number().optional().describe('Point spread from Team A perspective (optional)')
+  spread: z.number().optional().describe('Point spread from Team A perspective. Negative if favored (-7), positive if underdog (+3.5). Optional.')
 });
 
 export type AIProbabilityInput = z.infer<typeof aiProbabilityInputSchema>;
@@ -139,6 +133,8 @@ export const matchupAnalysisToolDefinition = {
   name: 'ai_analyze_matchup',
   description: `Get a comprehensive AI-powered analysis of a sports matchup using Google Gemini.
 
+SIMPLE INPUTS: Just provide team names as strings (e.g., "Hawks", "Heat", "Cowboys").
+
 Provides detailed breakdown including:
 - Predicted winner and margin
 - Key matchup advantages
@@ -146,7 +142,7 @@ Provides detailed breakdown including:
 - Betting insight and recommendation
 - Confidence level
 
-Can analyze with or without a specific spread. Provide team statistics for more accurate analysis.
+Example: { sport: "NBA", teamA: "Hawks", teamB: "Heat", spread: -3.5 }
 
 Requires GEMINI_API_KEY environment variable to be set.`,
 
@@ -159,30 +155,14 @@ Requires GEMINI_API_KEY environment variable to be set.`,
         description: 'Sport type for the matchup'
       },
       teamA: {
-        type: 'object',
-        description: 'Team A information',
-        properties: {
-          name: { type: 'string', description: 'Team A name' },
-          stats: {
-            type: 'object',
-            description: 'Key statistics as key-value pairs',
-            additionalProperties: { type: 'number' }
-          }
-        },
-        required: ['name']
+        type: 'string',
+        description: 'Team A name (the team you are betting on)',
+        minLength: 1
       },
       teamB: {
-        type: 'object',
-        description: 'Team B information',
-        properties: {
-          name: { type: 'string', description: 'Team B name' },
-          stats: {
-            type: 'object',
-            description: 'Key statistics as key-value pairs',
-            additionalProperties: { type: 'number' }
-          }
-        },
-        required: ['name']
+        type: 'string',
+        description: 'Team B name (the opponent)',
+        minLength: 1
       },
       spread: {
         type: 'number',
@@ -241,8 +221,8 @@ export async function handleMatchupAnalysis(input: unknown): Promise<MatchupAnal
 
   const result = await analyzeMatchup(
     parsed.sport,
-    { name: parsed.teamA.name, stats: parsed.teamA.stats },
-    { name: parsed.teamB.name, stats: parsed.teamB.stats },
+    { name: parsed.teamA },
+    { name: parsed.teamB },
     parsed.spread
   );
 
@@ -250,8 +230,8 @@ export async function handleMatchupAnalysis(input: unknown): Promise<MatchupAnal
     success: true,
     input: {
       sport: parsed.sport,
-      teamA: parsed.teamA.name,
-      teamB: parsed.teamB.name,
+      teamA: parsed.teamA,
+      teamB: parsed.teamB,
       spread: parsed.spread
     },
     analysis: {
