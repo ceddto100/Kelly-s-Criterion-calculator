@@ -123,18 +123,17 @@ export type BasketballProbabilityInput = z.infer<typeof basketballProbabilityInp
 
 export const footballProbabilityToolDefinition = {
   name: 'estimate_football_probability',
-  description: `Calculate the probability that a football team covers the spread using the Walters Protocol statistical method.
+  description: `🏈 Calculate football spread cover probability using Walters Protocol.
 
-Uses weighted analysis of:
-- Points differential (50% weight)
-- Yards differential (30% weight)
-- Turnover differential (20% weight)
+⚠️ REQUIRES TEAM STATS - Use one of these approaches:
+1. EASIEST: Use "analyze_matchup_and_log_bet" tool instead - it handles everything!
+2. Call "get_matchup_stats" first to get the required statistics, then pass them here
 
-Applies home field advantage adjustments:
-- NFL: 2.5 points
-- CFB: 3.0 points
+This tool needs teamA and teamB objects with: name, ppg, pointsAllowed (and optionally offensiveYards, defensiveYards, turnoverDiff)
 
-Returns probability based on normal distribution with sport-specific standard deviations (NFL: 13.5, CFB: 16.0).`,
+Uses weighted analysis:
+- Points differential (50%), Yards differential (30%), Turnover differential (20%)
+- Home field: NFL 2.5 pts, CFB 3.0 pts`,
 
   inputSchema: {
     type: 'object' as const,
@@ -188,19 +187,17 @@ Returns probability based on normal distribution with sport-specific standard de
 
 export const basketballProbabilityToolDefinition = {
   name: 'estimate_basketball_probability',
-  description: `Calculate the probability that a basketball team covers the spread using the Walters Protocol statistical method.
+  description: `🏀 Calculate basketball spread cover probability using Walters Protocol.
 
-Uses weighted analysis of:
-- Points differential (40% weight)
-- Field goal percentage differential (30% weight)
-- Rebound margin (20% weight)
-- Turnover margin (10% weight)
+⚠️ REQUIRES TEAM STATS - Use one of these approaches:
+1. EASIEST: Use "analyze_matchup_and_log_bet" tool instead - it handles everything!
+2. Call "get_matchup_stats" first to get the required statistics, then pass them here
 
-Applies home court advantage adjustments:
-- NBA: 3.0 points
-- CBB: 3.5 points
+This tool needs teamA and teamB objects with: name, ppg, pointsAllowed (and optionally fgPct, reboundMargin, turnoverMargin)
 
-Returns probability based on normal distribution with sport-specific standard deviations (NBA: 11.5, CBB: 10.5).`,
+Uses weighted analysis:
+- Points differential (40%), FG% differential (30%), Rebound margin (20%), Turnover margin (10%)
+- Home court: NBA 3.0 pts, CBB 3.5 pts`,
 
   inputSchema: {
     type: 'object' as const,

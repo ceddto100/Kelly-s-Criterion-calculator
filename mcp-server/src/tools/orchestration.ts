@@ -144,29 +144,32 @@ const DEFAULT_STATS = {
 
 export const orchestrationToolDefinition = {
   name: 'analyze_matchup_and_log_bet',
-  description: `Complete end-to-end betting workflow from natural language input.
+  description: `⭐ PRIMARY TOOL - Complete end-to-end betting analysis from natural language!
 
-Takes a natural language betting request and automatically:
-1. Parses sport, teams, spread, pick side, and venue
-2. Estimates cover probability using Walters Protocol
-3. Calculates optimal bet sizing using Kelly Criterion
-4. Logs the bet to the database (optional)
-5. Returns a comprehensive summary
+🎯 JUST DESCRIBE YOUR BET IN PLAIN ENGLISH - This tool handles EVERYTHING:
+1. ✅ Auto-detects sport from team names
+2. ✅ Fetches real team statistics from database
+3. ✅ Estimates cover probability using Walters Protocol
+4. ✅ Calculates optimal bet sizing using Kelly Criterion
+5. ✅ Logs the bet (optional)
+6. ✅ Returns detailed analysis + recommendation
 
-Example inputs:
-- "NBA: Heat vs Hawks, Hawks -3.5, I'm taking Hawks. Game is in Atlanta."
-- "NFL: Cowboys vs Eagles, Eagles +2.5, I'm taking Eagles. Philly at home."
-- "Miami vs Atlanta, Hawks -3.5, taking Hawks, neutral site"
+SIMPLE INPUT - Just one parameter: userText (your betting request)
 
-Supports:
-- Automatic sport detection from team names
-- Team aliases and abbreviations
-- Spread formats: -3.5, +7, "minus three and a half", "favored by 3.5"
-- Pick detection: "I'm taking", "my pick is", "betting on"
-- Venue: "at X", "in Miami", "home", "away", "neutral"
-- Odds: "-110", "+150 odds"
+EXAMPLES:
+- "NBA: Heat vs Hawks, Hawks -3.5, I'm taking Hawks"
+- "Cowboys vs Eagles, taking Eagles +2.5"
+- "Knicks vs Celtics, Celtics -6, betting Celtics at home"
+- "Lakers -4.5 vs Suns, taking Lakers"
 
-Returns both JSON data and human-readable summary.`,
+UNDERSTANDS:
+- Team names, cities, abbreviations (Hawks, Atlanta, ATL)
+- Spread formats (-3.5, +7, "favored by 3")
+- Pick phrases ("I'm taking", "betting on", "my pick is")
+- Venue ("at home", "in Miami", "away", "neutral")
+- Odds ("-110", "+150")
+
+Returns both human-readable summary and structured JSON data.`,
 
   inputSchema: {
     type: 'object' as const,

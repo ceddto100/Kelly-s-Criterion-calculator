@@ -64,38 +64,37 @@ export type GetMatchupStatsInput = z.infer<typeof getMatchupStatsInputSchema>;
 
 export const getTeamStatsToolDefinition = {
   name: 'get_team_stats',
-  description: `Fetch team statistics from the local stats database.
+  description: `🏀🏈 FETCH TEAM STATS - Get real statistics for any NBA or NFL team.
 
-Returns comprehensive stats needed for probability estimation:
+SIMPLE INPUTS: Just provide a team name as a string!
 
-NBA/CBB Stats:
+Examples:
+- { team: "Hawks", sport: "NBA" }
+- { team: "Atlanta", sport: "NBA" }
+- { team: "ATL", sport: "NBA" }
+- { team: "Cowboys", sport: "NFL" }
+- { team: "DAL", sport: "NFL" }
+
+Returns all stats needed for probability estimation:
 - Points per game (ppg)
 - Points allowed per game
-- Field goal percentage (fgPct)
-- Rebound margin
-- Turnover margin
+- Offensive/defensive metrics
+- Turnover margins
 
-NFL/CFB Stats:
-- Points per game (ppg)
-- Points allowed per game
-- Offensive yards per game
-- Defensive yards allowed per game
-- Turnover differential
-
-Use this before calling probability estimation tools to get accurate data.`,
+Use this to get real team data before making betting calculations.`,
 
   inputSchema: {
     type: 'object' as const,
     properties: {
       team: {
         type: 'string',
-        description: 'Team name, city, or abbreviation',
+        description: 'Team name, city, or abbreviation (e.g., "Hawks", "Atlanta", "ATL")',
         minLength: 1
       },
       sport: {
         type: 'string',
         enum: ['NBA', 'NFL', 'CBB', 'CFB'],
-        description: 'Sport league'
+        description: 'Sport league (NBA, NFL, CBB, CFB)'
       }
     },
     required: ['team', 'sport']
@@ -104,33 +103,39 @@ Use this before calling probability estimation tools to get accurate data.`,
 
 export const getMatchupStatsToolDefinition = {
   name: 'get_matchup_stats',
-  description: `Fetch statistics for both teams in a matchup.
+  description: `🏀🏈 FETCH MATCHUP STATS - Get statistics for BOTH teams in a matchup at once.
 
-Returns stats for both Team A and Team B, formatted for use with probability estimation.
+SIMPLE INPUTS: Just provide team names as strings!
 
-Example: Get stats for Hawks vs Heat in NBA
-- Returns complete stats for both teams
-- Ready to pass directly to estimate_basketball_probability
+Examples:
+- { teamA: "Hawks", teamB: "Heat", sport: "NBA" }
+- { teamA: "Cowboys", teamB: "Eagles", sport: "NFL" }
+- { teamA: "ATL", teamB: "MIA", sport: "NBA" }
 
-Use this to quickly get all data needed for a betting analysis.`,
+Returns complete stats for both teams:
+- All offensive and defensive metrics
+- Ready to use for probability estimation
+- Formatted for direct use in betting calculations
+
+Use this when you need stats for a specific matchup!`,
 
   inputSchema: {
     type: 'object' as const,
     properties: {
       teamA: {
         type: 'string',
-        description: 'Team A name, city, or abbreviation',
+        description: 'Team A name, city, or abbreviation (e.g., "Hawks", "Atlanta", "ATL")',
         minLength: 1
       },
       teamB: {
         type: 'string',
-        description: 'Team B name, city, or abbreviation',
+        description: 'Team B name, city, or abbreviation (e.g., "Heat", "Miami", "MIA")',
         minLength: 1
       },
       sport: {
         type: 'string',
         enum: ['NBA', 'NFL', 'CBB', 'CFB'],
-        description: 'Sport league'
+        description: 'Sport league (NBA, NFL, CBB, CFB)'
       }
     },
     required: ['teamA', 'teamB', 'sport']
