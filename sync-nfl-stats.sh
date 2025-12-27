@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sync NFL stats from stats/nfl/ to frontend/public/stats/nfl/
-mkdir -p frontend/public/stats/nfl
-cp stats/nfl/*.csv frontend/public/stats/nfl/
-echo "✓ NFL stats synced to frontend/public/stats/nfl/"
+# NFL stats are now maintained directly in frontend/public/stats/nfl/
+# This script is kept for reference but is no longer needed
+echo "ℹ️  NFL stats are maintained in frontend/public/stats/nfl/"
+echo "   No sync needed - files are already in the correct location"
