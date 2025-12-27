@@ -76,6 +76,12 @@ import {
   orchestrationToolDefinition,
   handleOrchestration
 } from './tools/orchestration.js';
+import {
+  getTeamStatsToolDefinition,
+  getMatchupStatsToolDefinition,
+  handleGetTeamStats,
+  handleGetMatchupStats
+} from './tools/teamStats.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -623,6 +629,52 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // ===========================================================================
+  // TEAM STATS TOOLS
+  // ===========================================================================
+
+  server.tool(
+    getTeamStatsToolDefinition.name,
+    getTeamStatsToolDefinition.description,
+    getTeamStatsToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getTeamStatsToolDefinition.name, params);
+      try {
+        const result = await handleGetTeamStats(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    getMatchupStatsToolDefinition.name,
+    getMatchupStatsToolDefinition.description,
+    getMatchupStatsToolDefinition.inputSchema,
+    async (params) => {
+      log('Tool called:', getMatchupStatsToolDefinition.name, params);
+      try {
+        const result = await handleGetMatchupStats(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
   return server;
 }
 
@@ -751,6 +803,8 @@ async function start() {
     console.log('  - set_bankroll');
     console.log('  - adjust_bankroll');
     console.log('  - analyze_matchup_and_log_bet (orchestration)');
+    console.log('  - get_team_stats');
+    console.log('  - get_matchup_stats');
     console.log('\n' + '='.repeat(60));
   });
 }

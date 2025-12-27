@@ -25,6 +25,12 @@ import { handleLogBet } from './betLogging.js';
 import { handleImpliedProbability } from './oddsConversion.js';
 import { isDatabaseConnected } from '../config/database.js';
 import { calculateKellyStake, impliedProbability, americanToDecimal } from '../utils/calculations.js';
+import {
+  getTeamStats,
+  areStatsAvailable,
+  NBATeamStats,
+  NFLTeamStats
+} from '../utils/statsLoader.js';
 
 // ============================================================================
 // INPUT SCHEMA
@@ -322,11 +328,39 @@ export async function handleOrchestration(input: unknown): Promise<Orchestration
   }
 
   // =========================================================================
-  // STEP 2: Estimate Probability
+  // STEP 2: Fetch Team Stats and Estimate Probability
   // =========================================================================
 
-  // Build team stats (use provided or defaults)
+  // Try to fetch real stats from CSV files
   const sportDefaults = DEFAULT_STATS[matchup.sport];
+  let teamAFetchedStats: NBATeamStats | NFLTeamStats | null = null;
+  let teamBFetchedStats: NBATeamStats | NFLTeamStats | null = null;
+  let statsSource = 'defaults';
+
+  try {
+    // Fetch stats for Team A (user's pick)
+    teamAFetchedStats = getTeamStats(
+      matchup.teamA.abbreviation || matchup.teamA.name,
+      matchup.sport
+    );
+
+    // Fetch stats for Team B (opponent)
+    teamBFetchedStats = getTeamStats(
+      matchup.teamB.abbreviation || matchup.teamB.name,
+      matchup.sport
+    );
+
+    if (teamAFetchedStats && teamBFetchedStats) {
+      statsSource = 'fetched';
+      assumptions.push(`Using real stats from database for ${matchup.teamA.name} and ${matchup.teamB.name}`);
+    } else if (teamAFetchedStats) {
+      assumptions.push(`Using real stats for ${matchup.teamA.name}, defaults for ${matchup.teamB.name}`);
+    } else if (teamBFetchedStats) {
+      assumptions.push(`Using real stats for ${matchup.teamB.name}, defaults for ${matchup.teamA.name}`);
+    }
+  } catch (error) {
+    assumptions.push(`Stats fetch failed, using league averages: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   let probabilityResult: {
     success: boolean;
@@ -338,22 +372,26 @@ export async function handleOrchestration(input: unknown): Promise<Orchestration
   };
 
   if (matchup.sportCategory === 'football') {
+    // Build Team A stats: user override > fetched > defaults
+    const teamANFL = teamAFetchedStats as NFLTeamStats | null;
+    const teamBNFL = teamBFetchedStats as NFLTeamStats | null;
+
     const footballInput = {
       teamA: {
         name: matchup.teamA.name,
-        ppg: parsed.teamAStats?.ppg ?? sportDefaults.ppg,
-        pointsAllowed: parsed.teamAStats?.pointsAllowed ?? sportDefaults.pointsAllowed,
-        offensiveYards: parsed.teamAStats?.offensiveYards ?? (sportDefaults as any).offensiveYards,
-        defensiveYards: parsed.teamAStats?.defensiveYards ?? (sportDefaults as any).defensiveYards,
-        turnoverDiff: parsed.teamAStats?.turnoverMargin ?? (sportDefaults as any).turnoverDiff
+        ppg: parsed.teamAStats?.ppg ?? teamANFL?.ppg ?? sportDefaults.ppg,
+        pointsAllowed: parsed.teamAStats?.pointsAllowed ?? teamANFL?.pointsAllowed ?? sportDefaults.pointsAllowed,
+        offensiveYards: parsed.teamAStats?.offensiveYards ?? teamANFL?.offensiveYards ?? (sportDefaults as any).offensiveYards,
+        defensiveYards: parsed.teamAStats?.defensiveYards ?? teamANFL?.defensiveYards ?? (sportDefaults as any).defensiveYards,
+        turnoverDiff: parsed.teamAStats?.turnoverMargin ?? teamANFL?.turnoverDiff ?? (sportDefaults as any).turnoverDiff
       },
       teamB: {
         name: matchup.teamB.name,
-        ppg: parsed.teamBStats?.ppg ?? sportDefaults.ppg,
-        pointsAllowed: parsed.teamBStats?.pointsAllowed ?? sportDefaults.pointsAllowed,
-        offensiveYards: parsed.teamBStats?.offensiveYards ?? (sportDefaults as any).offensiveYards,
-        defensiveYards: parsed.teamBStats?.defensiveYards ?? (sportDefaults as any).defensiveYards,
-        turnoverDiff: parsed.teamBStats?.turnoverMargin ?? (sportDefaults as any).turnoverDiff
+        ppg: parsed.teamBStats?.ppg ?? teamBNFL?.ppg ?? sportDefaults.ppg,
+        pointsAllowed: parsed.teamBStats?.pointsAllowed ?? teamBNFL?.pointsAllowed ?? sportDefaults.pointsAllowed,
+        offensiveYards: parsed.teamBStats?.offensiveYards ?? teamBNFL?.offensiveYards ?? (sportDefaults as any).offensiveYards,
+        defensiveYards: parsed.teamBStats?.defensiveYards ?? teamBNFL?.defensiveYards ?? (sportDefaults as any).defensiveYards,
+        turnoverDiff: parsed.teamBStats?.turnoverMargin ?? teamBNFL?.turnoverDiff ?? (sportDefaults as any).turnoverDiff
       },
       spread: matchup.spread,
       venue: matchup.venue,
@@ -362,26 +400,30 @@ export async function handleOrchestration(input: unknown): Promise<Orchestration
 
     probabilityResult = await handleFootballProbability(footballInput);
 
-    if (!parsed.teamAStats && !parsed.teamBStats) {
-      assumptions.push(`Using league average stats for ${matchup.sport} (no specific stats provided)`);
+    if (!teamAFetchedStats && !teamBFetchedStats && !parsed.teamAStats && !parsed.teamBStats) {
+      assumptions.push(`Using league average stats for ${matchup.sport} (no specific stats available)`);
     }
   } else {
+    // Build Team A stats: user override > fetched > defaults
+    const teamANBA = teamAFetchedStats as NBATeamStats | null;
+    const teamBNBA = teamBFetchedStats as NBATeamStats | null;
+
     const basketballInput = {
       teamA: {
         name: matchup.teamA.name,
-        ppg: parsed.teamAStats?.ppg ?? sportDefaults.ppg,
-        pointsAllowed: parsed.teamAStats?.pointsAllowed ?? sportDefaults.pointsAllowed,
-        fgPct: parsed.teamAStats?.fgPct ?? (sportDefaults as any).fgPct,
-        reboundMargin: parsed.teamAStats?.reboundMargin ?? (sportDefaults as any).reboundMargin,
-        turnoverMargin: parsed.teamAStats?.turnoverMargin ?? (sportDefaults as any).turnoverMargin
+        ppg: parsed.teamAStats?.ppg ?? teamANBA?.ppg ?? sportDefaults.ppg,
+        pointsAllowed: parsed.teamAStats?.pointsAllowed ?? teamANBA?.pointsAllowed ?? sportDefaults.pointsAllowed,
+        fgPct: parsed.teamAStats?.fgPct ?? teamANBA?.fgPct ?? (sportDefaults as any).fgPct,
+        reboundMargin: parsed.teamAStats?.reboundMargin ?? teamANBA?.reboundMargin ?? (sportDefaults as any).reboundMargin,
+        turnoverMargin: parsed.teamAStats?.turnoverMargin ?? teamANBA?.turnoverMargin ?? (sportDefaults as any).turnoverMargin
       },
       teamB: {
         name: matchup.teamB.name,
-        ppg: parsed.teamBStats?.ppg ?? sportDefaults.ppg,
-        pointsAllowed: parsed.teamBStats?.pointsAllowed ?? sportDefaults.pointsAllowed,
-        fgPct: parsed.teamBStats?.fgPct ?? (sportDefaults as any).fgPct,
-        reboundMargin: parsed.teamBStats?.reboundMargin ?? (sportDefaults as any).reboundMargin,
-        turnoverMargin: parsed.teamBStats?.turnoverMargin ?? (sportDefaults as any).turnoverMargin
+        ppg: parsed.teamBStats?.ppg ?? teamBNBA?.ppg ?? sportDefaults.ppg,
+        pointsAllowed: parsed.teamBStats?.pointsAllowed ?? teamBNBA?.pointsAllowed ?? sportDefaults.pointsAllowed,
+        fgPct: parsed.teamBStats?.fgPct ?? teamBNBA?.fgPct ?? (sportDefaults as any).fgPct,
+        reboundMargin: parsed.teamBStats?.reboundMargin ?? teamBNBA?.reboundMargin ?? (sportDefaults as any).reboundMargin,
+        turnoverMargin: parsed.teamBStats?.turnoverMargin ?? teamBNBA?.turnoverMargin ?? (sportDefaults as any).turnoverMargin
       },
       spread: matchup.spread,
       venue: matchup.venue,
@@ -390,8 +432,8 @@ export async function handleOrchestration(input: unknown): Promise<Orchestration
 
     probabilityResult = await handleBasketballProbability(basketballInput);
 
-    if (!parsed.teamAStats && !parsed.teamBStats) {
-      assumptions.push(`Using league average stats for ${matchup.sport} (no specific stats provided)`);
+    if (!teamAFetchedStats && !teamBFetchedStats && !parsed.teamAStats && !parsed.teamBStats) {
+      assumptions.push(`Using league average stats for ${matchup.sport} (no specific stats available)`);
     }
   }
 
