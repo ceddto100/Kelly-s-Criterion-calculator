@@ -42,11 +42,84 @@ export interface TeamStatsResult {
 }
 
 // ============================================================================
+// TEAM ALIASES - Comprehensive lookup for flexible matching
+// ============================================================================
+
+const NBA_TEAM_ALIASES: Record<string, string[]> = {
+  'ATL': ['hawks', 'atlanta', 'atlanta hawks', 'atl', 'hawks'],
+  'BOS': ['celtics', 'boston', 'boston celtics', 'bos'],
+  'BKN': ['nets', 'brooklyn', 'brooklyn nets', 'bkn'],
+  'CHA': ['hornets', 'charlotte', 'charlotte hornets', 'cha'],
+  'CHI': ['bulls', 'chicago', 'chicago bulls', 'chi'],
+  'CLE': ['cavaliers', 'cavs', 'cleveland', 'cleveland cavaliers', 'cle'],
+  'DAL': ['mavericks', 'mavs', 'dallas', 'dallas mavericks', 'dal'],
+  'DEN': ['nuggets', 'denver', 'denver nuggets', 'den'],
+  'DET': ['pistons', 'detroit', 'detroit pistons', 'det'],
+  'GS': ['warriors', 'golden state', 'golden state warriors', 'gsw', 'gs', 'dubs'],
+  'HOU': ['rockets', 'houston', 'houston rockets', 'hou'],
+  'IND': ['pacers', 'indiana', 'indiana pacers', 'ind'],
+  'LAC': ['clippers', 'la clippers', 'los angeles clippers', 'lac'],
+  'LAL': ['lakers', 'la lakers', 'los angeles lakers', 'lal'],
+  'MEM': ['grizzlies', 'memphis', 'memphis grizzlies', 'mem', 'grizz'],
+  'MIA': ['heat', 'miami', 'miami heat', 'mia'],
+  'MIL': ['bucks', 'milwaukee', 'milwaukee bucks', 'mil'],
+  'MIN': ['timberwolves', 'wolves', 'minnesota', 'minnesota timberwolves', 'min', 'twolves'],
+  'NO': ['pelicans', 'new orleans', 'new orleans pelicans', 'nop', 'no', 'pels'],
+  'NY': ['knicks', 'new york', 'new york knicks', 'nyk', 'ny'],
+  'OKC': ['thunder', 'oklahoma city', 'oklahoma city thunder', 'okc'],
+  'ORL': ['magic', 'orlando', 'orlando magic', 'orl'],
+  'PHI': ['sixers', '76ers', 'philadelphia', 'philadelphia 76ers', 'phi', 'philly'],
+  'PHX': ['suns', 'phoenix', 'phoenix suns', 'phx'],
+  'POR': ['trail blazers', 'blazers', 'portland', 'portland trail blazers', 'por'],
+  'SAC': ['kings', 'sacramento', 'sacramento kings', 'sac'],
+  'SA': ['spurs', 'san antonio', 'san antonio spurs', 'sas', 'sa'],
+  'TOR': ['raptors', 'toronto', 'toronto raptors', 'tor'],
+  'UTA': ['jazz', 'utah', 'utah jazz', 'uta'],
+  'WSH': ['wizards', 'washington', 'washington wizards', 'was', 'wsh', 'dc']
+};
+
+const NFL_TEAM_ALIASES: Record<string, string[]> = {
+  'ARI': ['cardinals', 'arizona', 'arizona cardinals', 'ari', 'cards'],
+  'ATL': ['falcons', 'atlanta', 'atlanta falcons', 'atl'],
+  'BAL': ['ravens', 'baltimore', 'baltimore ravens', 'bal'],
+  'BUF': ['bills', 'buffalo', 'buffalo bills', 'buf'],
+  'CAR': ['panthers', 'carolina', 'carolina panthers', 'car'],
+  'CHI': ['bears', 'chicago', 'chicago bears', 'chi'],
+  'CIN': ['bengals', 'cincinnati', 'cincinnati bengals', 'cin'],
+  'CLE': ['browns', 'cleveland', 'cleveland browns', 'cle'],
+  'DAL': ['cowboys', 'dallas', 'dallas cowboys', 'dal'],
+  'DEN': ['broncos', 'denver', 'denver broncos', 'den'],
+  'DET': ['lions', 'detroit', 'detroit lions', 'det'],
+  'GB': ['packers', 'green bay', 'green bay packers', 'gb', 'pack'],
+  'HOU': ['texans', 'houston', 'houston texans', 'hou'],
+  'IND': ['colts', 'indianapolis', 'indianapolis colts', 'ind'],
+  'JAX': ['jaguars', 'jacksonville', 'jacksonville jaguars', 'jax', 'jags'],
+  'KC': ['chiefs', 'kansas city', 'kansas city chiefs', 'kc'],
+  'LAC': ['chargers', 'la chargers', 'los angeles chargers', 'lac'],
+  'LAR': ['rams', 'la rams', 'los angeles rams', 'lar'],
+  'LV': ['raiders', 'las vegas', 'las vegas raiders', 'lv', 'vegas'],
+  'MIA': ['dolphins', 'miami', 'miami dolphins', 'mia', 'fins'],
+  'MIN': ['vikings', 'minnesota', 'minnesota vikings', 'min', 'vikes'],
+  'NE': ['patriots', 'new england', 'new england patriots', 'ne', 'pats'],
+  'NO': ['saints', 'new orleans', 'new orleans saints', 'no'],
+  'NYG': ['giants', 'new york giants', 'nyg', 'ny giants'],
+  'NYJ': ['jets', 'new york jets', 'nyj', 'ny jets'],
+  'PHI': ['eagles', 'philadelphia', 'philadelphia eagles', 'phi', 'philly'],
+  'PIT': ['steelers', 'pittsburgh', 'pittsburgh steelers', 'pit'],
+  'SEA': ['seahawks', 'seattle', 'seattle seahawks', 'sea', 'hawks'],
+  'SF': ['49ers', 'san francisco', 'san francisco 49ers', 'sf', 'niners', 'forty niners'],
+  'TB': ['buccaneers', 'tampa bay', 'tampa bay buccaneers', 'tb', 'bucs', 'tampa'],
+  'TEN': ['titans', 'tennessee', 'tennessee titans', 'ten'],
+  'WSH': ['commanders', 'washington', 'washington commanders', 'was', 'wsh', 'dc']
+};
+
+// ============================================================================
 // STATS CACHE
 // ============================================================================
 
 let nbaStatsCache: Map<string, NBATeamStats> | null = null;
 let nflStatsCache: Map<string, NFLTeamStats> | null = null;
+let statsBasePath: string | null = null;
 
 // ============================================================================
 // CSV PARSING
@@ -56,11 +129,9 @@ function parseCSV(content: string): Record<string, string>[] {
   const lines = content.trim().split('\n');
   if (lines.length < 2) return [];
 
-  // Parse header
   const headerLine = lines[0];
   const headers = parseCSVLine(headerLine);
 
-  // Parse data rows
   const rows: Record<string, string>[] = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -104,26 +175,53 @@ function parseCSVLine(line: string): string[] {
 // ============================================================================
 
 function getStatsBasePath(): string {
-  // Try to resolve from the MCP server location to the frontend stats
+  if (statsBasePath) {
+    return statsBasePath;
+  }
+
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
 
-  // Navigate from mcp-server/src/utils to frontend/public/stats
+  // Multiple possible paths depending on how server is run
   const possiblePaths = [
+    // From compiled dist folder
     resolve(__dirname, '../../../frontend/public/stats'),
     resolve(__dirname, '../../../../frontend/public/stats'),
+    // From source folder
+    resolve(__dirname, '../../../frontend/public/stats'),
+    // From project root
     resolve(process.cwd(), 'frontend/public/stats'),
     resolve(process.cwd(), '../frontend/public/stats'),
+    // Absolute fallback
     '/home/user/Kelly-s-Criterion-calculator/frontend/public/stats'
   ];
 
   for (const path of possiblePaths) {
     if (existsSync(path)) {
+      console.log(`[StatsLoader] Found stats at: ${path}`);
+      statsBasePath = path;
       return path;
     }
   }
 
-  throw new Error('Could not find stats directory. Tried: ' + possiblePaths.join(', '));
+  const error = `Could not find stats directory. Tried paths:\n${possiblePaths.map(p => `  - ${p}`).join('\n')}`;
+  console.error(`[StatsLoader] ${error}`);
+  throw new Error(error);
+}
+
+function loadCSVFile(filePath: string): Record<string, string>[] {
+  if (!existsSync(filePath)) {
+    console.warn(`[StatsLoader] File not found: ${filePath}`);
+    return [];
+  }
+
+  try {
+    const content = readFileSync(filePath, 'utf-8');
+    return parseCSV(content);
+  } catch (error) {
+    console.error(`[StatsLoader] Error reading ${filePath}:`, error);
+    return [];
+  }
 }
 
 // ============================================================================
@@ -135,53 +233,55 @@ function loadNBAStats(): Map<string, NBATeamStats> {
     return nbaStatsCache;
   }
 
-  const basePath = getStatsBasePath();
-  const cache = new Map<string, NBATeamStats>();
+  try {
+    const basePath = getStatsBasePath();
+    const cache = new Map<string, NBATeamStats>();
 
-  // Load all NBA stat files
-  const ppgData = loadCSVFile(resolve(basePath, 'ppg.csv'));
-  const allowedData = loadCSVFile(resolve(basePath, 'allowed.csv'));
-  const fgData = loadCSVFile(resolve(basePath, 'fieldgoal.csv'));
-  const reboundData = loadCSVFile(resolve(basePath, 'rebound_margin.csv'));
-  const turnoverData = loadCSVFile(resolve(basePath, 'turnover_margin.csv'));
+    const ppgData = loadCSVFile(resolve(basePath, 'ppg.csv'));
+    const allowedData = loadCSVFile(resolve(basePath, 'allowed.csv'));
+    const fgData = loadCSVFile(resolve(basePath, 'fieldgoal.csv'));
+    const reboundData = loadCSVFile(resolve(basePath, 'rebound_margin.csv'));
+    const turnoverData = loadCSVFile(resolve(basePath, 'turnover_margin.csv'));
 
-  // Create lookup maps by abbreviation
-  const ppgMap = new Map(ppgData.map(r => [r.abbreviation, r]));
-  const allowedMap = new Map(allowedData.map(r => [r.abbreviation, r]));
-  const fgMap = new Map(fgData.map(r => [r.abbreviation, r]));
-  const reboundMap = new Map(reboundData.map(r => [r.abbreviation, r]));
-  const turnoverMap = new Map(turnoverData.map(r => [r.abbreviation, r]));
+    if (ppgData.length === 0) {
+      console.error('[StatsLoader] No NBA PPG data loaded');
+      return cache;
+    }
 
-  // Combine all stats for each team
-  for (const [abbr, ppgRow] of ppgMap) {
-    const teamStats: NBATeamStats = {
-      team: ppgRow.team,
-      abbreviation: abbr,
-      ppg: parseFloat(ppgRow.ppg) || 0,
-      pointsAllowed: parseFloat(allowedMap.get(abbr)?.allowed || '0'),
-      fgPct: parseFloat(fgMap.get(abbr)?.fg_pct || '0'),
-      reboundMargin: parseFloat(reboundMap.get(abbr)?.rebound_margin || '0'),
-      turnoverMargin: parseFloat(turnoverMap.get(abbr)?.turnover_margin || '0')
-    };
+    console.log(`[StatsLoader] Loaded ${ppgData.length} NBA teams`);
 
-    // Store by abbreviation (normalized)
-    cache.set(abbr.toUpperCase(), teamStats);
-    // Also store by team name (normalized)
-    cache.set(normalizeTeamName(teamStats.team), teamStats);
+    // Create lookup maps by abbreviation
+    const ppgMap = new Map(ppgData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const allowedMap = new Map(allowedData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const fgMap = new Map(fgData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const reboundMap = new Map(reboundData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const turnoverMap = new Map(turnoverData.map(r => [r.abbreviation?.toUpperCase(), r]));
+
+    // Combine all stats for each team
+    for (const [abbr, ppgRow] of ppgMap) {
+      if (!abbr) continue;
+
+      const teamStats: NBATeamStats = {
+        team: ppgRow.team || '',
+        abbreviation: abbr,
+        ppg: parseFloat(ppgRow.ppg) || 0,
+        pointsAllowed: parseFloat(allowedMap.get(abbr)?.allowed || '0'),
+        fgPct: parseFloat(fgMap.get(abbr)?.fg_pct || '0'),
+        reboundMargin: parseFloat(reboundMap.get(abbr)?.rebound_margin || '0'),
+        turnoverMargin: parseFloat(turnoverMap.get(abbr)?.turnover_margin || '0')
+      };
+
+      // Store by CSV abbreviation
+      cache.set(abbr, teamStats);
+    }
+
+    nbaStatsCache = cache;
+    console.log(`[StatsLoader] NBA cache populated with ${cache.size} entries`);
+    return cache;
+  } catch (error) {
+    console.error('[StatsLoader] Failed to load NBA stats:', error);
+    return new Map();
   }
-
-  nbaStatsCache = cache;
-  return cache;
-}
-
-function loadCSVFile(filePath: string): Record<string, string>[] {
-  if (!existsSync(filePath)) {
-    console.warn(`Stats file not found: ${filePath}`);
-    return [];
-  }
-
-  const content = readFileSync(filePath, 'utf-8');
-  return parseCSV(content);
 }
 
 // ============================================================================
@@ -193,159 +293,75 @@ function loadNFLStats(): Map<string, NFLTeamStats> {
     return nflStatsCache;
   }
 
-  const basePath = getStatsBasePath();
-  const nflPath = resolve(basePath, 'nfl');
-  const cache = new Map<string, NFLTeamStats>();
+  try {
+    const basePath = getStatsBasePath();
+    const nflPath = resolve(basePath, 'nfl');
+    const cache = new Map<string, NFLTeamStats>();
 
-  // Load all NFL stat files
-  const ppgData = loadCSVFile(resolve(nflPath, 'nfl_ppg.csv'));
-  const allowedData = loadCSVFile(resolve(nflPath, 'nfl_allowed.csv'));
-  const offYardsData = loadCSVFile(resolve(nflPath, 'nfl_off_yards.csv'));
-  const defYardsData = loadCSVFile(resolve(nflPath, 'nfl_def_yards.csv'));
-  const turnoverData = loadCSVFile(resolve(nflPath, 'nfl_turnover_diff.csv'));
+    const ppgData = loadCSVFile(resolve(nflPath, 'nfl_ppg.csv'));
+    const allowedData = loadCSVFile(resolve(nflPath, 'nfl_allowed.csv'));
+    const offYardsData = loadCSVFile(resolve(nflPath, 'nfl_off_yards.csv'));
+    const defYardsData = loadCSVFile(resolve(nflPath, 'nfl_def_yards.csv'));
+    const turnoverData = loadCSVFile(resolve(nflPath, 'nfl_turnover_diff.csv'));
 
-  // Create lookup maps by abbreviation
-  const ppgMap = new Map(ppgData.map(r => [r.abbreviation, r]));
-  const allowedMap = new Map(allowedData.map(r => [r.abbreviation, r]));
-  const offYardsMap = new Map(offYardsData.map(r => [r.abbreviation, r]));
-  const defYardsMap = new Map(defYardsData.map(r => [r.abbreviation, r]));
-  const turnoverMap = new Map(turnoverData.map(r => [r.abbreviation, r]));
+    if (ppgData.length === 0) {
+      console.error('[StatsLoader] No NFL PPG data loaded');
+      return cache;
+    }
 
-  // Combine all stats for each team
-  for (const [abbr, ppgRow] of ppgMap) {
-    const teamStats: NFLTeamStats = {
-      team: ppgRow.team,
-      abbreviation: abbr,
-      ppg: parseFloat(ppgRow.ppg) || 0,
-      pointsAllowed: parseFloat(allowedMap.get(abbr)?.allowed || '0'),
-      offensiveYards: parseFloat(offYardsMap.get(abbr)?.off_yards || '0'),
-      defensiveYards: parseFloat(defYardsMap.get(abbr)?.def_yards || '0'),
-      turnoverDiff: parseFloat(turnoverMap.get(abbr)?.turnover_diff || '0')
-    };
+    console.log(`[StatsLoader] Loaded ${ppgData.length} NFL teams`);
 
-    // Store by abbreviation (normalized)
-    cache.set(abbr.toUpperCase(), teamStats);
-    // Also store by team name (normalized)
-    cache.set(normalizeTeamName(teamStats.team), teamStats);
+    const ppgMap = new Map(ppgData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const allowedMap = new Map(allowedData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const offYardsMap = new Map(offYardsData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const defYardsMap = new Map(defYardsData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const turnoverMap = new Map(turnoverData.map(r => [r.abbreviation?.toUpperCase(), r]));
+
+    for (const [abbr, ppgRow] of ppgMap) {
+      if (!abbr) continue;
+
+      const teamStats: NFLTeamStats = {
+        team: ppgRow.team || '',
+        abbreviation: abbr,
+        ppg: parseFloat(ppgRow.ppg) || 0,
+        pointsAllowed: parseFloat(allowedMap.get(abbr)?.allowed || '0'),
+        offensiveYards: parseFloat(offYardsMap.get(abbr)?.off_yards || '0'),
+        defensiveYards: parseFloat(defYardsMap.get(abbr)?.def_yards || '0'),
+        turnoverDiff: parseFloat(turnoverMap.get(abbr)?.turnover_diff || '0')
+      };
+
+      cache.set(abbr, teamStats);
+    }
+
+    nflStatsCache = cache;
+    console.log(`[StatsLoader] NFL cache populated with ${cache.size} entries`);
+    return cache;
+  } catch (error) {
+    console.error('[StatsLoader] Failed to load NFL stats:', error);
+    return new Map();
   }
-
-  nflStatsCache = cache;
-  return cache;
 }
 
 // ============================================================================
-// NORMALIZATION HELPERS
-// ============================================================================
-
-function normalizeTeamName(name: string): string {
-  return name.toLowerCase().trim();
-}
-
-// Mapping from our teamData abbreviations to stats file abbreviations
-const NBA_ABBREV_MAP: Record<string, string> = {
-  'BOS': 'BOS',
-  'BKN': 'BKN',
-  'NYK': 'NY',
-  'PHI': 'PHI',
-  'TOR': 'TOR',
-  'CHI': 'CHI',
-  'CLE': 'CLE',
-  'DET': 'DET',
-  'IND': 'IND',
-  'MIL': 'MIL',
-  'ATL': 'ATL',
-  'CHA': 'CHA',
-  'MIA': 'MIA',
-  'ORL': 'ORL',
-  'WAS': 'WSH',
-  'DEN': 'DEN',
-  'MIN': 'MIN',
-  'OKC': 'OKC',
-  'POR': 'POR',
-  'UTA': 'UTA',
-  'GSW': 'GS',
-  'LAC': 'LAC',
-  'LAL': 'LAL',
-  'PHX': 'PHX',
-  'SAC': 'SAC',
-  'DAL': 'DAL',
-  'HOU': 'HOU',
-  'MEM': 'MEM',
-  'NOP': 'NO',
-  'SAS': 'SA'
-};
-
-const NFL_ABBREV_MAP: Record<string, string> = {
-  'ARI': 'ARI',
-  'ATL': 'ATL',
-  'BAL': 'BAL',
-  'BUF': 'BUF',
-  'CAR': 'CAR',
-  'CHI': 'CHI',
-  'CIN': 'CIN',
-  'CLE': 'CLE',
-  'DAL': 'DAL',
-  'DEN': 'DEN',
-  'DET': 'DET',
-  'GB': 'GB',
-  'HOU': 'HOU',
-  'IND': 'IND',
-  'JAX': 'JAX',
-  'KC': 'KC',
-  'LAC': 'LAC',
-  'LAR': 'LAR',
-  'LV': 'LV',
-  'MIA': 'MIA',
-  'MIN': 'MIN',
-  'NE': 'NE',
-  'NO': 'NO',
-  'NYG': 'NYG',
-  'NYJ': 'NYJ',
-  'PHI': 'PHI',
-  'PIT': 'PIT',
-  'SEA': 'SEA',
-  'SF': 'SF',
-  'TB': 'TB',
-  'TEN': 'TEN',
-  'WAS': 'WSH'
-};
-
-// ============================================================================
-// PUBLIC API
+// FLEXIBLE TEAM LOOKUP
 // ============================================================================
 
 /**
- * Get NBA team stats by abbreviation or team name
+ * Find NBA team abbreviation from any input (name, city, nickname, abbreviation)
  */
-export function getNBATeamStats(teamIdentifier: string): NBATeamStats | null {
-  const cache = loadNBAStats();
+function findNBATeamAbbreviation(input: string): string | null {
+  const normalized = input.toLowerCase().trim();
 
-  // Try direct abbreviation lookup
-  const upperAbbr = teamIdentifier.toUpperCase();
-  if (cache.has(upperAbbr)) {
-    return cache.get(upperAbbr)!;
-  }
-
-  // Try mapped abbreviation
-  const mappedAbbr = NBA_ABBREV_MAP[upperAbbr];
-  if (mappedAbbr && cache.has(mappedAbbr)) {
-    return cache.get(mappedAbbr)!;
-  }
-
-  // Try team name lookup
-  const normalizedName = normalizeTeamName(teamIdentifier);
-  if (cache.has(normalizedName)) {
-    return cache.get(normalizedName)!;
-  }
-
-  // Try partial match on team name
-  for (const [key, stats] of cache) {
-    if (key.includes(normalizedName) || normalizedName.includes(key)) {
-      return stats;
+  // Check each team's aliases
+  for (const [abbr, aliases] of Object.entries(NBA_TEAM_ALIASES)) {
+    if (aliases.includes(normalized)) {
+      return abbr;
     }
-    // Also check if the search term is in the team name
-    if (stats.team.toLowerCase().includes(normalizedName)) {
-      return stats;
+    // Also check partial matches
+    for (const alias of aliases) {
+      if (alias.includes(normalized) || normalized.includes(alias)) {
+        return abbr;
+      }
     }
   }
 
@@ -353,39 +369,87 @@ export function getNBATeamStats(teamIdentifier: string): NBATeamStats | null {
 }
 
 /**
- * Get NFL team stats by abbreviation or team name
+ * Find NFL team abbreviation from any input (name, city, nickname, abbreviation)
+ */
+function findNFLTeamAbbreviation(input: string): string | null {
+  const normalized = input.toLowerCase().trim();
+
+  // Check each team's aliases
+  for (const [abbr, aliases] of Object.entries(NFL_TEAM_ALIASES)) {
+    if (aliases.includes(normalized)) {
+      return abbr;
+    }
+    // Also check partial matches
+    for (const alias of aliases) {
+      if (alias.includes(normalized) || normalized.includes(alias)) {
+        return abbr;
+      }
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+/**
+ * Get NBA team stats by any identifier (abbreviation, city, nickname, full name)
+ */
+export function getNBATeamStats(teamIdentifier: string): NBATeamStats | null {
+  const cache = loadNBAStats();
+
+  if (cache.size === 0) {
+    console.error('[StatsLoader] NBA cache is empty - stats not loaded');
+    return null;
+  }
+
+  // Try direct lookup first
+  const upperInput = teamIdentifier.toUpperCase().trim();
+  if (cache.has(upperInput)) {
+    return cache.get(upperInput)!;
+  }
+
+  // Find abbreviation via aliases
+  const abbr = findNBATeamAbbreviation(teamIdentifier);
+  if (abbr && cache.has(abbr)) {
+    return cache.get(abbr)!;
+  }
+
+  // Log failure for debugging
+  console.warn(`[StatsLoader] Could not find NBA team: "${teamIdentifier}"`);
+  console.warn(`[StatsLoader] Available teams: ${Array.from(cache.keys()).join(', ')}`);
+
+  return null;
+}
+
+/**
+ * Get NFL team stats by any identifier (abbreviation, city, nickname, full name)
  */
 export function getNFLTeamStats(teamIdentifier: string): NFLTeamStats | null {
   const cache = loadNFLStats();
 
-  // Try direct abbreviation lookup
-  const upperAbbr = teamIdentifier.toUpperCase();
-  if (cache.has(upperAbbr)) {
-    return cache.get(upperAbbr)!;
+  if (cache.size === 0) {
+    console.error('[StatsLoader] NFL cache is empty - stats not loaded');
+    return null;
   }
 
-  // Try mapped abbreviation
-  const mappedAbbr = NFL_ABBREV_MAP[upperAbbr];
-  if (mappedAbbr && cache.has(mappedAbbr)) {
-    return cache.get(mappedAbbr)!;
+  // Try direct lookup first
+  const upperInput = teamIdentifier.toUpperCase().trim();
+  if (cache.has(upperInput)) {
+    return cache.get(upperInput)!;
   }
 
-  // Try team name lookup
-  const normalizedName = normalizeTeamName(teamIdentifier);
-  if (cache.has(normalizedName)) {
-    return cache.get(normalizedName)!;
+  // Find abbreviation via aliases
+  const abbr = findNFLTeamAbbreviation(teamIdentifier);
+  if (abbr && cache.has(abbr)) {
+    return cache.get(abbr)!;
   }
 
-  // Try partial match on team name
-  for (const [key, stats] of cache) {
-    if (key.includes(normalizedName) || normalizedName.includes(key)) {
-      return stats;
-    }
-    // Also check if the search term is in the team name
-    if (stats.team.toLowerCase().includes(normalizedName)) {
-      return stats;
-    }
-  }
+  // Log failure for debugging
+  console.warn(`[StatsLoader] Could not find NFL team: "${teamIdentifier}"`);
+  console.warn(`[StatsLoader] Available teams: ${Array.from(cache.keys()).join(', ')}`);
 
   return null;
 }
@@ -409,17 +473,7 @@ export function getTeamStats(
  */
 export function getAllNBATeams(): NBATeamStats[] {
   const cache = loadNBAStats();
-  const teams: NBATeamStats[] = [];
-  const seen = new Set<string>();
-
-  for (const stats of cache.values()) {
-    if (!seen.has(stats.abbreviation)) {
-      seen.add(stats.abbreviation);
-      teams.push(stats);
-    }
-  }
-
-  return teams;
+  return Array.from(cache.values());
 }
 
 /**
@@ -427,17 +481,7 @@ export function getAllNBATeams(): NBATeamStats[] {
  */
 export function getAllNFLTeams(): NFLTeamStats[] {
   const cache = loadNFLStats();
-  const teams: NFLTeamStats[] = [];
-  const seen = new Set<string>();
-
-  for (const stats of cache.values()) {
-    if (!seen.has(stats.abbreviation)) {
-      seen.add(stats.abbreviation);
-      teams.push(stats);
-    }
-  }
-
-  return teams;
+  return Array.from(cache.values());
 }
 
 /**
@@ -446,19 +490,31 @@ export function getAllNFLTeams(): NFLTeamStats[] {
 export function clearStatsCache(): void {
   nbaStatsCache = null;
   nflStatsCache = null;
+  statsBasePath = null;
 }
 
 /**
  * Check if stats are available
  */
-export function areStatsAvailable(): { nba: boolean; nfl: boolean } {
+export function areStatsAvailable(): { nba: boolean; nfl: boolean; path: string | null } {
   try {
     const basePath = getStatsBasePath();
     return {
       nba: existsSync(resolve(basePath, 'ppg.csv')),
-      nfl: existsSync(resolve(basePath, 'nfl/nfl_ppg.csv'))
+      nfl: existsSync(resolve(basePath, 'nfl/nfl_ppg.csv')),
+      path: basePath
     };
   } catch {
-    return { nba: false, nfl: false };
+    return { nba: false, nfl: false, path: null };
   }
+}
+
+/**
+ * Debug function to list all available teams
+ */
+export function debugListTeams(): { nba: string[]; nfl: string[] } {
+  return {
+    nba: Array.from(loadNBAStats().keys()),
+    nfl: Array.from(loadNFLStats().keys())
+  };
 }
