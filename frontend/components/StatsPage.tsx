@@ -19,11 +19,11 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
 
   const nbaCategories = [
-    { id: 'ppg', label: 'Points Per Game', file: '/stats/ppg.csv', higherIsBetter: true },
-    { id: 'allowed', label: 'Points Allowed', file: '/stats/allowed.csv', higherIsBetter: false },
-    { id: 'fieldgoal', label: 'Field Goal %', file: '/stats/fieldgoal.csv', higherIsBetter: true },
-    { id: 'rebound', label: 'Rebound Margin', file: '/stats/rebound_margin.csv', higherIsBetter: true },
-    { id: 'turnover', label: 'Turnover Margin', file: '/stats/turnover_margin.csv', higherIsBetter: true },
+    { id: 'ppg', label: 'Points Per Game', file: '/stats/nba/ppg.csv', higherIsBetter: true },
+    { id: 'allowed', label: 'Points Allowed', file: '/stats/nba/allowed.csv', higherIsBetter: false },
+    { id: 'fieldgoal', label: 'Field Goal %', file: '/stats/nba/fieldgoal.csv', higherIsBetter: true },
+    { id: 'rebound', label: 'Rebound Margin', file: '/stats/nba/rebound_margin.csv', higherIsBetter: true },
+    { id: 'turnover', label: 'Turnover Margin', file: '/stats/nba/turnover_margin.csv', higherIsBetter: true },
   ];
 
   const nflCategories = [

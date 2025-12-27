@@ -82,11 +82,11 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
     async function loadNBAData() {
       try {
         const [ppgRes, allowedRes, fgRes, reboundRes, turnoverRes] = await Promise.all([
-          fetch('/stats/ppg.csv'),
-          fetch('/stats/allowed.csv'),
-          fetch('/stats/fieldgoal.csv'),
-          fetch('/stats/rebound_margin.csv'),
-          fetch('/stats/turnover_margin.csv'),
+          fetch('/stats/nba/ppg.csv'),
+          fetch('/stats/nba/allowed.csv'),
+          fetch('/stats/nba/fieldgoal.csv'),
+          fetch('/stats/nba/rebound_margin.csv'),
+          fetch('/stats/nba/turnover_margin.csv'),
         ]);
 
         if (!ppgRes.ok) throw new Error(`Failed to fetch PPG stats: ${ppgRes.status}`);
