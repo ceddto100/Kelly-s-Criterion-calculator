@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "prebuild": "mkdir -p public/stats/nfl && cp ../stats/nfl/*.csv public/stats/nfl/ 2>/dev/null || true",
     "build": "vite build",
     "preview": "vite preview"
   },
