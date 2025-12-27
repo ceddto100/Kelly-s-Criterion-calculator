@@ -23,43 +23,56 @@ import { connectToDatabase, isDatabaseConnected } from './config/database.js';
 // Initialize Gemini (if configured)
 import { isGeminiConfigured, initializeGemini } from './config/gemini.js';
 
-// Tool handlers
-import { kellyToolDefinition, handleKellyCalculation } from './tools/kelly.js';
+// Tool handlers and schemas
+import { kellyToolDefinition, kellyInputSchema, handleKellyCalculation } from './tools/kelly.js';
 import {
   footballProbabilityToolDefinition,
   basketballProbabilityToolDefinition,
+  footballProbabilityInputSchema,
+  basketballProbabilityInputSchema,
   handleFootballProbability,
   handleBasketballProbability
 } from './tools/probability.js';
 import {
   aiProbabilityToolDefinition,
   matchupAnalysisToolDefinition,
+  aiProbabilityInputSchema,
+  matchupAnalysisInputSchema,
   handleAIProbability,
   handleMatchupAnalysis
 } from './tools/aiProbability.js';
-import { logBetToolDefinition, handleLogBet } from './tools/betLogging.js';
+import { logBetToolDefinition, logBetInputSchema, handleLogBet } from './tools/betLogging.js';
 import {
   getBetHistoryToolDefinition,
   getBetByIdToolDefinition,
   getPendingBetsToolDefinition,
+  getBetHistoryInputSchema,
+  getBetByIdInputSchema,
+  getPendingBetsInputSchema,
   handleGetBetHistory,
   handleGetBetById,
   handleGetPendingBets
 } from './tools/betHistory.js';
-import { updateBetOutcomeToolDefinition, handleUpdateBetOutcome } from './tools/betOutcome.js';
+import { updateBetOutcomeToolDefinition, updateBetOutcomeInputSchema, handleUpdateBetOutcome } from './tools/betOutcome.js';
 import {
   checkAuthToolDefinition,
   getUserProfileToolDefinition,
   registerUserToolDefinition,
+  checkAuthInputSchema,
+  getUserProfileInputSchema,
+  registerUserInputSchema,
   handleCheckAuth,
   handleGetUserProfile,
   handleRegisterUser
 } from './tools/auth.js';
-import { getUserStatsToolDefinition, handleGetUserStats } from './tools/userStats.js';
+import { getUserStatsToolDefinition, getUserStatsInputSchema, handleGetUserStats } from './tools/userStats.js';
 import {
   convertOddsToolDefinition,
   calculateVigToolDefinition,
   impliedProbabilityToolDefinition,
+  convertOddsInputSchema,
+  calculateVigInputSchema,
+  impliedProbabilityInputSchema,
   handleConvertOdds,
   handleCalculateVig,
   handleImpliedProbability
@@ -68,17 +81,23 @@ import {
   getBankrollToolDefinition,
   setBankrollToolDefinition,
   adjustBankrollToolDefinition,
+  getBankrollInputSchema,
+  setBankrollInputSchema,
+  adjustBankrollInputSchema,
   handleGetBankroll,
   handleSetBankroll,
   handleAdjustBankroll
 } from './tools/bankroll.js';
 import {
   orchestrationToolDefinition,
+  orchestrationInputSchema,
   handleOrchestration
 } from './tools/orchestration.js';
 import {
   getTeamStatsToolDefinition,
   getMatchupStatsToolDefinition,
+  getTeamStatsInputSchema,
+  getMatchupStatsInputSchema,
   handleGetTeamStats,
   handleGetMatchupStats
 } from './tools/teamStats.js';
@@ -151,7 +170,7 @@ function createMcpServer(): McpServer {
   server.tool(
     kellyToolDefinition.name,
     kellyToolDefinition.description,
-    kellyToolDefinition.inputSchema,
+    kellyInputSchema.shape,
     async (params) => {
       log('Tool called:', kellyToolDefinition.name, params);
       try {
@@ -176,7 +195,7 @@ function createMcpServer(): McpServer {
   server.tool(
     footballProbabilityToolDefinition.name,
     footballProbabilityToolDefinition.description,
-    footballProbabilityToolDefinition.inputSchema,
+    footballProbabilityInputSchema.shape,
     async (params) => {
       log('Tool called:', footballProbabilityToolDefinition.name, params);
       try {
@@ -197,7 +216,7 @@ function createMcpServer(): McpServer {
   server.tool(
     basketballProbabilityToolDefinition.name,
     basketballProbabilityToolDefinition.description,
-    basketballProbabilityToolDefinition.inputSchema,
+    basketballProbabilityInputSchema.shape,
     async (params) => {
       log('Tool called:', basketballProbabilityToolDefinition.name, params);
       try {
@@ -222,7 +241,7 @@ function createMcpServer(): McpServer {
   server.tool(
     aiProbabilityToolDefinition.name,
     aiProbabilityToolDefinition.description,
-    aiProbabilityToolDefinition.inputSchema,
+    aiProbabilityInputSchema.shape,
     async (params) => {
       log('Tool called:', aiProbabilityToolDefinition.name, params);
       try {
@@ -243,7 +262,7 @@ function createMcpServer(): McpServer {
   server.tool(
     matchupAnalysisToolDefinition.name,
     matchupAnalysisToolDefinition.description,
-    matchupAnalysisToolDefinition.inputSchema,
+    matchupAnalysisInputSchema.shape,
     async (params) => {
       log('Tool called:', matchupAnalysisToolDefinition.name, params);
       try {
@@ -268,7 +287,7 @@ function createMcpServer(): McpServer {
   server.tool(
     logBetToolDefinition.name,
     logBetToolDefinition.description,
-    logBetToolDefinition.inputSchema,
+    logBetInputSchema.shape,
     async (params) => {
       log('Tool called:', logBetToolDefinition.name, params);
       try {
@@ -293,7 +312,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getBetHistoryToolDefinition.name,
     getBetHistoryToolDefinition.description,
-    getBetHistoryToolDefinition.inputSchema,
+    getBetHistoryInputSchema.shape,
     async (params) => {
       log('Tool called:', getBetHistoryToolDefinition.name, params);
       try {
@@ -314,7 +333,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getBetByIdToolDefinition.name,
     getBetByIdToolDefinition.description,
-    getBetByIdToolDefinition.inputSchema,
+    getBetByIdInputSchema.shape,
     async (params) => {
       log('Tool called:', getBetByIdToolDefinition.name, params);
       try {
@@ -335,7 +354,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getPendingBetsToolDefinition.name,
     getPendingBetsToolDefinition.description,
-    getPendingBetsToolDefinition.inputSchema,
+    getPendingBetsInputSchema.shape,
     async (params) => {
       log('Tool called:', getPendingBetsToolDefinition.name, params);
       try {
@@ -360,7 +379,7 @@ function createMcpServer(): McpServer {
   server.tool(
     updateBetOutcomeToolDefinition.name,
     updateBetOutcomeToolDefinition.description,
-    updateBetOutcomeToolDefinition.inputSchema,
+    updateBetOutcomeInputSchema.shape,
     async (params) => {
       log('Tool called:', updateBetOutcomeToolDefinition.name, params);
       try {
@@ -385,7 +404,7 @@ function createMcpServer(): McpServer {
   server.tool(
     checkAuthToolDefinition.name,
     checkAuthToolDefinition.description,
-    checkAuthToolDefinition.inputSchema,
+    checkAuthInputSchema.shape,
     async (params) => {
       log('Tool called:', checkAuthToolDefinition.name, params);
       try {
@@ -406,7 +425,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getUserProfileToolDefinition.name,
     getUserProfileToolDefinition.description,
-    getUserProfileToolDefinition.inputSchema,
+    getUserProfileInputSchema.shape,
     async (params) => {
       log('Tool called:', getUserProfileToolDefinition.name, params);
       try {
@@ -427,7 +446,7 @@ function createMcpServer(): McpServer {
   server.tool(
     registerUserToolDefinition.name,
     registerUserToolDefinition.description,
-    registerUserToolDefinition.inputSchema,
+    registerUserInputSchema.shape,
     async (params) => {
       log('Tool called:', registerUserToolDefinition.name, params);
       try {
@@ -452,7 +471,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getUserStatsToolDefinition.name,
     getUserStatsToolDefinition.description,
-    getUserStatsToolDefinition.inputSchema,
+    getUserStatsInputSchema.shape,
     async (params) => {
       log('Tool called:', getUserStatsToolDefinition.name, params);
       try {
@@ -477,7 +496,7 @@ function createMcpServer(): McpServer {
   server.tool(
     convertOddsToolDefinition.name,
     convertOddsToolDefinition.description,
-    convertOddsToolDefinition.inputSchema,
+    convertOddsInputSchema.shape,
     async (params) => {
       log('Tool called:', convertOddsToolDefinition.name, params);
       try {
@@ -498,7 +517,7 @@ function createMcpServer(): McpServer {
   server.tool(
     calculateVigToolDefinition.name,
     calculateVigToolDefinition.description,
-    calculateVigToolDefinition.inputSchema,
+    calculateVigInputSchema.shape,
     async (params) => {
       log('Tool called:', calculateVigToolDefinition.name, params);
       try {
@@ -519,7 +538,7 @@ function createMcpServer(): McpServer {
   server.tool(
     impliedProbabilityToolDefinition.name,
     impliedProbabilityToolDefinition.description,
-    impliedProbabilityToolDefinition.inputSchema,
+    impliedProbabilityInputSchema.shape,
     async (params) => {
       log('Tool called:', impliedProbabilityToolDefinition.name, params);
       try {
@@ -544,7 +563,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getBankrollToolDefinition.name,
     getBankrollToolDefinition.description,
-    getBankrollToolDefinition.inputSchema,
+    getBankrollInputSchema.shape,
     async (params) => {
       log('Tool called:', getBankrollToolDefinition.name, params);
       try {
@@ -565,7 +584,7 @@ function createMcpServer(): McpServer {
   server.tool(
     setBankrollToolDefinition.name,
     setBankrollToolDefinition.description,
-    setBankrollToolDefinition.inputSchema,
+    setBankrollInputSchema.shape,
     async (params) => {
       log('Tool called:', setBankrollToolDefinition.name, params);
       try {
@@ -586,7 +605,7 @@ function createMcpServer(): McpServer {
   server.tool(
     adjustBankrollToolDefinition.name,
     adjustBankrollToolDefinition.description,
-    adjustBankrollToolDefinition.inputSchema,
+    adjustBankrollInputSchema.shape,
     async (params) => {
       log('Tool called:', adjustBankrollToolDefinition.name, params);
       try {
@@ -611,7 +630,7 @@ function createMcpServer(): McpServer {
   server.tool(
     orchestrationToolDefinition.name,
     orchestrationToolDefinition.description,
-    orchestrationToolDefinition.inputSchema,
+    orchestrationInputSchema.shape,
     async (params) => {
       log('Tool called:', orchestrationToolDefinition.name, params);
       try {
@@ -636,7 +655,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getTeamStatsToolDefinition.name,
     getTeamStatsToolDefinition.description,
-    getTeamStatsToolDefinition.inputSchema,
+    getTeamStatsInputSchema.shape,
     async (params) => {
       log('Tool called:', getTeamStatsToolDefinition.name, params);
       try {
@@ -657,7 +676,7 @@ function createMcpServer(): McpServer {
   server.tool(
     getMatchupStatsToolDefinition.name,
     getMatchupStatsToolDefinition.description,
-    getMatchupStatsToolDefinition.inputSchema,
+    getMatchupStatsInputSchema.shape,
     async (params) => {
       log('Tool called:', getMatchupStatsToolDefinition.name, params);
       try {
