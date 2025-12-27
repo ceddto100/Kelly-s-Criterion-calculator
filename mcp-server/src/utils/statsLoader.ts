@@ -352,20 +352,29 @@ function loadNFLStats(): Map<string, NFLTeamStats> {
 function findNBATeamAbbreviation(input: string): string | null {
   const normalized = input.toLowerCase().trim();
 
-  // Check each team's aliases
+  // First pass: exact matches only (most reliable)
   for (const [abbr, aliases] of Object.entries(NBA_TEAM_ALIASES)) {
     if (aliases.includes(normalized)) {
       return abbr;
     }
-    // Also check partial matches
+  }
+
+  // Second pass: find best partial match (prefer longer matching aliases)
+  let bestMatch: { abbr: string; matchLength: number } | null = null;
+
+  for (const [abbr, aliases] of Object.entries(NBA_TEAM_ALIASES)) {
     for (const alias of aliases) {
+      // Check if input contains alias or alias contains input
       if (alias.includes(normalized) || normalized.includes(alias)) {
-        return abbr;
+        const matchLength = Math.min(alias.length, normalized.length);
+        if (!bestMatch || matchLength > bestMatch.matchLength) {
+          bestMatch = { abbr, matchLength };
+        }
       }
     }
   }
 
-  return null;
+  return bestMatch?.abbr || null;
 }
 
 /**
@@ -374,20 +383,29 @@ function findNBATeamAbbreviation(input: string): string | null {
 function findNFLTeamAbbreviation(input: string): string | null {
   const normalized = input.toLowerCase().trim();
 
-  // Check each team's aliases
+  // First pass: exact matches only (most reliable)
   for (const [abbr, aliases] of Object.entries(NFL_TEAM_ALIASES)) {
     if (aliases.includes(normalized)) {
       return abbr;
     }
-    // Also check partial matches
+  }
+
+  // Second pass: find best partial match (prefer longer matching aliases)
+  let bestMatch: { abbr: string; matchLength: number } | null = null;
+
+  for (const [abbr, aliases] of Object.entries(NFL_TEAM_ALIASES)) {
     for (const alias of aliases) {
+      // Check if input contains alias or alias contains input
       if (alias.includes(normalized) || normalized.includes(alias)) {
-        return abbr;
+        const matchLength = Math.min(alias.length, normalized.length);
+        if (!bestMatch || matchLength > bestMatch.matchLength) {
+          bestMatch = { abbr, matchLength };
+        }
       }
     }
   }
 
-  return null;
+  return bestMatch?.abbr || null;
 }
 
 // ============================================================================
