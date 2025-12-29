@@ -239,6 +239,24 @@ describe('Full Parsing - User Examples', () => {
     expect(result.parsed?.teamA.name).toBe('Lakers');
   });
 
+  it('should mirror frontend parsing for space-separated NBA teams', () => {
+    const result = parseMatchupRequest('Lakers Warriors -3.5 taking Lakers');
+
+    expect(result.success).toBe(true);
+    expect(result.parsed?.sport).toBe('NBA');
+    expect(result.parsed?.teamA.name).toBe('Lakers');
+    expect(result.parsed?.teamB.name).toBe('Warriors');
+  });
+
+  it('should mirror frontend parsing for space-separated NFL teams', () => {
+    const result = parseMatchupRequest('Chiefs Bills +2.5 taking Bills');
+
+    expect(result.success).toBe(true);
+    expect(result.parsed?.sport).toBe('NFL');
+    expect(result.parsed?.teamA.name).toBe('Bills');
+    expect(result.parsed?.teamB.name).toBe('Chiefs');
+  });
+
   it('should parse input with odds', () => {
     const result = parseMatchupRequest('NFL: Chiefs vs Raiders, Chiefs -7 at -110 odds, taking Chiefs');
 

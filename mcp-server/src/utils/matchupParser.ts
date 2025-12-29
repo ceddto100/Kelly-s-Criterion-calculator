@@ -55,6 +55,42 @@ interface MatchupTokens {
   teamBText: string;
 }
 
+function parseFrontendStyleTeamInput(text: string): MatchupTokens | null {
+  const normalized = text.trim().replace(/\s+/g, ' ');
+
+  if (normalized.includes(',') || normalized.includes(';')) {
+    return null;
+  }
+
+  const vsPattern = /^(.+?)\s+(?:vs\.?|versus)\s+(.+?)$/i;
+  const vsMatch = normalized.match(vsPattern);
+  if (vsMatch) {
+    return {
+      teamAText: vsMatch[1].trim(),
+      teamBText: vsMatch[2].trim()
+    };
+  }
+
+  const atPattern = /^(.+?)\s+(?:at|@)\s+(.+?)$/i;
+  const atMatch = normalized.match(atPattern);
+  if (atMatch) {
+    return {
+      teamAText: atMatch[1].trim(),
+      teamBText: atMatch[2].trim()
+    };
+  }
+
+  const words = normalized.split(/\s+/);
+  if (words.length === 2 && normalized.indexOf(' ') !== -1) {
+    return {
+      teamAText: words[0],
+      teamBText: words[1]
+    };
+  }
+
+  return null;
+}
+
 function normalizeForMatching(value: string): string {
   return value
     .toLowerCase()
@@ -72,6 +108,22 @@ function extractMatchupTokens(text: string, sport?: Sport): MatchupTokens[] {
   const cleanedText = compactText.replace(/^\s*(nba|nfl|cbb|cfb)\s*[:\-]?\s*/i, '');
   const candidates: MatchupTokens[] = [];
 
+  const addCandidate = (tokens: MatchupTokens) => {
+    const exists = candidates.some(
+      c =>
+        normalizeForMatching(c.teamAText) === normalizeForMatching(tokens.teamAText) &&
+        normalizeForMatching(c.teamBText) === normalizeForMatching(tokens.teamBText)
+    );
+    if (!exists) {
+      candidates.push(tokens);
+    }
+  };
+
+  const frontendParsed = parseFrontendStyleTeamInput(text);
+  if (frontendParsed) {
+    addCandidate(frontendParsed);
+  }
+
   const matchupPatterns: RegExp[] = [
     /\b([a-z0-9\s\.\']{2,40}?)\s+(?:at|@)\s+([a-z0-9\s\.\']{2,40}?)(?=,|\.|;|\(|$)/i,
     /\b([a-z0-9\s\.\']{2,40}?)\s+(?:vs\.?|v)\s+([a-z0-9\s\.\']{2,40}?)(?=,|\.|;|\(|$)/i,
@@ -84,7 +136,7 @@ function extractMatchupTokens(text: string, sport?: Sport): MatchupTokens[] {
       const teamAText = match[1].trim();
       const teamBText = match[2].trim();
       if (teamAText && teamBText) {
-        candidates.push({ teamAText, teamBText });
+        addCandidate({ teamAText, teamBText });
         break;
       }
     }
@@ -118,15 +170,7 @@ function extractMatchupTokens(text: string, sport?: Sport): MatchupTokens[] {
       teamBText: mentions[1].alias
     };
 
-    // Avoid duplicate candidate entries
-    const existing = candidates.some(
-      c =>
-        normalizeForMatching(c.teamAText) === normalizeForMatching(fallbackTokens.teamAText) &&
-        normalizeForMatching(c.teamBText) === normalizeForMatching(fallbackTokens.teamBText)
-    );
-    if (!existing) {
-      candidates.push(fallbackTokens);
-    }
+    addCandidate(fallbackTokens);
   }
 
   return candidates;
