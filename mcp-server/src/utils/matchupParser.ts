@@ -14,11 +14,12 @@ import {
   Sport,
   SportCategory,
   TeamInfo,
-  findTeam,
-  findMatchupTeams,
   isHomeVenue,
   detectSport,
-  getSportCategory
+  getSportCategory,
+  resolveTeamName,
+  listTeamAliases,
+  ResolvedTeam
 } from './teamData.js';
 
 // ============================================================================
@@ -47,6 +48,88 @@ export interface ParsingResult {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+interface MatchupTokens {
+  teamAText: string;
+  teamBText: string;
+}
+
+function normalizeForMatching(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Extract ordered team mentions from natural language text.
+ * Returns candidates in priority order (explicit matchup patterns first, then alias mentions).
+ */
+function extractMatchupTokens(text: string, sport?: Sport): MatchupTokens[] {
+  const compactText = text.replace(/\s+/g, ' ');
+  const cleanedText = compactText.replace(/^\s*(nba|nfl|cbb|cfb)\s*[:\-]?\s*/i, '');
+  const candidates: MatchupTokens[] = [];
+
+  const matchupPatterns: RegExp[] = [
+    /\b([a-z0-9\s\.\']{2,40}?)\s+(?:at|@)\s+([a-z0-9\s\.\']{2,40}?)(?=,|\.|;|\(|$)/i,
+    /\b([a-z0-9\s\.\']{2,40}?)\s+(?:vs\.?|v)\s+([a-z0-9\s\.\']{2,40}?)(?=,|\.|;|\(|$)/i,
+    /\b([a-z0-9\s\.\']{2,40}?)\s+versus\s+([a-z0-9\s\.\']{2,40}?)(?=,|\.|;|\(|$)/i
+  ];
+
+  for (const pattern of matchupPatterns) {
+    const match = pattern.exec(cleanedText);
+    if (match) {
+      const teamAText = match[1].trim();
+      const teamBText = match[2].trim();
+      if (teamAText && teamBText) {
+        candidates.push({ teamAText, teamBText });
+        break;
+      }
+    }
+  }
+
+  // Fallback: find first two alias mentions in text (deterministic order by appearance)
+  const normalizedText = normalizeForMatching(text);
+  const aliasEntries = listTeamAliases(sport);
+  const mentions: { alias: string; index: number }[] = [];
+
+  const seenTeams = new Set<string>();
+
+  for (const entry of aliasEntries) {
+    const escapedAlias = escapeRegExp(entry.alias);
+    const aliasRegex = new RegExp(`\\b${escapedAlias.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    const match = aliasRegex.exec(normalizedText);
+    if (match) {
+      const index = match.index;
+      if (!seenTeams.has(entry.team.abbreviation)) {
+        mentions.push({ alias: entry.alias, index });
+        seenTeams.add(entry.team.abbreviation);
+      }
+    }
+  }
+
+  mentions.sort((a, b) => a.index - b.index);
+
+  if (mentions.length >= 2) {
+    const fallbackTokens: MatchupTokens = {
+      teamAText: mentions[0].alias,
+      teamBText: mentions[1].alias
+    };
+
+    // Avoid duplicate candidate entries
+    const existing = candidates.some(
+      c =>
+        normalizeForMatching(c.teamAText) === normalizeForMatching(fallbackTokens.teamAText) &&
+        normalizeForMatching(c.teamBText) === normalizeForMatching(fallbackTokens.teamBText)
+    );
+    if (!existing) {
+      candidates.push(fallbackTokens);
+    }
+  }
+
+  return candidates;
 }
 
 // ============================================================================
@@ -275,8 +358,8 @@ function parseVenue(
   const teamAliases = [teamA.name, ...teamA.aliases].map(alias => alias.toLowerCase());
   for (const alias of teamAliases) {
     const escapedAlias = escapeRegExp(alias);
-    const awayProximity = new RegExp(`\\b${escapedAlias}\\b[^\\n\\.;,]{0,30}\\baway\\b`, 'i');
-    const roadProximity = new RegExp(`\\b${escapedAlias}\\b[^\\n\\.;,]{0,30}\\b(?:on\\s+the\\s+road|road)\\b`, 'i');
+    const awayProximity = new RegExp(`\\b${escapedAlias}\\b[^\\n]{0,40}\\baway\\b`, 'i');
+    const roadProximity = new RegExp(`\\b${escapedAlias}\\b[^\\n]{0,40}\\b(?:on\\s+the\\s+road|road)\\b`, 'i');
 
     if (awayProximity.test(normalizedText) || roadProximity.test(normalizedText)) {
       return { venue: 'away', assumed: false };
@@ -340,35 +423,73 @@ function parseOdds(text: string): number | null {
  */
 export function parseMatchupRequest(text: string): ParsingResult {
   const notes: string[] = [];
+  const normalizedLower = text.toLowerCase();
+  const explicitSportMentioned = /\b(nfl|nba|cfb|cbb|college football|ncaa football|college basketball|ncaa basketball|march madness)\b/.test(normalizedLower);
 
   // 1. Detect sport
-  let sport = detectSport(text);
-  if (!sport) {
-    // Try to detect from teams
-    const matchupResult = findMatchupTeams(text);
-    if (matchupResult) {
-      sport = matchupResult.sport;
-      notes.push(`Sport inferred as ${sport} from team names`);
-    } else {
-      return {
-        success: false,
-        error: 'Could not detect sport. Please specify NFL, NBA, CFB, or CBB.',
-        clarificationNeeded: ['sport']
-      };
-    }
-  }
+  const detectedSport = detectSport(text);
+  let sport = explicitSportMentioned ? detectedSport : null;
 
-  // 2. Find teams
-  const matchupResult = findMatchupTeams(text, sport);
-  if (!matchupResult) {
+  // 2. Extract and resolve team mentions deterministically
+  const tokenOptions = extractMatchupTokens(text, sport);
+  if (!tokenOptions.length) {
     return {
       success: false,
-      error: 'Could not identify both teams. Please provide clear team names.',
-      clarificationNeeded: ['teams']
+      error: 'Could not identify both teams. Please provide a clear "A vs B" or "A at B" matchup.',
+      clarificationNeeded: ['teams', 'sport']
     };
   }
 
-  let { teamA, teamB } = matchupResult;
+  let teamAResolution: { success: true; resolved: ResolvedTeam } | null = null;
+  let teamBResolution: { success: true; resolved: ResolvedTeam } | null = null;
+
+  const resolutionErrors: string[] = [];
+
+  for (const tokens of tokenOptions) {
+    const resolvedA = resolveTeamName(tokens.teamAText, sport);
+    const resolvedB = resolveTeamName(tokens.teamBText, sport);
+
+    if (resolvedA.success && resolvedB.success) {
+      const inferredSport = sport ?? (resolvedA.resolved.sport === resolvedB.resolved.sport ? resolvedA.resolved.sport : null);
+      if (!inferredSport) {
+        resolutionErrors.push('Could not determine sport from teams. Please specify NFL, NBA, CFB, or CBB.');
+        continue;
+      }
+
+      teamAResolution = resolvedA;
+      teamBResolution = resolvedB;
+      sport = inferredSport;
+      if (!explicitSportMentioned) {
+        notes.push(`Sport inferred as ${sport} from team names`);
+      }
+      break;
+    }
+
+    resolutionErrors.push(resolvedA.success ? resolvedB.error || 'Could not resolve team B' : resolvedA.error || 'Could not resolve team A');
+  }
+
+  if (!teamAResolution || !teamBResolution || !sport) {
+    return {
+      success: false,
+      error: resolutionErrors[0] || 'Could not resolve teams from the input.',
+      clarificationNeeded: ['teams', 'sport']
+    };
+  }
+
+  let teamA = teamAResolution.resolved.team;
+  let teamB = teamBResolution.resolved.team;
+
+  if (teamAResolution.resolved.matchType === 'fuzzy' || teamBResolution.resolved.matchType === 'fuzzy') {
+    notes.push('Team names resolved with fuzzy matching; verify team spelling for accuracy.');
+  }
+
+  if (teamA.abbreviation === teamB.abbreviation) {
+    return {
+      success: false,
+      error: 'Detected the same team twice. Please specify two distinct teams.',
+      clarificationNeeded: ['teams']
+    };
+  }
 
   // 3. Parse spread
   const spreadResult = parseSpread(text);
