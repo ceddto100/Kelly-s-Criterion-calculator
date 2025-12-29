@@ -428,7 +428,7 @@ export function parseMatchupRequest(text: string): ParsingResult {
 
   // 1. Detect sport
   const detectedSport = detectSport(text);
-  let sport = explicitSportMentioned ? detectedSport : null;
+  let sport: Sport | undefined = explicitSportMentioned ? detectedSport ?? undefined : undefined;
 
   // 2. Extract and resolve team mentions deterministically
   const tokenOptions = extractMatchupTokens(text, sport);
@@ -450,7 +450,8 @@ export function parseMatchupRequest(text: string): ParsingResult {
     const resolvedB = resolveTeamName(tokens.teamBText, sport);
 
     if (resolvedA.success && resolvedB.success) {
-      const inferredSport = sport ?? (resolvedA.resolved.sport === resolvedB.resolved.sport ? resolvedA.resolved.sport : null);
+      const inferredSport =
+        sport ?? (resolvedA.resolved.sport === resolvedB.resolved.sport ? resolvedA.resolved.sport : undefined);
       if (!inferredSport) {
         resolutionErrors.push('Could not determine sport from teams. Please specify NFL, NBA, CFB, or CBB.');
         continue;
@@ -465,7 +466,13 @@ export function parseMatchupRequest(text: string): ParsingResult {
       break;
     }
 
-    resolutionErrors.push(resolvedA.success ? resolvedB.error || 'Could not resolve team B' : resolvedA.error || 'Could not resolve team A');
+    if (!resolvedA.success) {
+      resolutionErrors.push(resolvedA.error);
+    } else if (!resolvedB.success) {
+      resolutionErrors.push(resolvedB.error);
+    } else {
+      resolutionErrors.push('Could not resolve teams');
+    }
   }
 
   if (!teamAResolution || !teamBResolution || !sport) {
