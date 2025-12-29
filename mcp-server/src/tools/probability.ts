@@ -123,17 +123,7 @@ export type BasketballProbabilityInput = z.infer<typeof basketballProbabilityInp
 
 export const footballProbabilityToolDefinition = {
   name: 'estimate_football_probability',
-  description: `🏈 Calculate football spread cover probability using Walters Protocol.
-
-⚠️ REQUIRES TEAM STATS - Use one of these approaches:
-1. EASIEST: Use "analyze_matchup_and_log_bet" tool instead - it handles everything!
-2. Call "get_matchup_stats" first to get the required statistics, then pass them here
-
-This tool needs teamA and teamB objects with: name, ppg, pointsAllowed (and optionally offensiveYards, defensiveYards, turnoverDiff)
-
-Uses weighted analysis:
-- Points differential (40%), Yards differential (25%), Turnover differential (20%)
-- Home field: NFL 2.5 pts, CFB 3.0 pts`,
+  description: `Calculate football cover probability using team stats, spread, venue, and league to return win chance and predicted margin.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -187,17 +177,7 @@ Uses weighted analysis:
 
 export const basketballProbabilityToolDefinition = {
   name: 'estimate_basketball_probability',
-  description: `🏀 Calculate basketball spread cover probability using Walters Protocol.
-
-⚠️ REQUIRES TEAM STATS - Use one of these approaches:
-1. EASIEST: Use "analyze_matchup_and_log_bet" tool instead - it handles everything!
-2. Call "get_matchup_stats" first to get the required statistics, then pass them here
-
-This tool needs teamA and teamB objects with: name, ppg, pointsAllowed (and optionally fgPct, reboundMargin, turnoverMargin)
-
-Uses weighted analysis:
-- Points differential (35%), FG% differential (30%), Rebound margin (20%), Turnover margin (15%)
-- Home court: NBA 3.0 pts, CBB 3.5 pts`,
+  description: `Calculate basketball cover probability using team stats, spread, venue, and league to return win chance and predicted margin.`,
 
   inputSchema: {
     type: 'object' as const,

@@ -138,18 +138,7 @@ export type LogBetInput = z.infer<typeof logBetInputSchema>;
 
 export const logBetToolDefinition = {
   name: 'log_bet',
-  description: `Log a bet to the MongoDB database for tracking and analysis.
-
-Records all bet details including:
-- Matchup information (teams, sport, venue)
-- Probability estimation data
-- Kelly Criterion calculations
-- Actual wager amount
-- Notes and tags
-
-The bet is created with 'pending' status. Use update_bet_outcome to record the result.
-
-Requires a valid MongoDB connection (MONGODB_URI environment variable).`,
+  description: `Create a pending bet record with matchup info, probabilities, Kelly stake, wager, notes, and tags. Requires MONGODB_URI.`,
 
   inputSchema: {
     type: 'object' as const,

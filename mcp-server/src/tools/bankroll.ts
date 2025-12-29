@@ -79,10 +79,7 @@ export type AdjustBankrollInput = z.infer<typeof adjustBankrollInputSchema>;
 
 export const getBankrollToolDefinition = {
   name: 'get_bankroll',
-  description: `Get the current bankroll amount for a user.
-
-Returns the user's total betting bankroll used for Kelly Criterion calculations.
-If the user doesn't exist, returns an error.`,
+  description: `Return the current bankroll for a user used in Kelly calculations.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -99,10 +96,7 @@ If the user doesn't exist, returns an error.`,
 
 export const setBankrollToolDefinition = {
   name: 'set_bankroll',
-  description: `Set the bankroll amount for a user.
-
-Use this to set an absolute bankroll value (e.g., after depositing funds or reconciling account).
-For incremental changes (wins/losses), use adjust_bankroll instead.`,
+  description: `Set an absolute bankroll amount for a user; use adjust_bankroll for increments.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -124,15 +118,7 @@ For incremental changes (wins/losses), use adjust_bankroll instead.`,
 
 export const adjustBankrollToolDefinition = {
   name: 'adjust_bankroll',
-  description: `Adjust the bankroll by adding or subtracting an amount.
-
-Use for:
-- Recording bet wins (positive adjustment)
-- Recording bet losses (negative adjustment)
-- Deposits (positive adjustment)
-- Withdrawals (negative adjustment)
-
-Tracks the reason for the adjustment for record-keeping.`,
+  description: `Add or subtract an amount from a bankroll and record the reason (deposit, withdrawal, win, loss, correction).`,
 
   inputSchema: {
     type: 'object' as const,

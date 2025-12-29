@@ -108,18 +108,7 @@ export type ImpliedProbabilityInput = z.infer<typeof impliedProbabilityInputSche
 
 export const convertOddsToolDefinition = {
   name: 'convert_odds',
-  description: `Convert betting odds between different formats.
-
-Supported formats:
-- American: +150, -110 (positive = underdog, negative = favorite)
-- Decimal: 2.50, 1.91 (payout per unit bet, including stake)
-- Fractional: 3/2, 10/11 (profit per unit bet)
-
-Can convert to a specific format or get all formats at once.
-
-Examples:
-- American +150 = Decimal 2.50 = Fractional 3/2
-- American -110 = Decimal 1.91 = Fractional 10/11`,
+  description: `Convert odds between American, decimal, and fractional formats or return all formats at once.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -151,14 +140,7 @@ Examples:
 
 export const calculateVigToolDefinition = {
   name: 'calculate_vig',
-  description: `Calculate the vigorish (vig/juice) on a two-way betting market.
-
-The vig is the bookmaker's profit margin built into the odds.
-Standard vig is around 4.5% (e.g., -110/-110).
-
-Input both sides' American odds to calculate the total vig percentage.
-
-Example: -110/-110 = 4.55% vig`,
+  description: `Calculate bookmaker vig from two American odds and return margin plus implied probabilities.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -178,15 +160,7 @@ Example: -110/-110 = 4.55% vig`,
 
 export const impliedProbabilityToolDefinition = {
   name: 'calculate_implied_probability',
-  description: `Calculate the implied probability from American odds.
-
-The implied probability is the bookmaker's estimated chance of an outcome, including their margin.
-
-Compare your estimated probability to the implied probability to find value bets.
-
-Examples:
-- -110 odds = 52.4% implied probability
-- +150 odds = 40% implied probability`,
+  description: `Calculate implied probability, decimal odds, and break-even win rate from American odds.`,
 
   inputSchema: {
     type: 'object' as const,

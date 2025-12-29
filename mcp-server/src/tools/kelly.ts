@@ -70,19 +70,7 @@ export type KellyInput = z.infer<typeof kellyInputSchema>;
 
 export const kellyToolDefinition = {
   name: 'kelly_calculate',
-  description: `Calculate optimal bet size using the Kelly Criterion formula.
-
-The Kelly Criterion determines the mathematically optimal stake size to maximize long-term bankroll growth while minimizing risk of ruin.
-
-Formula: f* = (bp - q) / b
-Where:
-- f* = optimal fraction of bankroll to bet
-- b = decimal odds - 1 (net odds)
-- p = probability of winning
-- q = probability of losing (1 - p)
-
-Returns recommended stake, edge over bookmaker, and potential payouts.
-A positive edge indicates a value bet; negative edge means the bet has negative expected value.`,
+  description: `Calculate Kelly Criterion stake from bankroll, win probability, American odds, and an optional Kelly fraction.`,
 
   inputSchema: {
     type: 'object' as const,

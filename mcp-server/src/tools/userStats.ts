@@ -67,16 +67,7 @@ export type GetUserStatsInput = z.infer<typeof getUserStatsInputSchema>;
 
 export const getUserStatsToolDefinition = {
   name: 'get_user_stats',
-  description: `Get comprehensive betting statistics and performance metrics for a user.
-
-Returns:
-- Total bets and breakdown by result (wins/losses/pushes)
-- Win rate and ROI (return on investment)
-- Total wagered and net profit/loss
-- Average probability and edge on bets placed
-- Performance breakdown by sport (optional)
-
-Use this to analyze betting performance over time and identify areas for improvement.`,
+  description: `Summarize a user's betting performance: wins, losses, ROI, wagered totals, average edge, and optional sport/date filters.`,
 
   inputSchema: {
     type: 'object' as const,

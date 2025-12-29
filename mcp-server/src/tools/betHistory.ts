@@ -124,15 +124,7 @@ export type GetPendingBetsInput = z.infer<typeof getPendingBetsInputSchema>;
 
 export const getBetHistoryToolDefinition = {
   name: 'get_bet_history',
-  description: `Retrieve betting history for a user from the database.
-
-Supports:
-- Pagination (page and limit)
-- Filtering by sport (football/basketball)
-- Filtering by status (pending/win/loss/push/cancelled)
-- Sorting by date, stake percentage, or edge
-
-Returns bet details including matchup, odds, probability, stake, and outcome.`,
+  description: `List a user's bets with pagination, sport/status filters, and sorting. Returns matchup, odds, probability, stake, and outcome.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -185,9 +177,7 @@ Returns bet details including matchup, odds, probability, stake, and outcome.`,
 
 export const getBetByIdToolDefinition = {
   name: 'get_bet',
-  description: `Retrieve a specific bet by its ID.
-
-Returns complete bet details including all matchup information, probability calculations, Kelly Criterion data, and outcome.`,
+  description: `Retrieve one bet by ID with matchup data, probability metrics, Kelly details, and recorded outcome.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -204,9 +194,7 @@ Returns complete bet details including all matchup information, probability calc
 
 export const getPendingBetsToolDefinition = {
   name: 'get_pending_bets',
-  description: `Get all pending bets for a user that haven't been settled yet.
-
-Useful for reviewing active bets that need outcome updates. Returns bets sorted by creation date (newest first).`,
+  description: `List pending bets for a user, limited by count, to review items that still need outcomes.`,
 
   inputSchema: {
     type: 'object' as const,

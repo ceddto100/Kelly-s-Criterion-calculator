@@ -62,16 +62,7 @@ export type UpdateBetOutcomeInput = z.infer<typeof updateBetOutcomeInputSchema>;
 
 export const updateBetOutcomeToolDefinition = {
   name: 'update_bet_outcome',
-  description: `Update the outcome of a previously logged bet.
-
-Results:
-- win: Bet won, payout is original wager + winnings
-- loss: Bet lost, wager is forfeited
-- push: Tie or line hit exactly, original wager returned
-- cancelled: Bet voided (e.g., game cancelled)
-
-Optionally record the actual score and payout amount.
-The bet's settledAt timestamp is automatically set when outcome is updated.`,
+  description: `Set a logged bet to win, loss, push, or cancelled, optionally storing final score and payout.`,
 
   inputSchema: {
     type: 'object' as const,
