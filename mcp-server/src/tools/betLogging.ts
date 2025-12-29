@@ -27,7 +27,8 @@
 
 import { z } from 'zod';
 import { BetLog, IBetLog } from '../models/BetLog.js';
-import { isDatabaseConnected } from '../config/database.js';
+import { ensureDatabaseConnection, isDatabaseConnected } from '../config/database.js';
+import { User } from '../models/User.js';
 
 // ============================================================================
 // INPUT SCHEMA
@@ -272,11 +273,22 @@ export const logBetToolDefinition = {
 // ============================================================================
 
 export async function handleLogBet(input: unknown): Promise<LogBetOutput> {
+  await ensureDatabaseConnection();
+
   if (!isDatabaseConnected()) {
     throw new Error('Database is not connected. Please ensure MONGODB_URI is configured and connection is established.');
   }
 
   const parsed = logBetInputSchema.parse(input);
+
+  const user = await User.findOne({ identifier: parsed.userId });
+
+  if (!user) {
+    throw new Error('User not found. Please sign in before logging bets.');
+  }
+
+  user.lastActive = new Date();
+  await user.save();
 
   const betLog = new BetLog({
     userId: parsed.userId,

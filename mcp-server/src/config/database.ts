@@ -77,6 +77,22 @@ export function isDatabaseConnected(): boolean {
 }
 
 /**
+ * Ensure an active database connection is available
+ */
+export async function ensureDatabaseConnection(): Promise<void> {
+  if (isDatabaseConnected()) {
+    return;
+  }
+
+  try {
+    await connectToDatabase();
+  } catch (error) {
+    console.error('[MongoDB] Unable to establish connection:', error);
+    throw error;
+  }
+}
+
+/**
  * Get the mongoose connection
  */
 export function getConnection(): mongoose.Connection {

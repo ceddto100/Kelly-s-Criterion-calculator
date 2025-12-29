@@ -18,7 +18,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 
 // Database connection
-import { connectToDatabase, isDatabaseConnected } from './config/database.js';
+import { connectToDatabase, ensureDatabaseConnection, isDatabaseConnected } from './config/database.js';
 
 // Initialize Gemini (if configured)
 import { isGeminiConfigured, initializeGemini } from './config/gemini.js';
@@ -708,6 +708,21 @@ app.post('/mcp', async (req: Request, res: Response) => {
   log('MCP request received');
 
   try {
+    try {
+      await ensureDatabaseConnection();
+    } catch (error) {
+      log('Database connection unavailable for MCP request:', error);
+      res.status(503).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: 'Database unavailable for MCP operations'
+        },
+        id: null
+      });
+      return;
+    }
+
     // Get or create session
     const sessionId = req.headers['mcp-session-id'] as string || `session-${Date.now()}`;
 
