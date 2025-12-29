@@ -11,7 +11,7 @@
  *
  * TOOL: estimate_football_probability
  * Calculates the probability that a football team will cover the spread using a weighted statistical model that analyzes
- * points differential (50% weight), yards differential (30% weight), and turnover differential (20% weight). The tool
+ * points differential (40% weight), yards differential (25% weight), and turnover differential (20% weight). The tool
  * requires team statistics for both teams including points per game scored, points per game allowed, and optionally
  * offensive yards per game, defensive yards allowed per game, and turnover differential (positive indicates more takeaways).
  * The tool supports both NFL and college football (CFB) with different calibration constants - NFL uses a 2.5-point home
@@ -27,8 +27,8 @@
  *
  * TOOL: estimate_basketball_probability
  * Calculates the probability that a basketball team will cover the spread using a weighted statistical model optimized
- * for basketball's unique characteristics. The model analyzes points differential (40% weight), field goal percentage
- * differential (30% weight), rebound margin (20% weight), and turnover margin (10% weight). The tool requires team
+ * for basketball's unique characteristics. The model analyzes points differential (35% weight), field goal percentage
+ * differential (30% weight), rebound margin (20% weight), and turnover margin (15% weight). The tool requires team
  * statistics for both teams including points per game scored, points allowed, and optionally field goal percentage (e.g.,
  * 45.5 for 45.5%), rebound margin per game, and turnover margin per game (positive means fewer turnovers than opponent).
  * Like the football tool, it supports both professional (NBA) and college (CBB) basketball with different calibrations -
@@ -132,7 +132,7 @@ export const footballProbabilityToolDefinition = {
 This tool needs teamA and teamB objects with: name, ppg, pointsAllowed (and optionally offensiveYards, defensiveYards, turnoverDiff)
 
 Uses weighted analysis:
-- Points differential (50%), Yards differential (30%), Turnover differential (20%)
+- Points differential (40%), Yards differential (25%), Turnover differential (20%)
 - Home field: NFL 2.5 pts, CFB 3.0 pts`,
 
   inputSchema: {
@@ -196,7 +196,7 @@ export const basketballProbabilityToolDefinition = {
 This tool needs teamA and teamB objects with: name, ppg, pointsAllowed (and optionally fgPct, reboundMargin, turnoverMargin)
 
 Uses weighted analysis:
-- Points differential (40%), FG% differential (30%), Rebound margin (20%), Turnover margin (10%)
+- Points differential (35%), FG% differential (30%), Rebound margin (20%), Turnover margin (15%)
 - Home court: NBA 3.0 pts, CBB 3.5 pts`,
 
   inputSchema: {
