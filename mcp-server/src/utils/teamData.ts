@@ -18,6 +18,14 @@ export interface TeamInfo {
   conference?: string;    // Conference (for college)
 }
 
+export interface ResolvedTeam {
+  team: TeamInfo;
+  sport: Sport;
+  matchedAlias: string;
+  confidence: number;
+  matchType: 'alias' | 'abbreviation' | 'contains' | 'fuzzy';
+}
+
 // ============================================================================
 // NFL TEAMS
 // ============================================================================
@@ -121,6 +129,207 @@ export const NBA_TEAMS: TeamInfo[] = [
 ];
 
 // ============================================================================
+// ALIAS NORMALIZATION + FUZZY SUPPORT
+// ============================================================================
+
+export interface AliasEntry {
+  alias: string;
+  team: TeamInfo;
+  sport: Sport;
+  isAbbreviation?: boolean;
+}
+
+function normalizeAlias(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshtein(a: string, b: string): number {
+  const matrix: number[][] = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+function similarity(a: string, b: string): number {
+  if (!a.length && !b.length) return 1;
+  const distance = levenshtein(a, b);
+  const maxLength = Math.max(a.length, b.length);
+  if (maxLength === 0) return 0;
+  return 1 - distance / maxLength;
+}
+
+function buildAliasIndex(teams: TeamInfo[], sport: Sport): AliasEntry[] {
+  const entries: AliasEntry[] = [];
+
+  for (const team of teams) {
+    const aliasSet = new Set<string>();
+    aliasSet.add(team.name);
+    aliasSet.add(team.city);
+    aliasSet.add(team.abbreviation.toLowerCase());
+    aliasSet.add(`${team.city} ${team.name}`);
+
+    for (const alias of team.aliases) {
+      aliasSet.add(alias);
+    }
+
+    // Normalized aliases (deduplicated after normalization)
+    const normalizedAliases = new Set<string>();
+    for (const alias of aliasSet) {
+      const normalized = normalizeAlias(alias);
+      if (normalized && !normalizedAliases.has(normalized)) {
+        normalizedAliases.add(normalized);
+        entries.push({
+          alias: normalized,
+          team,
+          sport,
+          isAbbreviation: normalized === team.abbreviation.toLowerCase()
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
+const ALIAS_INDEX: Record<Sport, AliasEntry[]> = {
+  NFL: buildAliasIndex(NFL_TEAMS, 'NFL'),
+  CFB: buildAliasIndex(NFL_TEAMS, 'CFB'),
+  NBA: buildAliasIndex(NBA_TEAMS, 'NBA'),
+  CBB: buildAliasIndex(NBA_TEAMS, 'CBB')
+};
+
+function getAliasEntriesForSport(sport?: Sport): AliasEntry[] {
+  if (sport) return ALIAS_INDEX[sport];
+  // Default priority favors basketball for overlapping cities like ATL/LAC/LAL
+  return [...ALIAS_INDEX.NBA, ...ALIAS_INDEX.NFL];
+}
+
+export function listTeamAliases(sport?: Sport): AliasEntry[] {
+  return getAliasEntriesForSport(sport);
+}
+
+// ============================================================================
+// TEAM RESOLUTION (DETERMINISTIC + CONFIDENCE)
+// ============================================================================
+
+export function resolveTeamName(
+  input: string,
+  sport?: Sport
+): { success: true; resolved: ResolvedTeam } | { success: false; error: string } {
+  const normalizedInput = normalizeAlias(input);
+  if (!normalizedInput) {
+    return { success: false, error: 'Team name is empty or malformed' };
+  }
+
+  const candidates = getAliasEntriesForSport(sport);
+
+  let best: (AliasEntry & { score: number; matchType: ResolvedTeam['matchType']; anchorMatched: boolean }) | null = null;
+  let runnerUp: typeof best = null;
+
+  for (const entry of candidates) {
+    const alias = entry.alias;
+    const abbreviationMatch = normalizedInput === entry.team.abbreviation.toLowerCase();
+    const exactAliasMatch = normalizedInput === alias;
+    const containsAlias = !exactAliasMatch && normalizedInput.includes(alias) && alias.length >= 3;
+
+    let score = 0;
+    let matchType: ResolvedTeam['matchType'] = 'fuzzy';
+
+    if (abbreviationMatch) {
+      score = 1;
+      matchType = 'abbreviation';
+    } else if (exactAliasMatch) {
+      score = 1;
+      matchType = 'alias';
+    } else if (containsAlias) {
+      score = 0.97;
+      matchType = 'contains';
+    } else {
+      score = similarity(normalizedInput, alias);
+      matchType = 'fuzzy';
+    }
+
+    const candidate = {
+      ...entry,
+      score,
+      matchType,
+      anchorMatched: abbreviationMatch || exactAliasMatch || containsAlias
+    };
+
+    if (!best || candidate.score > best.score) {
+      runnerUp = best;
+      best = candidate;
+    } else if (!runnerUp || candidate.score > runnerUp.score) {
+      runnerUp = candidate;
+    }
+  }
+
+  if (!best || best.score < 0.8) {
+    return {
+      success: false,
+      error: `Could not confidently resolve team "${input}". Please double-check the spelling.`
+    };
+  }
+
+  const scoreGap = best.score - (runnerUp?.score ?? 0);
+  const aliasTie = runnerUp && runnerUp.score === best.score && runnerUp.alias === best.alias;
+
+  if (
+    (best.matchType === 'fuzzy' && scoreGap < 0.2) ||
+    (aliasTie && best.matchType !== 'abbreviation')
+  ) {
+    return {
+      success: false,
+      error: `Ambiguous team reference "${input}". Please specify the exact team name.`
+    };
+  }
+
+  // Do not silently substitute when the text includes an explicit alias
+  const aliasAnchored = best.anchorMatched || normalizedInput.includes(best.alias);
+  if (!aliasAnchored && best.matchType !== 'abbreviation') {
+    return {
+      success: false,
+      error: `Could not anchor team reference "${input}" to a known alias. Please clarify the opponent.`
+    };
+  }
+
+  return {
+    success: true,
+    resolved: {
+      team: best.team,
+      sport: best.sport,
+      matchedAlias: best.alias,
+      confidence: best.score,
+      matchType: best.matchType
+    }
+  };
+}
+
+// ============================================================================
 // LOOKUP FUNCTIONS
 // ============================================================================
 
@@ -128,73 +337,10 @@ export const NBA_TEAMS: TeamInfo[] = [
  * Find a team by any of its aliases, name, city, or abbreviation
  */
 export function findTeam(query: string, sport?: Sport): { team: TeamInfo; sport: Sport } | null {
-  const normalizedQuery = query.toLowerCase().trim();
-
-  const searchIn = (teams: TeamInfo[], sportType: Sport): { team: TeamInfo; sport: Sport } | null => {
-    // First pass: exact matches only (most reliable)
-    for (const team of teams) {
-      // Check abbreviation (case-insensitive)
-      if (team.abbreviation.toLowerCase() === normalizedQuery) {
-        return { team, sport: sportType };
-      }
-
-      // Check name
-      if (team.name.toLowerCase() === normalizedQuery) {
-        return { team, sport: sportType };
-      }
-
-      // Check city
-      if (team.city.toLowerCase() === normalizedQuery) {
-        return { team, sport: sportType };
-      }
-
-      // Check aliases (exact match only)
-      for (const alias of team.aliases) {
-        if (alias.toLowerCase() === normalizedQuery) {
-          return { team, sport: sportType };
-        }
-      }
-    }
-
-    // Second pass: contained aliases (but query must contain the whole alias)
-    for (const team of teams) {
-      for (const alias of team.aliases) {
-        // Only match if the alias is a distinct word/phrase in the query
-        const aliasLower = alias.toLowerCase();
-        if (aliasLower.length >= 3 && normalizedQuery.includes(aliasLower)) {
-          // Make sure it's not a partial word match
-          const idx = normalizedQuery.indexOf(aliasLower);
-          const before = idx > 0 ? normalizedQuery[idx - 1] : ' ';
-          const after = idx + aliasLower.length < normalizedQuery.length
-            ? normalizedQuery[idx + aliasLower.length]
-            : ' ';
-          // Check if surrounded by word boundaries
-          if (/\W/.test(before) || before === ' ' || idx === 0) {
-            if (/\W/.test(after) || after === ' ' || idx + aliasLower.length === normalizedQuery.length) {
-              return { team, sport: sportType };
-            }
-          }
-        }
-      }
-    }
-    return null;
-  };
-
-  // If sport is specified, search only in that league
-  if (sport === 'NFL' || sport === 'CFB') {
-    return searchIn(NFL_TEAMS, sport);
+  const resolved = resolveTeamName(query, sport);
+  if (resolved.success) {
+    return { team: resolved.resolved.team, sport: resolved.resolved.sport };
   }
-  if (sport === 'NBA' || sport === 'CBB') {
-    return searchIn(NBA_TEAMS, sport);
-  }
-
-  // Search all leagues - NBA first for ATL since it's more commonly NBA Hawks
-  const nbaResult = searchIn(NBA_TEAMS, 'NBA');
-  if (nbaResult) return nbaResult;
-
-  const nflResult = searchIn(NFL_TEAMS, 'NFL');
-  if (nflResult) return nflResult;
-
   return null;
 }
 
@@ -205,43 +351,62 @@ export function findMatchupTeams(
   text: string,
   sport?: Sport
 ): { teamA: TeamInfo; teamB: TeamInfo; sport: Sport } | null {
-  const normalizedText = text.toLowerCase();
+  const normalizedText = normalizeAlias(text);
 
-  // Try to find two teams
-  const teams = sport
-    ? (sport === 'NFL' || sport === 'CFB' ? NFL_TEAMS : NBA_TEAMS)
-    : [...NFL_TEAMS, ...NBA_TEAMS];
+  const matchupPatterns: { regex: RegExp; pattern: 'at' | 'vs' | 'v' }[] = [
+    { regex: /\b([a-z0-9\s\.]+?)\s+(?:at|@)\s+([a-z0-9\s\.]+?)(?=,|\.|;|\(|$)/i, pattern: 'at' },
+    { regex: /\b([a-z0-9\s\.]+?)\s+(?:vs\.?|v)\s+([a-z0-9\s\.]+?)(?=,|\.|;|\(|$)/i, pattern: 'vs' }
+  ];
 
-  const foundTeams: { team: TeamInfo; index: number; sport: Sport }[] = [];
+  for (const { regex } of matchupPatterns) {
+    const match = regex.exec(text);
+    if (match) {
+      const rawA = match[1].trim();
+      const rawB = match[2].trim();
+      const resolvedA = resolveTeamName(rawA, sport);
+      const resolvedB = resolveTeamName(rawB, sport);
 
-  for (const team of teams) {
-    const sportType = NFL_TEAMS.includes(team)
-      ? (sport === 'CFB' ? 'CFB' : 'NFL')
-      : (sport === 'CBB' ? 'CBB' : 'NBA');
-
-    // Check all aliases and the team name
-    const searchTerms = [...team.aliases, team.name.toLowerCase(), team.city.toLowerCase()];
-
-    for (const term of searchTerms) {
-      const index = normalizedText.indexOf(term);
-      if (index !== -1) {
-        // Avoid duplicates
-        if (!foundTeams.some(f => f.team.abbreviation === team.abbreviation)) {
-          foundTeams.push({ team, index, sport: sportType });
+      if (resolvedA.success && resolvedB.success) {
+        const resolvedSport = sport ?? (resolvedA.resolved.sport === resolvedB.resolved.sport ? resolvedA.resolved.sport : null);
+        if (resolvedSport) {
+          return {
+            teamA: resolvedA.resolved.team,
+            teamB: resolvedB.resolved.team,
+            sport: resolvedSport
+          };
         }
-        break;
       }
     }
   }
 
-  if (foundTeams.length >= 2) {
-    // Sort by order of appearance in the text
-    foundTeams.sort((a, b) => a.index - b.index);
-    return {
-      teamA: foundTeams[0].team,
-      teamB: foundTeams[1].team,
-      sport: foundTeams[0].sport
-    };
+  // Fallback: find first two explicit alias mentions in text
+  const candidates = getAliasEntriesForSport(sport);
+  const matches: { entry: AliasEntry; index: number }[] = [];
+
+  for (const entry of candidates) {
+    const aliasRegex = new RegExp(`\\b${entry.alias.replace(/\s+/g, '\\s+')}\\b`, 'i');
+    const matchIndex = normalizedText.search(aliasRegex);
+    if (matchIndex !== -1) {
+      if (!matches.some(m => m.entry.team.abbreviation === entry.team.abbreviation)) {
+        matches.push({ entry, index: matchIndex });
+      }
+    }
+  }
+
+  matches.sort((a, b) => a.index - b.index);
+
+  if (matches.length >= 2) {
+    const first = matches[0];
+    const second = matches[1];
+    const resolvedSport = sport ?? (first.entry.sport === second.entry.sport ? first.entry.sport : null);
+
+    if (resolvedSport) {
+      return {
+        teamA: first.entry.team,
+        teamB: second.entry.team,
+        sport: resolvedSport
+      };
+    }
   }
 
   return null;

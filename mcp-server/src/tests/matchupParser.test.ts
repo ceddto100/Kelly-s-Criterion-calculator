@@ -248,6 +248,63 @@ describe('Full Parsing - User Examples', () => {
 });
 
 // ============================================================================
+// NBA TEAM RESOLUTION REGRESSIONS
+// ============================================================================
+
+describe('NBA Team Resolution - Clippers vs Pistons', () => {
+  it('should resolve Clippers when explicitly mentioned as opponent', () => {
+    const result = parseMatchupRequest('NBA: Pistons at Clippers, Pistons -3.5, Pistons are away');
+
+    expect(result.success).toBe(true);
+    expect(result.parsed?.sport).toBe('NBA');
+    expect(result.parsed?.teamA.name).toBe('Pistons');
+    expect(result.parsed?.teamB.name).toBe('Clippers');
+    expect(result.parsed?.venue).toBe('away');
+    expect(result.parsed?.spread).toBe(-3.5);
+  });
+
+  it('should resolve Clippers using city/abbreviation aliases', () => {
+    const result = parseMatchupRequest('Detroit Pistons @ LA Clippers, Pistons -3.5');
+
+    expect(result.success).toBe(true);
+    expect(result.parsed?.teamA.abbreviation).toBe('DET');
+    expect(result.parsed?.teamB.abbreviation).toBe('LAC');
+    expect(result.parsed?.spread).toBe(-3.5);
+  });
+
+  it('should respect user intent when matchup is phrased as versus', () => {
+    const result = parseMatchupRequest('Pistons vs Clippers, Pistons -3.5 (away)');
+
+    expect(result.success).toBe(true);
+    expect(result.parsed?.teamB.name).toBe('Clippers');
+    expect(result.parsed?.venue).toBe('away');
+  });
+
+  it('should accept pure abbreviations for both teams', () => {
+    const result = parseMatchupRequest('DET @ LAC, DET -3.5');
+
+    expect(result.success).toBe(true);
+    expect(result.parsed?.teamA.abbreviation).toBe('DET');
+    expect(result.parsed?.teamB.abbreviation).toBe('LAC');
+    expect(result.parsed?.spread).toBe(-3.5);
+  });
+
+  it('should fail gracefully on misspelled opponent', () => {
+    const result = parseMatchupRequest('NBA: Pistons at Clipprs, Pistons -3.5');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Clipprs');
+  });
+
+  it('should fail when opponent reference is ambiguous', () => {
+    const result = parseMatchupRequest('NBA: Pistons vs Los Angles, Pistons -3.5');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+// ============================================================================
 // ERROR HANDLING TESTS
 // ============================================================================
 

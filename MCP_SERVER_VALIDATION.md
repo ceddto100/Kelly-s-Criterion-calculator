@@ -151,7 +151,7 @@ NFL Stats (Located in `/stats/nfl/`):
 - `nfl_def_yards.csv` - Defensive yards
 - `nfl_turnover_diff.csv` - Turnover differential
 
-**Fuzzy Team Matching:** Supports full names, city names, abbreviations (e.g., "Lakers", "Los Angeles Lakers", "LAL")
+**Deterministic Team Matching:** Anchors to explicit aliases/abbreviations and surfaces errors on low-confidence inputs (e.g., misspelled opponents) while still supporting full names, city names, and abbreviations.
 
 ### 1.7 Workflows
 
