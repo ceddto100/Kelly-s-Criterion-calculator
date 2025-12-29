@@ -45,6 +45,10 @@ export interface ParsingResult {
   clarificationNeeded?: string[];
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // ============================================================================
 // SPREAD PARSING
 // ============================================================================
@@ -264,6 +268,17 @@ function parseVenue(
 
   for (const pattern of awayPatterns) {
     if (pattern.test(normalizedText)) {
+      return { venue: 'away', assumed: false };
+    }
+  }
+
+  const teamAliases = [teamA.name, ...teamA.aliases].map(alias => alias.toLowerCase());
+  for (const alias of teamAliases) {
+    const escapedAlias = escapeRegExp(alias);
+    const awayProximity = new RegExp(`\\b${escapedAlias}\\b[^\\n\\.;,]{0,30}\\baway\\b`, 'i');
+    const roadProximity = new RegExp(`\\b${escapedAlias}\\b[^\\n\\.;,]{0,30}\\b(?:on\\s+the\\s+road|road)\\b`, 'i');
+
+    if (awayProximity.test(normalizedText) || roadProximity.test(normalizedText)) {
       return { venue: 'away', assumed: false };
     }
   }

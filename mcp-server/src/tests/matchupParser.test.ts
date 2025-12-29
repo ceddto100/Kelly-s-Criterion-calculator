@@ -195,6 +195,13 @@ describe('Venue Parsing', () => {
     const result = parseMatchupRequest('NFL: Eagles at home vs Cowboys, Eagles -3, taking Eagles');
     expect(result.success).toBe(true);
   });
+
+  it('should detect away venue from descriptive phrasing', () => {
+    const result = parseMatchupRequest('NBA: Pistons vs Bulls, Pistons +5, taking Pistons, Pistons are away');
+    expect(result.success).toBe(true);
+    expect(result.parsed?.venue).toBe('away');
+    expect(result.parsed?.venueAssumed).toBe(false);
+  });
 });
 
 // ============================================================================
