@@ -144,32 +144,7 @@ const DEFAULT_STATS = {
 
 export const orchestrationToolDefinition = {
   name: 'analyze_matchup_and_log_bet',
-  description: `⭐ PRIMARY TOOL - Complete end-to-end betting analysis from natural language!
-
-🎯 JUST DESCRIBE YOUR BET IN PLAIN ENGLISH - This tool handles EVERYTHING:
-1. ✅ Auto-detects sport from team names
-2. ✅ Fetches real team statistics from database
-3. ✅ Estimates cover probability using Walters Protocol
-4. ✅ Calculates optimal bet sizing using Kelly Criterion
-5. ✅ Logs the bet (optional)
-6. ✅ Returns detailed analysis + recommendation
-
-SIMPLE INPUT - Just one parameter: userText (your betting request)
-
-EXAMPLES:
-- "NBA: Heat vs Hawks, Hawks -3.5, I'm taking Hawks"
-- "Cowboys vs Eagles, taking Eagles +2.5"
-- "Knicks vs Celtics, Celtics -6, betting Celtics at home"
-- "Lakers -4.5 vs Suns, taking Lakers"
-
-UNDERSTANDS:
-- Team names, cities, abbreviations (Hawks, Atlanta, ATL)
-- Spread formats (-3.5, +7, "favored by 3")
-- Pick phrases ("I'm taking", "betting on", "my pick is")
-- Venue ("at home", "in Miami", "away", "neutral")
-- Odds ("-110", "+150")
-
-Returns both human-readable summary and structured JSON data.`,
+  description: `Parse a natural-language bet, fetch team stats, estimate probability, compute Kelly stake, and optionally log the bet.`,
 
   inputSchema: {
     type: 'object' as const,

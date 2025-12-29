@@ -91,11 +91,7 @@ export type RegisterUserInput = z.infer<typeof registerUserInputSchema>;
 
 export const checkAuthToolDefinition = {
   name: 'check_auth_status',
-  description: `Check if a user is authenticated and get their authentication status.
-
-Returns user's authentication state, premium status, remaining free calculations, and account info.
-
-Note: This MCP server doesn't handle OAuth flow directly. Use this to verify a user exists and check their status after they've authenticated through the web frontend.`,
+  description: `Check whether a user exists and return authentication state, premium flag, bankroll, and calculation limits.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -112,14 +108,7 @@ Note: This MCP server doesn't handle OAuth flow directly. Use this to verify a u
 
 export const getUserProfileToolDefinition = {
   name: 'get_user_profile',
-  description: `Get detailed profile information for an authenticated user.
-
-Returns:
-- Account details (email, display name)
-- Current bankroll
-- Calculation statistics
-- Premium status
-- Account creation date`,
+  description: `Retrieve a user's profile with email, display name, bankroll, tokens, and calculation statistics.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -136,12 +125,7 @@ Returns:
 
 export const registerUserToolDefinition = {
   name: 'register_user',
-  description: `Register a new user or update existing user from Google OAuth data.
-
-Creates a new user account if one doesn't exist, or updates existing account info.
-Returns the user profile with authentication status.
-
-Note: Typically called after successful Google OAuth authentication on the frontend.`,
+  description: `Create or update a user from Google OAuth data and return the stored profile.`,
 
   inputSchema: {
     type: 'object' as const,

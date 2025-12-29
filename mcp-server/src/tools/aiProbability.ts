@@ -79,18 +79,7 @@ export type MatchupAnalysisInput = z.infer<typeof matchupAnalysisInputSchema>;
 
 export const aiProbabilityToolDefinition = {
   name: 'ai_estimate_probability',
-  description: `Get an AI-powered probability estimate for a betting matchup using Google Gemini.
-
-This tool uses advanced AI analysis to estimate the probability of a team covering the spread, considering:
-- Historical matchup data
-- Current team form
-- Injury reports
-- Home/away advantages
-- Any additional context provided
-
-Best for when you don't have detailed statistics or want a second opinion on your probability estimate.
-
-Requires GEMINI_API_KEY environment variable to be set.`,
+  description: `Use Gemini to estimate spread cover probability from sport, teams, spread, venue, and context. Requires GEMINI_API_KEY.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -131,20 +120,7 @@ Requires GEMINI_API_KEY environment variable to be set.`,
 
 export const matchupAnalysisToolDefinition = {
   name: 'ai_analyze_matchup',
-  description: `Get a comprehensive AI-powered analysis of a sports matchup using Google Gemini.
-
-SIMPLE INPUTS: Just provide team names as strings (e.g., "Hawks", "Heat", "Cowboys").
-
-Provides detailed breakdown including:
-- Predicted winner and margin
-- Key matchup advantages
-- Team strengths and weaknesses
-- Betting insight and recommendation
-- Confidence level
-
-Example: { sport: "NBA", teamA: "Hawks", teamB: "Heat", spread: -3.5 }
-
-Requires GEMINI_API_KEY environment variable to be set.`,
+  description: `Generate Gemini matchup analysis summarizing winner, margin, strengths, and confidence from team names and optional spread.`,
 
   inputSchema: {
     type: 'object' as const,

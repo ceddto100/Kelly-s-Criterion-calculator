@@ -69,24 +69,7 @@ export type GetMatchupStatsInput = z.infer<typeof getMatchupStatsInputSchema>;
 
 export const getTeamStatsToolDefinition = {
   name: 'get_team_stats',
-  description: `🏀🏈 FETCH TEAM STATS - Get real statistics for any NBA or NFL team.
-
-SIMPLE INPUTS: Just provide a team name as a string!
-
-Examples:
-- { team: "Hawks", sport: "NBA" }
-- { team: "Atlanta", sport: "NBA" }
-- { team: "ATL", sport: "NBA" }
-- { team: "Cowboys", sport: "NFL" }
-- { team: "DAL", sport: "NFL" }
-
-Returns all stats needed for probability estimation:
-- Points per game (ppg)
-- Points allowed per game
-- Offensive/defensive metrics
-- Turnover margins
-
-Use this to get real team data before making betting calculations.`,
+  description: `Fetch NBA or NFL team stats (points, defense, turnovers) from a local dataset by team name or abbreviation.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -108,24 +91,7 @@ Use this to get real team data before making betting calculations.`,
 
 export const getMatchupStatsToolDefinition = {
   name: 'get_matchup_stats',
-  description: `🏀🏈 FETCH MATCHUP STATS - Get statistics for BOTH teams in a matchup at once.
-
-SIMPLE INPUTS: Just provide team names as strings!
-
-Examples:
-- { teamA: "Hawks", teamB: "Heat", sport: "NBA", venue: "home" }
-- { teamA: "Cowboys", teamB: "Eagles", sport: "NFL", venue: "away" }
-- { teamA: "Knicks", teamB: "Celtics", sport: "NBA", venue: "neutral" }
-
-VENUE is important for probability calculation:
-- "home" = Team A playing at home (gets home court/field advantage)
-- "away" = Team A playing away (opponent has advantage)
-- "neutral" = Neutral site (no advantage)
-
-Returns complete stats for both teams:
-- All offensive and defensive metrics
-- Ready to use for probability estimation
-- Venue-adjusted data for betting calculations`,
+  description: `Fetch stats for two NBA or NFL teams plus venue flag so results can feed probability calculators.`,
 
   inputSchema: {
     type: 'object' as const,
