@@ -235,13 +235,14 @@ function loadNBAStats(): Map<string, NBATeamStats> {
 
   try {
     const basePath = getStatsBasePath();
+    const nbaPath = resolve(basePath, 'nba');
     const cache = new Map<string, NBATeamStats>();
 
-    const ppgData = loadCSVFile(resolve(basePath, 'ppg.csv'));
-    const allowedData = loadCSVFile(resolve(basePath, 'allowed.csv'));
-    const fgData = loadCSVFile(resolve(basePath, 'fieldgoal.csv'));
-    const reboundData = loadCSVFile(resolve(basePath, 'rebound_margin.csv'));
-    const turnoverData = loadCSVFile(resolve(basePath, 'turnover_margin.csv'));
+    const ppgData = loadCSVFile(resolve(nbaPath, 'ppg.csv'));
+    const allowedData = loadCSVFile(resolve(nbaPath, 'allowed.csv'));
+    const fgData = loadCSVFile(resolve(nbaPath, 'fieldgoal.csv'));
+    const reboundData = loadCSVFile(resolve(nbaPath, 'rebound_margin.csv'));
+    const turnoverData = loadCSVFile(resolve(nbaPath, 'turnover_margin.csv'));
 
     if (ppgData.length === 0) {
       console.error('[StatsLoader] No NBA PPG data loaded');
@@ -517,8 +518,9 @@ export function clearStatsCache(): void {
 export function areStatsAvailable(): { nba: boolean; nfl: boolean; path: string | null } {
   try {
     const basePath = getStatsBasePath();
+    const nbaPath = resolve(basePath, 'nba');
     return {
-      nba: existsSync(resolve(basePath, 'ppg.csv')),
+      nba: existsSync(resolve(nbaPath, 'ppg.csv')),
       nfl: existsSync(resolve(basePath, 'nfl/nfl_ppg.csv')),
       path: basePath
     };
