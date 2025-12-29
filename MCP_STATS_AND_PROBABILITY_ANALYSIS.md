@@ -57,32 +57,33 @@ The MCP server uses a sophisticated statistical methodology called the **Walters
 
 **For Football (NFL/CFB):**
 ```
-Predicted Margin = (Points Component × 50%) + (Yards Component × 30%) + (Turnover Component × 20%)
+Predicted Margin = (Points Component × 40%) + (Yards Component × 25%) + (Turnover Component × 20%)
 
 Where:
   Points Component = (Team Net Points - Opponent Net Points)
   Team Net Points = Team PPG - Team Points Allowed
   Opponent Net Points = Opponent PPG - Opponent Points Allowed
 
-  Yards Component = (Team Net Yards - Opponent Net Yards) / 100
+  Yards Component = (Team Net Yards - Opponent Net Yards) / 25
   Team Net Yards = Team Offensive Yards - Team Defensive Yards
   Opponent Net Yards = Opponent Offensive Yards - Opponent Defensive Yards
 
-  Turnover Component = (Team Turnover Diff - Opponent Turnover Diff) × 4
+  Turnover Component = (Team Turnover Diff - Opponent Turnover Diff) × 4 × 0.5
 ```
 
 **For Basketball (NBA/CBB):**
 ```
-Predicted Margin = (Points × 40%) + (FG% × 30%) + (Rebounds × 20%) + (Turnovers × 10%)
+Predicted Margin = (Points × 35%) + (FG% × 30%) + (Rebounds × 20%) + (Turnovers × 15%)
 
 Where:
   Points Component = (Team Net Points - Opponent Net Points)
 
-  FG% Component = (Team FG% - Opponent FG%) × 2
+  FG% Component = (Team FG% - Opponent FG%) × 1.0
 
-  Rebounds Component = Team Rebound Margin - Opponent Rebound Margin
+  Rebounds Component = (Team Rebound Margin - Opponent Rebound Margin) × 0.5
 
-  Turnover Component = Team Turnover Margin - Opponent Turnover Margin
+  Turnover Component = (Opponent Turnover Margin - Team Turnover Margin) × 1.0
+  Note: Inverted - higher opponent turnover margin benefits the team
 ```
 
 #### 2. Home Field/Court Advantage Adjustment
@@ -231,16 +232,16 @@ Probability = normCdf(0.0209) × 100 ≈ 50.8%
 
 ## 🎯 Statistical Weights Rationale
 
-### Football (50% Points, 30% Yards, 20% Turnovers)
+### Football (40% Points, 25% Yards, 20% Turnovers)
 - **Points** are the ultimate outcome metric
-- **Yards** measure offensive/defensive efficiency
-- **Turnovers** have high impact but more variance
+- **Yards** measure offensive/defensive efficiency (scaled by /25 for proper impact)
+- **Turnovers** have high impact (multiplied by 4 × 0.5 for balance)
 
-### Basketball (40% Points, 30% FG%, 20% Rebounds, 10% Turnovers)
-- **Points** remain primary but less weighted than football
-- **FG%** is critical for basketball success
-- **Rebounds** control possessions
-- **Turnovers** less impactful per game than in football
+### Basketball (35% Points, 30% FG%, 20% Rebounds, 15% Turnovers)
+- **Points** remain important but balanced with other metrics
+- **FG%** is critical for basketball success and highly weighted
+- **Rebounds** control possessions (scaled by 0.5)
+- **Turnovers** have increased importance (15%) with inverted calculation to properly reflect defensive impact
 
 ---
 

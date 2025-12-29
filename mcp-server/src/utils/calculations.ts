@@ -276,23 +276,23 @@ export interface BasketballStats {
 
 /**
  * Calculate predicted margin for football games
- * Uses weighted components: points (50%), yards (30%), turnovers (20%)
+ * Uses weighted components: points (40%), yards (25%), turnovers (20%)
  */
 export function predictedMarginFootball(stats: FootballStats): number {
   const teamNetPoints = stats.teamPPG - stats.teamAllowed;
   const opponentNetPoints = stats.opponentPPG - stats.opponentAllowed;
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.5;
+  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.4;
 
   let yardsComponent = 0;
   if (stats.teamOffYards && stats.teamDefYards && stats.opponentOffYards && stats.opponentDefYards) {
     const teamNetYards = stats.teamOffYards - stats.teamDefYards;
     const opponentNetYards = stats.opponentOffYards - stats.opponentDefYards;
-    yardsComponent = ((teamNetYards - opponentNetYards) / 100) * 0.3;
+    yardsComponent = ((teamNetYards - opponentNetYards) / 25) * 0.25;
   }
 
   let turnoverComponent = 0;
   if (stats.teamTurnoverDiff !== undefined && stats.opponentTurnoverDiff !== undefined) {
-    turnoverComponent = (stats.teamTurnoverDiff - stats.opponentTurnoverDiff) * 4 * 0.2;
+    turnoverComponent = (stats.teamTurnoverDiff - stats.opponentTurnoverDiff) * 4 * 0.5 * 0.2;
   }
 
   return pointsComponent + yardsComponent + turnoverComponent;
@@ -300,26 +300,27 @@ export function predictedMarginFootball(stats: FootballStats): number {
 
 /**
  * Calculate predicted margin for basketball games
- * Uses weighted components: points (40%), FG% (30%), rebounds (20%), turnovers (10%)
+ * Uses weighted components: points (35%), FG% (30%), rebounds (20%), turnovers (15%)
  */
 export function predictedMarginBasketball(stats: BasketballStats): number {
   const teamNetPoints = stats.teamPPG - stats.teamAllowed;
   const opponentNetPoints = stats.opponentPPG - stats.opponentAllowed;
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.4;
+  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.35;
 
   let fgComponent = 0;
   if (stats.teamFGPct !== undefined && stats.opponentFGPct !== undefined) {
-    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * 2 * 0.3;
+    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * 1.0 * 0.3;
   }
 
   let reboundComponent = 0;
   if (stats.teamReboundMargin !== undefined && stats.opponentReboundMargin !== undefined) {
-    reboundComponent = (stats.teamReboundMargin - stats.opponentReboundMargin) * 0.2;
+    reboundComponent = (stats.teamReboundMargin - stats.opponentReboundMargin) * 0.5 * 0.2;
   }
 
   let turnoverComponent = 0;
   if (stats.teamTurnoverMargin !== undefined && stats.opponentTurnoverMargin !== undefined) {
-    turnoverComponent = (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * 0.1;
+    // Note: Inverted - higher turnover margin for opponent benefits team
+    turnoverComponent = (stats.opponentTurnoverMargin - stats.teamTurnoverMargin) * 1.0 * 0.15;
   }
 
   return pointsComponent + fgComponent + reboundComponent + turnoverComponent;
