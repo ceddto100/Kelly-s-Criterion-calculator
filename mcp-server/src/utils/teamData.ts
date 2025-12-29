@@ -26,6 +26,12 @@ export interface ResolvedTeam {
   matchType: 'alias' | 'abbreviation' | 'contains' | 'fuzzy';
 }
 
+type ScoredAliasEntry = AliasEntry & {
+  score: number;
+  matchType: ResolvedTeam['matchType'];
+  anchorMatched: boolean;
+};
+
 // ============================================================================
 // NFL TEAMS
 // ============================================================================
@@ -247,8 +253,8 @@ export function resolveTeamName(
 
   const candidates = getAliasEntriesForSport(sport);
 
-  let best: (AliasEntry & { score: number; matchType: ResolvedTeam['matchType']; anchorMatched: boolean }) | null = null;
-  let runnerUp: typeof best = null;
+  let best: ScoredAliasEntry | null = null;
+  let runnerUp: ScoredAliasEntry | null = null;
 
   for (const entry of candidates) {
     const alias = entry.alias;
@@ -273,7 +279,7 @@ export function resolveTeamName(
       matchType = 'fuzzy';
     }
 
-    const candidate = {
+    const candidate: ScoredAliasEntry = {
       ...entry,
       score,
       matchType,
