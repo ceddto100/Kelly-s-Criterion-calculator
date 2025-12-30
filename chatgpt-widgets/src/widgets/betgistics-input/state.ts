@@ -17,8 +17,8 @@ export type WidgetStateType = z.infer<typeof WidgetState>;
 
 export const defaultState: WidgetStateType = {
   initialUserText: '',
-  initialBankroll: '',
-  initialOdds: '',
+  initialBankroll: '1000',
+  initialOdds: '-110',
   defaultKelly: 0.5,
   defaultLogBet: true,
   initialUserId: ''
