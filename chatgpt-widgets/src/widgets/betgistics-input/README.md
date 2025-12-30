@@ -1,22 +1,34 @@
-# Betgistics Input Widget (ChatGPT Widget Builder)
+# Betgistics Input Widget (React)
 
-Styled widget layout wired to the `analyze_matchup_and_log_bet` MCP tool. Paste `ui.tsx` into the Widget Builder “Code” tab, set `schema.json` in the “Schema” tab, and use `state.ts` as the Zod equivalent if needed.
+Interactive drop-in React widget that posts matchup details to a Betgistics-style API (`/api/analyze-matchup` by default), then renders probabilities, edge, recommended stake, payout, and logging status.
 
 ## Files
-- `ui.tsx` – widget UI (Card + inputs + submit button)
-- `schema.json` – JSON schema for widget state
-- `state.ts` – Zod schema plus default state values
+- `ui.tsx` – fully self-contained React component (form, loading/error handling, results display, inline sparkle icon)
+- `schema.json` – optional JSON schema for the widget state if you need to mirror defaults elsewhere
+- `state.ts` – optional Zod schema plus default state values
 
 ## Defaults surfaced to users
-- Bankroll: `$1,000` (if omitted)
-- Odds: `-110` (if omitted)
-- Kelly fraction: `0.5` (Half Kelly, if omitted). Values are numeric (`0.25 | 0.5 | 1.0`) to match MCP input.
-- Log bet: enabled by default (shows helper text about DB availability)
+- Bankroll: `$1,000`
+- Odds: `-110`
+- Kelly fraction: `0.5` (Half Kelly; input accepts `0.1`–`1`)
+- Log bet: enabled by default
 
-## Inputs mapped to the tool
-- `userText` → natural-language request
-- `bankroll` → optional number (numeric input)
-- `americanOdds` → optional number (numeric input)
-- `kellyFraction` → select (`0.25 | 0.5 | 1.0`, numeric)
-- `userId` → optional handle/user id
-- `logBet` → checkbox (default true)
+## Inputs sent to the API
+- `userText` → natural-language note (required)
+- `bankroll` → number (parsed from input)
+- `americanOdds` → number (parsed from input)
+- `kellyFraction` → number between `0.1` and `1`
+- `userId` → optional string
+- `logBet` → boolean
+
+## Expected API response fields
+- `calculatedProbability` (or `coverProbability`)
+- `impliedProbability`
+- `edge`
+- `recommendedStake`
+- `expectedPayout` (optional; otherwise derived from odds)
+- `americanOdds` (optional; falls back to submitted odds)
+- `betId` (optional)
+- `teamA` / `teamB` names (optional)
+- `pointSpread`/`spread` (optional)
+- `logged` (optional)
