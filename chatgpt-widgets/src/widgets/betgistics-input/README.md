@@ -10,13 +10,13 @@ Styled widget layout wired to the `analyze_matchup_and_log_bet` MCP tool. Paste 
 ## Defaults surfaced to users
 - Bankroll: `$1,000` (if omitted)
 - Odds: `-110` (if omitted)
-- Kelly fraction: `0.5` (Half Kelly, if omitted)
+- Kelly fraction: `0.5` (Half Kelly, if omitted). Values are numeric (`0.25 | 0.5 | 1.0`) to match MCP input.
 - Log bet: enabled by default (shows helper text about DB availability)
 
 ## Inputs mapped to the tool
 - `userText` → natural-language request
-- `bankroll` → optional number
-- `americanOdds` → optional odds string/number
-- `kellyFraction` → select (`0.25 | 0.5 | 1.0`)
+- `bankroll` → optional number (numeric input)
+- `americanOdds` → optional number (numeric input)
+- `kellyFraction` → select (`0.25 | 0.5 | 1.0`, numeric)
 - `userId` → optional handle/user id
 - `logBet` → checkbox (default true)

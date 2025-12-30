@@ -3,9 +3,9 @@
   "type": "object",
   "properties": {
     "initialUserText": { "type": "string" },
-    "initialBankroll": { "type": "string" },
-    "initialOdds": { "type": "string" },
-    "defaultKelly": { "type": "string", "enum": ["0.25", "0.5", "1.0"] },
+    "initialBankroll": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+    "initialOdds": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+    "defaultKelly": { "type": "number", "enum": [0.25, 0.5, 1.0] },
     "defaultLogBet": { "type": "boolean" },
     "initialUserId": { "type": "string" }
   },

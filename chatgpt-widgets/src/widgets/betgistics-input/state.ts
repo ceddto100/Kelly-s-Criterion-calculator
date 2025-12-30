@@ -6,9 +6,9 @@ import { z } from 'zod';
  */
 export const WidgetState = z.strictObject({
   initialUserText: z.string(),
-  initialBankroll: z.string(),
-  initialOdds: z.string(),
-  defaultKelly: z.enum(['0.25', '0.5', '1.0']),
+  initialBankroll: z.union([z.string(), z.number()]),
+  initialOdds: z.union([z.string(), z.number()]),
+  defaultKelly: z.union([z.literal(0.25), z.literal(0.5), z.literal(1.0)]),
   defaultLogBet: z.boolean(),
   initialUserId: z.string()
 });
@@ -19,7 +19,7 @@ export const defaultState: WidgetStateType = {
   initialUserText: '',
   initialBankroll: '',
   initialOdds: '',
-  defaultKelly: '0.5',
+  defaultKelly: 0.5,
   defaultLogBet: true,
   initialUserId: ''
 };

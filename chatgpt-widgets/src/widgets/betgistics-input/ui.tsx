@@ -24,11 +24,11 @@
 
     <Divider />
 
-    <Form onSubmitAction={{ type: "analyze_matchup_and_log_bet" }}>
-      <Col gap={3}>
-        <Textarea
-          name="userText"
-          defaultValue={initialUserText}
+  <Form onSubmitAction={{ type: "analyze_matchup_and_log_bet" }}>
+    <Col gap={3}>
+      <Textarea
+        name="userText"
+        defaultValue={initialUserText}
           required
           rows={3}
           placeholder="e.g., NBA: Lakers vs Warriors, Lakers -3.5, odds -115, bankroll 2k"
@@ -45,13 +45,15 @@
             defaultValue={initialBankroll}
             prefix="$"
             variant="soft"
+            step="1"
           />
           <Input
             name="americanOdds"
-            inputType="text"
+            inputType="number"
             placeholder="Odds (e.g., -110)"
             defaultValue={initialOdds}
             variant="soft"
+            step="1"
           />
         </Row>
 
@@ -59,9 +61,9 @@
           <Select
             name="kellyFraction"
             options={[
-              { label: "Quarter Kelly (0.25)", value: "0.25" },
-              { label: "Half Kelly (0.5)", value: "0.5" },
-              { label: "Full Kelly (1.0)", value: "1.0" }
+              { label: "Quarter Kelly (0.25)", value: 0.25 },
+              { label: "Half Kelly (0.5)", value: 0.5 },
+              { label: "Full Kelly (1.0)", value: 1.0 }
             ]}
             defaultValue={defaultKelly}
             pill
