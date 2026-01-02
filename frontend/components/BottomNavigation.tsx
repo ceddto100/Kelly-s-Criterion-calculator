@@ -20,10 +20,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     {
       id: TABS.BET_HISTORY,
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="20" x2="12" y2="10"></line>
-          <line x1="18" y1="20" x2="18" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="16"></line>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="20" x2="12" y2="10" />
+          <line x1="18" y1="20" x2="18" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="16" />
         </svg>
       ),
       label: 'Bets',
@@ -31,8 +31,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     {
       id: TABS.STATS,
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
         </svg>
       ),
       label: 'Stats',
@@ -43,9 +43,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     {
       id: TABS.PROMO,
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="7"></circle>
-          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="7" />
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
         </svg>
       ),
       label: 'Promos',
@@ -53,9 +53,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
     {
       id: TABS.ACCOUNT,
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
         </svg>
       ),
       label: 'Account',
@@ -75,16 +75,19 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             }}
           >
             <span style={styles.navIcon}>{item.icon}</span>
-            <span style={styles.navLabel}>{item.label}</span>
+            <span style={{
+              ...styles.navLabel,
+              ...(activeTab === item.id ? styles.navLabelActive : {}),
+            }}>{item.label}</span>
           </button>
         ))}
 
-        {/* Logo in the center */}
+        {/* Center Logo */}
         <div style={styles.logoContainer}>
-          <div style={styles.logo}>
+          <div style={styles.logoWrapper}>
             <img
               src="/betgistics.png"
-              alt="Betgistics Logo"
+              alt="Betgistics"
               title="Betgistics - Sports Betting Calculator"
               style={styles.logoImage}
               width="40"
@@ -104,7 +107,10 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             }}
           >
             <span style={styles.navIcon}>{item.icon}</span>
-            <span style={styles.navLabel}>{item.label}</span>
+            <span style={{
+              ...styles.navLabel,
+              ...(activeTab === item.id ? styles.navLabelActive : {}),
+            }}>{item.label}</span>
           </button>
         ))}
       </div>
@@ -119,77 +125,74 @@ const styles: { [key: string]: React.CSSProperties } = {
     left: 0,
     right: 0,
     zIndex: 99999,
+    background: 'var(--bg-secondary)',
+    borderTop: '1px solid var(--glass-border)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
     paddingBottom: 'env(safe-area-inset-bottom, 0)',
-    visibility: 'visible',
-    opacity: 1,
-    pointerEvents: 'auto',
-    width: '100%',
-    maxWidth: '100vw',
-    transform: 'none',
-    overflow: 'visible',
   },
   navContainer: {
     display: 'flex',
-    justifyContent: 'space-evenly',
+    justifyContent: 'center',
     alignItems: 'center',
-    background: 'var(--surface-2)',
-    backdropFilter: 'blur(10px)',
-    borderTop: '1px solid var(--border-strong)',
-    boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.3)',
-    padding: '4px 4px',
-    gap: '2px',
-    flexWrap: 'nowrap',
-    width: '100%',
-    overflowX: 'visible',
+    padding: '8px 16px',
+    gap: '4px',
+    maxWidth: '500px',
+    margin: '0 auto',
   },
   navItem: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '2px',
-    padding: '6px 4px',
+    gap: '4px',
+    padding: '8px 12px',
     background: 'transparent',
     border: 'none',
+    borderRadius: '12px',
     cursor: 'pointer',
-    color: 'var(--text-secondary)',
-    transition: 'all 0.35s ease',
-    borderRadius: '8px',
-    minWidth: '50px',
-    maxWidth: '70px',
-    flex: '0 1 auto',
-    flexShrink: 0,
+    color: 'var(--text-muted)',
+    transition: 'all 0.2s ease',
+    minWidth: '64px',
+    flex: '1',
   },
   navItemActive: {
-    background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-violet) 38%, transparent), color-mix(in srgb, var(--accent-electric) 40%, transparent))',
+    background: 'var(--accent-gradient)',
     color: 'var(--text-primary)',
-    boxShadow: '0 4px 15px rgba(var(--accent-electric-rgb), 0.3)',
+    boxShadow: '0 4px 16px rgba(var(--accent-primary-rgb), 0.3)',
   },
   navIcon: {
-    fontSize: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   navLabel: {
-    fontSize: '10px',
-    fontWeight: '500',
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '0.02em',
+  },
+  navLabelActive: {
+    color: 'white',
   },
   logoContainer: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '0 4px',
+    padding: '0 8px',
     flexShrink: 0,
   },
-  logo: {
-    width: '36px',
-    height: '36px',
+  logoWrapper: {
+    width: '44px',
+    height: '44px',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(var(--accent-electric-rgb), 0.35)',
-    transition: 'all 0.3s ease',
+    background: 'var(--glass-bg)',
+    border: '2px solid rgba(var(--accent-primary-rgb), 0.3)',
+    boxShadow: '0 4px 16px rgba(var(--accent-primary-rgb), 0.2)',
     overflow: 'hidden',
-    background: 'var(--surface-2)',
+    transition: 'all 0.2s ease',
   },
   logoImage: {
     width: '100%',
