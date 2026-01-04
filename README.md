@@ -45,6 +45,14 @@ Each tool has an associated widget component that renders results in ChatGPT:
 - Kelly Calculator Widget
 - Probability Estimator Widget
 
+### NBA Games Page
+
+A standalone page displaying today's NBA games with live scores:
+- View at `/nba/games` (e.g., `http://localhost:5173/nba/games`)
+- Shows all NBA matchups for the current day
+- Auto-refreshes every 15 seconds
+- Displays scores, game status, and tip-off times
+
 ## Quick Start
 
 ### Prerequisites
@@ -99,6 +107,37 @@ GEMINI_API_KEY=your_gemini_api_key_here  # Optional, for AI insights
 NODE_ENV=development
 ALLOWED_ORIGINS=https://chatgpt.com
 ```
+
+### NBA Games Page Setup
+
+To use the NBA Games page (`/nba/games`), you need an API-Sports Basketball API key:
+
+1. **Get an API Key**:
+   - Sign up at [API-Sports](https://www.api-football.com/)
+   - Subscribe to the Basketball API
+   - Copy your API key
+
+2. **Configure the Backend**:
+   Add your API key to the backend `.env` file:
+   ```env
+   APISPORTS_KEY=your_api_sports_key_here
+   ```
+
+3. **Run Both Servers**:
+   ```bash
+   # Terminal 1: Start the backend
+   cd backend
+   npm install
+   npm run dev  # or: node server.js
+
+   # Terminal 2: Start the frontend
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+4. **View the Page**:
+   Open `http://localhost:5173/nba/games` in your browser
 
 ## Testing
 
