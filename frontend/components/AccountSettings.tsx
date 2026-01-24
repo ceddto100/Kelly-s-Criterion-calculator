@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 interface User {
   name?: string;
@@ -23,6 +25,43 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   themeOptions,
   onThemeChange,
 }) => {
+  const [upgradeStatus, setUpgradeStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
+  const handleUpgrade = async () => {
+    setUpgradeStatus('loading');
+    setUpgradeError(null);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/stripe/create-checkout-session`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload.error || 'Unable to start checkout');
+      }
+
+      const data = await response.json();
+
+      if (!data.url) {
+        throw new Error('Stripe checkout URL was not returned');
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
+      setUpgradeStatus('error');
+      setUpgradeError(error instanceof Error ? error.message : 'Checkout failed');
+      return;
+    }
+
+    setUpgradeStatus('idle');
+  };
+
   if (!user) {
     return (
       <div style={styles.container}>
@@ -78,6 +117,26 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
               <span style={styles.infoLabel}>Email</span>
               <span style={styles.infoValue}>{user.email || 'Not set'}</span>
             </div>
+          </div>
+        </div>
+
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Subscription</h3>
+          <div style={styles.subscriptionCard}>
+            <div>
+              <div style={styles.planTitle}>Betgistics – Core Access</div>
+              <div style={styles.planDetails}>$60/month · Unlimited calculations</div>
+            </div>
+            <button
+              onClick={handleUpgrade}
+              style={styles.upgradeButton}
+              disabled={upgradeStatus === 'loading'}
+            >
+              {upgradeStatus === 'loading' ? 'Redirecting...' : 'Upgrade to Core Access'}
+            </button>
+            {upgradeStatus === 'error' && upgradeError && (
+              <div style={styles.upgradeError}>{upgradeError}</div>
+            )}
           </div>
         </div>
 
@@ -221,6 +280,39 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     color: 'var(--text-primary)',
     marginBottom: '15px',
+  },
+  subscriptionCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    padding: '16px',
+    borderRadius: '16px',
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid var(--border-subtle)',
+  },
+  planTitle: {
+    fontSize: '16px',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+  },
+  planDetails: {
+    fontSize: '14px',
+    color: 'var(--text-secondary)',
+  },
+  upgradeButton: {
+    alignSelf: 'flex-start',
+    padding: '0.75rem 1.5rem',
+    borderRadius: '12px',
+    border: 'none',
+    background: 'var(--accent-gradient)',
+    color: '#fff',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 10px 30px rgba(var(--accent-electric-rgb), 0.35)',
+  },
+  upgradeError: {
+    color: '#f87171',
+    fontSize: '0.85rem',
   },
   infoGrid: {
     display: 'grid',
