@@ -13,6 +13,27 @@ const FREE_MONTHLY_CALCULATIONS = 3;
 
 const resolveUserIdentifier = (req) => req.user?.googleId || req.user?._id || req.user?.id;
 
+const findUserForRequest = async (req) => {
+  const email = req.user?.email;
+  const identifier = resolveUserIdentifier(req);
+  let user = null;
+
+  if (email) {
+    user = await User.findOne({ email });
+  }
+
+  if (!user && identifier) {
+    user = await User.findOne({ identifier });
+  }
+
+  if (user && email && user.email !== email) {
+    user.email = email;
+    await user.save();
+  }
+
+  return user;
+};
+
 const createCheckoutSessionForUser = async (user) => {
   const priceId = getPriceIdForTier(SUBSCRIPTION_TIER);
 
@@ -49,13 +70,7 @@ router.post(
   '/create-checkout-session',
   ensureAuthenticated,
   asyncHandler(async (req, res) => {
-    const email = req.user?.email;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Authenticated user email is missing' });
-    }
-
-    const user = await User.findOne({ email });
+    const user = await findUserForRequest(req);
 
     if (!user) {
       return res.status(404).json({ error: 'User account not found' });
@@ -71,7 +86,13 @@ router.post(
   '/calculation-access',
   ensureAuthenticated,
   asyncHandler(async (req, res) => {
+    const requestUser = await findUserForRequest(req);
     const userIdentifier = resolveUserIdentifier(req);
+
+    if (!requestUser) {
+      return res.status(404).json({ error: 'User account not found' });
+    }
+
     const { allowed, reason, user, isUnlimited } = await canUserCalculate(userIdentifier);
     const isSubscribed = isUnlimited || user.isSubscribed;
 
