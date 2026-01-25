@@ -4,6 +4,7 @@ const { UnauthorizedError } = require('../middleware/errorHandler');
 
 const FREE_MONTHLY_CALCULATIONS = 3;
 const UNLIMITED_EMAILS = new Set(['cartercedrick35@gmail.com']);
+const normalizeEmail = (value) => (value || '').trim().toLowerCase();
 
 const isSameMonth = (dateA, dateB) => (
   dateA.getFullYear() === dateB.getFullYear()
@@ -30,7 +31,7 @@ async function canUserCalculate(userIdentifier) {
     throw new UnauthorizedError('User not found');
   }
 
-  const isUnlimited = UNLIMITED_EMAILS.has(user.email);
+  const isUnlimited = UNLIMITED_EMAILS.has(normalizeEmail(user.email));
 
   if (isUnlimited) {
     return { allowed: true, reason: null, user, isUnlimited };

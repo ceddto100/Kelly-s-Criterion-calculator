@@ -15,11 +15,12 @@ interface PromoPageProps {
   user: { name?: string; email?: string; avatar?: string } | null;
 }
 
-const ADMIN_EMAIL = 'cartercedric35@gmail.com';
+const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
+const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? '';
 
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   // Check if current user is admin
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = normalizeEmail(user?.email) === ADMIN_EMAIL;
   const [resetStatus, setResetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 

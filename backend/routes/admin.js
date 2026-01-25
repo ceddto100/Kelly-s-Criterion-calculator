@@ -6,12 +6,13 @@ const { asyncHandler, UnauthorizedError } = require('../middleware/errorHandler'
 const router = express.Router();
 
 const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
+const normalizeEmail = (value) => (value || '').trim().toLowerCase();
 
 router.post(
   '/reset-free-calculations',
   ensureAuthenticated,
   asyncHandler(async (req, res) => {
-    if (req.user?.email !== ADMIN_EMAIL) {
+    if (normalizeEmail(req.user?.email) !== ADMIN_EMAIL) {
       throw new UnauthorizedError('Admin access required');
     }
 
