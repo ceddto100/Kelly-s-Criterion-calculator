@@ -11,9 +11,9 @@ import { HelmetProvider } from 'react-helmet-async';
 /* === Lazy load tab components for better performance === */
 const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
+const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
 const SportsMatchup = lazy(() => import("./forms/SportsMatchup"));
 const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
-const NHLMatchup = lazy(() => import("./forms/NHLMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
@@ -858,13 +858,12 @@ const CONSTANTS = {
     WALTERS: 'walters',
     MATCHUP: 'matchup',
     NFL_MATCHUP: 'nfl_matchup',
-    NHL_MATCHUP: 'nhl_matchup',  // NHL Hockey matchup
     BET_HISTORY: 'bet_history',  // Bet tracking
     STATS: 'stats',  // NBA/NFL/NHL statistics
     ACCOUNT: 'account',  // Account settings
     PROMO: 'promo'  // Promotional links
   },
-  SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball' },
+  SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball', HOCKEY: 'hockey' },
 };
 
 /* ========================= API helper (Kelly insight) ====================== */
@@ -968,9 +967,24 @@ export const initialBasketballState = {
   teamAName: '', teamBName: '',
 };
 
+export const initialHockeyState = {
+  // Home team stats
+  homeXgf60: '',      // Expected Goals For per 60
+  homeXga60: '',      // Expected Goals Against per 60
+  homeGsax60: '',     // Goalie Goals Saved Above Expected per 60
+  homeHdcf60: '',     // High Danger Chances For per 60
+  // Away team stats
+  awayXgf60: '',
+  awayXga60: '',
+  awayGsax60: '',
+  awayHdcf60: '',
+  // Team names
+  teamAName: '', teamBName: '',
+};
+
 /* ======================== NEW: Types for Bet Logging ======================= */
 interface MatchupData {
-  sport: 'football' | 'basketball';
+  sport: 'football' | 'basketball' | 'hockey';
   teamA: {
     name: string;
     abbreviation?: string;
@@ -1000,8 +1014,12 @@ function ProbabilityEstimator({
   setFootballStats,
   basketballStats,
   setBasketballStats,
+  hockeyStats,
+  setHockeyStats,
   pointSpread,
   setPointSpread,
+  totalGoalsLine,
+  setTotalGoalsLine,
   calculatedProb,
   setCalculatedProb,
   expectedDiff,
@@ -1022,8 +1040,12 @@ function ProbabilityEstimator({
   setFootballStats: (v:any)=>void;
   basketballStats: any;
   setBasketballStats: (v:any)=>void;
+  hockeyStats: any;
+  setHockeyStats: (v:any)=>void;
   pointSpread: string;
   setPointSpread: (v:string)=>void;
+  totalGoalsLine: string;
+  setTotalGoalsLine: (v:string)=>void;
   calculatedProb: number|null;
   setCalculatedProb: (v:number|null)=>void;
   expectedDiff: number|null;
@@ -1043,27 +1065,39 @@ function ProbabilityEstimator({
   const modalRef = React.useRef<HTMLDivElement | null>(null);
 
   const isFormValid = useMemo(() => {
-    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+    const isHockey = activeSport === CONSTANTS.SPORTS.HOCKEY;
+    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL
+      ? footballStats
+      : activeSport === CONSTANTS.SPORTS.BASKETBALL
+        ? basketballStats
+        : hockeyStats;
     const requiredFields = Object.entries(current)
       .filter(([key]) => key !== 'teamAName' && key !== 'teamBName')
       .map(([, value]) => value);
     const ok = requiredFields.every(v => v !== '');
-    return ok && pointSpread !== '';
-  }, [activeSport, footballStats, basketballStats, pointSpread]);
+    // Hockey uses totalGoalsLine, others use pointSpread
+    const hasLine = isHockey ? totalGoalsLine !== '' : pointSpread !== '';
+    return ok && hasLine;
+  }, [activeSport, footballStats, basketballStats, hockeyStats, pointSpread, totalGoalsLine]);
 
   const progress = useMemo(() => {
-    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+    const isHockey = activeSport === CONSTANTS.SPORTS.HOCKEY;
+    const current = activeSport === CONSTANTS.SPORTS.FOOTBALL
+      ? footballStats
+      : activeSport === CONSTANTS.SPORTS.BASKETBALL
+        ? basketballStats
+        : hockeyStats;
     const statEntries = Object.entries(current).filter(([key]) => key !== 'teamAName' && key !== 'teamBName');
     const filledFields = statEntries.filter(([, v]) => v !== '').length;
     const totalFields = statEntries.length;
-    const hasSpread = pointSpread !== '';
+    const hasLine = isHockey ? totalGoalsLine !== '' : pointSpread !== '';
     return {
       stats: filledFields,
       totalStats: totalFields,
-      spread: hasSpread,
-      allComplete: filledFields === totalFields && hasSpread
+      spread: hasLine,
+      allComplete: filledFields === totalFields && hasLine
     };
-  }, [activeSport, footballStats, basketballStats, pointSpread]);
+  }, [activeSport, footballStats, basketballStats, hockeyStats, pointSpread, totalGoalsLine]);
 
   const loadExample = () => {
     if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
@@ -1076,7 +1110,7 @@ function ProbabilityEstimator({
         teamAName: 'KC', teamBName: 'BUF'
       });
       setPointSpread('-6.5');
-    } else {
+    } else if (activeSport === CONSTANTS.SPORTS.BASKETBALL) {
       setBasketballStats({
         teamPointsFor: '112.5', opponentPointsFor: '108.3',
         teamPointsAgainst: '106.2', opponentPointsAgainst: '110.8',
@@ -1086,6 +1120,14 @@ function ProbabilityEstimator({
         teamAName: 'Lakers', teamBName: 'Warriors'
       });
       setPointSpread('-4.5');
+    } else {
+      // Hockey
+      setHockeyStats({
+        homeXgf60: '2.95', homeXga60: '2.55', homeGsax60: '0.12', homeHdcf60: '12.8',
+        awayXgf60: '2.78', awayXga60: '2.72', awayGsax60: '-0.05', awayHdcf60: '11.5',
+        teamAName: 'COL', teamBName: 'EDM'
+      });
+      setTotalGoalsLine('5.5');
     }
   };
 
@@ -1128,18 +1170,62 @@ function ProbabilityEstimator({
         setShowFreeCalcModal(true);
       }
 
-      const spread = parseFloat(pointSpread);
-      if (Number.isNaN(spread)) throw new Error('Invalid spread');
+      if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
+        // NHL Over/Under calculation
+        const line = parseFloat(totalGoalsLine);
+        if (Number.isNaN(line)) throw new Error('Invalid total goals line');
 
-      const m = activeSport === CONSTANTS.SPORTS.FOOTBALL
-        ? predictedMarginFootball(footballStats, isTeamAHome)
-        : predictedMarginBasketball(basketballStats, isTeamAHome);
+        // Parse hockey stats
+        const H_xGF = parseFloat(hockeyStats.homeXgf60) || 0;
+        const H_xGA = parseFloat(hockeyStats.homeXga60) || 0;
+        const A_xGF = parseFloat(hockeyStats.awayXgf60) || 0;
+        const A_xGA = parseFloat(hockeyStats.awayXga60) || 0;
+        const H_GSAx = parseFloat(hockeyStats.homeGsax60) || 0;
+        const A_GSAx = parseFloat(hockeyStats.awayGsax60) || 0;
+        const H_HDCF = parseFloat(hockeyStats.homeHdcf60) || 0;
+        const A_HDCF = parseFloat(hockeyStats.awayHdcf60) || 0;
+        const HDC_sum = H_HDCF + A_HDCF;
 
-      const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 11.5;
-      const p = coverProbabilityFromMargin(m, spread, sigma);
+        // Step 1: Calculate Projected Home Goals
+        const projectedHomeGoals = (H_xGF + A_xGA) / 2 - A_GSAx;
 
-      setCalculatedProb(p);
-      setExpectedDiff(m);
+        // Step 2: Calculate Projected Away Goals
+        const projectedAwayGoals = (A_xGF + H_xGA) / 2 - H_GSAx;
+
+        // Step 3: Pace Adjustment
+        let paceAdjustment = 0;
+        if (HDC_sum > 24) {
+          paceAdjustment = (HDC_sum - 24) * 0.05;
+        } else if (HDC_sum < 22) {
+          paceAdjustment = (HDC_sum - 22) * 0.03;
+        }
+
+        // Step 4: Final Total
+        const projectedTotal = Math.max(0, projectedHomeGoals + projectedAwayGoals + paceAdjustment);
+
+        // Calculate over probability using normal CDF
+        // Standard deviation for NHL totals is approximately 1.2 goals
+        const sigma = 1.2;
+        const z = (projectedTotal - line) / sigma;
+        const overProb = normCdf(z) * 100;
+
+        setCalculatedProb(overProb);
+        setExpectedDiff(projectedTotal);
+      } else {
+        // Football/Basketball spread calculation
+        const spread = parseFloat(pointSpread);
+        if (Number.isNaN(spread)) throw new Error('Invalid spread');
+
+        const m = activeSport === CONSTANTS.SPORTS.FOOTBALL
+          ? predictedMarginFootball(footballStats, isTeamAHome)
+          : predictedMarginBasketball(basketballStats, isTeamAHome);
+
+        const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 11.5;
+        const p = coverProbabilityFromMargin(m, spread, sigma);
+
+        setCalculatedProb(p);
+        setExpectedDiff(m);
+      }
     } catch (e) {
       console.error(e);
       setCalculatedProb(null);
@@ -1191,9 +1277,14 @@ function ProbabilityEstimator({
   };
 
   const selectedTeamName = useMemo(() => {
+    if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
+      const home = hockeyStats.teamAName?.trim() || 'Home';
+      const away = hockeyStats.teamBName?.trim() || 'Away';
+      return `${away} @ ${home}`;
+    }
     const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
     return current.teamAName?.trim() || 'Your Team';
-  }, [activeSport, basketballStats, footballStats]);
+  }, [activeSport, basketballStats, footballStats, hockeyStats]);
 
   const formattedMargin = useMemo(() => {
     if (expectedDiff === null) return null;
@@ -1204,54 +1295,82 @@ function ProbabilityEstimator({
   const handleApplyAndSwitch = (prob: number) => {
     setProbability(prob.toFixed(2));
 
-    const stats = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
-
     // Build matchup data for bet logging
-    const matchupData: MatchupData = {
-      sport: activeSport as 'football' | 'basketball',
-      teamA: {
-        name: stats.teamAName || 'Team A',
-        abbreviation: stats.teamAName || undefined,
-        stats: activeSport === CONSTANTS.SPORTS.FOOTBALL
-          ? {
-              pointsFor: parseFloat(stats.teamPointsFor) || 0,
-              pointsAgainst: parseFloat(stats.teamPointsAgainst) || 0,
-              offYards: parseFloat(stats.teamOffYards) || 0,
-              defYards: parseFloat(stats.teamDefYards) || 0,
-              turnoverDiff: parseFloat(stats.teamTurnoverDiff) || 0
-            }
-          : {
-              pointsFor: parseFloat(stats.teamPointsFor) || 0,
-              pointsAgainst: parseFloat(stats.teamPointsAgainst) || 0,
-              fgPct: parseFloat(stats.teamFgPct) || 0,
-              reboundMargin: parseFloat(stats.teamReboundMargin) || 0,
-              turnoverMargin: parseFloat(stats.teamTurnoverMargin) || 0
-            }
-      },
-      teamB: {
-        name: stats.teamBName || 'Team B',
-        abbreviation: stats.teamBName || undefined,
-        stats: activeSport === CONSTANTS.SPORTS.FOOTBALL
-          ? {
-              pointsFor: parseFloat(stats.opponentPointsFor) || 0,
-              pointsAgainst: parseFloat(stats.opponentPointsAgainst) || 0,
-              offYards: parseFloat(stats.opponentOffYards) || 0,
-              defYards: parseFloat(stats.opponentDefYards) || 0,
-              turnoverDiff: parseFloat(stats.opponentTurnoverDiff) || 0
-            }
-          : {
-              pointsFor: parseFloat(stats.opponentPointsFor) || 0,
-              pointsAgainst: parseFloat(stats.opponentPointsAgainst) || 0,
-              fgPct: parseFloat(stats.opponentFgPct) || 0,
-              reboundMargin: parseFloat(stats.opponentReboundMargin) || 0,
-              turnoverMargin: parseFloat(stats.opponentTurnoverMargin) || 0
-            }
-      },
-      venue: isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'
-    };
+    let matchupData: MatchupData;
+
+    if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
+      matchupData = {
+        sport: 'hockey',
+        teamA: {
+          name: hockeyStats.teamAName || 'Home Team',
+          abbreviation: hockeyStats.teamAName || undefined,
+          stats: {
+            xgf60: parseFloat(hockeyStats.homeXgf60) || 0,
+            xga60: parseFloat(hockeyStats.homeXga60) || 0,
+            gsax60: parseFloat(hockeyStats.homeGsax60) || 0,
+            hdcf60: parseFloat(hockeyStats.homeHdcf60) || 0
+          }
+        },
+        teamB: {
+          name: hockeyStats.teamBName || 'Away Team',
+          abbreviation: hockeyStats.teamBName || undefined,
+          stats: {
+            xgf60: parseFloat(hockeyStats.awayXgf60) || 0,
+            xga60: parseFloat(hockeyStats.awayXga60) || 0,
+            gsax60: parseFloat(hockeyStats.awayGsax60) || 0,
+            hdcf60: parseFloat(hockeyStats.awayHdcf60) || 0
+          }
+        },
+        venue: 'home' // Hockey always shows home/away
+      };
+    } else {
+      const stats = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
+      matchupData = {
+        sport: activeSport as 'football' | 'basketball',
+        teamA: {
+          name: stats.teamAName || 'Team A',
+          abbreviation: stats.teamAName || undefined,
+          stats: activeSport === CONSTANTS.SPORTS.FOOTBALL
+            ? {
+                pointsFor: parseFloat(stats.teamPointsFor) || 0,
+                pointsAgainst: parseFloat(stats.teamPointsAgainst) || 0,
+                offYards: parseFloat(stats.teamOffYards) || 0,
+                defYards: parseFloat(stats.teamDefYards) || 0,
+                turnoverDiff: parseFloat(stats.teamTurnoverDiff) || 0
+              }
+            : {
+                pointsFor: parseFloat(stats.teamPointsFor) || 0,
+                pointsAgainst: parseFloat(stats.teamPointsAgainst) || 0,
+                fgPct: parseFloat(stats.teamFgPct) || 0,
+                reboundMargin: parseFloat(stats.teamReboundMargin) || 0,
+                turnoverMargin: parseFloat(stats.teamTurnoverMargin) || 0
+              }
+        },
+        teamB: {
+          name: stats.teamBName || 'Team B',
+          abbreviation: stats.teamBName || undefined,
+          stats: activeSport === CONSTANTS.SPORTS.FOOTBALL
+            ? {
+                pointsFor: parseFloat(stats.opponentPointsFor) || 0,
+                pointsAgainst: parseFloat(stats.opponentPointsAgainst) || 0,
+                offYards: parseFloat(stats.opponentOffYards) || 0,
+                defYards: parseFloat(stats.opponentDefYards) || 0,
+                turnoverDiff: parseFloat(stats.opponentTurnoverDiff) || 0
+              }
+            : {
+                pointsFor: parseFloat(stats.opponentPointsFor) || 0,
+                pointsAgainst: parseFloat(stats.opponentPointsAgainst) || 0,
+                fgPct: parseFloat(stats.opponentFgPct) || 0,
+                reboundMargin: parseFloat(stats.opponentReboundMargin) || 0,
+                turnoverMargin: parseFloat(stats.opponentTurnoverMargin) || 0
+              }
+        },
+        venue: isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'
+      };
+    }
 
     const estimationData: EstimationData = {
-      pointSpread: parseFloat(pointSpread),
+      pointSpread: activeSport === CONSTANTS.SPORTS.HOCKEY ? parseFloat(totalGoalsLine) : parseFloat(pointSpread),
       calculatedProbability: prob,
       expectedMargin: expectedDiff || undefined
     };
@@ -1262,7 +1381,21 @@ function ProbabilityEstimator({
   };
 
   const handleSwap = () => {
-    if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
+    if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
+      // For hockey, swap home and away teams
+      setHockeyStats({
+        homeXgf60: hockeyStats.awayXgf60,
+        homeXga60: hockeyStats.awayXga60,
+        homeGsax60: hockeyStats.awayGsax60,
+        homeHdcf60: hockeyStats.awayHdcf60,
+        awayXgf60: hockeyStats.homeXgf60,
+        awayXga60: hockeyStats.homeXga60,
+        awayGsax60: hockeyStats.homeGsax60,
+        awayHdcf60: hockeyStats.homeHdcf60,
+        teamAName: hockeyStats.teamBName,
+        teamBName: hockeyStats.teamAName,
+      });
+    } else if (activeSport === CONSTANTS.SPORTS.FOOTBALL) {
       setFootballStats({
         teamPointsFor: footballStats.opponentPointsFor,
         opponentPointsFor: footballStats.teamPointsFor,
@@ -1313,54 +1446,73 @@ function ProbabilityEstimator({
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.FOOTBALL)}>Football</button>
         <button className={`tab ${activeSport === CONSTANTS.SPORTS.BASKETBALL ? 'active' : ''}`}
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
+        <button className={`tab ${activeSport === CONSTANTS.SPORTS.HOCKEY ? 'active' : ''}`}
+                onClick={()=>setActiveSport(CONSTANTS.SPORTS.HOCKEY)}>NHL</button>
       </div>
 
       <div className="progress-container">
         <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
-          {progress.spread ? '✓' : '1'} Point Spread
+          {progress.spread ? '✓' : '1'} {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Total Goals Line' : 'Point Spread'}
         </div>
         <div className={`progress-step ${progress.allComplete ? 'completed' : progress.spread ? 'active' : ''}`}>
           {progress.allComplete ? '✓' : progress.stats}/{progress.totalStats} Team Stats
         </div>
       </div>
 
-      {progress.stats === 0 && !pointSpread && (
+      {progress.stats === 0 && (activeSport === CONSTANTS.SPORTS.HOCKEY ? !totalGoalsLine : !pointSpread) && (
         <div className="empty-state">
           <h3>Get Started</h3>
-          <p>Enter team statistics and point spread to calculate win probability</p>
+          <p>Enter team statistics and {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'total goals line to calculate over/under probability' : 'point spread to calculate win probability'}</p>
           <button className="try-example-btn" onClick={loadExample}>
             Try Example Data
           </button>
         </div>
       )}
 
-      <div className="input-group">
-        <label htmlFor="pointSpread">
-          Point Spread (Your Team)
-          <span className="tooltip">
-            <span className="help-icon">?</span>
-            <span className="tooltiptext">Negative = your team favored (e.g., -6.5 means your team must win by more than 6.5). Positive = underdog</span>
-          </span>
-        </label>
-        <input id="pointSpread" type="number" name="pointSpread" value={pointSpread}
-               onChange={(e)=>setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" step="0.5" />
-        <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
-          Negative = your team favored, Positive = your team underdog
-        </p>
-      </div>
+      {activeSport === CONSTANTS.SPORTS.HOCKEY ? (
+        <div className="input-group">
+          <label htmlFor="totalGoalsLine">
+            Total Goals (Over/Under)
+            <span className="tooltip">
+              <span className="help-icon">?</span>
+              <span className="tooltiptext">The sportsbook's total goals line for the game (e.g., 5.5, 6.0)</span>
+            </span>
+          </label>
+          <input id="totalGoalsLine" type="number" name="totalGoalsLine" value={totalGoalsLine}
+                 onChange={(e)=>setTotalGoalsLine(e.target.value)} className="input-field" placeholder="e.g., 5.5 or 6" step="0.5" />
+          <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
+            Positive = Over, Negative = Under
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="input-group">
+            <label htmlFor="pointSpread">
+              Point Spread (Your Team)
+              <span className="tooltip">
+                <span className="help-icon">?</span>
+                <span className="tooltiptext">Negative = your team favored (e.g., -6.5 means your team must win by more than 6.5). Positive = underdog</span>
+              </span>
+            </label>
+            <input id="pointSpread" type="number" name="pointSpread" value={pointSpread}
+                   onChange={(e)=>setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" step="0.5" />
+            <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
+              Negative = your team favored, Positive = your team underdog
+            </p>
+          </div>
 
-      <div className="input-group">
-        <label htmlFor="venue">
-          Venue
-          <span className="tooltip">
-            <span className="help-icon">?</span>
-            <span className="tooltiptext">Home field advantage is worth ~2.5 pts (NFL) or ~3 pts (NBA)</span>
-          </span>
-        </label>
-        <select
-          id="venue"
-          className="input-field"
-          value={isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'}
+          <div className="input-group">
+            <label htmlFor="venue">
+              Venue
+              <span className="tooltip">
+                <span className="help-icon">?</span>
+                <span className="tooltiptext">Home field advantage is worth ~2.5 pts (NFL) or ~3 pts (NBA)</span>
+              </span>
+            </label>
+            <select
+              id="venue"
+              className="input-field"
+              value={isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'}
           onChange={(e) => {
             const val = e.target.value;
             setIsTeamAHome(val === 'neutral' ? null : val === 'home');
@@ -1369,8 +1521,10 @@ function ProbabilityEstimator({
           <option value="neutral">Neutral Site</option>
           <option value="home">Your Team is Home</option>
           <option value="away">Your Team is Away</option>
-        </select>
-      </div>
+            </select>
+          </div>
+        </>
+      )}
 
       <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
         {activeSport === CONSTANTS.SPORTS.FOOTBALL ? (
@@ -1379,11 +1533,17 @@ function ProbabilityEstimator({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setFootballStats({ ...footballStats, [e.target.name]: e.target.value })}
           />
-        ) : (
+        ) : activeSport === CONSTANTS.SPORTS.BASKETBALL ? (
           <BasketballEstimator
             stats={basketballStats}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setBasketballStats({ ...basketballStats, [e.target.name]: e.target.value })}
+          />
+        ) : (
+          <HockeyEstimator
+            stats={hockeyStats}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setHockeyStats({ ...hockeyStats, [e.target.name]: e.target.value })}
           />
         )}
       </Suspense>
@@ -1404,14 +1564,18 @@ function ProbabilityEstimator({
 
       {calculatedProb !== null && (
         <div ref={resultsRef} className="results" role="status" aria-live="polite">
-          <p>Estimated Cover Probability</p>
+          <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Estimated Over Probability' : 'Estimated Cover Probability'}</p>
           <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
           <div className="matchup-result-stats">
             <div className="matchup-result-value">
               {calculatedProb.toFixed(2)}%
             </div>
             {formattedMargin !== null && (
-              <div className="matchup-result-margin">Predicted Margin: {formattedMargin} pts</div>
+              <div className="matchup-result-margin">
+                {activeSport === CONSTANTS.SPORTS.HOCKEY
+                  ? `Projected Total: ${expectedDiff?.toFixed(2)} goals`
+                  : `Predicted Margin: ${formattedMargin} pts`}
+              </div>
             )}
           </div>
           <div style={{marginTop:'.6rem'}}>
@@ -1999,7 +2163,9 @@ function App() {
   const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
   const [footballStats, setFootballStats] = useState(initialFootballState);
   const [basketballStats, setBasketballStats] = useState(initialBasketballState);
+  const [hockeyStats, setHockeyStats] = useState(initialHockeyState);
   const [pointSpread, setPointSpread] = useState<string>('');
+  const [totalGoalsLine, setTotalGoalsLine] = useState<string>('');
   const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
   const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
   const [isTeamAHome, setIsTeamAHome] = useState<boolean | null>(null);
@@ -2261,8 +2427,6 @@ function App() {
         return SEO_CONFIG.nba_matchup;
       case CONSTANTS.TABS.NFL_MATCHUP:
         return SEO_CONFIG.nfl_matchup;
-      case CONSTANTS.TABS.NHL_MATCHUP:
-        return SEO_CONFIG.nhl_matchup;
       case CONSTANTS.TABS.BET_HISTORY:
         return SEO_CONFIG.bet_history;
       case CONSTANTS.TABS.STATS:
@@ -2380,7 +2544,6 @@ function App() {
                 { key: CONSTANTS.TABS.WALTERS, label: '⚡ Walters Protocol' },
                 { key: CONSTANTS.TABS.MATCHUP, label: 'NBA Matchup' },
                 { key: CONSTANTS.TABS.NFL_MATCHUP, label: 'NFL Matchup' },
-                { key: CONSTANTS.TABS.NHL_MATCHUP, label: 'NHL Matchup' },
                 { key: CONSTANTS.TABS.BET_HISTORY, label: '📊 Bet History' },  // NEW TAB
               ].map(tab => (
                 <button
@@ -2417,8 +2580,12 @@ function App() {
               setFootballStats={setFootballStats}
               basketballStats={basketballStats}
               setBasketballStats={setBasketballStats}
+              hockeyStats={hockeyStats}
+              setHockeyStats={setHockeyStats}
               pointSpread={pointSpread}
               setPointSpread={setPointSpread}
+              totalGoalsLine={totalGoalsLine}
+              setTotalGoalsLine={setTotalGoalsLine}
               calculatedProb={calculatedProb}
               setCalculatedProb={setCalculatedProb}
               expectedDiff={expectedDiff}
@@ -2454,13 +2621,6 @@ function App() {
                 <NFLMatchup
                   onTransferToEstimator={handleNFLTransferToEstimator}
                 />
-              </Suspense>
-            </div>
-          )}
-          {activeTab === CONSTANTS.TABS.NHL_MATCHUP && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading NHL matchup data...</div>}>
-                <NHLMatchup />
               </Suspense>
             </div>
           )}
@@ -2512,7 +2672,7 @@ function App() {
                 
                 <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
                   <li>
-                    Start in the <strong>NBA Matchup</strong>, <strong>NFL Matchup</strong>, or <strong>NHL Matchup</strong> tab to load team stats and compare both sides of the game.
+                    Start in the <strong>NBA Matchup</strong> or <strong>NFL Matchup</strong> tab to load team stats, or use the <strong>Probability Estimator</strong> with NHL selected for hockey over/under predictions.
                   </li>
                   <li>
                     Move to the <strong>Probability Estimator</strong>, enter your point spread, select whether your team is home or away, and hit <strong>Calculate Probability</strong> to generate your fair win probability.
