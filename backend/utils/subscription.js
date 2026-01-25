@@ -3,6 +3,7 @@ const { User } = require('../config/database');
 const { UnauthorizedError } = require('../middleware/errorHandler');
 
 const FREE_MONTHLY_CALCULATIONS = 3;
+const UNLIMITED_EMAILS = new Set(['cartercedrick@gmail.com']);
 
 const isSameMonth = (dateA, dateB) => (
   dateA.getFullYear() === dateB.getFullYear()
@@ -29,8 +30,14 @@ async function canUserCalculate(userIdentifier) {
     throw new UnauthorizedError('User not found');
   }
 
+  const isUnlimited = UNLIMITED_EMAILS.has(user.email);
+
+  if (isUnlimited) {
+    return { allowed: true, reason: null, user, isUnlimited };
+  }
+
   if (user.isSubscribed) {
-    return { allowed: true, reason: null, user };
+    return { allowed: true, reason: null, user, isUnlimited: false };
   }
 
   const now = new Date();
@@ -46,14 +53,15 @@ async function canUserCalculate(userIdentifier) {
     return {
       allowed: false,
       reason: 'Monthly calculation limit reached',
-      user
+      user,
+      isUnlimited: false
     };
   }
 
   user.calculationsUsedThisMonth += 1;
   await user.save();
 
-  return { allowed: true, reason: null, user };
+  return { allowed: true, reason: null, user, isUnlimited: false };
 }
 
 module.exports = {

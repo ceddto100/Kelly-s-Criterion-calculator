@@ -72,13 +72,21 @@ router.post(
   ensureAuthenticated,
   asyncHandler(async (req, res) => {
     const userIdentifier = resolveUserIdentifier(req);
-    const { allowed, reason, user } = await canUserCalculate(userIdentifier);
+    const { allowed, reason, user, isUnlimited } = await canUserCalculate(userIdentifier);
+    const isSubscribed = isUnlimited || user.isSubscribed;
 
     if (allowed) {
+      const remainingCalculations = isSubscribed
+        ? null
+        : Math.max(0, FREE_MONTHLY_CALCULATIONS - user.calculationsUsedThisMonth);
+
       return res.json({
         allowed: true,
         calculationsUsedThisMonth: user.calculationsUsedThisMonth,
-        calculationLimit: FREE_MONTHLY_CALCULATIONS
+        calculationLimit: FREE_MONTHLY_CALCULATIONS,
+        remainingCalculations,
+        isSubscribed,
+        showPopup: !isSubscribed && remainingCalculations > 0
       });
     }
 
@@ -88,7 +96,8 @@ router.post(
       allowed: false,
       reason,
       url: session.url,
-      sessionId: session.id
+      sessionId: session.id,
+      isSubscribed
     });
   })
 );
