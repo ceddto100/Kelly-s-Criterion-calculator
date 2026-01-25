@@ -27,10 +27,36 @@ const userSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Daily calculations cannot be negative']
   },
+  dailyResetDate: {
+    type: Date,
+    default: Date.now,
+    index: true
+  },
   lastResetDate: {
     type: Date,
     default: Date.now,
     index: true
+  },
+  calculationsUsedThisMonth: {
+    type: Number,
+    default: 0,
+    min: [0, 'Monthly calculations cannot be negative']
+  },
+  isSubscribed: {
+    type: Boolean,
+    default: false
+  },
+  subscriptionTier: {
+    type: String,
+    default: null
+  },
+  stripeCustomerId: {
+    type: String,
+    default: null
+  },
+  stripeSubscriptionId: {
+    type: String,
+    default: null
   },
   totalCalculations: {
     type: Number,
@@ -64,6 +90,7 @@ const userSchema = new mongoose.Schema({
 // Indexes for User
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ lastActive: -1 });
+userSchema.index({ dailyResetDate: -1 });
 userSchema.index({ lastResetDate: -1 });
 userSchema.index({ isPremium: 1, lastActive: -1 });
 
@@ -85,11 +112,11 @@ userSchema.methods.canPerformCalculation = function() {
 
 userSchema.methods.resetDailyCalculationsIfNeeded = function() {
   const today = new Date().setHours(0, 0, 0, 0);
-  const lastReset = new Date(this.lastResetDate).setHours(0, 0, 0, 0);
+  const lastReset = new Date(this.dailyResetDate).setHours(0, 0, 0, 0);
 
   if (today > lastReset) {
     this.dailyCalculations = 0;
-    this.lastResetDate = new Date();
+    this.dailyResetDate = new Date();
     return true;
   }
   return false;
