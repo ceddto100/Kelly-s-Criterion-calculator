@@ -14,6 +14,7 @@ const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
 const SportsMatchup = lazy(() => import("./forms/SportsMatchup"));
 const NFLMatchup = lazy(() => import("./forms/NFLMatchup"));
+const NHLMatchup = lazy(() => import("./forms/NHLMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
@@ -858,6 +859,7 @@ const CONSTANTS = {
     WALTERS: 'walters',
     MATCHUP: 'matchup',
     NFL_MATCHUP: 'nfl_matchup',
+    NHL_MATCHUP: 'nhl_matchup',  // NHL Hockey matchup
     BET_HISTORY: 'bet_history',  // Bet tracking
     STATS: 'stats',  // NBA/NFL/NHL statistics
     ACCOUNT: 'account',  // Account settings
@@ -2403,6 +2405,24 @@ function App() {
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);
   };
 
+  // Handler to transfer NHL matchup data to Hockey Estimator
+  const handleNHLTransferToEstimator = (matchupData: any) => {
+    setHockeyStats({
+      homeXgf60: matchupData.homeXgf60?.toFixed(2) || '',
+      homeXga60: matchupData.homeXga60?.toFixed(2) || '',
+      homeGsax60: matchupData.homeGsax60?.toFixed(2) || '',
+      homeHdcf60: matchupData.homeHdcf60?.toFixed(1) || '',
+      awayXgf60: matchupData.awayXgf60?.toFixed(2) || '',
+      awayXga60: matchupData.awayXga60?.toFixed(2) || '',
+      awayGsax60: matchupData.awayGsax60?.toFixed(2) || '',
+      awayHdcf60: matchupData.awayHdcf60?.toFixed(1) || '',
+      teamAName: matchupData.homeTeamName || '',
+      teamBName: matchupData.awayTeamName || '',
+    });
+    setActiveSport(CONSTANTS.SPORTS.HOCKEY);
+    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
+  };
+
   // Handler for Walters Protocol to apply to Kelly Calculator
   const handleWaltersApplyToKelly = (probability: number, matchupData: any, estimationData: any) => {
     setProbability(probability.toFixed(2));
@@ -2427,6 +2447,8 @@ function App() {
         return SEO_CONFIG.nba_matchup;
       case CONSTANTS.TABS.NFL_MATCHUP:
         return SEO_CONFIG.nfl_matchup;
+      case CONSTANTS.TABS.NHL_MATCHUP:
+        return SEO_CONFIG.nhl_matchup;
       case CONSTANTS.TABS.BET_HISTORY:
         return SEO_CONFIG.bet_history;
       case CONSTANTS.TABS.STATS:
@@ -2544,6 +2566,7 @@ function App() {
                 { key: CONSTANTS.TABS.WALTERS, label: '⚡ Walters Protocol' },
                 { key: CONSTANTS.TABS.MATCHUP, label: 'NBA Matchup' },
                 { key: CONSTANTS.TABS.NFL_MATCHUP, label: 'NFL Matchup' },
+                { key: CONSTANTS.TABS.NHL_MATCHUP, label: 'NHL Matchup' },
                 { key: CONSTANTS.TABS.BET_HISTORY, label: '📊 Bet History' },  // NEW TAB
               ].map(tab => (
                 <button
@@ -2624,6 +2647,15 @@ function App() {
               </Suspense>
             </div>
           )}
+          {activeTab === CONSTANTS.TABS.NHL_MATCHUP && (
+            <div className="panel">
+              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading NHL matchup data...</div>}>
+                <NHLMatchup
+                  onTransferToEstimator={handleNHLTransferToEstimator}
+                />
+              </Suspense>
+            </div>
+          )}
           {/* NEW: Bet History Tab */}
           {activeTab === CONSTANTS.TABS.BET_HISTORY && (
             <div className="panel">
@@ -2672,7 +2704,7 @@ function App() {
                 
                 <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
                   <li>
-                    Start in the <strong>NBA Matchup</strong> or <strong>NFL Matchup</strong> tab to load team stats, or use the <strong>Probability Estimator</strong> with NHL selected for hockey over/under predictions.
+                    Start in the <strong>NBA Matchup</strong>, <strong>NFL Matchup</strong>, or <strong>NHL Matchup</strong> tab to load team stats and compare both sides of the game.
                   </li>
                   <li>
                     Move to the <strong>Probability Estimator</strong>, enter your point spread, select whether your team is home or away, and hit <strong>Calculate Probability</strong> to generate your fair win probability.
