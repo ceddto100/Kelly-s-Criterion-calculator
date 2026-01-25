@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { User } = require('../config/database');
 const { UnauthorizedError } = require('../middleware/errorHandler');
 
@@ -13,12 +14,16 @@ const isSameMonth = (dateA, dateB) => (
  * - Subscribed users are always allowed.
  * - Unsubscribed users get 3 calculations per calendar month.
  */
-async function canUserCalculate(userId) {
-  if (!userId) {
+async function canUserCalculate(userIdentifier) {
+  if (!userIdentifier) {
     throw new UnauthorizedError('Authentication required to calculate');
   }
 
-  const user = await User.findById(userId);
+  let user = await User.findOne({ identifier: userIdentifier });
+
+  if (!user && mongoose.Types.ObjectId.isValid(userIdentifier)) {
+    user = await User.findById(userIdentifier);
+  }
 
   if (!user) {
     throw new UnauthorizedError('User not found');

@@ -1006,6 +1006,8 @@ function ProbabilityEstimator({
   setExpectedDiff,
   isTeamAHome,
   setIsTeamAHome,
+  isAuthenticated,
+  onLoginRequired,
   // NEW: Callbacks to store data for bet logging
   setCurrentMatchup,
   setCurrentEstimation
@@ -1026,6 +1028,8 @@ function ProbabilityEstimator({
   setExpectedDiff: (v:number|null)=>void;
   isTeamAHome: boolean|null;
   setIsTeamAHome: (v:boolean|null)=>void;
+  isAuthenticated: boolean;
+  onLoginRequired: () => void;
   // NEW props
   setCurrentMatchup: (v: MatchupData | null) => void;
   setCurrentEstimation: (v: EstimationData | null) => void;
@@ -1078,8 +1082,40 @@ function ProbabilityEstimator({
     }
   };
 
-  const handleCalculate = () => {
+  const handleCalculate = async () => {
+    if (!isAuthenticated) {
+      onLoginRequired();
+      return;
+    }
+
     try {
+      const accessResponse = await fetch(`${BACKEND_URL}/api/stripe/calculation-access`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (accessResponse.status === 401) {
+        onLoginRequired();
+        return;
+      }
+
+      if (!accessResponse.ok) {
+        throw new Error('Unable to verify calculation access');
+      }
+
+      const accessData = await accessResponse.json();
+
+      if (!accessData.allowed) {
+        if (accessData.url) {
+          window.location.assign(accessData.url);
+          return;
+        }
+        throw new Error(accessData.reason || 'Subscription required');
+      }
+
       const spread = parseFloat(pointSpread);
       if (Number.isNaN(spread)) throw new Error('Invalid spread');
 
@@ -2229,6 +2265,8 @@ function App() {
               setExpectedDiff={setExpectedDiff}
               isTeamAHome={isTeamAHome}
               setIsTeamAHome={setIsTeamAHome}
+              isAuthenticated={!!authUser}
+              onLoginRequired={handleLoginRequired}
               // NEW: Pass setters for bet logging
               setCurrentMatchup={setCurrentMatchup}
               setCurrentEstimation={setCurrentEstimation}

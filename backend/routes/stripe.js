@@ -3,11 +3,39 @@ const { User } = require('../config/database');
 const { asyncHandler, logger } = require('../middleware/errorHandler');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { stripe, getPriceIdForTier } = require('../config/stripe');
+const { canUserCalculate } = require('../utils/subscription');
 
 const router = express.Router();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://betgistics.com';
 const SUBSCRIPTION_TIER = 'core_access';
+const FREE_MONTHLY_CALCULATIONS = 3;
+
+const resolveUserIdentifier = (req) => req.user?.googleId || req.user?._id || req.user?.id;
+
+const createCheckoutSessionForUser = async (user) => {
+  const priceId = getPriceIdForTier(SUBSCRIPTION_TIER);
+
+  return stripe.checkout.sessions.create({
+    mode: 'subscription',
+    line_items: [{ price: priceId, quantity: 1 }],
+    customer_email: user.email,
+    success_url: `${FRONTEND_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${FRONTEND_URL}/?checkout=cancelled`,
+    subscription_data: {
+      metadata: {
+        tier: SUBSCRIPTION_TIER,
+        product: 'betgistics',
+        monthly_calculation_limit: 'unlimited'
+      }
+    },
+    metadata: {
+      userId: user._id.toString(),
+      tier: SUBSCRIPTION_TIER,
+      product: 'betgistics'
+    }
+  });
+};
 
 const resolveCheckoutEmail = (session) => (
   session.customer_details?.email || session.customer_email || null
@@ -33,29 +61,35 @@ router.post(
       return res.status(404).json({ error: 'User account not found' });
     }
 
-    const priceId = getPriceIdForTier(SUBSCRIPTION_TIER);
-
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
-      customer_email: user.email,
-      success_url: `${FRONTEND_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${FRONTEND_URL}/?checkout=cancelled`,
-      subscription_data: {
-        metadata: {
-          tier: SUBSCRIPTION_TIER,
-          product: 'betgistics',
-          monthly_calculation_limit: 'unlimited'
-        }
-      },
-      metadata: {
-        userId: user._id.toString(),
-        tier: SUBSCRIPTION_TIER,
-        product: 'betgistics'
-      }
-    });
+    const session = await createCheckoutSessionForUser(user);
 
     return res.json({ url: session.url, sessionId: session.id });
+  })
+);
+
+router.post(
+  '/calculation-access',
+  ensureAuthenticated,
+  asyncHandler(async (req, res) => {
+    const userIdentifier = resolveUserIdentifier(req);
+    const { allowed, reason, user } = await canUserCalculate(userIdentifier);
+
+    if (allowed) {
+      return res.json({
+        allowed: true,
+        calculationsUsedThisMonth: user.calculationsUsedThisMonth,
+        calculationLimit: FREE_MONTHLY_CALCULATIONS
+      });
+    }
+
+    const session = await createCheckoutSessionForUser(user);
+
+    return res.json({
+      allowed: false,
+      reason,
+      url: session.url,
+      sessionId: session.id
+    });
   })
 );
 
