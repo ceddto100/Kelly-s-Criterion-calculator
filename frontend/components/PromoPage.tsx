@@ -15,7 +15,7 @@ interface PromoPageProps {
   user: { name?: string; email?: string; avatar?: string } | null;
 }
 
-const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
+const ADMIN_EMAIL = 'cartercedric35@gmail.com';
 
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   // Check if current user is admin
