@@ -1006,6 +1006,8 @@ function ProbabilityEstimator({
   setExpectedDiff,
   isTeamAHome,
   setIsTeamAHome,
+  isAuthenticated,
+  onLoginRequired,
   // NEW: Callbacks to store data for bet logging
   setCurrentMatchup,
   setCurrentEstimation
@@ -1026,10 +1028,17 @@ function ProbabilityEstimator({
   setExpectedDiff: (v:number|null)=>void;
   isTeamAHome: boolean|null;
   setIsTeamAHome: (v:boolean|null)=>void;
+  isAuthenticated: boolean;
+  onLoginRequired: () => void;
   // NEW props
   setCurrentMatchup: (v: MatchupData | null) => void;
   setCurrentEstimation: (v: EstimationData | null) => void;
 }) {
+  const [showFreeCalcModal, setShowFreeCalcModal] = useState(false);
+  const [freeCalculationsLeft, setFreeCalculationsLeft] = useState<number | null>(null);
+  const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
+  const resultsRef = React.useRef<HTMLDivElement | null>(null);
+  const modalRef = React.useRef<HTMLDivElement | null>(null);
 
   const isFormValid = useMemo(() => {
     const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
@@ -1078,8 +1087,45 @@ function ProbabilityEstimator({
     }
   };
 
-  const handleCalculate = () => {
+  const handleCalculate = async () => {
+    if (!isAuthenticated) {
+      onLoginRequired();
+      return;
+    }
+
     try {
+      const accessResponse = await fetch(`${BACKEND_URL}/api/stripe/calculation-access`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (accessResponse.status === 401) {
+        onLoginRequired();
+        return;
+      }
+
+      if (!accessResponse.ok) {
+        throw new Error('Unable to verify calculation access');
+      }
+
+      const accessData = await accessResponse.json();
+
+      if (!accessData.allowed) {
+        if (accessData.url) {
+          window.location.assign(accessData.url);
+          return;
+        }
+        throw new Error(accessData.reason || 'Subscription required');
+      }
+
+      if (accessData.showPopup) {
+        setFreeCalculationsLeft(accessData.remainingCalculations);
+        setShowFreeCalcModal(true);
+      }
+
       const spread = parseFloat(pointSpread);
       if (Number.isNaN(spread)) throw new Error('Invalid spread');
 
@@ -1096,6 +1142,49 @@ function ProbabilityEstimator({
       console.error(e);
       setCalculatedProb(null);
       setExpectedDiff(null);
+    }
+  };
+
+  useEffect(() => {
+    if (calculatedProb === null || !resultsRef.current) return;
+    requestAnimationFrame(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [calculatedProb]);
+
+  useEffect(() => {
+    if (!showFreeCalcModal || !modalRef.current) return;
+    requestAnimationFrame(() => {
+      modalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      modalRef.current?.focus();
+    });
+  }, [showFreeCalcModal]);
+
+  const handleUpgrade = async () => {
+    setIsUpgradeLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/stripe/create-checkout-session`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to start checkout');
+      }
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUpgradeLoading(false);
     }
   };
 
@@ -1312,7 +1401,7 @@ function ProbabilityEstimator({
       </div>
 
       {calculatedProb !== null && (
-        <div className="results" role="status" aria-live="polite">
+        <div ref={resultsRef} className="results" role="status" aria-live="polite">
           <p>Estimated Cover Probability</p>
           <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
           <div className="matchup-result-stats">
@@ -1330,9 +1419,111 @@ function ProbabilityEstimator({
           </div>
         </div>
       )}
+
+      {showFreeCalcModal && (
+        <div style={styles.freeCalcOverlay} role="dialog" aria-live="polite">
+          <div style={styles.freeCalcModal} tabIndex={-1} ref={modalRef}>
+            <div style={styles.freeCalcBadge}>✨ Free Core Preview</div>
+            <h3 style={styles.freeCalcTitle}>You have {freeCalculationsLeft ?? 0} free probability checks left</h3>
+            <p style={styles.freeCalcDescription}>
+              Upgrade to Core Access for unlimited calculations, premium insights, and uninterrupted flow.
+            </p>
+            <div style={styles.freeCalcActions}>
+              <button
+                type="button"
+                onClick={() => setShowFreeCalcModal(false)}
+                style={styles.freeCalcGhostButton}
+              >
+                Continue free
+              </button>
+              <button
+                type="button"
+                onClick={handleUpgrade}
+                style={styles.freeCalcPrimaryButton}
+                disabled={isUpgradeLoading}
+              >
+                {isUpgradeLoading ? 'Redirecting...' : 'Upgrade to Core Access'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const styles: { [key: string]: React.CSSProperties } = {
+  freeCalcOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(5, 5, 16, 0.82)',
+    backdropFilter: 'blur(6px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    zIndex: 9999,
+  },
+  freeCalcModal: {
+    maxWidth: '420px',
+    width: '100%',
+    background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
+    borderRadius: '24px',
+    padding: '28px',
+    border: '1px solid rgba(148, 163, 184, 0.2)',
+    boxShadow: '0 25px 60px rgba(0, 0, 0, 0.55)',
+    textAlign: 'center',
+  },
+  freeCalcBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '6px 12px',
+    borderRadius: '999px',
+    background: 'rgba(59, 130, 246, 0.2)',
+    color: '#bfdbfe',
+    fontWeight: 600,
+    fontSize: '0.8rem',
+    letterSpacing: '0.02em',
+    marginBottom: '16px',
+  },
+  freeCalcTitle: {
+    color: '#f8fafc',
+    fontSize: '1.4rem',
+    margin: '0 0 12px',
+  },
+  freeCalcDescription: {
+    color: 'rgba(226, 232, 240, 0.8)',
+    fontSize: '0.95rem',
+    marginBottom: '22px',
+    lineHeight: 1.5,
+  },
+  freeCalcActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  freeCalcGhostButton: {
+    padding: '10px 18px',
+    borderRadius: '12px',
+    border: '1px solid rgba(148, 163, 184, 0.4)',
+    background: 'transparent',
+    color: '#e2e8f0',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  freeCalcPrimaryButton: {
+    padding: '10px 18px',
+    borderRadius: '12px',
+    border: 'none',
+    background: 'linear-gradient(135deg, #38bdf8, #6366f1)',
+    color: '#fff',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 12px 30px rgba(59, 130, 246, 0.45)',
+  },
+};
 
 /* ============================== Kelly Calculator =========================== */
 const calculateImpliedProbability = (americanOdds: string): number | null => {
@@ -2229,6 +2420,8 @@ function App() {
               setExpectedDiff={setExpectedDiff}
               isTeamAHome={isTeamAHome}
               setIsTeamAHome={setIsTeamAHome}
+              isAuthenticated={!!authUser}
+              onLoginRequired={handleLoginRequired}
               // NEW: Pass setters for bet logging
               setCurrentMatchup={setCurrentMatchup}
               setCurrentEstimation={setCurrentEstimation}
