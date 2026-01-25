@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+
 interface Promo {
   id: string;
   title: string;
@@ -18,6 +20,8 @@ const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   // Check if current user is admin
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const [resetStatus, setResetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const [promos, setPromos] = useState<Promo[]>([
     {
@@ -66,6 +70,32 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
     setShowAddForm(false);
   };
 
+  const handleResetFreeCalculations = async () => {
+    setResetStatus('loading');
+    setResetMessage(null);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/admin/reset-free-calculations`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Reset failed');
+      }
+
+      const data = await response.json();
+      setResetStatus('success');
+      setResetMessage(`Reset free calculations for ${data.modified} users.`);
+    } catch (error) {
+      setResetStatus('error');
+      setResetMessage('Unable to reset free calculations.');
+    }
+  };
+
   const handleDeletePromo = (id: string) => {
     if (confirm('Are you sure you want to delete this promo?')) {
       setPromos(promos.filter((p) => p.id !== id));
@@ -91,12 +121,37 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
       </div>
 
       {isAdmin && (
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          style={styles.addButton}
-        >
-          {showAddForm ? '✕ Cancel' : '➕ Add New Promo'}
-        </button>
+        <div style={styles.adminActions}>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            style={styles.addButton}
+          >
+            {showAddForm ? '✕ Cancel' : '➕ Add New Promo'}
+          </button>
+          <div style={styles.resetCard}>
+            <div>
+              <div style={styles.resetTitle}>Reset Free Probability Checks</div>
+              <div style={styles.resetDescription}>
+                Clears monthly free calculations for all free-tier users.
+              </div>
+            </div>
+            <button
+              onClick={handleResetFreeCalculations}
+              style={styles.resetButton}
+              disabled={resetStatus === 'loading'}
+            >
+              {resetStatus === 'loading' ? 'Resetting...' : 'Master Reset'}
+            </button>
+            {resetMessage && (
+              <div style={{
+                ...styles.resetMessage,
+                color: resetStatus === 'success' ? '#4ade80' : '#f87171'
+              }}>
+                {resetMessage}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {showAddForm && (
@@ -221,6 +276,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   header: {
     marginBottom: '30px',
   },
+  adminActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    marginBottom: '24px',
+  },
   title: {
     fontSize: '32px',
     fontWeight: 'bold',
@@ -246,6 +307,41 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '20px',
     boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
     transition: 'all 0.3s ease',
+  },
+  resetCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    padding: '18px',
+    borderRadius: '16px',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    background: 'rgba(15, 23, 42, 0.6)',
+    color: 'rgba(255, 255, 255, 0.9)',
+    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.35)',
+  },
+  resetTitle: {
+    fontSize: '16px',
+    fontWeight: '700',
+  },
+  resetDescription: {
+    fontSize: '13px',
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  resetButton: {
+    alignSelf: 'flex-start',
+    padding: '10px 18px',
+    fontSize: '14px',
+    fontWeight: '700',
+    color: '#fff',
+    background: 'linear-gradient(135deg, #f97316, #ef4444)',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    boxShadow: '0 6px 20px rgba(239, 68, 68, 0.35)',
+  },
+  resetMessage: {
+    fontSize: '13px',
+    fontWeight: '600',
   },
   addForm: {
     background: 'rgba(255, 255, 255, 0.1)',
