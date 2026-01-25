@@ -3,7 +3,7 @@ const { User } = require('../config/database');
 const { UnauthorizedError } = require('../middleware/errorHandler');
 
 const FREE_MONTHLY_CALCULATIONS = 3;
-const UNLIMITED_EMAILS = new Set(['cartercedrick@gmail.com']);
+const UNLIMITED_EMAILS = new Set(['cartercedrick35@gmail.com']);
 
 const isSameMonth = (dateA, dateB) => (
   dateA.getFullYear() === dateB.getFullYear()

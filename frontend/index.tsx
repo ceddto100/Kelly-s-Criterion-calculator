@@ -1037,6 +1037,8 @@ function ProbabilityEstimator({
   const [showFreeCalcModal, setShowFreeCalcModal] = useState(false);
   const [freeCalculationsLeft, setFreeCalculationsLeft] = useState<number | null>(null);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
+  const resultsRef = React.useRef<HTMLDivElement | null>(null);
+  const modalRef = React.useRef<HTMLDivElement | null>(null);
 
   const isFormValid = useMemo(() => {
     const current = activeSport === CONSTANTS.SPORTS.FOOTBALL ? footballStats : basketballStats;
@@ -1142,6 +1144,21 @@ function ProbabilityEstimator({
       setExpectedDiff(null);
     }
   };
+
+  useEffect(() => {
+    if (calculatedProb === null || !resultsRef.current) return;
+    requestAnimationFrame(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [calculatedProb]);
+
+  useEffect(() => {
+    if (!showFreeCalcModal || !modalRef.current) return;
+    requestAnimationFrame(() => {
+      modalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      modalRef.current?.focus();
+    });
+  }, [showFreeCalcModal]);
 
   const handleUpgrade = async () => {
     setIsUpgradeLoading(true);
@@ -1384,7 +1401,7 @@ function ProbabilityEstimator({
       </div>
 
       {calculatedProb !== null && (
-        <div className="results" role="status" aria-live="polite">
+        <div ref={resultsRef} className="results" role="status" aria-live="polite">
           <p>Estimated Cover Probability</p>
           <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
           <div className="matchup-result-stats">
@@ -1405,7 +1422,7 @@ function ProbabilityEstimator({
 
       {showFreeCalcModal && (
         <div style={styles.freeCalcOverlay} role="dialog" aria-live="polite">
-          <div style={styles.freeCalcModal}>
+          <div style={styles.freeCalcModal} tabIndex={-1} ref={modalRef}>
             <div style={styles.freeCalcBadge}>✨ Free Core Preview</div>
             <h3 style={styles.freeCalcTitle}>You have {freeCalculationsLeft ?? 0} free probability checks left</h3>
             <p style={styles.freeCalcDescription}>

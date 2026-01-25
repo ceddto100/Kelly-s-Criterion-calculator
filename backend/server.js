@@ -26,6 +26,7 @@ const { ensureAuthenticated } = require('./middleware/auth');
 // Import routes
 const authRoutes = require('./routes/auth');
 const betsRoutes = require('./routes/bets');
+const adminRoutes = require('./routes/admin');
 const stripeRoutes = require('./routes/stripe');
 
 // Sports Scraper Routes
@@ -527,6 +528,7 @@ app.get('/api/admin/stats', asyncHandler(async (req, res) => {
 // Mount authentication routes
 app.use('/auth', authRoutes);
 app.use('/api/bets', betsRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/stripe', stripeRoutes);
 
 // Protected Dashboard Route - displays logged-in user information
