@@ -26,6 +26,8 @@ const { ensureAuthenticated } = require('./middleware/auth');
 // Import routes
 const authRoutes = require('./routes/auth');
 const betsRoutes = require('./routes/bets');
+const adminRoutes = require('./routes/admin');
+const stripeRoutes = require('./routes/stripe');
 
 // Sports Scraper Routes
 const offense = require('./scrapers/offense');
@@ -47,7 +49,10 @@ const requiredEnvVars = [
   'GEMINI_API_KEY',
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
-  'FRONTEND_URL'
+  'FRONTEND_URL',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_PRICE_CORE',
+  'STRIPE_WEBHOOK_SECRET'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
@@ -75,9 +80,26 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'x-user-id', 'x-admin-key']
 }));
 
-// Body parser with size limit
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Stripe webhook requires raw body for signature verification
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
+// Body parser with size limit (skip for Stripe webhook raw body)
+const jsonParser = express.json({ limit: '10mb' });
+const urlencodedParser = express.urlencoded({ extended: true, limit: '10mb' });
+
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/stripe/webhook') {
+    return next();
+  }
+  return jsonParser(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/stripe/webhook') {
+    return next();
+  }
+  return urlencodedParser(req, res, next);
+});
 
 // ==================== SESSION & AUTHENTICATION ====================
 // Session configuration for Google OAuth
@@ -506,6 +528,8 @@ app.get('/api/admin/stats', asyncHandler(async (req, res) => {
 // Mount authentication routes
 app.use('/auth', authRoutes);
 app.use('/api/bets', betsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Protected Dashboard Route - displays logged-in user information
 app.get('/dashboard', ensureAuthenticated, (req, res) => {
