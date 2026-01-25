@@ -5,7 +5,7 @@ const { asyncHandler, UnauthorizedError } = require('../middleware/errorHandler'
 
 const router = express.Router();
 
-const ADMIN_EMAIL = 'cartercedric35@gmail.com';
+const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
 
 router.post(
   '/reset-free-calculations',
