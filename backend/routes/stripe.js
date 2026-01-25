@@ -1,13 +1,11 @@
 const express = require('express');
-const Stripe = require('stripe');
 const { User } = require('../config/database');
 const { asyncHandler, logger } = require('../middleware/errorHandler');
 const { ensureAuthenticated } = require('../middleware/auth');
+const { stripe, getPriceIdForTier } = require('../config/stripe');
 
 const router = express.Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://betgistics.com';
 const SUBSCRIPTION_TIER = 'core_access';
 
@@ -23,10 +21,6 @@ router.post(
   '/create-checkout-session',
   ensureAuthenticated,
   asyncHandler(async (req, res) => {
-    if (!STRIPE_PRICE_ID) {
-      return res.status(500).json({ error: 'Stripe price ID is not configured' });
-    }
-
     const email = req.user?.email;
 
     if (!email) {
@@ -39,9 +33,11 @@ router.post(
       return res.status(404).json({ error: 'User account not found' });
     }
 
+    const priceId = getPriceIdForTier(SUBSCRIPTION_TIER);
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       customer_email: user.email,
       success_url: `${FRONTEND_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${FRONTEND_URL}/?checkout=cancelled`,
@@ -59,7 +55,7 @@ router.post(
       }
     });
 
-    return res.json({ url: session.url });
+    return res.json({ url: session.url, sessionId: session.id });
   })
 );
 
