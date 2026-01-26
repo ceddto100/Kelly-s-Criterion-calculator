@@ -1652,14 +1652,16 @@ function ProbabilityEstimator({
         <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid} style={{flex:'1'}}>
           Calculate Probability
         </button>
-        <button
-          className="btn-secondary"
-          onClick={handleSwap}
-          style={{flex:'0 0 auto', minWidth:'150px'}}
-          title="Swap team and opponent values to see probability from the other perspective"
-        >
-          ⇄ Swap Teams
-        </button>
+        {activeSport !== CONSTANTS.SPORTS.HOCKEY && (
+          <button
+            className="btn-secondary"
+            onClick={handleSwap}
+            style={{flex:'0 0 auto', minWidth:'150px'}}
+            title="Swap team and opponent values to see probability from the other perspective"
+          >
+            ⇄ Swap Teams
+          </button>
+        )}
       </div>
 
       {calculatedProb !== null && (
