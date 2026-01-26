@@ -9,7 +9,7 @@ interface StatsPageProps {}
 type SortDirection = 'asc' | 'desc' | null;
 
 export const StatsPage: React.FC<StatsPageProps> = () => {
-  const [sport, setSport] = useState<'NBA' | 'NFL'>('NBA');
+  const [sport, setSport] = useState<'NBA' | 'NFL' | 'NHL'>('NBA');
   const [statCategory, setStatCategory] = useState<string>('ppg');
   const [statsData, setStatsData] = useState<StatsData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,17 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
     { id: 'turnover', label: 'Turnover Differential', file: '/stats/nfl/nfl_turnover_diff.csv', higherIsBetter: true },
   ];
 
-  const categories = sport === 'NBA' ? nbaCategories : nflCategories;
+  const nhlCategories = [
+    { id: 'xgf60', label: 'xGF/60 (Expected Goals For)', file: '/stats/nhl/nhl_xgf60.csv', higherIsBetter: true },
+    { id: 'xga60', label: 'xGA/60 (Expected Goals Against)', file: '/stats/nhl/nhl_xga60.csv', higherIsBetter: false },
+    { id: 'gsax60', label: 'GSAx/60 (Goals Saved Above Expected)', file: '/stats/nhl/nhl_gsax60.csv', higherIsBetter: true },
+    { id: 'hdcf60', label: 'HDCF/60 (High Danger Chances For)', file: '/stats/nhl/nhl_hdcf60.csv', higherIsBetter: true },
+    { id: 'pp', label: 'Power Play %', file: '/stats/nhl/nhl_pp.csv', higherIsBetter: true },
+    { id: 'pk', label: 'Penalty Kill %', file: '/stats/nhl/nhl_pk.csv', higherIsBetter: true },
+    { id: 'times_shorthanded', label: 'Times Shorthanded/Game', file: '/stats/nhl/nhl_times_shorthanded.csv', higherIsBetter: false },
+  ];
+
+  const categories = sport === 'NBA' ? nbaCategories : sport === 'NFL' ? nflCategories : nhlCategories;
   const currentCategory = categories.find((c) => c.id === statCategory);
 
   useEffect(() => {
@@ -236,6 +246,18 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
             }}
           >
             🏈 NFL
+          </button>
+          <button
+            onClick={() => {
+              setSport('NHL');
+              setStatCategory('xgf60');
+            }}
+            style={{
+              ...styles.sportButton,
+              ...(sport === 'NHL' ? styles.sportButtonActive : {}),
+            }}
+          >
+            🏒 NHL
           </button>
         </div>
 
