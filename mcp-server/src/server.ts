@@ -34,6 +34,11 @@ import {
   handleBasketballProbability
 } from './tools/probability.js';
 import {
+  hockeyProbabilityToolDefinition,
+  hockeyProbabilityInputSchema,
+  handleHockeyProbability
+} from './tools/hockeyProbability.js';
+import {
   aiProbabilityToolDefinition,
   matchupAnalysisToolDefinition,
   aiProbabilityInputSchema,
@@ -221,6 +226,27 @@ function createMcpServer(): McpServer {
       log('Tool called:', basketballProbabilityToolDefinition.name, params);
       try {
         const result = await handleBasketballProbability(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    hockeyProbabilityToolDefinition.name,
+    hockeyProbabilityToolDefinition.description,
+    hockeyProbabilityInputSchema.shape,
+    async (params) => {
+      log('Tool called:', hockeyProbabilityToolDefinition.name, params);
+      try {
+        const result = await handleHockeyProbability(params);
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
         };
@@ -819,6 +845,7 @@ async function start() {
     console.log('  - kelly_calculate');
     console.log('  - estimate_football_probability');
     console.log('  - estimate_basketball_probability');
+    console.log('  - estimate_hockey_probability');
     console.log('  - ai_estimate_probability');
     console.log('  - ai_analyze_matchup');
     console.log('  - log_bet');
