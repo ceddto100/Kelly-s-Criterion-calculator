@@ -975,11 +975,17 @@ export const initialHockeyState = {
   homeXga60: '',      // Expected Goals Against per 60
   homeGsax60: '',     // Goalie Goals Saved Above Expected per 60
   homeHdcf60: '',     // High Danger Chances For per 60
+  homePP: '',         // Power Play Percentage
+  homePK: '',         // Penalty Kill Percentage
+  homeTimesShorthanded: '',  // Times Shorthanded Per Game
   // Away team stats
   awayXgf60: '',
   awayXga60: '',
   awayGsax60: '',
   awayHdcf60: '',
+  awayPP: '',         // Power Play Percentage
+  awayPK: '',         // Penalty Kill Percentage
+  awayTimesShorthanded: '',  // Times Shorthanded Per Game
   // Team names
   teamAName: '', teamBName: '',
 };
