@@ -101,58 +101,23 @@ export const SEO_CONFIG = {
       url: 'https://betgistics.com/#estimator',
     },
   },
-  nba_matchup: {
-    title: 'NBA Matchup Analysis Tool',
-    description: 'Compare NBA teams head-to-head with detailed statistics including PPG, points allowed, field goal percentage, rebound margin, and turnover differential. Make data-driven betting decisions.',
-    keywords: 'NBA matchup, NBA team comparison, NBA statistics, basketball analytics, NBA betting tool, team stats NBA, NBA game analysis, basketball matchup predictor',
-    canonical: 'https://betgistics.com/#matchup',
+  sports_matchup: {
+    title: 'Sports Matchup Analysis - NBA, NFL & NHL',
+    description: 'Compare teams head-to-head across NBA, NFL, and NHL with detailed statistics. Analyze PPG, defensive stats, field goal percentage, expected goals (xG), and more for data-driven betting decisions.',
+    keywords: 'NBA matchup, NFL matchup, NHL matchup, team comparison, sports statistics, basketball analytics, football analytics, hockey analytics, betting tool, game analysis, matchup predictor',
+    canonical: 'https://betgistics.com/#sports_matchup',
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'NBA Matchup Analysis',
-      description: 'Advanced NBA team comparison tool with comprehensive statistics for informed betting decisions.',
-      url: 'https://betgistics.com/#matchup',
-      about: {
-        '@type': 'SportsEvent',
-        name: 'NBA Basketball Games',
-        sport: 'Basketball',
-      },
-    },
-  },
-  nfl_matchup: {
-    title: 'NFL Matchup Analysis Tool',
-    description: 'Compare NFL teams with in-depth statistics including offensive yards, defensive yards, points per game, points allowed, and turnover differential. Analyze football matchups for smarter betting.',
-    keywords: 'NFL matchup, NFL team comparison, NFL statistics, football analytics, NFL betting tool, team stats NFL, NFL game analysis, football matchup predictor',
-    canonical: 'https://betgistics.com/#nfl_matchup',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: 'NFL Matchup Analysis',
-      description: 'Advanced NFL team comparison tool with comprehensive statistics for informed betting decisions.',
-      url: 'https://betgistics.com/#nfl_matchup',
-      about: {
-        '@type': 'SportsEvent',
-        name: 'NFL Football Games',
-        sport: 'American Football',
-      },
-    },
-  },
-  nhl_matchup: {
-    title: 'NHL Matchup & Over/Under Predictor',
-    description: 'Predict NHL game totals using advanced analytics including Expected Goals (xGF/xGA), Goalie Save Percentage Above Expected (GSAx), and High Danger Chances (HDCF). Make smarter hockey over/under bets.',
-    keywords: 'NHL matchup, NHL predictions, hockey over under, NHL expected goals, xGF xGA, GSAx, high danger chances, NHL betting tool, hockey analytics, NHL game totals',
-    canonical: 'https://betgistics.com/#nhl_matchup',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: 'NHL Matchup Over/Under Predictor',
-      description: 'Advanced NHL game total prediction tool using expected goals, goalie analytics, and pace metrics.',
-      url: 'https://betgistics.com/#nhl_matchup',
-      about: {
-        '@type': 'SportsEvent',
-        name: 'NHL Hockey Games',
-        sport: 'Ice Hockey',
-      },
+      name: 'Sports Matchup Analysis',
+      description: 'Advanced team comparison tool for NBA, NFL, and NHL with comprehensive statistics for informed betting decisions.',
+      url: 'https://betgistics.com/#sports_matchup',
+      about: [
+        {
+          '@type': 'SportsOrganization',
+          name: 'NBA, NFL, NHL Sports Leagues',
+        },
+      ],
     },
   },
   bet_history: {
