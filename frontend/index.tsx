@@ -1069,6 +1069,7 @@ function ProbabilityEstimator({
   const [showFreeCalcModal, setShowFreeCalcModal] = useState(false);
   const [freeCalculationsLeft, setFreeCalculationsLeft] = useState<number | null>(null);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
+  const [isOverBet, setIsOverBet] = useState(true); // true = Over, false = Under
   const resultsRef = React.useRef<HTMLDivElement | null>(null);
   const modalRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -1219,7 +1220,10 @@ function ProbabilityEstimator({
         const z = (projectedTotal - line) / sigma;
         const overProb = normCdf(z) * 100;
 
-        setCalculatedProb(overProb);
+        // Calculate final probability based on user's Over/Under selection
+        const finalProb = isOverBet ? overProb : (100 - overProb);
+
+        setCalculatedProb(finalProb);
         setExpectedDiff(projectedTotal);
       } else {
         // Football/Basketball spread calculation
@@ -1558,6 +1562,73 @@ function ProbabilityEstimator({
         )}
       </Suspense>
 
+      {/* Over/Under Toggle for NHL */}
+      {activeSport === CONSTANTS.SPORTS.HOCKEY && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '1rem'
+        }}>
+          <button
+            type="button"
+            onClick={() => setIsOverBet(true)}
+            style={{
+              flex: '1',
+              maxWidth: '140px',
+              padding: '0.85rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: 700,
+              borderRadius: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.25s ease',
+              border: 'none',
+              background: isOverBet
+                ? 'var(--accent-gradient)'
+                : 'var(--glass-surface)',
+              color: 'var(--text-primary)',
+              boxShadow: isOverBet
+                ? '0 8px 24px rgba(59, 130, 246, 0.35)'
+                : 'none'
+            }}
+          >
+            OVER
+          </button>
+          <span style={{
+            color: 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '0.95rem'
+          }}>
+            OR
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsOverBet(false)}
+            style={{
+              flex: '1',
+              maxWidth: '140px',
+              padding: '0.85rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: 700,
+              borderRadius: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.25s ease',
+              border: 'none',
+              background: !isOverBet
+                ? 'var(--accent-gradient)'
+                : 'var(--glass-surface)',
+              color: 'var(--text-primary)',
+              boxShadow: !isOverBet
+                ? '0 8px 24px rgba(59, 130, 246, 0.35)'
+                : 'none'
+            }}
+          >
+            UNDER
+          </button>
+        </div>
+      )}
+
       <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
         <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid} style={{flex:'1'}}>
           Calculate Probability
@@ -1574,7 +1645,7 @@ function ProbabilityEstimator({
 
       {calculatedProb !== null && (
         <div ref={resultsRef} className="results" role="status" aria-live="polite">
-          <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Estimated Over Probability' : 'Estimated Cover Probability'}</p>
+          <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? `Estimated ${isOverBet ? 'Over' : 'Under'} Probability` : 'Estimated Cover Probability'}</p>
           <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
           <div className="matchup-result-stats">
             <div className="matchup-result-value">
