@@ -1182,11 +1182,12 @@ function ProbabilityEstimator({
       }
 
       if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
-        // NHL Over/Under calculation
+        // NHL Over/Under calculation using complete 4-step algorithm
         const line = parseFloat(totalGoalsLine);
         if (Number.isNaN(line)) throw new Error('Invalid total goals line');
 
-        // Parse hockey stats
+        // Parse all hockey stats (14 total: 7 per team)
+        // Core stats
         const H_xGF = parseFloat(hockeyStats.homeXgf60) || 0;
         const H_xGA = parseFloat(hockeyStats.homeXga60) || 0;
         const A_xGF = parseFloat(hockeyStats.awayXgf60) || 0;
@@ -1195,30 +1196,48 @@ function ProbabilityEstimator({
         const A_GSAx = parseFloat(hockeyStats.awayGsax60) || 0;
         const H_HDCF = parseFloat(hockeyStats.homeHdcf60) || 0;
         const A_HDCF = parseFloat(hockeyStats.awayHdcf60) || 0;
-        const HDC_sum = H_HDCF + A_HDCF;
+        // Special teams stats
+        const H_PP = parseFloat(hockeyStats.homePP) || 0;
+        const H_PK = parseFloat(hockeyStats.homePK) || 0;
+        const H_TimesShorthanded = parseFloat(hockeyStats.homeTimesShorthanded) || 0;
+        const A_PP = parseFloat(hockeyStats.awayPP) || 0;
+        const A_PK = parseFloat(hockeyStats.awayPK) || 0;
+        const A_TimesShorthanded = parseFloat(hockeyStats.awayTimesShorthanded) || 0;
 
         // Step 1: Calculate Projected Home Goals
+        // Home_Score = ((Home_xGF + Away_xGA) / 2) - Away_Goalie_GSAx
         const projectedHomeGoals = (H_xGF + A_xGA) / 2 - A_GSAx;
 
         // Step 2: Calculate Projected Away Goals
+        // Away_Score = ((Away_xGF + Home_xGA) / 2) - Home_Goalie_GSAx
         const projectedAwayGoals = (A_xGF + H_xGA) / 2 - H_GSAx;
 
-        // Step 3: Pace Adjustment
-        let paceAdjustment = 0;
-        if (HDC_sum > 24) {
-          paceAdjustment = (HDC_sum - 24) * 0.05;
-        } else if (HDC_sum < 22) {
-          paceAdjustment = (HDC_sum - 22) * 0.03;
+        // Step 3: Pace Adjustment based on combined HDCF
+        const HDC_sum = H_HDCF + A_HDCF;
+        const paceAdjustment = HDC_sum > 25 ? 0.25 : 0;
+
+        // Step 4: Special Teams Mismatch Adjustment
+        // Home Advantage: IF (Home_PP + (100 - Away_PK)) * Away_Times_Shorthanded > 150
+        // Away Advantage: IF (Away_PP + (100 - Home_PK)) * Home_Times_Shorthanded > 150
+        let specialTeamsAdjustment = 0;
+        const homeSpecialTeamsScore = (H_PP + (100 - A_PK)) * A_TimesShorthanded;
+        if (homeSpecialTeamsScore > 150) {
+          specialTeamsAdjustment += 0.35;
+        }
+        const awaySpecialTeamsScore = (A_PP + (100 - H_PK)) * H_TimesShorthanded;
+        if (awaySpecialTeamsScore > 150) {
+          specialTeamsAdjustment += 0.35;
         }
 
-        // Step 4: Final Total
-        const projectedTotal = Math.max(0, projectedHomeGoals + projectedAwayGoals + paceAdjustment);
+        // Step 5: Final Total
+        const projectedTotal = Math.max(0, projectedHomeGoals + projectedAwayGoals + paceAdjustment + specialTeamsAdjustment);
 
         // Calculate over probability using normal CDF
-        // Standard deviation for NHL totals is approximately 1.2 goals
-        const sigma = 1.2;
+        // Standard deviation based on sqrt of projected total (Poisson-like variance)
+        const sigma = Math.sqrt(projectedTotal);
         const z = (projectedTotal - line) / sigma;
-        const overProb = normCdf(z) * 100;
+        // 1 - CDF gives probability of going OVER the line
+        const overProb = (1 - normCdf(z)) * 100;
 
         // Calculate final probability based on user's Over/Under selection
         const finalProb = isOverBet ? overProb : (100 - overProb);
