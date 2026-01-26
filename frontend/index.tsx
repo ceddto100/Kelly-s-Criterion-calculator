@@ -1236,8 +1236,8 @@ function ProbabilityEstimator({
         // Standard deviation based on sqrt of projected total (Poisson-like variance)
         const sigma = Math.sqrt(projectedTotal);
         const z = (projectedTotal - line) / sigma;
-        // 1 - CDF gives probability of going OVER the line
-        const overProb = (1 - normCdf(z)) * 100;
+        // CDF gives probability of going OVER when projected > line
+        const overProb = normCdf(z) * 100;
 
         // Calculate final probability based on user's Over/Under selection
         const finalProb = isOverBet ? overProb : (100 - overProb);
