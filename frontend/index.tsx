@@ -1132,7 +1132,9 @@ function ProbabilityEstimator({
       // Hockey
       setHockeyStats({
         homeXgf60: '2.95', homeXga60: '2.55', homeGsax60: '0.12', homeHdcf60: '12.8',
+        homePP: '26.8', homePK: '81.3', homeTimesShorthanded: '2.9',
         awayXgf60: '2.78', awayXga60: '2.72', awayGsax60: '-0.05', awayHdcf60: '11.5',
+        awayPP: '28.5', awayPK: '79.8', awayTimesShorthanded: '3.2',
         teamAName: 'COL', teamBName: 'EDM'
       });
       setTotalGoalsLine('5.5');
