@@ -12,6 +12,9 @@ interface NHLTeamStats {
   xga60: number;      // Expected Goals Against per 60 minutes
   gsax60: number;     // Goalie Goals Saved Above Expected per 60 minutes
   hdcf60: number;     // High Danger Chances For per 60 minutes
+  pp: number;         // Power Play Percentage
+  pk: number;         // Penalty Kill Percentage
+  timesShorthanded: number;  // Times Shorthanded Per Game
 }
 
 // Parse CSV string into array of objects
@@ -76,11 +79,14 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
       try {
         console.log('Loading NHL stats from /stats/nhl/...');
 
-        const [xgfRes, xgaRes, gsaxRes, hdcfRes] = await Promise.all([
+        const [xgfRes, xgaRes, gsaxRes, hdcfRes, ppRes, pkRes, tsRes] = await Promise.all([
           fetch('/stats/nhl/nhl_xgf60.csv'),
           fetch('/stats/nhl/nhl_xga60.csv'),
           fetch('/stats/nhl/nhl_gsax60.csv'),
           fetch('/stats/nhl/nhl_hdcf60.csv'),
+          fetch('/stats/nhl/nhl_pp.csv'),
+          fetch('/stats/nhl/nhl_pk.csv'),
+          fetch('/stats/nhl/nhl_times_shorthanded.csv'),
         ]);
 
         // Check if any fetch failed
@@ -88,12 +94,18 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
         if (!xgaRes.ok) throw new Error(`Failed to fetch xGA stats: ${xgaRes.status}`);
         if (!gsaxRes.ok) throw new Error(`Failed to fetch GSAx stats: ${gsaxRes.status}`);
         if (!hdcfRes.ok) throw new Error(`Failed to fetch HDCF stats: ${hdcfRes.status}`);
+        if (!ppRes.ok) throw new Error(`Failed to fetch PP stats: ${ppRes.status}`);
+        if (!pkRes.ok) throw new Error(`Failed to fetch PK stats: ${pkRes.status}`);
+        if (!tsRes.ok) throw new Error(`Failed to fetch Times Shorthanded stats: ${tsRes.status}`);
 
-        const [xgfCsv, xgaCsv, gsaxCsv, hdcfCsv] = await Promise.all([
+        const [xgfCsv, xgaCsv, gsaxCsv, hdcfCsv, ppCsv, pkCsv, tsCsv] = await Promise.all([
           xgfRes.text(),
           xgaRes.text(),
           gsaxRes.text(),
           hdcfRes.text(),
+          ppRes.text(),
+          pkRes.text(),
+          tsRes.text(),
         ]);
 
         console.log('CSV files loaded, parsing...');
@@ -102,10 +114,16 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
         const xgaData = parseCsv(xgaCsv);
         const gsaxData = parseCsv(gsaxCsv);
         const hdcfData = parseCsv(hdcfCsv);
+        const ppData = parseCsv(ppCsv);
+        const pkData = parseCsv(pkCsv);
+        const tsData = parseCsv(tsCsv);
 
         const xgaMap = new Map(xgaData.map(d => [d.abbreviation, d.xga60]));
         const gsaxMap = new Map(gsaxData.map(d => [d.abbreviation, d.gsax60]));
         const hdcfMap = new Map(hdcfData.map(d => [d.abbreviation, d.hdcf60]));
+        const ppMap = new Map(ppData.map(d => [d.abbreviation, d.pp]));
+        const pkMap = new Map(pkData.map(d => [d.abbreviation, d.pk]));
+        const tsMap = new Map(tsData.map(d => [d.abbreviation, d.times_shorthanded]));
 
         const teams = xgfData.map(team => ({
           team: team.team as string,
@@ -114,6 +132,9 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
           xga60: (xgaMap.get(team.abbreviation) as number) || 0,
           gsax60: (gsaxMap.get(team.abbreviation) as number) || 0,
           hdcf60: (hdcfMap.get(team.abbreviation) as number) || 0,
+          pp: (ppMap.get(team.abbreviation) as number) || 0,
+          pk: (pkMap.get(team.abbreviation) as number) || 0,
+          timesShorthanded: (tsMap.get(team.abbreviation) as number) || 0,
         }));
 
         console.log(`Loaded ${teams.length} NHL teams`);
@@ -360,12 +381,18 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
 - xGA/60: ${homeTeam.xga60.toFixed(2)}
 - GSAx/60: ${formatSign(homeTeam.gsax60)}
 - HDCF/60: ${homeTeam.hdcf60.toFixed(1)}
+- PP%: ${homeTeam.pp.toFixed(1)}%
+- PK%: ${homeTeam.pk.toFixed(1)}%
+- Times Shorthanded/Game: ${homeTeam.timesShorthanded.toFixed(1)}
 
 **${awayTeam.team} (${awayTeam.abbreviation}) - AWAY**
 - xGF/60: ${awayTeam.xgf60.toFixed(2)}
 - xGA/60: ${awayTeam.xga60.toFixed(2)}
 - GSAx/60: ${formatSign(awayTeam.gsax60)}
 - HDCF/60: ${awayTeam.hdcf60.toFixed(1)}
+- PP%: ${awayTeam.pp.toFixed(1)}%
+- PK%: ${awayTeam.pk.toFixed(1)}%
+- Times Shorthanded/Game: ${awayTeam.timesShorthanded.toFixed(1)}
 
 Click "Transfer to Estimator" to calculate over/under probability.
 `;
@@ -402,10 +429,16 @@ Click "Transfer to Estimator" to calculate over/under probability.
         homeXga60: stats.homeTeam.xga60,
         homeGsax60: stats.homeTeam.gsax60,
         homeHdcf60: stats.homeTeam.hdcf60,
+        homePP: stats.homeTeam.pp,
+        homePK: stats.homeTeam.pk,
+        homeTimesShorthanded: stats.homeTeam.timesShorthanded,
         awayXgf60: stats.awayTeam.xgf60,
         awayXga60: stats.awayTeam.xga60,
         awayGsax60: stats.awayTeam.gsax60,
         awayHdcf60: stats.awayTeam.hdcf60,
+        awayPP: stats.awayTeam.pp,
+        awayPK: stats.awayTeam.pk,
+        awayTimesShorthanded: stats.awayTeam.timesShorthanded,
         homeTeamName: stats.homeTeam.abbreviation,
         awayTeamName: stats.awayTeam.abbreviation,
       });
