@@ -5,10 +5,16 @@ export type HockeyStats = {
   homeXga60: string;      // Home Expected Goals Against per 60
   homeGsax60: string;     // Home Goalie GSAx per 60
   homeHdcf60: string;     // Home High Danger Chances For per 60
+  homePP: string;         // Home Power Play Percentage
+  homePK: string;         // Home Penalty Kill Percentage
+  homeTimesShorthanded: string;  // Home Times Shorthanded Per Game
   awayXgf60: string;      // Away Expected Goals For per 60
   awayXga60: string;      // Away Expected Goals Against per 60
   awayGsax60: string;     // Away Goalie GSAx per 60
   awayHdcf60: string;     // Away High Danger Chances For per 60
+  awayPP: string;         // Away Power Play Percentage
+  awayPK: string;         // Away Penalty Kill Percentage
+  awayTimesShorthanded: string;  // Away Times Shorthanded Per Game
   teamAName?: string;
   teamBName?: string;
 };
@@ -111,6 +117,54 @@ export default function HockeyEstimator({ stats, onChange }: Props) {
         name="awayHdcf60"
         value={stats.awayHdcf60}
         placeholder="11.8"
+        teamName={stats.teamBName}
+        step="0.1"
+      />
+
+      <span>PP% (Power Play Percentage)</span>
+      <InputWithTeamLabel
+        name="homePP"
+        value={stats.homePP}
+        placeholder="22.5"
+        teamName={stats.teamAName}
+        step="0.1"
+      />
+      <InputWithTeamLabel
+        name="awayPP"
+        value={stats.awayPP}
+        placeholder="20.0"
+        teamName={stats.teamBName}
+        step="0.1"
+      />
+
+      <span>PK% (Penalty Kill Percentage)</span>
+      <InputWithTeamLabel
+        name="homePK"
+        value={stats.homePK}
+        placeholder="80.5"
+        teamName={stats.teamAName}
+        step="0.1"
+      />
+      <InputWithTeamLabel
+        name="awayPK"
+        value={stats.awayPK}
+        placeholder="78.0"
+        teamName={stats.teamBName}
+        step="0.1"
+      />
+
+      <span>Times Shorthanded/Game</span>
+      <InputWithTeamLabel
+        name="homeTimesShorthanded"
+        value={stats.homeTimesShorthanded}
+        placeholder="3.2"
+        teamName={stats.teamAName}
+        step="0.1"
+      />
+      <InputWithTeamLabel
+        name="awayTimesShorthanded"
+        value={stats.awayTimesShorthanded}
+        placeholder="3.0"
         teamName={stats.teamBName}
         step="0.1"
       />
