@@ -468,7 +468,7 @@ function parseOdds(text: string): number | null {
 export function parseMatchupRequest(text: string): ParsingResult {
   const notes: string[] = [];
   const normalizedLower = text.toLowerCase();
-  const explicitSportMentioned = /\b(nfl|nba|cfb|cbb|college football|ncaa football|college basketball|ncaa basketball|march madness)\b/.test(normalizedLower);
+  const explicitSportMentioned = /\b(nfl|nba|nhl|hockey|cfb|cbb|college football|ncaa football|college basketball|ncaa basketball|march madness)\b/.test(normalizedLower);
 
   // 1. Detect sport
   const detectedSport = detectSport(text);
@@ -497,7 +497,7 @@ export function parseMatchupRequest(text: string): ParsingResult {
       const inferredSport =
         sport ?? (resolvedA.resolved.sport === resolvedB.resolved.sport ? resolvedA.resolved.sport : undefined);
       if (!inferredSport) {
-        resolutionErrors.push('Could not determine sport from teams. Please specify NFL, NBA, CFB, or CBB.');
+        resolutionErrors.push('Could not determine sport from teams. Please specify NFL, NBA, NHL, CFB, or CBB.');
         continue;
       }
 
