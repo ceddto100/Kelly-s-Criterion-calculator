@@ -65,6 +65,13 @@ describe('Team Recognition', () => {
       const result = findMatchupTeams('Philly vs Dallas', 'NFL');
       expect(result).not.toBeNull();
     });
+
+    it('should find NHL teams from matchup text', () => {
+      const result = findMatchupTeams('Bruins vs Leafs', 'NHL');
+      expect(result).not.toBeNull();
+      expect(['Bruins', 'Maple Leafs']).toContain(result?.teamA.name);
+      expect(['Bruins', 'Maple Leafs']).toContain(result?.teamB.name);
+    });
   });
 });
 
@@ -81,6 +88,10 @@ describe('Sport Detection', () => {
     expect(detectSport('NBA: Heat vs Hawks')).toBe('NBA');
   });
 
+  it('should detect NHL from explicit mention', () => {
+    expect(detectSport('NHL: Rangers vs Islanders')).toBe('NHL');
+  });
+
   it('should detect CFB from college football mention', () => {
     expect(detectSport('college football game today')).toBe('CFB');
   });
@@ -95,6 +106,10 @@ describe('Sport Detection', () => {
 
   it('should detect sport from NBA team names', () => {
     expect(detectSport('Lakers vs Celtics tonight')).toBe('NBA');
+  });
+
+  it('should detect sport from NHL team names', () => {
+    expect(detectSport('Canadiens vs Bruins tonight')).toBe('NHL');
   });
 });
 

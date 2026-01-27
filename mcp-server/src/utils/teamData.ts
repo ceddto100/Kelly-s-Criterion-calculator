@@ -2,11 +2,11 @@
  * Team Data and Recognition Utilities
  *
  * Comprehensive database of team names, aliases, abbreviations, and home venues
- * for NFL, NBA, CFB, and CBB. Used for natural language parsing of betting requests.
+ * for NFL, NBA, NHL, CFB, and CBB. Used for natural language parsing of betting requests.
  */
 
-export type Sport = 'NFL' | 'NBA' | 'CFB' | 'CBB';
-export type SportCategory = 'football' | 'basketball';
+export type Sport = 'NFL' | 'NBA' | 'NHL' | 'CFB' | 'CBB';
+export type SportCategory = 'football' | 'basketball' | 'hockey';
 
 export interface TeamInfo {
   name: string;           // Official team name
@@ -135,6 +135,45 @@ export const NBA_TEAMS: TeamInfo[] = [
 ];
 
 // ============================================================================
+// NHL TEAMS
+// ============================================================================
+
+export const NHL_TEAMS: TeamInfo[] = [
+  { name: 'Ducks', city: 'Anaheim', abbreviation: 'ANA', aliases: ['anaheim', 'ducks', 'ana', 'mighty ducks'], homeVenue: 'Honda Center', homeCity: 'Anaheim' },
+  { name: 'Bruins', city: 'Boston', abbreviation: 'BOS', aliases: ['boston', 'bruins', 'bos'], homeVenue: 'TD Garden', homeCity: 'Boston' },
+  { name: 'Sabres', city: 'Buffalo', abbreviation: 'BUF', aliases: ['buffalo', 'sabres', 'sabre', 'buf'], homeVenue: 'KeyBank Center', homeCity: 'Buffalo' },
+  { name: 'Flames', city: 'Calgary', abbreviation: 'CGY', aliases: ['calgary', 'flames', 'cgy'], homeVenue: 'Scotiabank Saddledome', homeCity: 'Calgary' },
+  { name: 'Hurricanes', city: 'Carolina', abbreviation: 'CAR', aliases: ['carolina', 'hurricanes', 'canes', 'car'], homeVenue: 'Lenovo Center', homeCity: 'Raleigh' },
+  { name: 'Blackhawks', city: 'Chicago', abbreviation: 'CHI', aliases: ['chicago', 'blackhawks', 'hawks', 'chi'], homeVenue: 'United Center', homeCity: 'Chicago' },
+  { name: 'Avalanche', city: 'Colorado', abbreviation: 'COL', aliases: ['colorado', 'avalanche', 'avs', 'col'], homeVenue: 'Ball Arena', homeCity: 'Denver' },
+  { name: 'Blue Jackets', city: 'Columbus', abbreviation: 'CBJ', aliases: ['columbus', 'blue jackets', 'jackets', 'cbj'], homeVenue: 'Nationwide Arena', homeCity: 'Columbus' },
+  { name: 'Stars', city: 'Dallas', abbreviation: 'DAL', aliases: ['dallas', 'stars', 'dal'], homeVenue: 'American Airlines Center', homeCity: 'Dallas' },
+  { name: 'Red Wings', city: 'Detroit', abbreviation: 'DET', aliases: ['detroit', 'red wings', 'wings', 'det'], homeVenue: 'Little Caesars Arena', homeCity: 'Detroit' },
+  { name: 'Oilers', city: 'Edmonton', abbreviation: 'EDM', aliases: ['edmonton', 'oilers', 'edm'], homeVenue: 'Rogers Place', homeCity: 'Edmonton' },
+  { name: 'Panthers', city: 'Florida', abbreviation: 'FLA', aliases: ['florida', 'panthers', 'cats', 'fla'], homeVenue: 'Amerant Bank Arena', homeCity: 'Sunrise' },
+  { name: 'Kings', city: 'Los Angeles', abbreviation: 'LAK', aliases: ['los angeles', 'la kings', 'kings', 'lak'], homeVenue: 'Crypto.com Arena', homeCity: 'Los Angeles' },
+  { name: 'Wild', city: 'Minnesota', abbreviation: 'MIN', aliases: ['minnesota', 'wild', 'min'], homeVenue: 'Xcel Energy Center', homeCity: 'St. Paul' },
+  { name: 'Canadiens', city: 'Montreal', abbreviation: 'MTL', aliases: ['montreal', 'canadiens', 'habs', 'mtl'], homeVenue: 'Bell Centre', homeCity: 'Montreal' },
+  { name: 'Predators', city: 'Nashville', abbreviation: 'NSH', aliases: ['nashville', 'predators', 'preds', 'nsh'], homeVenue: 'Bridgestone Arena', homeCity: 'Nashville' },
+  { name: 'Devils', city: 'New Jersey', abbreviation: 'NJD', aliases: ['new jersey', 'devils', 'njd', 'nj'], homeVenue: 'Prudential Center', homeCity: 'Newark' },
+  { name: 'Islanders', city: 'New York', abbreviation: 'NYI', aliases: ['new york islanders', 'islanders', 'isles', 'nyi'], homeVenue: 'UBS Arena', homeCity: 'Elmont' },
+  { name: 'Rangers', city: 'New York', abbreviation: 'NYR', aliases: ['new york rangers', 'rangers', 'nyr'], homeVenue: 'Madison Square Garden', homeCity: 'New York' },
+  { name: 'Senators', city: 'Ottawa', abbreviation: 'OTT', aliases: ['ottawa', 'senators', 'sens', 'ott'], homeVenue: 'Canadian Tire Centre', homeCity: 'Ottawa' },
+  { name: 'Flyers', city: 'Philadelphia', abbreviation: 'PHI', aliases: ['philadelphia', 'flyers', 'phi', 'philly'], homeVenue: 'Wells Fargo Center', homeCity: 'Philadelphia' },
+  { name: 'Penguins', city: 'Pittsburgh', abbreviation: 'PIT', aliases: ['pittsburgh', 'penguins', 'pens', 'pit'], homeVenue: 'PPG Paints Arena', homeCity: 'Pittsburgh' },
+  { name: 'Sharks', city: 'San Jose', abbreviation: 'SJS', aliases: ['san jose', 'sharks', 'sjs', 'sj'], homeVenue: 'SAP Center', homeCity: 'San Jose' },
+  { name: 'Kraken', city: 'Seattle', abbreviation: 'SEA', aliases: ['seattle', 'kraken', 'sea'], homeVenue: 'Climate Pledge Arena', homeCity: 'Seattle' },
+  { name: 'Blues', city: 'St. Louis', abbreviation: 'STL', aliases: ['st louis', 'saint louis', 'blues', 'stl'], homeVenue: 'Enterprise Center', homeCity: 'St. Louis' },
+  { name: 'Lightning', city: 'Tampa Bay', abbreviation: 'TBL', aliases: ['tampa bay', 'lightning', 'bolts', 'tbl', 'tampa'], homeVenue: 'Amalie Arena', homeCity: 'Tampa' },
+  { name: 'Maple Leafs', city: 'Toronto', abbreviation: 'TOR', aliases: ['toronto', 'maple leafs', 'leafs', 'tor'], homeVenue: 'Scotiabank Arena', homeCity: 'Toronto' },
+  { name: 'Canucks', city: 'Vancouver', abbreviation: 'VAN', aliases: ['vancouver', 'canucks', 'nucks', 'van'], homeVenue: 'Rogers Arena', homeCity: 'Vancouver' },
+  { name: 'Golden Knights', city: 'Vegas', abbreviation: 'VGK', aliases: ['vegas', 'las vegas', 'golden knights', 'knights', 'vgk'], homeVenue: 'T-Mobile Arena', homeCity: 'Las Vegas' },
+  { name: 'Jets', city: 'Winnipeg', abbreviation: 'WPG', aliases: ['winnipeg', 'jets', 'wpg'], homeVenue: 'Canada Life Centre', homeCity: 'Winnipeg' },
+  { name: 'Capitals', city: 'Washington', abbreviation: 'WSH', aliases: ['washington', 'capitals', 'caps', 'wsh', 'dc'], homeVenue: 'Capital One Arena', homeCity: 'Washington' },
+  { name: 'Hockey Club', city: 'Utah', abbreviation: 'UTA', aliases: ['utah', 'hockey club', 'utah hockey club', 'utah hc', 'uta'], homeVenue: 'Delta Center', homeCity: 'Salt Lake City' }
+];
+
+// ============================================================================
 // ALIAS NORMALIZATION + FUZZY SUPPORT
 // ============================================================================
 
@@ -225,13 +264,14 @@ const ALIAS_INDEX: Record<Sport, AliasEntry[]> = {
   NFL: buildAliasIndex(NFL_TEAMS, 'NFL'),
   CFB: buildAliasIndex(NFL_TEAMS, 'CFB'),
   NBA: buildAliasIndex(NBA_TEAMS, 'NBA'),
-  CBB: buildAliasIndex(NBA_TEAMS, 'CBB')
+  CBB: buildAliasIndex(NBA_TEAMS, 'CBB'),
+  NHL: buildAliasIndex(NHL_TEAMS, 'NHL')
 };
 
 function getAliasEntriesForSport(sport?: Sport): AliasEntry[] {
   if (sport) return ALIAS_INDEX[sport];
   // Default priority favors basketball for overlapping cities like ATL/LAC/LAL
-  return [...ALIAS_INDEX.NBA, ...ALIAS_INDEX.NFL];
+  return [...ALIAS_INDEX.NBA, ...ALIAS_INDEX.NHL, ...ALIAS_INDEX.NFL];
 }
 
 export function listTeamAliases(sport?: Sport): AliasEntry[] {
@@ -443,6 +483,7 @@ export function detectSport(text: string): Sport | null {
   // Explicit sport mentions
   if (/\bnfl\b/.test(normalizedText)) return 'NFL';
   if (/\bnba\b/.test(normalizedText)) return 'NBA';
+  if (/\bnhl\b|\bhockey\b/.test(normalizedText)) return 'NHL';
   if (/\bcfb\b|\bcollege football\b|\bncaa football\b/.test(normalizedText)) return 'CFB';
   if (/\bcbb\b|\bcollege basketball\b|\bncaa basketball\b|\bmarch madness\b/.test(normalizedText)) return 'CBB';
 
@@ -459,6 +500,12 @@ export function detectSport(text: string): Sport | null {
     }
   }
 
+  for (const team of NHL_TEAMS) {
+    for (const alias of team.aliases) {
+      if (normalizedText.includes(alias)) return 'NHL';
+    }
+  }
+
   return null;
 }
 
@@ -466,5 +513,7 @@ export function detectSport(text: string): Sport | null {
  * Get sport category (football or basketball)
  */
 export function getSportCategory(sport: Sport): SportCategory {
-  return (sport === 'NFL' || sport === 'CFB') ? 'football' : 'basketball';
+  if (sport === 'NFL' || sport === 'CFB') return 'football';
+  if (sport === 'NBA' || sport === 'CBB') return 'basketball';
+  return 'hockey';
 }

@@ -305,6 +305,10 @@ export async function handleOrchestration(input: unknown): Promise<Orchestration
     throw new Error(`Parsing validation failed: ${validation.errors.join(', ')}`);
   }
 
+  if (matchup.sport === 'NHL') {
+    throw new Error('NHL matchups are not supported by this workflow yet. Use the estimate_hockey_probability tool for NHL totals.');
+  }
+
   // =========================================================================
   // STEP 2: Fetch Team Stats and Estimate Probability
   // =========================================================================
