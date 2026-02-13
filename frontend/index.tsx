@@ -917,24 +917,48 @@ function predictedMarginFootball(stats: any, isHome: boolean | null = null): num
 function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
   const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
   const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.35;
+  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.30;
 
+  // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
   const teamAFg = parseFloat(stats.teamFgPct) || 0;
   const teamBFg = parseFloat(stats.opponentFgPct) || 0;
-  const fgDiffComponent = (teamAFg - teamBFg) * 1.0 * 0.30;
+  const fgDiffComponent = (teamAFg - teamBFg) * 2.0 * 0.25;
+
+  // 3-point shooting component (if provided)
+  let threePointComponent = 0;
+  const teamA3PPct = parseFloat(stats.team3PPct) || 0;
+  const teamB3PPct = parseFloat(stats.opponent3PPct) || 0;
+  if (teamA3PPct > 0 || teamB3PPct > 0) {
+    const pctDiff = (teamA3PPct - teamB3PPct) * 1.0;
+    const teamA3PRate = parseFloat(stats.team3PRate) || 0;
+    const teamB3PRate = parseFloat(stats.opponent3PRate) || 0;
+    const rateDiff = (teamA3PRate - teamB3PRate) * 15;
+    threePointComponent = (pctDiff + rateDiff) * 0.15;
+  }
 
   const teamAReb = parseFloat(stats.teamReboundMargin) || 0;
   const teamBReb = parseFloat(stats.opponentReboundMargin) || 0;
-  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.20;
+  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.17;
 
+  // Turnovers: positive margin = team forces more TOs than it commits (good)
   const teamATov = parseFloat(stats.teamTurnoverMargin) || 0;
   const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
-  // Turnovers: positive margin = worse ball security, so invert the edge
-  const turnoverComponent = (teamBTov - teamATov) * 1.0 * 0.15;
+  const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.13;
 
   const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
 
-  return pointDiffComponent + fgDiffComponent + reboundComponent + turnoverComponent + homeCourtAdvantage;
+  let margin = pointDiffComponent + fgDiffComponent + threePointComponent + reboundComponent + turnoverComponent + homeCourtAdvantage;
+
+  // Pace multiplier when available
+  const teamAPace = parseFloat(stats.teamPace) || 0;
+  const teamBPace = parseFloat(stats.opponentPace) || 0;
+  if (teamAPace > 0 && teamBPace > 0) {
+    const expectedPace = (teamAPace + teamBPace) / 2;
+    const paceFactor = expectedPace / 100; // 100 = league average possessions
+    margin *= paceFactor;
+  }
+
+  return margin;
 }
 
 /* ================================= Utilities ============================== */
@@ -962,6 +986,9 @@ export const initialBasketballState = {
   teamFgPct: '', opponentFgPct: '',
   teamReboundMargin: '', opponentReboundMargin: '',
   teamTurnoverMargin: '', opponentTurnoverMargin: '',
+  teamPace: '', opponentPace: '',
+  team3PRate: '', opponent3PRate: '',
+  team3PPct: '', opponent3PPct: '',
   teamAName: '', teamBName: '',
 };
 
@@ -1249,7 +1276,7 @@ function ProbabilityEstimator({
           ? predictedMarginFootball(footballStats, isTeamAHome)
           : predictedMarginBasketball(basketballStats, isTeamAHome);
 
-        const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 11.5;
+        const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 12.0;
         const p = coverProbabilityFromMargin(m, spread, sigma);
 
         setCalculatedProb(p);

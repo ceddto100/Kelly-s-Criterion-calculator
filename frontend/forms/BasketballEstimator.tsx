@@ -11,6 +11,12 @@ export type BasketballStats = {
   opponentReboundMargin: string;
   teamTurnoverMargin: string;
   opponentTurnoverMargin: string;
+  teamPace: string;
+  opponentPace: string;
+  team3PRate: string;
+  opponent3PRate: string;
+  team3PPct: string;
+  opponent3PPct: string;
   teamAName?: string;
   teamBName?: string;
 };
@@ -123,6 +129,48 @@ export default function BasketballEstimator({ stats, onChange }: Props) {
         name="opponentTurnoverMargin"
         value={stats.opponentTurnoverMargin}
         placeholder="-0.8"
+        teamName={stats.teamBName}
+      />
+
+      <span>Pace (Poss/Game)</span>
+      <InputWithTeamLabel
+        name="teamPace"
+        value={stats.teamPace}
+        placeholder="100.5"
+        teamName={stats.teamAName}
+      />
+      <InputWithTeamLabel
+        name="opponentPace"
+        value={stats.opponentPace}
+        placeholder="98.2"
+        teamName={stats.teamBName}
+      />
+
+      <span>3PT %</span>
+      <InputWithTeamLabel
+        name="team3PPct"
+        value={stats.team3PPct}
+        placeholder="36.5"
+        teamName={stats.teamAName}
+      />
+      <InputWithTeamLabel
+        name="opponent3PPct"
+        value={stats.opponent3PPct}
+        placeholder="35.0"
+        teamName={stats.teamBName}
+      />
+
+      <span>3PT Rate (3PA/FGA)</span>
+      <InputWithTeamLabel
+        name="team3PRate"
+        value={stats.team3PRate}
+        placeholder="0.40"
+        teamName={stats.teamAName}
+      />
+      <InputWithTeamLabel
+        name="opponent3PRate"
+        value={stats.opponent3PRate}
+        placeholder="0.38"
         teamName={stats.teamBName}
       />
     </div>
