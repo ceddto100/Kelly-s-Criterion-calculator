@@ -8,6 +8,19 @@ import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 
+/* === Native Bridge for Android (Capacitor) === */
+import {
+  initializeNativeBridge,
+  isNative,
+  hapticLight,
+  hapticSuccess,
+  hapticError,
+  getNetworkStatus,
+  onNetworkChange,
+  onBackButton,
+  showToast,
+} from './native-bridge';
+
 /* === Lazy load tab components for better performance === */
 const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
@@ -2308,6 +2321,30 @@ function App() {
       setTheme(savedTheme);
     }
   }, []);
+
+  // Initialize native bridge for Android app
+  useEffect(() => {
+    initializeNativeBridge();
+
+    // Handle Android back button
+    const backHandler = onBackButton(() => {
+      if (activeTab !== CONSTANTS.TABS.KELLY) {
+        setActiveTab(CONSTANTS.TABS.KELLY);
+      }
+    });
+
+    // Monitor network connectivity
+    const networkHandler = onNetworkChange((status) => {
+      if (!status.connected) {
+        showToast('No internet connection. Some features may be unavailable.', 'long');
+      }
+    });
+
+    return () => {
+      backHandler.remove();
+      networkHandler.remove();
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     const root = document.documentElement;
