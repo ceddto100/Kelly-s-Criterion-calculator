@@ -35,3 +35,12 @@ component/dist/
 
 # Backup
 *.backup/
+
+# Android signing keys
+*.jks
+*.keystore
+frontend/android/app/google-services.json
+
+# Gradle
+.gradle/
+frontend/android/.gradle/
