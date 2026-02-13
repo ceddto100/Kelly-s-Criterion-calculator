@@ -225,11 +225,13 @@ export const NFL_CONSTANTS = {
 };
 
 export const NBA_CONSTANTS = {
-  sigma: 11.5,           // Standard deviation
+  sigma: 12.0,           // Standard deviation (updated for modern 3-point era variance)
   homeCourtAdvantage: 3.0,
   decayRate: 0.85,       // 85% historical, 15% recent (faster truth convergence)
   backToBackPenalty: 2.0,
-  superstarValue: 4.5    // Points value of superstar player
+  superstarValue: 4.5,   // Points value of superstar player
+  leagueAvgPace: 100,    // League average possessions per game
+  fgPctPointsMultiplier: 2.0  // Each 1% FG% diff ≈ 2 points (85 FGA * 0.01 * 2 + free throw variance)
 };
 
 export const CFB_CONSTANTS = {
@@ -272,6 +274,12 @@ export interface BasketballStats {
   opponentReboundMargin?: number;
   teamTurnoverMargin?: number;
   opponentTurnoverMargin?: number;
+  teamPace?: number;        // Possessions per game (league avg ~100)
+  opponentPace?: number;
+  team3PRate?: number;      // 3-point attempt rate (3PA / FGA, e.g., 0.40 for 40%)
+  opponent3PRate?: number;
+  team3PPct?: number;       // 3-point percentage (e.g., 36.5 for 36.5%)
+  opponent3PPct?: number;
 }
 
 /**
@@ -300,30 +308,73 @@ export function predictedMarginFootball(stats: FootballStats): number {
 
 /**
  * Calculate predicted margin for basketball games
- * Uses weighted components: points (35%), FG% (30%), rebounds (20%), turnovers (15%)
+ *
+ * Improved algorithm with 5 weighted components:
+ *   - Points differential (30%): Net scoring efficiency
+ *   - FG% differential (25%): Shooting efficiency with realistic scaling
+ *   - 3-point shooting (15%): Combined 3P rate and accuracy edge (modern NBA)
+ *   - Rebound margin (17%): Second-chance and transition opportunities
+ *   - Turnover margin (13%): Ball security differential
+ *
+ * Also applies a pace multiplier when both teams' pace data is available,
+ * scaling the margin for games expected to have more or fewer possessions
+ * than the league average (~100 per game).
  */
 export function predictedMarginBasketball(stats: BasketballStats): number {
   const teamNetPoints = stats.teamPPG - stats.teamAllowed;
   const opponentNetPoints = stats.opponentPPG - stats.opponentAllowed;
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.35;
+  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.30;
 
+  // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
+  // (NBA teams avg ~85 FGA, so 0.01 * 85 = 0.85 extra makes * ~2.1 pts/make including and-1s)
   let fgComponent = 0;
   if (stats.teamFGPct !== undefined && stats.opponentFGPct !== undefined) {
-    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * 1.0 * 0.3;
+    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * NBA_CONSTANTS.fgPctPointsMultiplier * 0.25;
   }
 
+  // 3-point shooting: combines volume (3PA rate) and accuracy (3P%)
+  // A team that shoots more 3s at a higher rate generates more points per possession
+  let threePointComponent = 0;
+  if (stats.team3PPct !== undefined && stats.opponent3PPct !== undefined) {
+    // 3P% differential: each 1% diff in 3P% ≈ 1 point (avg ~35 3PA * 0.01 * 3 pts = 1.05)
+    const pctDiff = (stats.team3PPct - stats.opponent3PPct) * 1.0;
+
+    // 3PA rate differential: teams shooting more 3s at league-avg 36% get ~1.08 pts per % rate
+    let rateDiff = 0;
+    if (stats.team3PRate !== undefined && stats.opponent3PRate !== undefined) {
+      // Convert rate diff to approximate point impact
+      // e.g., 0.05 rate diff * 85 FGA * 0.36 avg 3P% * 3 pts = ~4.6 pts, but weighted down
+      rateDiff = (stats.team3PRate - stats.opponent3PRate) * 15;
+    }
+
+    threePointComponent = (pctDiff + rateDiff) * 0.15;
+  }
+
+  // Rebounds: each rebound margin difference ≈ 0.5 second-chance points
   let reboundComponent = 0;
   if (stats.teamReboundMargin !== undefined && stats.opponentReboundMargin !== undefined) {
-    reboundComponent = (stats.teamReboundMargin - stats.opponentReboundMargin) * 0.5 * 0.2;
+    reboundComponent = (stats.teamReboundMargin - stats.opponentReboundMargin) * 0.5 * 0.17;
   }
 
+  // Turnovers: positive margin = team forces more turnovers than it commits (good)
+  // Each turnover differential ≈ 1 point of margin
   let turnoverComponent = 0;
   if (stats.teamTurnoverMargin !== undefined && stats.opponentTurnoverMargin !== undefined) {
-    // Note: Inverted - higher turnover margin for opponent benefits team
-    turnoverComponent = (stats.opponentTurnoverMargin - stats.teamTurnoverMargin) * 1.0 * 0.15;
+    turnoverComponent = (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * 1.0 * 0.13;
   }
 
-  return pointsComponent + fgComponent + reboundComponent + turnoverComponent;
+  let margin = pointsComponent + fgComponent + threePointComponent + reboundComponent + turnoverComponent;
+
+  // Pace multiplier: scale the margin for expected game tempo
+  // A game between two fast teams (105 pace each) amplifies margins;
+  // a game between two slow teams (95 pace each) compresses them
+  if (stats.teamPace !== undefined && stats.opponentPace !== undefined) {
+    const expectedPace = (stats.teamPace + stats.opponentPace) / 2;
+    const paceFactor = expectedPace / NBA_CONSTANTS.leagueAvgPace;
+    margin *= paceFactor;
+  }
+
+  return margin;
 }
 
 /**

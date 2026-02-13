@@ -95,7 +95,10 @@ export const basketballProbabilityInputSchema = z.object({
     pointsAllowed: z.number().describe('Points per game allowed'),
     fgPct: z.number().optional().describe('Field goal percentage (e.g., 45.5 for 45.5%)'),
     reboundMargin: z.number().optional().describe('Rebound margin per game'),
-    turnoverMargin: z.number().optional().describe('Turnover margin per game (positive = fewer turnovers)')
+    turnoverMargin: z.number().optional().describe('Turnover margin per game (positive = team forces more TOs than it commits)'),
+    pace: z.number().optional().describe('Possessions per game (league average ~100)'),
+    threePRate: z.number().optional().describe('3-point attempt rate as decimal (3PA / FGA, e.g., 0.40 for 40%)'),
+    threePPct: z.number().optional().describe('3-point percentage (e.g., 36.5 for 36.5%)')
   }).describe('Statistics for Team A (the team being bet on)'),
 
   teamB: z.object({
@@ -104,7 +107,10 @@ export const basketballProbabilityInputSchema = z.object({
     pointsAllowed: z.number().describe('Points per game allowed'),
     fgPct: z.number().optional().describe('Field goal percentage'),
     reboundMargin: z.number().optional().describe('Rebound margin per game'),
-    turnoverMargin: z.number().optional().describe('Turnover margin per game')
+    turnoverMargin: z.number().optional().describe('Turnover margin per game (positive = team forces more TOs than it commits)'),
+    pace: z.number().optional().describe('Possessions per game (league average ~100)'),
+    threePRate: z.number().optional().describe('3-point attempt rate as decimal (3PA / FGA, e.g., 0.40 for 40%)'),
+    threePPct: z.number().optional().describe('3-point percentage (e.g., 36.5 for 36.5%)')
   }).describe('Statistics for Team B (the opponent)'),
 
   spread: z.number().describe('Point spread from Team A perspective. Negative if Team A is favored, positive if underdog.'),
@@ -177,7 +183,7 @@ export const footballProbabilityToolDefinition = {
 
 export const basketballProbabilityToolDefinition = {
   name: 'estimate_basketball_probability',
-  description: `Calculate basketball cover probability using team stats, spread, venue, and league to return win chance and predicted margin.`,
+  description: `Calculate basketball cover probability using team stats (PPG, FG%, rebounds, turnovers, pace, 3PT shooting), spread, venue, and league. Returns win chance, predicted margin, and bet quality interpretation.`,
 
   inputSchema: {
     type: 'object' as const,
@@ -189,9 +195,12 @@ export const basketballProbabilityToolDefinition = {
           name: { type: 'string', description: 'Team A name' },
           ppg: { type: 'number', description: 'Points per game scored' },
           pointsAllowed: { type: 'number', description: 'Points per game allowed' },
-          fgPct: { type: 'number', description: 'Field goal percentage' },
+          fgPct: { type: 'number', description: 'Field goal percentage (e.g., 47.5)' },
           reboundMargin: { type: 'number', description: 'Rebound margin per game' },
-          turnoverMargin: { type: 'number', description: 'Turnover margin per game' }
+          turnoverMargin: { type: 'number', description: 'Turnover margin per game (positive = forces more TOs than commits)' },
+          pace: { type: 'number', description: 'Possessions per game (league avg ~100)' },
+          threePRate: { type: 'number', description: '3-point attempt rate as decimal (3PA/FGA, e.g., 0.40)' },
+          threePPct: { type: 'number', description: '3-point percentage (e.g., 36.5)' }
         },
         required: ['name', 'ppg', 'pointsAllowed']
       },
@@ -204,7 +213,10 @@ export const basketballProbabilityToolDefinition = {
           pointsAllowed: { type: 'number', description: 'Points per game allowed' },
           fgPct: { type: 'number', description: 'Field goal percentage' },
           reboundMargin: { type: 'number', description: 'Rebound margin per game' },
-          turnoverMargin: { type: 'number', description: 'Turnover margin per game' }
+          turnoverMargin: { type: 'number', description: 'Turnover margin per game (positive = forces more TOs than commits)' },
+          pace: { type: 'number', description: 'Possessions per game (league avg ~100)' },
+          threePRate: { type: 'number', description: '3-point attempt rate as decimal (3PA/FGA, e.g., 0.40)' },
+          threePPct: { type: 'number', description: '3-point percentage (e.g., 36.5)' }
         },
         required: ['name', 'ppg', 'pointsAllowed']
       },
@@ -291,7 +303,13 @@ export async function handleBasketballProbability(input: unknown): Promise<Proba
     teamReboundMargin: parsed.teamA.reboundMargin,
     opponentReboundMargin: parsed.teamB.reboundMargin,
     teamTurnoverMargin: parsed.teamA.turnoverMargin,
-    opponentTurnoverMargin: parsed.teamB.turnoverMargin
+    opponentTurnoverMargin: parsed.teamB.turnoverMargin,
+    teamPace: parsed.teamA.pace,
+    opponentPace: parsed.teamB.pace,
+    team3PRate: parsed.teamA.threePRate,
+    opponent3PRate: parsed.teamB.threePRate,
+    team3PPct: parsed.teamA.threePPct,
+    opponent3PPct: parsed.teamB.threePPct
   };
 
   const result = estimateBasketballProbability(

@@ -81,17 +81,35 @@ export function normalCDF(x: number): number {
 }
 
 // ============================================================================
+// NHL PROJECTION CONSTANTS
+// ============================================================================
+
+const NHL_CONSTANTS = {
+  homeIceAdvantage: 0.15,      // Home teams score ~0.15 more goals on average
+  paceThresholdLow: 20,        // Below this HDCF sum, pace is slow
+  paceThresholdHigh: 30,       // Above this HDCF sum, pace is fast
+  paceMaxAdjustment: 0.40,     // Maximum pace adjustment (goals)
+  specialTeamsThreshold: 100,  // Minimum ST score to start getting a bonus
+  specialTeamsMaxBonus: 0.50,  // Maximum ST bonus per team (goals)
+  specialTeamsCap: 250,        // ST score at which max bonus is reached
+  overdispersionFactor: 1.15,  // NHL scoring variance exceeds Poisson by ~15%
+  overtimeProbability: 0.23,   // ~23% of NHL games reach OT
+  overtimeGoalBoost: 0.23,    // Expected extra goals from OT probability (0.23 * ~1 goal)
+};
+
+// ============================================================================
 // MAIN PROJECTION FUNCTION
 // ============================================================================
 
 /**
  * Calculate NHL game projection and over/under probability
  *
- * Follows the exact 4-step algorithm:
- * Step A: Base Score Calculation using xGF, xGA, and goalie GSAx
- * Step B: Pace Adjustment based on combined HDCF
- * Step C: Special Teams Mismatch bonuses
- * Step D: Final totals and probability calculation
+ * Improved 4-step algorithm with:
+ *   - Home ice advantage (+0.15 goals for home team)
+ *   - Continuous (graduated) pace adjustment instead of binary
+ *   - Continuous special teams mismatch scaling instead of binary threshold
+ *   - Overdispersion-adjusted standard deviation (real NHL variance > Poisson)
+ *   - Overtime probability boost to projected total
  *
  * @param stats - Combined home and away team statistics
  * @param userLine - The over/under line to calculate probability against
@@ -104,59 +122,53 @@ export function calculateNHLProjection(
   const { home, away } = stats;
 
   // ========================================================================
-  // STEP A: Base Score Calculation
+  // STEP A: Base Score Calculation + Home Ice Advantage
   // ========================================================================
-  // Home_Score = ((Home_xGF + Away_xGA) / 2) - Away_Goalie_GSAx
-  // Away_Score = ((Away_xGF + Home_xGA) / 2) - Home_Goalie_GSAx
-
-  const homeScore = ((home.xGF60 + away.xGA60) / 2) - away.GSAx60;
+  const homeScore = ((home.xGF60 + away.xGA60) / 2) - away.GSAx60 + NHL_CONSTANTS.homeIceAdvantage;
   const awayScore = ((away.xGF60 + home.xGA60) / 2) - home.GSAx60;
 
   // ========================================================================
-  // STEP B: Pace Adjustment
+  // STEP B: Graduated Pace Adjustment
   // ========================================================================
-  // IF (Home_HDCF + Away_HDCF) > 25 THEN add 0.25 to Total, ELSE add 0
-
+  // Linear scaling between low and high HDCF thresholds instead of binary
   const combinedHDCF = home.HDCF60 + away.HDCF60;
-  const paceAdjustment = combinedHDCF > 25 ? 0.25 : 0;
+  let paceAdjustment = 0;
+  if (combinedHDCF > NHL_CONSTANTS.paceThresholdLow) {
+    const paceRange = NHL_CONSTANTS.paceThresholdHigh - NHL_CONSTANTS.paceThresholdLow;
+    const paceProgress = Math.min(1, (combinedHDCF - NHL_CONSTANTS.paceThresholdLow) / paceRange);
+    paceAdjustment = paceProgress * NHL_CONSTANTS.paceMaxAdjustment;
+  }
 
   // ========================================================================
-  // STEP C: Special Teams Mismatch (The "Bonus")
+  // STEP C: Graduated Special Teams Mismatch
   // ========================================================================
-  // Home Advantage: IF (Home_PP + (100 - Away_PK)) * Away_Times_Shorthanded > 150
-  //                 THEN add 0.35 to Total
-  // Away Advantage: IF (Away_PP + (100 - Home_PK)) * Home_Times_Shorthanded > 150
-  //                 THEN add 0.35 to Total
-
+  // Linear scaling from threshold to cap instead of binary 0/0.35
   let specialTeamsAdjustment = 0;
 
-  // Home team special teams advantage
   const homeSpecialTeamsScore = (home.PP + (100 - away.PK)) * away.timesShorthandedPerGame;
-  if (homeSpecialTeamsScore > 150) {
-    specialTeamsAdjustment += 0.35;
+  if (homeSpecialTeamsScore > NHL_CONSTANTS.specialTeamsThreshold) {
+    const stRange = NHL_CONSTANTS.specialTeamsCap - NHL_CONSTANTS.specialTeamsThreshold;
+    const stProgress = Math.min(1, (homeSpecialTeamsScore - NHL_CONSTANTS.specialTeamsThreshold) / stRange);
+    specialTeamsAdjustment += stProgress * NHL_CONSTANTS.specialTeamsMaxBonus;
   }
 
-  // Away team special teams advantage
   const awaySpecialTeamsScore = (away.PP + (100 - home.PK)) * home.timesShorthandedPerGame;
-  if (awaySpecialTeamsScore > 150) {
-    specialTeamsAdjustment += 0.35;
+  if (awaySpecialTeamsScore > NHL_CONSTANTS.specialTeamsThreshold) {
+    const stRange = NHL_CONSTANTS.specialTeamsCap - NHL_CONSTANTS.specialTeamsThreshold;
+    const stProgress = Math.min(1, (awaySpecialTeamsScore - NHL_CONSTANTS.specialTeamsThreshold) / stRange);
+    specialTeamsAdjustment += stProgress * NHL_CONSTANTS.specialTeamsMaxBonus;
   }
 
   // ========================================================================
-  // STEP D: Final Totals
+  // STEP D: Final Totals and Probability
   // ========================================================================
-  // Projected Total = Home_Score + Away_Score + Pace_Adj + Special_Teams_Adj
+  // Add overtime boost: ~23% of games go to OT, adding ~1 extra goal
+  const baseTotal = homeScore + awayScore + paceAdjustment + specialTeamsAdjustment;
+  const projectedTotal = baseTotal + NHL_CONSTANTS.overtimeGoalBoost;
 
-  const projectedTotal = homeScore + awayScore + paceAdjustment + specialTeamsAdjustment;
-
-  // ========================================================================
-  // PROBABILITY ENGINE (Poisson/CDF)
-  // ========================================================================
-  // Standard Deviation = sqrt(Projected Total)
-  // Z-Score = (Projected Total - userLine) / Standard Deviation
-  // Over Probability = 1 - CDF(zScore)
-
-  const standardDeviation = Math.sqrt(projectedTotal);
+  // Overdispersion-adjusted standard deviation
+  // Pure Poisson: SD = sqrt(mean), but NHL has correlated scoring events
+  const standardDeviation = Math.sqrt(projectedTotal) * NHL_CONSTANTS.overdispersionFactor;
   const zScore = (projectedTotal - userLine) / standardDeviation;
 
   // 1 - CDF gives probability of OVER
@@ -167,8 +179,8 @@ export function calculateNHLProjection(
     homeScore: Math.round(homeScore * 100) / 100,
     awayScore: Math.round(awayScore * 100) / 100,
     projectedTotal: Math.round(projectedTotal * 100) / 100,
-    paceAdjustment,
-    specialTeamsAdjustment,
+    paceAdjustment: Math.round(paceAdjustment * 1000) / 1000,
+    specialTeamsAdjustment: Math.round(specialTeamsAdjustment * 1000) / 1000,
     standardDeviation: Math.round(standardDeviation * 1000) / 1000,
     zScore: Math.round(zScore * 1000) / 1000,
     overProbability: Math.round(overProbability * 100) / 100,
