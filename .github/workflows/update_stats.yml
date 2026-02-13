@@ -30,6 +30,9 @@ jobs:
       - name: Update NFL stats from ESPN
         run: NODE_PATH=backend/node_modules node scripts/updateNFLStats.js
 
+      - name: Update NHL stats from MoneyPuck + ESPN
+        run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
+
       - name: Commit and push updated CSV files
         run: |
           git config --global user.name 'github-actions[bot]'
