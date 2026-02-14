@@ -71,7 +71,8 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const latestStatsRef = useRef<HTMLDivElement>(null);
 
   // Load CSV data on mount
   useEffect(() => {
@@ -149,13 +150,26 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
     loadNHLData();
   }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollChatToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollChatToBottom();
   }, [messages]);
+
+  const latestStatsMessageId = [...messages]
+    .reverse()
+    .find((msg) => msg.role === 'assistant' && !!msg.stats)?.id;
+
+  useEffect(() => {
+    if (!latestStatsMessageId) return;
+    requestAnimationFrame(() => {
+      latestStatsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [latestStatsMessageId]);
 
   // Simple string similarity calculator
   const calculateSimilarity = (str1: string, str2: string): number => {
@@ -495,7 +509,7 @@ Click "Transfer to Estimator" to calculate over/under probability.
       </div>
 
       {/* Chat Messages */}
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messagesContainerRef}>
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
             <div className="message-header">
@@ -583,6 +597,7 @@ Click "Transfer to Estimator" to calculate over/under probability.
               )}
 
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
+                <div ref={msg.id === latestStatsMessageId ? latestStatsRef : null}>
                 <button
                   className="btn-primary"
                   onClick={() => handleTransfer(msg.stats)}
@@ -590,6 +605,7 @@ Click "Transfer to Estimator" to calculate over/under probability.
                 >
                   Transfer to Estimator
                 </button>
+                </div>
               )}
             </div>
           </div>
@@ -605,7 +621,6 @@ Click "Transfer to Estimator" to calculate over/under probability.
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Form */}
