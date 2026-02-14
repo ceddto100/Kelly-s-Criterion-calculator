@@ -324,6 +324,35 @@ const GlobalStyle = () => (
       box-shadow: var(--button-glow);
     }
 
+    /* Main top tab row (Kelly / Estimator / Walters / etc.) */
+    .app-tabs {
+      justify-content: flex-start;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.25rem;
+      border-radius: 16px;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .app-tabs .tab {
+      flex: 0 0 auto;
+      min-width: fit-content;
+      white-space: nowrap;
+      text-wrap: nowrap;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      line-height: 1.2;
+    }
+
+    @media (max-width: 640px) {
+      .app-tabs .tab {
+        font-size: 0.95rem;
+        padding: 0.78rem 0.9rem;
+      }
+    }
+
     .doc-close:hover {
       background: rgba(255, 255, 255, 0.08);
       color: rgba(255, 255, 255, 1);
@@ -2735,7 +2764,7 @@ function App() {
           </header>
 
           <div className="panel" style={{maxWidth:900}}>
-            <div className="tabs" role="tablist">
+            <div className="tabs app-tabs" role="tablist">
               {[
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
