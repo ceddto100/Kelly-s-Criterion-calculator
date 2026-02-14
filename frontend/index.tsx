@@ -97,7 +97,7 @@ const GlobalStyle = () => (
       width: 100%;
       max-width: 100vw;
       background: #050510;
-      -webkit-overflow-scrolling: touch;
+      overflow: visible;
     }
 
     .site-bg img.bg-fallback {
