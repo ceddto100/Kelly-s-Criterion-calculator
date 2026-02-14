@@ -175,7 +175,8 @@
 }
 
 html {
-  overflow-x: clip;
+  overflow-x: hidden;
+  overflow-y: auto;
   width: 100%;
   position: relative;
   -webkit-overflow-scrolling: touch;
@@ -193,7 +194,8 @@ body {
   min-height: 100vh;
   padding: 2rem 1rem;
   position: relative;
-  overflow-x: clip;
+  overflow-x: hidden;
+  overflow-y: auto;
   width: 100%;
   max-width: 100vw;
   line-height: 1.6;
@@ -326,7 +328,7 @@ body::after {
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   backdrop-filter: var(--glass-blur);
@@ -455,6 +457,7 @@ body::after {
 /* ==================== TABS ==================== */
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.2));
   position: relative;
 }
@@ -1468,8 +1471,9 @@ select:focus-visible {
   pointer-events: auto !important;
 }
 
-/* Prevent any parent from hiding the navigation */
+/* Ensure body scrolls vertically when bottom navigation is present */
 body:has(#bottom-navigation-bar) {
   overflow-x: hidden !important;
   overflow-y: auto !important;
+  padding-bottom: 80px;
 }
