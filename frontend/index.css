@@ -1790,3 +1790,10 @@ button:hover,
     display: none;
   }
 }
+
+/* Keep tab target aligned when navigation scrolls to updated content */
+.active-tab-content {
+  scroll-margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}

@@ -2398,10 +2398,14 @@ function App() {
     }
   }, []);
 
-  // Scroll to top when switching tabs for better UX
+  const activeTabContentRef = React.useRef<HTMLElement | null>(null);
+
+  // Scroll to the updated content area when switching tabs
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      activeTabContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   // Initialize native bridge for Android app
@@ -2831,6 +2835,7 @@ function App() {
             </div>
           </div>
 
+          <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
           {activeTab === CONSTANTS.TABS.KELLY && (
             <KellyCalculator
               probability={probability}
@@ -2920,6 +2925,7 @@ function App() {
           {activeTab === CONSTANTS.TABS.PROMO && (
             <PromoPage user={authUser} />
           )}
+          </section>
 
           <div
             className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
