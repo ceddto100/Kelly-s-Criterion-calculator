@@ -158,11 +158,25 @@ async function fetchMoneyPuckStats() {
 
 // ── ESPN: Special teams stats (PP%, PK%, penalties) ─────────────
 
+function extractCategoriesFromResponse(data) {
+  // Try multiple known ESPN API response structures
+  if (data.stats?.splits?.categories?.length) return data.stats.splits.categories;
+  if (data.results?.[0]?.stats?.splits?.categories?.length) return data.results[0].stats.splits.categories;
+  if (data.splits?.categories?.length) return data.splits.categories;
+  if (data.categories?.length) return data.categories;
+  if (data.statistics?.length) return data.statistics;
+  return [];
+}
+
 async function fetchESPNSpecialTeams() {
-  const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
+  const ESPN_SITE = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
+  const ESPN_CORE = 'https://sports.core.api.espn.com/v2/sports/hockey/leagues/nhl';
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+  const season = currentMonth >= 9 ? currentYear + 1 : currentYear;
 
   console.log('\nFetching NHL team list from ESPN...');
-  const teamsData = await fetchWithRetry(`${ESPN_BASE}/teams`);
+  const teamsData = await fetchWithRetry(`${ESPN_SITE}/teams`);
   if (!teamsData) {
     console.error('Failed to fetch ESPN NHL teams');
     return null;
@@ -174,16 +188,36 @@ async function fetchESPNSpecialTeams() {
   const specialTeams = {};
 
   for (const { team } of teams) {
-    const data = await fetchWithRetry(`${ESPN_BASE}/teams/${team.id}/statistics`);
-    if (!data) {
-      console.error(`  SKIP: ${team.displayName}`);
+    // Try core API first, then site API
+    const urls = [
+      `${ESPN_CORE}/seasons/${season}/types/2/teams/${team.id}/statistics`,
+      `${ESPN_SITE}/teams/${team.id}/statistics`,
+    ];
+
+    let categories = [];
+    for (const url of urls) {
+      const data = await fetchWithRetry(url, 2);
+      if (!data) continue;
+
+      let statsData = data;
+      if (data.team?.statistics) {
+        statsData = { statistics: data.team.statistics };
+      }
+
+      categories = extractCategoriesFromResponse(statsData);
+      if (categories.length > 0) {
+        console.log(`  [${team.abbreviation}] Found ${categories.length} stat categories`);
+        break;
+      }
+    }
+
+    if (categories.length === 0) {
+      console.error(`  SKIP: ${team.displayName} - no stats found from any endpoint`);
       await delay(300);
       continue;
     }
 
-    const categories = data.stats?.splits?.categories || [];
-
-    // Find special teams stats - ESPN categorizes them differently
+    // Find special teams stats - search across all categories
     let ppPct = 0;
     let pkPct = 0;
     let timesShorthanded = 0;
@@ -191,14 +225,14 @@ async function fetchESPNSpecialTeams() {
     for (const cat of categories) {
       const stats = cat.stats || [];
       for (const s of stats) {
-        const name = s.name?.toLowerCase() || '';
-        const val = parseFloat(s.value || 0);
+        const name = (s.name || '').toLowerCase();
+        const val = parseFloat(s.displayValue || s.value || 0);
 
-        if (name.includes('powerplay') && name.includes('pct') || name === 'powerPlayPct') {
+        if (name.includes('powerplay') && name.includes('pct') || name === 'powerplaypct') {
           ppPct = val;
-        } else if (name.includes('penaltykill') && name.includes('pct') || name === 'penaltyKillPct') {
+        } else if (name.includes('penaltykill') && name.includes('pct') || name === 'penaltykillpct') {
           pkPct = val;
-        } else if (name.includes('penaltykill') && name.includes('pergame') || name === 'timesShorthandedPerGame') {
+        } else if (name.includes('penaltykill') && name.includes('pergame') || name === 'timesshorthandedpergame') {
           timesShorthanded = val;
         }
       }
@@ -206,7 +240,6 @@ async function fetchESPNSpecialTeams() {
 
     // Map ESPN team names to our abbreviations
     const abbr = team.abbreviation;
-    // ESPN uses some different abbreviations
     const normalizedAbbr = {
       'LA': 'LAK', 'NJ': 'NJD', 'SJ': 'SJS', 'TB': 'TBL', 'WSH': 'WSH',
     }[abbr] || abbr;
