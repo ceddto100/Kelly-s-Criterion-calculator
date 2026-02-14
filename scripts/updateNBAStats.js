@@ -33,6 +33,12 @@ function getCurrentSeason() {
   return now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
 }
 
+function getESPNSeasonYear() {
+  const now = new Date();
+  // ESPN core/site NBA endpoints use season start year (e.g. 2025 for 2025-26).
+  return now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+}
+
 function getNBASeasonString() {
   // NBA.com uses format like "2025-26"
   const season = getCurrentSeason();
@@ -176,15 +182,47 @@ async function fetchNBAComStats() {
 
 const ESPN_HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; Betgistics/1.0)' };
 
-function findStat(statsArray, ...statNames) {
-  for (const statName of statNames) {
-    const stat = statsArray.find((s) => s.name === statName || s.shortDisplayName === statName || s.abbreviation === statName);
-    if (stat) {
-      const val = parseFloat(stat.displayValue || stat.value);
-      if (!isNaN(val)) return val;
+function normalizeStatKey(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function buildStatMap(categories) {
+  const map = new Map();
+
+  for (const cat of categories) {
+    for (const stat of (cat.stats || [])) {
+      const keys = [
+        stat.name,
+        stat.displayName,
+        stat.shortDisplayName,
+        stat.abbreviation,
+      ];
+
+      const numeric = parseFloat(stat.value ?? stat.displayValue ?? '');
+      if (Number.isNaN(numeric)) continue;
+
+      for (const key of keys) {
+        const normalized = normalizeStatKey(key);
+        if (!normalized) continue;
+        if (!map.has(normalized)) map.set(normalized, numeric);
+      }
     }
   }
-  return 0;
+
+  return map;
+}
+
+function getStat(statMap, aliases, fallback = 0) {
+  for (const alias of aliases) {
+    const normalized = normalizeStatKey(alias);
+    if (statMap.has(normalized)) return statMap.get(normalized);
+  }
+  return fallback;
+}
+
+function toPercent(value) {
+  if (!value) return 0;
+  return value <= 1 ? value * 100 : value;
 }
 
 async function fetchESPNFallback() {
@@ -197,7 +235,7 @@ async function fetchESPNFallback() {
   const teams = teamsData.sports[0].leagues[0].teams;
   console.log(`  Found ${teams.length} teams`);
 
-  const season = getCurrentSeason();
+  const season = getESPNSeasonYear();
   const teamStats = {};
 
   // Get per-team stats from core API
@@ -222,74 +260,70 @@ async function fetchESPNFallback() {
       }
     }
 
-    const off = catMap['offensive'] || [];
-    const def = catMap['defensive'] || [];
-    const gen = catMap['general'] || [];
-    const all = [...off, ...def, ...gen];
+    const statMap = buildStatMap(categories);
 
-    // Use displayValue (per-game) not value (may be season total)
-    const ppg = findStat(off, 'avgPoints') || findStat(gen, 'avgPoints') || findStat(all, 'avgPoints');
-    const fgPct = findStat(off, 'fieldGoalPct') || findStat(gen, 'fieldGoalPct') || findStat(all, 'fieldGoalPct');
+    const gamesPlayed = getStat(statMap, ['gamesPlayed', 'gp']);
+    const points = getStat(statMap, ['points', 'pts']);
+    const pointsAgainst = getStat(statMap, ['pointsAgainst', 'opponentPoints', 'oppPoints']);
+
+    const ppg = getStat(statMap, ['avgPoints', 'pointsPerGame', 'ppg']) ||
+      (gamesPlayed > 0 ? points / gamesPlayed : 0);
+    const allowed = getStat(statMap, ['avgPointsAgainst', 'pointsAgainstPerGame', 'oppPointsPerGame']) ||
+      (gamesPlayed > 0 ? pointsAgainst / gamesPlayed : 0);
+
+    const fgPct = toPercent(getStat(statMap, ['fieldGoalPct', 'fgPct', 'fieldGoalPercentage']));
+    const threePct = toPercent(getStat(statMap, ['threePointFieldGoalPct', 'threePointPct', '3ptPct']));
+
+    const rebMargin = getStat(statMap, ['reboundDifferential', 'reboundMargin']);
+    const tovMargin = getStat(statMap, ['turnoverDifferential', 'turnoverMargin']);
+
+    const pace = getStat(statMap, ['pace', 'possessionsPerGame', 'avgPossessions']);
+
+    const threeAttempts = getStat(statMap, [
+      'avgThreePointFieldGoalsAttempted',
+      'threePointFieldGoalsAttemptedPerGame',
+      'threePointFieldGoalsAttempted',
+      'threePointAttempts',
+      '3pa',
+    ]);
+    const fieldGoalAttempts = getStat(statMap, [
+      'avgFieldGoalsAttempted',
+      'fieldGoalsAttemptedPerGame',
+      'fieldGoalsAttempted',
+      'fga',
+    ]);
+    const threeRate = fieldGoalAttempts > 0 ? threeAttempts / fieldGoalAttempts : 0;
+
+    const offRtgDirect = getStat(statMap, ['offensiveRating', 'offRating', 'ortg']);
+    const defRtgDirect = getStat(statMap, ['defensiveRating', 'defRating', 'drtg']);
+
+    const offRtg = offRtgDirect || (pace > 0 ? (100 * ppg) / pace : 0);
+    const defRtg = defRtgDirect || (pace > 0 ? (100 * allowed) / pace : 0);
+    const netRtg = getStat(statMap, ['netRating', 'ratingDifferential', 'netRtg']) || (offRtg - defRtg);
 
     teamStats[team.abbreviation] = {
       team: team.displayName,
       abbreviation: team.abbreviation,
       ppg: round1(ppg),
       fg_pct: round1(fgPct),
-      allowed: 0,          // Will fill from standings
-      rebound_margin: 0,   // Can't compute without opponent stats
-      turnover_margin: 0,
-      pace: 0,             // ESPN doesn't have pace
-      three_pct: 0,
-      three_rate: 0,
+      allowed: round1(allowed),
+      rebound_margin: round1(rebMargin),
+      turnover_margin: round1(tovMargin),
+      pace: round1(pace),
+      three_pct: round1(threePct),
+      three_rate: round2(threeRate),
+      off_rtg: round1(offRtg),
+      def_rtg: round1(defRtg),
+      net_rtg: round1(netRtg),
     };
 
     await delay(300);
   }
 
-  // Get PA from standings
-  const standingsUrl = `${ESPN_SITE}/standings?season=${season}`;
-  const standings = await fetchWithRetry(standingsUrl, ESPN_HEADERS, 2);
-
-  if (standings?.children) {
-    for (const conf of standings.children) {
-      for (const entry of (conf.standings?.entries || [])) {
-        const td = entry.team;
-        if (!td || !teamStats[td.abbreviation]) continue;
-
-        const stats = entry.stats || [];
-        let pa = 0, gp = 0;
-
-        // Log first team's stat names for debugging
-        if (pa === 0 && gp === 0 && Object.values(teamStats).filter(t => t.allowed > 0).length === 0) {
-          console.log(`  [${td.abbreviation}] Standings stats: ${stats.map(s => `${s.name}=${s.displayValue || s.value}`).join(', ')}`);
-        }
-
-        for (const s of stats) {
-          const name = (s.name || '').toLowerCase();
-          const abbr = (s.abbreviation || '').toLowerCase();
-          const val = parseFloat(s.value || 0);
-
-          if (name === 'pointsagainst' || abbr === 'pa') pa = val;
-          if (name === 'gamesplayed' || abbr === 'gp') gp = val;
-        }
-
-        // Derive GP from overall record if not found
-        if (gp === 0) {
-          for (const s of stats) {
-            if ((s.name || '').toLowerCase() === 'overall') {
-              const parts = (s.displayValue || '').split('-');
-              if (parts.length >= 2) gp = parts.reduce((sum, v) => sum + parseInt(v || 0), 0);
-            }
-          }
-        }
-
-        if (pa > 0 && gp > 0) {
-          teamStats[td.abbreviation].allowed = round1(pa / gp);
-          console.log(`  ${td.displayName}: ${round1(pa / gp)} PA/G (${pa} total / ${gp} games)`);
-        }
-      }
-    }
+  const sample = Object.values(teamStats)[0];
+  if (sample) {
+    console.log(`  ESPN sample (${sample.abbreviation}): PPG=${sample.ppg}, Allowed=${sample.allowed}, Pace=${sample.pace}`);
+    console.log(`    3PT%=${sample.three_pct}, 3PT rate=${sample.three_rate}, ORTG=${sample.off_rtg}`);
   }
 
   return teamStats;
