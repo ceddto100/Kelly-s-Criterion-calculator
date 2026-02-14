@@ -1490,3 +1490,310 @@ body:has(#bottom-navigation-bar) {
   overflow-x: hidden !important;
   overflow-y: auto !important;
 }
+
+/* ==================== UI RESET: BETGISTICS NEXT ==================== */
+:root {
+  --ui-bg-0: #060b16;
+  --ui-bg-1: #0b1220;
+  --ui-bg-2: #121b2e;
+  --ui-card: rgba(11, 18, 32, 0.78);
+  --ui-card-strong: rgba(13, 22, 38, 0.92);
+  --ui-border: rgba(148, 163, 184, 0.22);
+  --ui-border-strong: rgba(56, 189, 248, 0.42);
+  --ui-text: #e2e8f0;
+  --ui-text-soft: #94a3b8;
+  --ui-brand: #38bdf8;
+  --ui-brand-2: #818cf8;
+  --ui-ok: #22c55e;
+  --ui-shadow: 0 24px 70px rgba(2, 6, 23, 0.48);
+}
+
+body {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.2), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(129, 140, 248, 0.22), transparent 42%),
+    linear-gradient(180deg, var(--ui-bg-0) 0%, var(--ui-bg-1) 58%, var(--ui-bg-2) 100%) !important;
+  color: var(--ui-text) !important;
+  padding: 1.5rem 0.75rem 7rem !important;
+}
+
+body::before,
+body::after {
+  display: none !important;
+}
+
+.page-wrap {
+  max-width: 1200px !important;
+  padding: 0.5rem 0.25rem 8rem !important;
+}
+
+.panel,
+.footer-card,
+.doc-panel,
+.results,
+.calculator,
+.calculator-body,
+[class*='history-item'],
+[class*='stat-card'] {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62)) !important;
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: var(--ui-shadow) !important;
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border-radius: 22px !important;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.02em;
+}
+
+.app-tabs,
+.tabs {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--ui-border);
+  border-radius: 18px;
+  padding: 0.45rem !important;
+  gap: 0.45rem !important;
+}
+
+.tab {
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--ui-text-soft) !important;
+  font-weight: 700 !important;
+}
+
+.tab:hover {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: var(--ui-text) !important;
+}
+
+.tab.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.24), rgba(129, 140, 248, 0.3)) !important;
+  border-color: var(--ui-border-strong) !important;
+  color: #f8fafc !important;
+  box-shadow: inset 0 0 0 1px rgba(191, 219, 254, 0.28), 0 12px 30px rgba(56, 189, 248, 0.22) !important;
+}
+
+input,
+select,
+textarea,
+.chat-input,
+input[type='number'],
+input[type='text'] {
+  background: rgba(15, 23, 42, 0.78) !important;
+  border: 1px solid var(--ui-border) !important;
+  color: var(--ui-text) !important;
+  border-radius: 12px !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(148, 163, 184, 0.75) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.chat-input:focus {
+  border-color: var(--ui-brand) !important;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.16) !important;
+}
+
+button,
+.btn,
+.btn-primary,
+.auth-btn,
+.chat-submit-btn,
+.example-btn {
+  border-radius: 12px !important;
+  border: 1px solid rgba(125, 211, 252, 0.35) !important;
+  color: #e2e8f0 !important;
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.86), rgba(67, 56, 202, 0.86)) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 10px 28px rgba(14, 116, 144, 0.35);
+}
+
+button:hover,
+.btn:hover,
+.btn-primary:hover,
+.auth-btn:hover,
+.chat-submit-btn:hover,
+.example-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.progress-fill,
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--ui-brand), var(--ui-brand-2)) !important;
+}
+
+.result-value,
+.probability-value,
+.kelly-value,
+.expected-value {
+  color: #7dd3fc !important;
+  text-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+}
+
+.footer {
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+#bottom-navigation-bar > div {
+  border-top: 1px solid rgba(148, 163, 184, 0.28) !important;
+  background: rgba(2, 6, 23, 0.9) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+#bottom-navigation-bar button {
+  color: #cbd5e1 !important;
+}
+
+@media (max-width: 768px) {
+  .panel,
+  .calculator,
+  .results {
+    border-radius: 18px !important;
+    padding: 1rem !important;
+  }
+
+  .app-tabs .tab {
+    min-height: 70px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* ==================== UI REMAKE V2: STRUCTURE + LAYOUT ==================== */
+.page-wrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.app-shell-header {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.brand-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 700;
+  color: #7dd3fc;
+  margin: 0 0 .3rem;
+}
+
+.title--compact {
+  margin: 0 !important;
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
+  line-height: 1.15;
+}
+
+.hero-copy {
+  margin: 0.35rem 0 0;
+  color: var(--ui-text-soft);
+  font-size: .95rem;
+  max-width: 58ch;
+}
+
+.auth-shell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.signin-card {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  padding: .85rem;
+}
+
+.workflow-panel {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .8rem;
+}
+
+.tab-command-center {
+  margin: 0 auto;
+}
+
+.tab-card {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start !important;
+  text-align: left !important;
+  gap: 0.4rem;
+  padding: 0.85rem 0.9rem !important;
+}
+
+.tab-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.tab-blurb {
+  font-size: .75rem;
+  line-height: 1.25;
+  color: #94a3b8;
+  opacity: .95;
+}
+
+.tab.active .tab-blurb {
+  color: #dbeafe;
+}
+
+@media (min-width: 900px) {
+  .workflow-panel {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell-header {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-shell {
+    justify-content: flex-start;
+  }
+
+  .tab-card {
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .tab-title {
+    font-size: .87rem;
+  }
+
+  .tab-blurb {
+    display: none;
+  }
+}
+
+/* Keep tab target aligned when navigation scrolls to updated content */
+.active-tab-content {
+  scroll-margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}

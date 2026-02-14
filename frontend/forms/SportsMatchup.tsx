@@ -73,15 +73,29 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const latestStatsRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollChatToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollChatToBottom();
   }, [messages]);
+
+  const latestStatsMessageId = [...messages]
+    .reverse()
+    .find((msg) => msg.role === 'assistant' && !!msg.stats)?.id;
+
+  useEffect(() => {
+    if (!latestStatsMessageId) return;
+    requestAnimationFrame(() => {
+      latestStatsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [latestStatsMessageId]);
 
   // Load NBA stats from public CSV files
   useEffect(() => {
@@ -416,7 +430,7 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
       </div>
 
       {/* Chat Messages */}
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messagesContainerRef}>
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
             <div className="message-header">
@@ -503,6 +517,7 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
               )}
 
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
+                <div ref={msg.id === latestStatsMessageId ? latestStatsRef : null}>
                 <button
                   className="btn-primary"
                   onClick={() => onTransferToEstimator(msg.stats)}
@@ -510,6 +525,7 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
                 >
                   📊 Use in Probability Estimator →
                 </button>
+                </div>
               )}
             </div>
           </div>
@@ -525,7 +541,6 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Form */}

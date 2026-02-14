@@ -69,7 +69,8 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const latestStatsRef = useRef<HTMLDivElement>(null);
 
   // Load CSV data on mount
   useEffect(() => {
@@ -135,13 +136,26 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
     loadNFLData();
   }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollChatToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollChatToBottom();
   }, [messages]);
+
+  const latestStatsMessageId = [...messages]
+    .reverse()
+    .find((msg) => msg.role === 'assistant' && !!msg.stats)?.id;
+
+  useEffect(() => {
+    if (!latestStatsMessageId) return;
+    requestAnimationFrame(() => {
+      latestStatsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [latestStatsMessageId]);
 
   // Simple string similarity calculator (Levenshtein-inspired)
   const calculateSimilarity = (str1: string, str2: string): number => {
@@ -423,7 +437,7 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
       </div>
 
       {/* Chat Messages */}
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messagesContainerRef}>
         {messages.map((msg) => (
           <div key={msg.id} className={`chat-message ${msg.role}`}>
             <div className="message-header">
@@ -508,6 +522,7 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
               )}
 
               {msg.role === 'assistant' && msg.stats && onTransferToEstimator && (
+                <div ref={msg.id === latestStatsMessageId ? latestStatsRef : null}>
                 <button
                   className="btn-primary"
                   onClick={() => handleTransfer(msg.stats!)}
@@ -515,6 +530,7 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
                 >
                   Use in Football Probability Estimator
                 </button>
+                </div>
               )}
             </div>
           </div>
@@ -530,7 +546,6 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Form */}
