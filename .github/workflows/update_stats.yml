@@ -25,12 +25,18 @@ jobs:
           npm install
 
       - name: Update NBA stats from ESPN
+        id: nba
+        continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNBAStats.js
 
       - name: Update NFL stats from ESPN
+        id: nfl
+        continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNFLStats.js
 
       - name: Update NHL stats from MoneyPuck + ESPN
+        id: nhl
+        continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
 
       - name: Commit and push updated CSV files
@@ -38,5 +44,21 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add frontend/public/stats/**/*.csv stats/*.csv
-          git diff --staged --quiet || git commit -m "Update NBA/NFL stats (automated) - $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git diff --staged --quiet || git commit -m "Update NBA/NFL/NHL stats (automated) - $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "### Stats Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Sport | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| NBA | ${{ steps.nba.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NFL | ${{ steps.nfl.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| NHL | ${{ steps.nhl.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if all sports failed
+        if: steps.nba.outcome == 'failure' && steps.nfl.outcome == 'failure' && steps.nhl.outcome == 'failure'
+        run: |
+          echo "All stats updates failed!"
+          exit 1

@@ -300,6 +300,25 @@ async function main() {
     console.error('\nESPN NHL data unavailable - special teams stats NOT updated');
   }
 
+  // Copy NHL stats to legacy stats/ directory for backward compatibility
+  const legacyDir = path.join(__dirname, '..', 'stats');
+  fs.mkdirSync(legacyDir, { recursive: true });
+  const nhlFiles = fs.readdirSync(STATS_DIR).filter((f) => f.endsWith('.csv'));
+  for (const file of nhlFiles) {
+    fs.copyFileSync(path.join(STATS_DIR, file), path.join(legacyDir, file));
+  }
+  if (nhlFiles.length > 0) {
+    console.log(`Copied ${nhlFiles.length} NHL files to stats/ for backward compatibility`);
+  }
+
+  // Fail if both sources returned no data
+  const moneyPuckOk = moneyPuckStats && Object.keys(moneyPuckStats).length >= 20;
+  const espnOk = espnStats && Object.keys(espnStats).length >= 20;
+  if (!moneyPuckOk && !espnOk) {
+    console.error('\nBoth MoneyPuck and ESPN data sources failed - exiting with error');
+    process.exit(1);
+  }
+
   console.log(`\nDone! Updated at ${new Date().toISOString()}`);
 }
 
