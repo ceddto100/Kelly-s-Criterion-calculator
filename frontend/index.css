@@ -178,9 +178,11 @@ html {
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
   position: relative;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: manipulation;
   scroll-behavior: smooth;
 }
 
@@ -192,6 +194,7 @@ body {
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem 1rem;
   position: relative;
   overflow-x: hidden;
@@ -263,7 +266,17 @@ body::after {
 #root {
   width: 100%;
   max-width: 520px;
+  min-height: 100%;
   position: relative;
+}
+
+/* Robust scroll lock for modal overlays on mobile Safari/Chrome */
+body.mobile-scroll-lock {
+  position: fixed;
+  overflow: hidden;
+  width: 100%;
+  left: 0;
+  right: 0;
 }
 
 @media (min-width: 768px) {

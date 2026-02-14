@@ -11,9 +11,10 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* Prevent overscroll bounce on Android WebView */
+/* Keep native scroll behavior predictable on mobile webviews */
 html, body {
-  overscroll-behavior: none;
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none;
   -webkit-tap-highlight-color: transparent;
 }
 

@@ -324,6 +324,74 @@ const GlobalStyle = () => (
       box-shadow: var(--button-glow);
     }
 
+    /* Main top tab row (Kelly / Estimator / Walters / etc.) */
+    .app-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.5rem;
+      overflow: visible;
+      padding: 0.3rem;
+      border-radius: 16px;
+      justify-items: stretch;
+      align-items: stretch;
+    }
+
+    .app-tabs .tab {
+      width: 100%;
+      min-width: 0;
+      min-height: 88px;
+      aspect-ratio: 1 / 1;
+      white-space: normal;
+      text-wrap: balance;
+      padding: 0.6rem;
+      border-radius: 12px;
+      line-height: 1.2;
+      font-size: 0.98rem;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Row 2 with two side-by-side buttons */
+    .app-tabs .tab:nth-child(4) {
+      grid-column: 1 / 2;
+    }
+
+    .app-tabs .tab:nth-child(5) {
+      grid-column: 2 / 3;
+    }
+
+    @media (max-width: 420px) {
+      .app-tabs .tab {
+        min-height: 80px;
+        font-size: 0.9rem;
+        padding: 0.5rem;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .app-tabs {
+        display: flex;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.55rem;
+      }
+
+      .app-tabs .tab {
+        flex: 0 0 auto;
+        min-width: 170px;
+        min-height: 56px;
+        aspect-ratio: auto;
+        white-space: nowrap;
+        text-wrap: nowrap;
+        padding: 0.95rem 1rem;
+      }
+    }
+
     .doc-close:hover {
       background: rgba(255, 255, 255, 0.08);
       color: rgba(255, 255, 255, 1);
@@ -2735,7 +2803,7 @@ function App() {
           </header>
 
           <div className="panel" style={{maxWidth:900}}>
-            <div className="tabs" role="tablist">
+            <div className="tabs app-tabs" role="tablist">
               {[
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
