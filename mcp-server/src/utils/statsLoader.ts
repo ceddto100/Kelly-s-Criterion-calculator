@@ -21,6 +21,12 @@ export interface NBATeamStats {
   fgPct: number;
   reboundMargin: number;
   turnoverMargin: number;
+  pace: number;
+  threePct: number;
+  threeRate: number;
+  offRtg: number;
+  defRtg: number;
+  netRtg: number;
 }
 
 export interface NFLTeamStats {
@@ -243,6 +249,12 @@ function loadNBAStats(): Map<string, NBATeamStats> {
     const fgData = loadCSVFile(resolve(nbaPath, 'fieldgoal.csv'));
     const reboundData = loadCSVFile(resolve(nbaPath, 'rebound_margin.csv'));
     const turnoverData = loadCSVFile(resolve(nbaPath, 'turnover_margin.csv'));
+    const paceData = loadCSVFile(resolve(nbaPath, 'pace.csv'));
+    const threePctData = loadCSVFile(resolve(nbaPath, 'three_pct.csv'));
+    const threeRateData = loadCSVFile(resolve(nbaPath, 'three_rate.csv'));
+    const offRtgData = loadCSVFile(resolve(nbaPath, 'off_rtg.csv'));
+    const defRtgData = loadCSVFile(resolve(nbaPath, 'def_rtg.csv'));
+    const netRtgData = loadCSVFile(resolve(nbaPath, 'net_rtg.csv'));
 
     if (ppgData.length === 0) {
       console.error('[StatsLoader] No NBA PPG data loaded');
@@ -257,6 +269,12 @@ function loadNBAStats(): Map<string, NBATeamStats> {
     const fgMap = new Map(fgData.map(r => [r.abbreviation?.toUpperCase(), r]));
     const reboundMap = new Map(reboundData.map(r => [r.abbreviation?.toUpperCase(), r]));
     const turnoverMap = new Map(turnoverData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const paceMap = new Map(paceData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const threePctMap = new Map(threePctData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const threeRateMap = new Map(threeRateData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const offRtgMap = new Map(offRtgData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const defRtgMap = new Map(defRtgData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const netRtgMap = new Map(netRtgData.map(r => [r.abbreviation?.toUpperCase(), r]));
 
     // Combine all stats for each team
     for (const [abbr, ppgRow] of ppgMap) {
@@ -269,7 +287,13 @@ function loadNBAStats(): Map<string, NBATeamStats> {
         pointsAllowed: parseFloat(allowedMap.get(abbr)?.allowed || '0'),
         fgPct: parseFloat(fgMap.get(abbr)?.fg_pct || '0'),
         reboundMargin: parseFloat(reboundMap.get(abbr)?.rebound_margin || '0'),
-        turnoverMargin: parseFloat(turnoverMap.get(abbr)?.turnover_margin || '0')
+        turnoverMargin: parseFloat(turnoverMap.get(abbr)?.turnover_margin || '0'),
+        pace: parseFloat(paceMap.get(abbr)?.pace || '0'),
+        threePct: parseFloat(threePctMap.get(abbr)?.three_pct || '0'),
+        threeRate: parseFloat(threeRateMap.get(abbr)?.three_rate || '0'),
+        offRtg: parseFloat(offRtgMap.get(abbr)?.off_rtg || '0'),
+        defRtg: parseFloat(defRtgMap.get(abbr)?.def_rtg || '0'),
+        netRtg: parseFloat(netRtgMap.get(abbr)?.net_rtg || '0'),
       };
 
       // Store by CSV abbreviation
