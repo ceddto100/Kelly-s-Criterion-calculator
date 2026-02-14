@@ -692,7 +692,7 @@ const GlobalStyle = () => (
 
     @media (min-width: 768px) {
       .page-wrap {
-        padding: 3.5rem 1.5rem;
+        padding: 3.5rem 1.5rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 1.5rem;
       }
 
       .panel {
@@ -715,7 +715,7 @@ const GlobalStyle = () => (
 
     @media (min-width: 1024px) {
       .page-wrap {
-        padding: 4rem 2rem;
+        padding: 4rem 2rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 2rem;
       }
 
       .panel {
@@ -748,7 +748,7 @@ const GlobalStyle = () => (
 
     @media (min-width: 1440px) {
       .page-wrap {
-        padding: 4.5rem 2.5rem;
+        padding: 4.5rem 2.5rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 2.5rem;
       }
 
       .panel {
@@ -2322,6 +2322,12 @@ function App() {
     }
   }, []);
 
+  // Scroll to top when switching tabs for better UX
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Initialize native bridge for Android app
   useEffect(() => {
     initializeNativeBridge();
@@ -2732,7 +2738,7 @@ function App() {
                 <button
                   key={tab.key}
                   className={`tab ${activeTab === tab.key ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => handleTabChange(tab.key)}
                   aria-selected={activeTab === tab.key}
                   role="tab"
                 >
@@ -2931,7 +2937,7 @@ function App() {
         {/* Bottom Navigation Bar */}
         <BottomNavigation
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           TABS={{
             BET_HISTORY: CONSTANTS.TABS.BET_HISTORY,
             STATS: CONSTANTS.TABS.STATS,
