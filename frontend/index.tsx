@@ -326,30 +326,55 @@ const GlobalStyle = () => (
 
     /* Main top tab row (Kelly / Estimator / Walters / etc.) */
     .app-tabs {
-      justify-content: flex-start;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 0.25rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      overflow: visible;
+      gap: 0.55rem;
+      padding: 0.35rem;
       border-radius: 16px;
-      scrollbar-width: thin;
-      -webkit-overflow-scrolling: touch;
     }
 
     .app-tabs .tab {
-      flex: 0 0 auto;
-      min-width: fit-content;
-      white-space: nowrap;
-      text-wrap: nowrap;
-      padding: 0.8rem 1rem;
+      flex: 1 1 calc(50% - 0.55rem);
+      min-width: 150px;
+      min-height: 56px;
+      white-space: normal;
+      text-wrap: balance;
+      padding: 0.95rem 1rem;
       border-radius: 12px;
-      line-height: 1.2;
+      line-height: 1.25;
+      font-size: 1rem;
+      text-align: center;
     }
 
     @media (max-width: 640px) {
       .app-tabs .tab {
-        font-size: 0.95rem;
-        padding: 0.78rem 0.9rem;
+        flex-basis: calc(50% - 0.55rem);
+        font-size: 1.02rem;
+        padding: 1rem 0.9rem;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .app-tabs .tab {
+        flex-basis: 100%;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .app-tabs {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .app-tabs .tab {
+        flex: 0 0 auto;
+        min-width: 170px;
+        white-space: nowrap;
+        text-wrap: nowrap;
       }
     }
 
