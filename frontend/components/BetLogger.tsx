@@ -127,12 +127,20 @@ export function LogBetButton({
     setActualWager(recommendedStake.toFixed(2));
   }, [recommendedStake]);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll when modal is open (mobile-safe lock/unlock)
   useEffect(() => {
+    const scrollY = window.scrollY;
+
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('mobile-scroll-lock');
+      document.body.style.top = `-${scrollY}px`;
     } else {
-      document.body.style.overflow = '';
+      const top = document.body.style.top;
+      document.body.classList.remove('mobile-scroll-lock');
+      document.body.style.top = '';
+      if (top) {
+        window.scrollTo(0, Math.abs(parseInt(top, 10)) || 0);
+      }
       // Force navigation bar to be visible when modal closes
       const navBar = document.getElementById('bottom-navigation-bar');
       if (navBar) {
@@ -141,8 +149,14 @@ export function LogBetButton({
         navBar.style.display = 'block';
       }
     }
+
     return () => {
-      document.body.style.overflow = '';
+      const top = document.body.style.top;
+      document.body.classList.remove('mobile-scroll-lock');
+      document.body.style.top = '';
+      if (top) {
+        window.scrollTo(0, Math.abs(parseInt(top, 10)) || 0);
+      }
       // Ensure navigation bar is visible on cleanup
       const navBar = document.getElementById('bottom-navigation-bar');
       if (navBar) {
@@ -212,7 +226,8 @@ export function LogBetButton({
         setSuccess(false);
         setNotes('');
         // Ensure navigation bar is visible and page is scrollable
-        document.body.style.overflow = '';
+        document.body.classList.remove('mobile-scroll-lock');
+        document.body.style.top = '';
         const navBar = document.getElementById('bottom-navigation-bar');
         if (navBar) {
           navBar.style.visibility = 'visible';
