@@ -370,27 +370,6 @@ const GlobalStyle = () => (
       }
     }
 
-    @media (min-width: 768px) {
-      .app-tabs {
-        display: flex;
-        justify-content: flex-start;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        gap: 0.55rem;
-      }
-
-      .app-tabs .tab {
-        flex: 0 0 auto;
-        min-width: 170px;
-        min-height: 56px;
-        aspect-ratio: auto;
-        white-space: nowrap;
-        text-wrap: nowrap;
-        padding: 0.95rem 1rem;
-      }
-    }
 
     .doc-close:hover {
       background: rgba(255, 255, 255, 0.08);
