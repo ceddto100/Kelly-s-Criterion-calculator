@@ -111,6 +111,18 @@ async function fetchMoneyPuckStats() {
   const fiveOnFive = rows.filter((r) => r.situation === '5on5');
   const useRows = allSituation.length >= 20 ? allSituation : fiveOnFive;
 
+  // Log available columns for debugging (from first data row)
+  if (useRows.length > 0) {
+    const sampleRow = useRows[0];
+    const penaltyColumns = Object.keys(sampleRow).filter(k =>
+      k.toLowerCase().includes('penal') || k.toLowerCase().includes('minor') || k.toLowerCase().includes('short')
+    );
+    console.log(`  MoneyPuck penalty-related columns: ${penaltyColumns.join(', ') || 'NONE FOUND'}`);
+    if (penaltyColumns.length > 0) {
+      console.log(`  Sample values: ${penaltyColumns.map(k => k + '=' + sampleRow[k]).join(', ')}`);
+    }
+  }
+
   const teamStats = {};
 
   for (const row of useRows) {
@@ -141,6 +153,30 @@ async function fetchMoneyPuckStats() {
     const gsax = xGoalsAgainst - goalsAgainst;
     const gsax60 = iceTimeHours > 0 ? Math.round((gsax / iceTimeHours) * 100) / 100 : 0;
 
+    // Penalties taken (times shorthanded) per game from MoneyPuck
+    // In MoneyPuck's perspective: "For" = team drew the penalty (opponent shorthanded)
+    //                             "Against" = team took the penalty (team shorthanded)
+    // "Times shorthanded" = penalties taken BY the team = penaltiesAgainst
+    // Note: MoneyPuck has known typos (penality vs penalty) and inconsistent naming
+    // Try all possible column name variants
+    const penaltiesTaken = parseFloat(
+      row.penaltiesAgainst || row.penalitiesAgainst
+      || row.penaltiesTakenFor || row.penalitiesTakenFor
+      || row.penaltyMinutesAgainst || row.penalityMinutesAgainst
+      || 0
+    );
+    // If penaltiesAgainst looks like minutes (high values like 200+), try penaltiesFor instead
+    // MoneyPuck naming can be confusing - "penaltiesFor" sometimes means penalties the team TOOK
+    const penaltiesForVal = parseFloat(row.penaltiesFor || row.penalitiesFor || 0);
+    // Use whichever makes more sense: a reasonable per-game value should be 2-6 range
+    let effectivePenalties = penaltiesTaken;
+    if (effectivePenalties === 0 && penaltiesForVal > 0) {
+      effectivePenalties = penaltiesForVal; // fallback to penaltiesFor
+    }
+    const timesShorthandedPerGame = gamesPlayed > 0
+      ? Math.round((effectivePenalties / gamesPlayed) * 100) / 100
+      : 0;
+
     teamStats[mapped.abbr] = {
       team: mapped.name,
       abbreviation: mapped.abbr,
@@ -148,9 +184,10 @@ async function fetchMoneyPuckStats() {
       xga60,
       gsax60,
       hdcf60,
+      times_shorthanded: timesShorthandedPerGame,
     };
 
-    console.log(`  ${mapped.name}: xGF/60=${xgf60}, xGA/60=${xga60}, GSAx/60=${gsax60}, HDCF/60=${hdcf60}`);
+    console.log(`  ${mapped.name}: xGF/60=${xgf60}, xGA/60=${xga60}, GSAx/60=${gsax60}, HDCF/60=${hdcf60}, SH/G=${timesShorthandedPerGame}`);
   }
 
   return teamStats;
@@ -220,7 +257,6 @@ async function fetchESPNSpecialTeams() {
     // Find special teams stats - search across all categories
     let ppPct = 0;
     let pkPct = 0;
-    let timesShorthanded = 0;
 
     for (const cat of categories) {
       const stats = cat.stats || [];
@@ -232,8 +268,6 @@ async function fetchESPNSpecialTeams() {
           ppPct = val;
         } else if (name.includes('penaltykill') && name.includes('pct') || name === 'penaltykillpct') {
           pkPct = val;
-        } else if (name.includes('penaltykill') && name.includes('pergame') || name === 'timesshorthandedpergame') {
-          timesShorthanded = val;
         }
       }
     }
@@ -252,10 +286,9 @@ async function fetchESPNSpecialTeams() {
       abbreviation: normalizedAbbr,
       pp: Math.round(ppPct * 100) / 100,
       pk: Math.round(pkPct * 100) / 100,
-      times_shorthanded: Math.round(timesShorthanded * 100) / 100,
     };
 
-    console.log(`  ${teamName}: PP=${ppPct}%, PK=${pkPct}%, SH/G=${timesShorthanded}`);
+    console.log(`  ${teamName}: PP=${ppPct}%, PK=${pkPct}%`);
     await delay(300);
   }
 
@@ -286,6 +319,7 @@ async function main() {
       { name: 'nhl_xga60.csv', fields: ['team', 'abbreviation', 'xga60'], sort: 'xga60', asc: true },
       { name: 'nhl_gsax60.csv', fields: ['team', 'abbreviation', 'gsax60'], sort: 'gsax60' },
       { name: 'nhl_hdcf60.csv', fields: ['team', 'abbreviation', 'hdcf60'], sort: 'hdcf60' },
+      { name: 'nhl_times_shorthanded.csv', fields: ['team', 'abbreviation', 'times_shorthanded'], sort: 'times_shorthanded', asc: true },
     ];
 
     for (const file of advancedFiles) {
@@ -313,7 +347,6 @@ async function main() {
     const specialFiles = [
       { name: 'nhl_pp.csv', fields: ['team', 'abbreviation', 'pp'], sort: 'pp' },
       { name: 'nhl_pk.csv', fields: ['team', 'abbreviation', 'pk'], sort: 'pk' },
-      { name: 'nhl_times_shorthanded.csv', fields: ['team', 'abbreviation', 'times_shorthanded'], sort: 'times_shorthanded', asc: true },
     ];
 
     for (const file of specialFiles) {
