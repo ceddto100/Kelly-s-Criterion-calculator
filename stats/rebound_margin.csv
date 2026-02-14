@@ -1,31 +1,31 @@
 "team","abbreviation","rebound_margin"
-"Atlanta Hawks","ATL",0
-"Boston Celtics","BOS",0
-"Brooklyn Nets","BKN",0
-"Charlotte Hornets","CHA",0
-"Chicago Bulls","CHI",0
-"Cleveland Cavaliers","CLE",0
-"Dallas Mavericks","DAL",0
-"Denver Nuggets","DEN",0
-"Detroit Pistons","DET",0
-"Golden State Warriors","GS",0
-"Houston Rockets","HOU",0
-"Indiana Pacers","IND",0
-"LA Clippers","LAC",0
-"Los Angeles Lakers","LAL",0
-"Memphis Grizzlies","MEM",0
-"Miami Heat","MIA",0
-"Milwaukee Bucks","MIL",0
-"Minnesota Timberwolves","MIN",0
-"New Orleans Pelicans","NO",0
-"New York Knicks","NY",0
-"Oklahoma City Thunder","OKC",0
-"Orlando Magic","ORL",0
-"Philadelphia 76ers","PHI",0
-"Phoenix Suns","PHX",0
-"Portland Trail Blazers","POR",0
-"Sacramento Kings","SAC",0
-"San Antonio Spurs","SA",0
-"Toronto Raptors","TOR",0
-"Utah Jazz","UTAH",0
-"Washington Wizards","WSH",0
+"Houston Rockets","HOU",48.6
+"Miami Heat","MIA",46.9
+"San Antonio Spurs","SA",46.6
+"New York Knicks","NY",46.3
+"Charlotte Hornets","CHA",46
+"Portland Trail Blazers","POR",46
+"Detroit Pistons","DET",45.6
+"Boston Celtics","BOS",45.4
+"Memphis Grizzlies","MEM",45
+"Minnesota Timberwolves","MIN",44.8
+"Chicago Bulls","CHI",44.7
+"Dallas Mavericks","DAL",44.7
+"Cleveland Cavaliers","CLE",44.6
+"Utah Jazz","UTAH",44.3
+"Oklahoma City Thunder","OKC",43.7
+"New Orleans Pelicans","NO",43.6
+"Washington Wizards","WSH",43.5
+"Orlando Magic","ORL",43.3
+"Philadelphia 76ers","PHI",43.3
+"Phoenix Suns","PHX",43.1
+"Toronto Raptors","TOR",43
+"Denver Nuggets","DEN",42.7
+"Indiana Pacers","IND",42.7
+"Golden State Warriors","GS",42.5
+"Atlanta Hawks","ATL",42.2
+"Sacramento Kings","SAC",41.3
+"Milwaukee Bucks","MIL",41.2
+"Los Angeles Lakers","LAL",41.1
+"Brooklyn Nets","BKN",40.7
+"LA Clippers","LAC",40.6
