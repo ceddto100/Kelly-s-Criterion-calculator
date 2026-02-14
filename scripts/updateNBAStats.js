@@ -1,7 +1,8 @@
 // scripts/updateNBAStats.js
-// Fetches LIVE NBA stats from multiple free sources:
-//   - Primary: NBA.com stats API (free, no key required - includes pace, 3PT%, differentials)
-//   - Fallback: ESPN public API for basic stats + standings for PA
+// Fetches LIVE NBA stats from multiple sources (in priority order):
+//   1. BallDontLie API (paid, most reliable - set BALLDONTLIE_API_KEY env var)
+//   2. NBA.com stats API (free, no key - but can be blocked by rate limiting)
+//   3. ESPN public API (free fallback - limited stats, no pace/ratings)
 // Outputs CSVs to frontend/public/stats/nba/
 const axios = require('axios');
 const { Parser } = require('json2csv');
@@ -15,10 +16,10 @@ const TIMEOUT = 20000;
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchWithRetry(url, headers, retries = 3) {
+async function fetchWithRetry(url, opts = {}, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await axios.get(url, { headers, timeout: TIMEOUT });
+      const res = await axios.get(url, { timeout: TIMEOUT, ...opts });
       return res.data;
     } catch (err) {
       console.error(`  Attempt ${i + 1} failed for ${url}: ${err.message}`);
@@ -39,6 +40,142 @@ function getNBASeasonString() {
   const startYear = season - 1;
   const endYear = String(season).slice(2);
   return `${startYear}-${endYear}`;
+}
+
+function round1(val) { return Math.round((val || 0) * 10) / 10; }
+function round2(val) { return Math.round((val || 0) * 100) / 100; }
+
+// ── BallDontLie API (paid, most reliable) ─────────────────────
+// Docs: https://docs.balldontlie.io
+// Pricing: Free ($0), All-Star ($9.99/mo), GOAT ($39.99/mo)
+// Set BALLDONTLIE_API_KEY as GitHub secret or env var
+
+// BallDontLie uses standard NBA abbreviations but we normalize for consistency
+const BDL_ABBR_MAP = {
+  'PHX': 'PHX', 'GSW': 'GS', 'NOP': 'NO', 'NYK': 'NY', 'SAS': 'SA',
+  'UTA': 'UTAH', 'WAS': 'WSH',
+};
+
+function normalizeBdlAbbr(abbr) {
+  return BDL_ABBR_MAP[abbr] || abbr;
+}
+
+async function fetchBallDontLieStats() {
+  const apiKey = process.env.BALLDONTLIE_API_KEY;
+  if (!apiKey) {
+    console.log('BALLDONTLIE_API_KEY not set, skipping BallDontLie...');
+    return null;
+  }
+
+  const season = getCurrentSeason() - 1; // BDL uses start year (e.g. 2025 for 2025-26 season)
+  console.log(`Fetching team stats from BallDontLie API (season: ${season})...`);
+
+  const headers = { 'Authorization': apiKey };
+
+  // Fetch base team season averages (PPG, FG%, REB, TOV, 3PT)
+  const baseUrl = `https://api.balldontlie.io/v1/nba/team_season_averages/general?season=${season}&season_type=regular&type=base`;
+  const baseData = await fetchWithRetry(baseUrl, { headers }, 3);
+
+  if (!baseData?.data || baseData.data.length === 0) {
+    console.error('  BallDontLie base stats returned no data');
+    return null;
+  }
+
+  console.log(`  BallDontLie base stats: ${baseData.data.length} teams`);
+
+  const teamStats = {};
+
+  for (const team of baseData.data) {
+    const abbr = normalizeBdlAbbr(team.team?.abbreviation || team.abbreviation || '');
+    const teamName = team.team?.full_name || team.team_name || team.name || abbr;
+    const stats = team.stats || team;
+
+    teamStats[abbr] = {
+      team: teamName,
+      abbreviation: abbr,
+      ppg: round1(stats.pts),
+      fg_pct: round1((stats.fg_pct || stats.field_goals_percentage || 0) * 100),
+      reb: round1(stats.reb || stats.rebounds || 0),
+      tov: round1(stats.turnover || stats.turnovers || stats.tov || 0),
+      three_pct: round1((stats.fg3_pct || stats.three_point_field_goal_percentage || 0) * 100),
+      three_rate: round2((stats.fg3a || stats.three_point_field_goals_attempted || 0) / (stats.fga || stats.field_goals_attempted || 1)),
+      allowed: 0,
+      rebound_margin: 0,
+      turnover_margin: 0,
+      pace: 0,
+      off_rtg: 0,
+      def_rtg: 0,
+      net_rtg: 0,
+    };
+  }
+
+  // Fetch advanced stats (pace, off/def/net rating)
+  const advUrl = `https://api.balldontlie.io/v1/nba/team_season_averages/general?season=${season}&season_type=regular&type=advanced`;
+  const advData = await fetchWithRetry(advUrl, { headers }, 3);
+
+  if (advData?.data) {
+    console.log(`  BallDontLie advanced stats: ${advData.data.length} teams`);
+    for (const team of advData.data) {
+      const abbr = normalizeBdlAbbr(team.team?.abbreviation || team.abbreviation || '');
+      if (!teamStats[abbr]) continue;
+      const stats = team.stats || team;
+
+      teamStats[abbr].pace = round1(stats.pace || 0);
+      teamStats[abbr].off_rtg = round1(stats.offensive_rating || stats.off_rating || 0);
+      teamStats[abbr].def_rtg = round1(stats.defensive_rating || stats.def_rating || 0);
+      teamStats[abbr].net_rtg = round1(stats.net_rating || 0);
+    }
+  } else {
+    console.warn('  WARNING: BallDontLie advanced stats unavailable');
+  }
+
+  // Fetch opponent stats for PA, opponent rebounds, opponent turnovers
+  const oppUrl = `https://api.balldontlie.io/v1/nba/team_season_averages/opponent?season=${season}&season_type=regular&type=base`;
+  const oppData = await fetchWithRetry(oppUrl, { headers }, 3);
+
+  if (oppData?.data) {
+    console.log(`  BallDontLie opponent stats: ${oppData.data.length} teams`);
+    for (const team of oppData.data) {
+      const abbr = normalizeBdlAbbr(team.team?.abbreviation || team.abbreviation || '');
+      if (!teamStats[abbr]) continue;
+      const stats = team.stats || team;
+
+      const oppPts = round1(stats.pts || 0);
+      const oppReb = round1(stats.reb || stats.rebounds || 0);
+      const oppTov = round1(stats.turnover || stats.turnovers || stats.tov || 0);
+
+      teamStats[abbr].allowed = oppPts;
+      teamStats[abbr].rebound_margin = round1(teamStats[abbr].reb - oppReb);
+      teamStats[abbr].turnover_margin = round1(oppTov - teamStats[abbr].tov);
+    }
+  } else {
+    console.warn('  WARNING: BallDontLie opponent stats unavailable');
+    // Try to get PA from standings as fallback
+    const standingsUrl = `https://api.balldontlie.io/v1/nba/standings?season=${season}`;
+    const standingsData = await fetchWithRetry(standingsUrl, { headers }, 2);
+    if (standingsData?.data) {
+      for (const entry of standingsData.data) {
+        const abbr = normalizeBdlAbbr(entry.team?.abbreviation || '');
+        if (!teamStats[abbr]) continue;
+        const gp = (entry.wins || 0) + (entry.losses || 0);
+        if (entry.points_against && gp > 0) {
+          teamStats[abbr].allowed = round1(entry.points_against / gp);
+        }
+      }
+    }
+  }
+
+  // Log a sample team
+  const sample = Object.values(teamStats)[0];
+  if (sample) {
+    console.log(`\n  Sample: ${sample.team} (${sample.abbreviation}):`);
+    console.log(`    PPG=${sample.ppg}, PA=${sample.allowed}, FG%=${sample.fg_pct}`);
+    console.log(`    REB diff=${sample.rebound_margin}, TO diff=${sample.turnover_margin}`);
+    console.log(`    Pace=${sample.pace}, 3PT%=${sample.three_pct}, 3PT rate=${sample.three_rate}`);
+    console.log(`    OffRtg=${sample.off_rtg}, DefRtg=${sample.def_rtg}, NetRtg=${sample.net_rtg}`);
+  }
+
+  return teamStats;
 }
 
 // ── NBA.com Stats API ──────────────────────────────────────────
@@ -82,9 +219,9 @@ async function fetchNBAComStats() {
   const oppUrl = `https://stats.nba.com/stats/leaguedashteamstats?Conference=&DateFrom=&DateTo=&Division=&GameScope=&GameSegment=&Height=&ISTRound=&LastNGames=0&LeagueID=00&Location=&MeasureType=Opponent&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season=${season}&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&StarterBench=&TeamID=0&TwoWay=0&VsConference=&VsDivision=`;
 
   const [baseData, advData, oppData] = await Promise.all([
-    fetchWithRetry(baseUrl, NBA_HEADERS, 3),
-    fetchWithRetry(advUrl, NBA_HEADERS, 3),
-    fetchWithRetry(oppUrl, NBA_HEADERS, 3),
+    fetchWithRetry(baseUrl, { headers: NBA_HEADERS }, 3),
+    fetchWithRetry(advUrl, { headers: NBA_HEADERS }, 3),
+    fetchWithRetry(oppUrl, { headers: NBA_HEADERS }, 3),
   ]);
 
   if (!baseData?.resultSets?.[0]) {
@@ -108,12 +245,12 @@ async function fetchNBAComStats() {
     teamStats[teamAbbr] = {
       team: teamName,
       abbreviation: teamAbbr,
-      ppg: round1(row[idx(baseHeaders, 'PTS')]),           // Points per game
-      fg_pct: round1(row[idx(baseHeaders, 'FG_PCT')] * 100), // FG% (NBA.com returns 0.xx)
-      reb: round1(row[idx(baseHeaders, 'REB')]),            // Team rebounds per game
-      tov: round1(row[idx(baseHeaders, 'TOV')]),            // Team turnovers per game
-      three_pct: round1(row[idx(baseHeaders, 'FG3_PCT')] * 100), // 3PT%
-      three_rate: round2(row[idx(baseHeaders, 'FG3A')] / row[idx(baseHeaders, 'FGA')]), // 3PT attempt rate
+      ppg: round1(row[idx(baseHeaders, 'PTS')]),
+      fg_pct: round1(row[idx(baseHeaders, 'FG_PCT')] * 100),
+      reb: round1(row[idx(baseHeaders, 'REB')]),
+      tov: round1(row[idx(baseHeaders, 'TOV')]),
+      three_pct: round1(row[idx(baseHeaders, 'FG3_PCT')] * 100),
+      three_rate: round2(row[idx(baseHeaders, 'FG3A')] / row[idx(baseHeaders, 'FGA')]),
     };
   }
 
@@ -188,10 +325,10 @@ function findStat(statsArray, ...statNames) {
 }
 
 async function fetchESPNFallback() {
-  console.log('\nNBA.com failed - trying ESPN fallback...');
+  console.log('\nPrevious sources failed - trying ESPN fallback...');
 
   // Get team list
-  const teamsData = await fetchWithRetry(`${ESPN_SITE}/teams`, ESPN_HEADERS, 2);
+  const teamsData = await fetchWithRetry(`${ESPN_SITE}/teams`, { headers: ESPN_HEADERS }, 2);
   if (!teamsData) throw new Error('Failed to fetch NBA teams from ESPN');
 
   const teams = teamsData.sports[0].leagues[0].teams;
@@ -203,7 +340,7 @@ async function fetchESPNFallback() {
   // Get per-team stats from core API
   for (const { team } of teams) {
     const url = `${ESPN_CORE}/seasons/${season}/types/2/teams/${team.id}/statistics`;
-    const data = await fetchWithRetry(url, ESPN_HEADERS, 2);
+    const data = await fetchWithRetry(url, { headers: ESPN_HEADERS }, 2);
 
     let categories = [];
     if (data?.splits?.categories) categories = data.splits.categories;
@@ -227,7 +364,6 @@ async function fetchESPNFallback() {
     const gen = catMap['general'] || [];
     const all = [...off, ...def, ...gen];
 
-    // Use displayValue (per-game) not value (may be season total)
     const ppg = findStat(off, 'avgPoints') || findStat(gen, 'avgPoints') || findStat(all, 'avgPoints');
     const fgPct = findStat(off, 'fieldGoalPct') || findStat(gen, 'fieldGoalPct') || findStat(all, 'fieldGoalPct');
 
@@ -236,12 +372,15 @@ async function fetchESPNFallback() {
       abbreviation: team.abbreviation,
       ppg: round1(ppg),
       fg_pct: round1(fgPct),
-      allowed: 0,          // Will fill from standings
-      rebound_margin: 0,   // Can't compute without opponent stats
+      allowed: 0,
+      rebound_margin: 0,
       turnover_margin: 0,
-      pace: 0,             // ESPN doesn't have pace
+      pace: 0,
       three_pct: 0,
       three_rate: 0,
+      off_rtg: 0,
+      def_rtg: 0,
+      net_rtg: 0,
     };
 
     await delay(300);
@@ -249,7 +388,7 @@ async function fetchESPNFallback() {
 
   // Get PA from standings
   const standingsUrl = `${ESPN_SITE}/standings?season=${season}`;
-  const standings = await fetchWithRetry(standingsUrl, ESPN_HEADERS, 2);
+  const standings = await fetchWithRetry(standingsUrl, { headers: ESPN_HEADERS }, 2);
 
   if (standings?.children) {
     for (const conf of standings.children) {
@@ -260,8 +399,7 @@ async function fetchESPNFallback() {
         const stats = entry.stats || [];
         let pa = 0, gp = 0;
 
-        // Log first team's stat names for debugging
-        if (pa === 0 && gp === 0 && Object.values(teamStats).filter(t => t.allowed > 0).length === 0) {
+        if (Object.values(teamStats).filter(t => t.allowed > 0).length === 0) {
           console.log(`  [${td.abbreviation}] Standings stats: ${stats.map(s => `${s.name}=${s.displayValue || s.value}`).join(', ')}`);
         }
 
@@ -295,25 +433,45 @@ async function fetchESPNFallback() {
   return teamStats;
 }
 
-// ── Utilities ──────────────────────────────────────────────────
-
-function round1(val) { return Math.round((val || 0) * 10) / 10; }
-function round2(val) { return Math.round((val || 0) * 100) / 100; }
-
 // ── Main ───────────────────────────────────────────────────────
 
 async function main() {
   console.log('=== Betgistics NBA Stats Update ===');
   console.log(`Date: ${new Date().toISOString()}`);
-  console.log(`Season: ${getNBASeasonString()}\n`);
+  console.log(`Season: ${getNBASeasonString()}`);
+  console.log(`BallDontLie API key: ${process.env.BALLDONTLIE_API_KEY ? 'SET' : 'NOT SET'}\n`);
 
-  // Try NBA.com first (best source - has everything in 3 API calls)
-  let teamStats = await fetchNBAComStats();
+  let teamStats = null;
+  let source = '';
 
-  // Fallback to ESPN if NBA.com fails
-  if (!teamStats || Object.keys(teamStats).length < 20) {
-    console.warn('\nNBA.com returned insufficient data, falling back to ESPN...');
+  // 1. Try BallDontLie first (most reliable, paid)
+  if (process.env.BALLDONTLIE_API_KEY) {
+    teamStats = await fetchBallDontLieStats();
+    if (teamStats && Object.keys(teamStats).length >= 20) {
+      source = 'BallDontLie';
+    } else {
+      console.warn('\nBallDontLie returned insufficient data, trying next source...');
+      teamStats = null;
+    }
+  }
+
+  // 2. Try NBA.com (free, decent reliability)
+  if (!teamStats) {
+    teamStats = await fetchNBAComStats();
+    if (teamStats && Object.keys(teamStats).length >= 20) {
+      source = 'NBA.com';
+    } else {
+      console.warn('\nNBA.com returned insufficient data, trying ESPN...');
+      teamStats = null;
+    }
+  }
+
+  // 3. Fallback to ESPN (free, limited stats)
+  if (!teamStats) {
     teamStats = await fetchESPNFallback();
+    if (teamStats && Object.keys(teamStats).length >= 20) {
+      source = 'ESPN';
+    }
   }
 
   if (!teamStats || Object.keys(teamStats).length < 20) {
@@ -322,7 +480,7 @@ async function main() {
   }
 
   const allStats = Object.values(teamStats);
-  console.log(`\nTotal: ${allStats.length} teams with stats`);
+  console.log(`\nSource: ${source} | Total: ${allStats.length} teams with stats`);
 
   // Sanity check - warn if critical stats are still 0
   const zeroPPG = allStats.filter(s => s.ppg === 0).length;
@@ -379,7 +537,7 @@ async function main() {
   }
   console.log('Copied to stats/ for backward compatibility');
 
-  console.log(`\nDone! Updated at ${new Date().toISOString()}`);
+  console.log(`\nDone! Updated from ${source} at ${new Date().toISOString()}`);
 }
 
 main().catch((err) => {

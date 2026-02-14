@@ -333,15 +333,27 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
 • PPG: ${teamA.points_per_game.toFixed(1)}
 • PA: ${teamA.points_allowed.toFixed(1)}
 • FG%: ${teamA.field_goal_pct.toFixed(1)}%
-• REB: ${formatSign(teamA.rebound_margin)}
-• TO: ${formatSign(teamA.turnover_margin)}
+• 3PT%: ${teamA.three_pct.toFixed(1)}%
+• 3PT Rate: ${teamA.three_rate.toFixed(2)}
+• REB Margin: ${formatSign(teamA.rebound_margin)}
+• TO Margin: ${formatSign(teamA.turnover_margin)}
+• Pace: ${teamA.pace.toFixed(1)}
+• Off Rtg: ${teamA.off_rtg.toFixed(1)}
+• Def Rtg: ${teamA.def_rtg.toFixed(1)}
+• Net Rtg: ${formatSign(teamA.net_rtg)}
 
 **${teamB.team} (${teamB.abbreviation})**
 • PPG: ${teamB.points_per_game.toFixed(1)}
 • PA: ${teamB.points_allowed.toFixed(1)}
 • FG%: ${teamB.field_goal_pct.toFixed(1)}%
-• REB: ${formatSign(teamB.rebound_margin)}
-• TO: ${formatSign(teamB.turnover_margin)}
+• 3PT%: ${teamB.three_pct.toFixed(1)}%
+• 3PT Rate: ${teamB.three_rate.toFixed(2)}
+• REB Margin: ${formatSign(teamB.rebound_margin)}
+• TO Margin: ${formatSign(teamB.turnover_margin)}
+• Pace: ${teamB.pace.toFixed(1)}
+• Off Rtg: ${teamB.off_rtg.toFixed(1)}
+• Def Rtg: ${teamB.def_rtg.toFixed(1)}
+• Net Rtg: ${formatSign(teamB.net_rtg)}
 `;
 
       const assistantMessage: Message = {
