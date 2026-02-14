@@ -182,7 +182,7 @@ const GlobalStyle = () => (
     .footer {
       color: rgba(255, 255, 255, 0.7);
       text-align: center;
-      padding: 2rem 1rem 3rem;
+      padding: 2rem 1rem calc(80px + env(safe-area-inset-bottom, 0px));
       font-size: 0.95rem;
       display: flex;
       justify-content: center;
@@ -291,6 +291,14 @@ const GlobalStyle = () => (
       justify-content: center;
       margin: 1rem auto 1.25rem;
       flex-wrap: wrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    @media (min-width: 768px) {
+      .tabs {
+        flex-wrap: nowrap;
+        overflow-x: visible;
+      }
     }
 
     .tab {
