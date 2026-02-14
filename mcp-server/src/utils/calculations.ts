@@ -339,12 +339,13 @@ export function predictedMarginBasketball(stats: BasketballStats): number {
     // 3P% differential: each 1% diff in 3P% ≈ 1 point (avg ~35 3PA * 0.01 * 3 pts = 1.05)
     const pctDiff = (stats.team3PPct - stats.opponent3PPct) * 1.0;
 
-    // 3PA rate differential: teams shooting more 3s at league-avg 36% get ~1.08 pts per % rate
+    // 3PA rate differential: teams shooting more 3s at league-avg 36% generate extra points
     let rateDiff = 0;
     if (stats.team3PRate !== undefined && stats.opponent3PRate !== undefined) {
       // Convert rate diff to approximate point impact
-      // e.g., 0.05 rate diff * 85 FGA * 0.36 avg 3P% * 3 pts = ~4.6 pts, but weighted down
-      rateDiff = (stats.team3PRate - stats.opponent3PRate) * 15;
+      // 0.05 rate diff * 85 FGA = 4.25 extra 3PA, * 0.36 avg 3P% * 3 pts = ~4.6 pts
+      // Multiplier of 10 yields: 0.05 * 10 = 0.5 pts (conservative, avoids double-counting with 3P%)
+      rateDiff = (stats.team3PRate - stats.opponent3PRate) * 10;
     }
 
     threePointComponent = (pctDiff + rateDiff) * 0.15;
@@ -368,7 +369,9 @@ export function predictedMarginBasketball(stats: BasketballStats): number {
   // Pace multiplier: scale the margin for expected game tempo
   // A game between two fast teams (105 pace each) amplifies margins;
   // a game between two slow teams (95 pace each) compresses them
-  if (stats.teamPace !== undefined && stats.opponentPace !== undefined) {
+  // Skip if pace data is missing/zero to avoid zeroing out the margin
+  if (stats.teamPace && stats.opponentPace &&
+      stats.teamPace > 0 && stats.opponentPace > 0) {
     const expectedPace = (stats.teamPace + stats.opponentPace) / 2;
     const paceFactor = expectedPace / NBA_CONSTANTS.leagueAvgPace;
     margin *= paceFactor;

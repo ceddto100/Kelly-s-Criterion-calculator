@@ -74,8 +74,8 @@ const NBA_CONSTANTS = {
   STARTER_VALUE: 1.0,         // Quality starter
   DEPTH_CLUSTER: 3.0,         // 3+ rotation players out
 
-  // Standard deviation (NBA is tighter than NFL)
-  SIGMA: 11.5,
+  // Standard deviation (matches MCP server NBA_CONSTANTS.sigma)
+  SIGMA: 12.0,
 
   // Kelly Cap
   KELLY_CAP: 0.03,

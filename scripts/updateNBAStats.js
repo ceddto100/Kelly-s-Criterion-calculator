@@ -67,7 +67,7 @@ const NBA_HEADERS = {
 // NBA team abbreviation mapping (NBA.com uses slightly different abbreviations than ESPN)
 const NBA_ABBR_MAP = {
   'PHX': 'PHX', 'GSW': 'GS', 'NOP': 'NO', 'NYK': 'NY', 'SAS': 'SA',
-  'UTA': 'UTAH', 'WAS': 'WSH',
+  'UTA': 'UTA', 'WAS': 'WSH',
 };
 
 function normalizeAbbr(nbaAbbr) {
