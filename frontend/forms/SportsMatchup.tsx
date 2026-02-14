@@ -12,6 +12,12 @@ interface NBATeamStats {
   field_goal_pct: number;
   rebound_margin: number;
   turnover_margin: number;
+  pace: number;
+  three_pct: number;
+  three_rate: number;
+  off_rtg: number;
+  def_rtg: number;
+  net_rtg: number;
 }
 
 // Parse CSV string into array of objects
@@ -81,38 +87,41 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
   useEffect(() => {
     async function loadNBAData() {
       try {
-        const [ppgRes, allowedRes, fgRes, reboundRes, turnoverRes] = await Promise.all([
-          fetch('/stats/nba/ppg.csv'),
-          fetch('/stats/nba/allowed.csv'),
-          fetch('/stats/nba/fieldgoal.csv'),
-          fetch('/stats/nba/rebound_margin.csv'),
-          fetch('/stats/nba/turnover_margin.csv'),
-        ]);
+        const csvFiles = [
+          '/stats/nba/ppg.csv',
+          '/stats/nba/allowed.csv',
+          '/stats/nba/fieldgoal.csv',
+          '/stats/nba/rebound_margin.csv',
+          '/stats/nba/turnover_margin.csv',
+          '/stats/nba/pace.csv',
+          '/stats/nba/three_pct.csv',
+          '/stats/nba/three_rate.csv',
+          '/stats/nba/off_rtg.csv',
+          '/stats/nba/def_rtg.csv',
+          '/stats/nba/net_rtg.csv',
+        ];
 
-        if (!ppgRes.ok) throw new Error(`Failed to fetch PPG stats: ${ppgRes.status}`);
-        if (!allowedRes.ok) throw new Error(`Failed to fetch Allowed stats: ${allowedRes.status}`);
-        if (!fgRes.ok) throw new Error(`Failed to fetch FG% stats: ${fgRes.status}`);
-        if (!reboundRes.ok) throw new Error(`Failed to fetch Rebound stats: ${reboundRes.status}`);
-        if (!turnoverRes.ok) throw new Error(`Failed to fetch Turnover stats: ${turnoverRes.status}`);
+        const responses = await Promise.all(csvFiles.map(f => fetch(f)));
+        // Only require the first 5 core files; new files may not exist yet
+        if (!responses[0].ok) throw new Error(`Failed to fetch PPG stats: ${responses[0].status}`);
+        if (!responses[1].ok) throw new Error(`Failed to fetch Allowed stats: ${responses[1].status}`);
+        if (!responses[2].ok) throw new Error(`Failed to fetch FG% stats: ${responses[2].status}`);
 
-        const [ppgCsv, allowedCsv, fgCsv, reboundCsv, turnoverCsv] = await Promise.all([
-          ppgRes.text(),
-          allowedRes.text(),
-          fgRes.text(),
-          reboundRes.text(),
-          turnoverRes.text(),
-        ]);
-
-        const ppgData = parseCsv(ppgCsv);
-        const allowedData = parseCsv(allowedCsv);
-        const fgData = parseCsv(fgCsv);
-        const reboundData = parseCsv(reboundCsv);
-        const turnoverData = parseCsv(turnoverCsv);
+        const csvTexts = await Promise.all(responses.map(r => r.ok ? r.text() : Promise.resolve('')));
+        const [ppgData, allowedData, fgData, reboundData, turnoverData,
+               paceData, threePctData, threeRateData, offRtgData, defRtgData, netRtgData] =
+          csvTexts.map(t => t ? parseCsv(t) : []);
 
         const allowedMap = new Map(allowedData.map(d => [d.abbreviation, d.allowed]));
         const fgMap = new Map(fgData.map(d => [d.abbreviation, d.fg_pct]));
         const reboundMap = new Map(reboundData.map(d => [d.abbreviation, d.rebound_margin]));
         const turnoverMap = new Map(turnoverData.map(d => [d.abbreviation, d.turnover_margin]));
+        const paceMap = new Map(paceData.map(d => [d.abbreviation, d.pace]));
+        const threePctMap = new Map(threePctData.map(d => [d.abbreviation, d.three_pct]));
+        const threeRateMap = new Map(threeRateData.map(d => [d.abbreviation, d.three_rate]));
+        const offRtgMap = new Map(offRtgData.map(d => [d.abbreviation, d.off_rtg]));
+        const defRtgMap = new Map(defRtgData.map(d => [d.abbreviation, d.def_rtg]));
+        const netRtgMap = new Map(netRtgData.map(d => [d.abbreviation, d.net_rtg]));
 
         const teams = ppgData.map(team => ({
           team: team.team as string,
@@ -122,6 +131,12 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
           field_goal_pct: (fgMap.get(team.abbreviation) as number) ?? 0,
           rebound_margin: (reboundMap.get(team.abbreviation) as number) ?? 0,
           turnover_margin: (turnoverMap.get(team.abbreviation) as number) ?? 0,
+          pace: (paceMap.get(team.abbreviation) as number) ?? 0,
+          three_pct: (threePctMap.get(team.abbreviation) as number) ?? 0,
+          three_rate: (threeRateMap.get(team.abbreviation) as number) ?? 0,
+          off_rtg: (offRtgMap.get(team.abbreviation) as number) ?? 0,
+          def_rtg: (defRtgMap.get(team.abbreviation) as number) ?? 0,
+          net_rtg: (netRtgMap.get(team.abbreviation) as number) ?? 0,
         }));
 
         setNbaTeams(teams);

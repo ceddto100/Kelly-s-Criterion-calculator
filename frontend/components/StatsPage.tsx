@@ -24,6 +24,12 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
     { id: 'fieldgoal', label: 'Field Goal %', file: '/stats/nba/fieldgoal.csv', higherIsBetter: true },
     { id: 'rebound', label: 'Rebound Margin', file: '/stats/nba/rebound_margin.csv', higherIsBetter: true },
     { id: 'turnover', label: 'Turnover Margin', file: '/stats/nba/turnover_margin.csv', higherIsBetter: true },
+    { id: 'pace', label: 'Pace (Poss/Game)', file: '/stats/nba/pace.csv', higherIsBetter: true },
+    { id: 'three_pct', label: '3-Point %', file: '/stats/nba/three_pct.csv', higherIsBetter: true },
+    { id: 'three_rate', label: '3-Point Rate', file: '/stats/nba/three_rate.csv', higherIsBetter: true },
+    { id: 'off_rtg', label: 'Offensive Rating', file: '/stats/nba/off_rtg.csv', higherIsBetter: true },
+    { id: 'def_rtg', label: 'Defensive Rating', file: '/stats/nba/def_rtg.csv', higherIsBetter: false },
+    { id: 'net_rtg', label: 'Net Rating', file: '/stats/nba/net_rtg.csv', higherIsBetter: true },
   ];
 
   const nflCategories = [

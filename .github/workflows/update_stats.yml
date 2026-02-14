@@ -24,7 +24,7 @@ jobs:
           cd backend
           npm install
 
-      - name: Update NBA stats from ESPN
+      - name: Update NBA stats from NBA.com + ESPN
         id: nba
         continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNBAStats.js
