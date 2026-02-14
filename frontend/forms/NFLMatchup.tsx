@@ -78,41 +78,39 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
       try {
         console.log('Loading NFL stats from /stats/nfl/...');
 
-        const [ppgRes, allowedRes, offYardsRes, defYardsRes, turnoverRes] = await Promise.all([
-          fetch('/stats/nfl/nfl_ppg.csv'),
-          fetch('/stats/nfl/nfl_allowed.csv'),
-          fetch('/stats/nfl/nfl_off_yards.csv'),
-          fetch('/stats/nfl/nfl_def_yards.csv'),
-          fetch('/stats/nfl/nfl_turnover_diff.csv'),
-        ]);
+        const csvFiles = [
+          'nfl_ppg.csv', 'nfl_allowed.csv', 'nfl_off_yards.csv',
+          'nfl_def_yards.csv', 'nfl_turnover_diff.csv', 'nfl_pass_yards.csv',
+          'nfl_rush_yards.csv', 'nfl_third_down.csv', 'nfl_completion_pct.csv',
+          'nfl_yards_per_play.csv', 'nfl_scoring_diff.csv',
+        ];
 
-        // Check if any fetch failed
-        if (!ppgRes.ok) throw new Error(`Failed to fetch PPG stats: ${ppgRes.status}`);
-        if (!allowedRes.ok) throw new Error(`Failed to fetch Allowed stats: ${allowedRes.status}`);
-        if (!offYardsRes.ok) throw new Error(`Failed to fetch Offensive Yards: ${offYardsRes.status}`);
-        if (!defYardsRes.ok) throw new Error(`Failed to fetch Defensive Yards: ${defYardsRes.status}`);
-        if (!turnoverRes.ok) throw new Error(`Failed to fetch Turnovers: ${turnoverRes.status}`);
+        const responses = await Promise.all(
+          csvFiles.map(f => fetch(`/stats/nfl/${f}`))
+        );
 
-        const [ppgCsv, allowedCsv, offYardsCsv, defYardsCsv, turnoverCsv] = await Promise.all([
-          ppgRes.text(),
-          allowedRes.text(),
-          offYardsRes.text(),
-          defYardsRes.text(),
-          turnoverRes.text(),
-        ]);
+        // Check if core files loaded (first 5 are required, rest are optional)
+        for (let i = 0; i < 5; i++) {
+          if (!responses[i].ok) throw new Error(`Failed to fetch ${csvFiles[i]}: ${responses[i].status}`);
+        }
 
+        const csvTexts = await Promise.all(responses.map(r => r.ok ? r.text() : Promise.resolve('')));
         console.log('CSV files loaded, parsing...');
 
-        const ppgData = parseCsv(ppgCsv);
-        const allowedData = parseCsv(allowedCsv);
-        const offYardsData = parseCsv(offYardsCsv);
-        const defYardsData = parseCsv(defYardsCsv);
-        const turnoverData = parseCsv(turnoverCsv);
+        const [ppgData, allowedData, offYardsData, defYardsData, turnoverData,
+               passYardsData, rushYardsData, thirdDownData, completionData,
+               yppData, scoringDiffData] = csvTexts.map(t => t ? parseCsv(t) : []);
 
         const allowedMap = new Map(allowedData.map(d => [d.abbreviation, d.allowed]));
         const offYardsMap = new Map(offYardsData.map(d => [d.abbreviation, d.off_yards]));
         const defYardsMap = new Map(defYardsData.map(d => [d.abbreviation, d.def_yards]));
         const turnoverMap = new Map(turnoverData.map(d => [d.abbreviation, d.turnover_diff]));
+        const passYardsMap = new Map(passYardsData.map(d => [d.abbreviation, d.pass_yards]));
+        const rushYardsMap = new Map(rushYardsData.map(d => [d.abbreviation, d.rush_yards]));
+        const thirdDownMap = new Map(thirdDownData.map(d => [d.abbreviation, d.third_down_pct]));
+        const completionMap = new Map(completionData.map(d => [d.abbreviation, d.completion_pct]));
+        const yppMap = new Map(yppData.map(d => [d.abbreviation, d.yards_per_play]));
+        const scoringDiffMap = new Map(scoringDiffData.map(d => [d.abbreviation, d.scoring_diff]));
 
         const teams = ppgData.map(team => ({
           team: team.team as string,
@@ -122,6 +120,12 @@ export default function NFLMatchup({ onTransferToEstimator }: NFLMatchupProps) {
           off_yards: (offYardsMap.get(team.abbreviation) as number) || 0,
           def_yards: (defYardsMap.get(team.abbreviation) as number) || 0,
           turnover_diff: (turnoverMap.get(team.abbreviation) as number) || 0,
+          pass_yards: (passYardsMap.get(team.abbreviation) as number) || 0,
+          rush_yards: (rushYardsMap.get(team.abbreviation) as number) || 0,
+          third_down_pct: (thirdDownMap.get(team.abbreviation) as number) || 0,
+          completion_pct: (completionMap.get(team.abbreviation) as number) || 0,
+          yards_per_play: (yppMap.get(team.abbreviation) as number) || 0,
+          scoring_diff: (scoringDiffMap.get(team.abbreviation) as number) || 0,
         }));
 
         console.log(`Loaded ${teams.length} NFL teams`);

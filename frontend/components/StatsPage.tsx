@@ -38,6 +38,12 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
     { id: 'off_yards', label: 'Offensive Yards', file: '/stats/nfl/nfl_off_yards.csv', higherIsBetter: true },
     { id: 'def_yards', label: 'Defensive Yards', file: '/stats/nfl/nfl_def_yards.csv', higherIsBetter: false },
     { id: 'turnover', label: 'Turnover Differential', file: '/stats/nfl/nfl_turnover_diff.csv', higherIsBetter: true },
+    { id: 'pass_yards', label: 'Passing Yards/Game', file: '/stats/nfl/nfl_pass_yards.csv', higherIsBetter: true },
+    { id: 'rush_yards', label: 'Rushing Yards/Game', file: '/stats/nfl/nfl_rush_yards.csv', higherIsBetter: true },
+    { id: 'third_down', label: 'Third Down %', file: '/stats/nfl/nfl_third_down.csv', higherIsBetter: true },
+    { id: 'completion_pct', label: 'Completion %', file: '/stats/nfl/nfl_completion_pct.csv', higherIsBetter: true },
+    { id: 'yards_per_play', label: 'Yards Per Play', file: '/stats/nfl/nfl_yards_per_play.csv', higherIsBetter: true },
+    { id: 'scoring_diff', label: 'Scoring Differential', file: '/stats/nfl/nfl_scoring_diff.csv', higherIsBetter: true },
   ];
 
   const nhlCategories = [

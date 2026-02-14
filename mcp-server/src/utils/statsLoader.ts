@@ -37,6 +37,12 @@ export interface NFLTeamStats {
   offensiveYards: number;
   defensiveYards: number;
   turnoverDiff: number;
+  passYards: number;
+  rushYards: number;
+  thirdDownPct: number;
+  completionPct: number;
+  yardsPerPlay: number;
+  scoringDiff: number;
 }
 
 export interface TeamStatsResult {
@@ -328,6 +334,12 @@ function loadNFLStats(): Map<string, NFLTeamStats> {
     const offYardsData = loadCSVFile(resolve(nflPath, 'nfl_off_yards.csv'));
     const defYardsData = loadCSVFile(resolve(nflPath, 'nfl_def_yards.csv'));
     const turnoverData = loadCSVFile(resolve(nflPath, 'nfl_turnover_diff.csv'));
+    const passYardsData = loadCSVFile(resolve(nflPath, 'nfl_pass_yards.csv'));
+    const rushYardsData = loadCSVFile(resolve(nflPath, 'nfl_rush_yards.csv'));
+    const thirdDownData = loadCSVFile(resolve(nflPath, 'nfl_third_down.csv'));
+    const completionData = loadCSVFile(resolve(nflPath, 'nfl_completion_pct.csv'));
+    const yppData = loadCSVFile(resolve(nflPath, 'nfl_yards_per_play.csv'));
+    const scoringDiffData = loadCSVFile(resolve(nflPath, 'nfl_scoring_diff.csv'));
 
     if (ppgData.length === 0) {
       console.error('[StatsLoader] No NFL PPG data loaded');
@@ -341,6 +353,12 @@ function loadNFLStats(): Map<string, NFLTeamStats> {
     const offYardsMap = new Map(offYardsData.map(r => [r.abbreviation?.toUpperCase(), r]));
     const defYardsMap = new Map(defYardsData.map(r => [r.abbreviation?.toUpperCase(), r]));
     const turnoverMap = new Map(turnoverData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const passYardsMap = new Map(passYardsData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const rushYardsMap = new Map(rushYardsData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const thirdDownMap = new Map(thirdDownData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const completionMap = new Map(completionData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const yppMap = new Map(yppData.map(r => [r.abbreviation?.toUpperCase(), r]));
+    const scoringDiffMap = new Map(scoringDiffData.map(r => [r.abbreviation?.toUpperCase(), r]));
 
     for (const [abbr, ppgRow] of ppgMap) {
       if (!abbr) continue;
@@ -352,7 +370,13 @@ function loadNFLStats(): Map<string, NFLTeamStats> {
         pointsAllowed: parseFloat(allowedMap.get(abbr)?.allowed || '0'),
         offensiveYards: parseFloat(offYardsMap.get(abbr)?.off_yards || '0'),
         defensiveYards: parseFloat(defYardsMap.get(abbr)?.def_yards || '0'),
-        turnoverDiff: parseFloat(turnoverMap.get(abbr)?.turnover_diff || '0')
+        turnoverDiff: parseFloat(turnoverMap.get(abbr)?.turnover_diff || '0'),
+        passYards: parseFloat(passYardsMap.get(abbr)?.pass_yards || '0'),
+        rushYards: parseFloat(rushYardsMap.get(abbr)?.rush_yards || '0'),
+        thirdDownPct: parseFloat(thirdDownMap.get(abbr)?.third_down_pct || '0'),
+        completionPct: parseFloat(completionMap.get(abbr)?.completion_pct || '0'),
+        yardsPerPlay: parseFloat(yppMap.get(abbr)?.yards_per_play || '0'),
+        scoringDiff: parseFloat(scoringDiffMap.get(abbr)?.scoring_diff || '0'),
       };
 
       cache.set(abbr, teamStats);
