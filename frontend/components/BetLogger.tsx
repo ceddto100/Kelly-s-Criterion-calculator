@@ -132,7 +132,7 @@ export function LogBetButton({
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       // Force navigation bar to be visible when modal closes
       const navBar = document.getElementById('bottom-navigation-bar');
       if (navBar) {
@@ -142,7 +142,7 @@ export function LogBetButton({
       }
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       // Ensure navigation bar is visible on cleanup
       const navBar = document.getElementById('bottom-navigation-bar');
       if (navBar) {
@@ -212,7 +212,7 @@ export function LogBetButton({
         setSuccess(false);
         setNotes('');
         // Ensure navigation bar is visible and page is scrollable
-        document.body.style.overflow = 'unset';
+        document.body.style.overflow = '';
         const navBar = document.getElementById('bottom-navigation-bar');
         if (navBar) {
           navBar.style.visibility = 'visible';
@@ -752,7 +752,7 @@ export const BetLoggerStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1200;
+    z-index: 100000;
     padding: 1rem;
     animation: fadeIn 0.3s ease;
   }
