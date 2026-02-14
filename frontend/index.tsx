@@ -2718,64 +2718,70 @@ function App() {
         <div className="blob blob-a" />
         <div className="blob blob-b" />
 
-        {/* Brand Logo */}
-        <div className="brand-logo-container">
-          <img
-            src="/betgistics.png"
-            alt="Betgistics Logo"
-            className="brand-logo"
-            title="Betgistics - Point Spread Betting Analytics"
-            loading="eager"
-            fetchpriority="high"
-            width="64"
-            height="64"
-          />
-        </div>
-
-        {/* Authentication UI */}
-        <div className="auth-container">
-          {authLoading ? (
-            <div style={{color: 'var(--text-muted)', fontSize: '.9rem'}}>Loading...</div>
-          ) : authUser ? (
-            <div className="user-info">
-              {authUser.avatar && <img src={authUser.avatar} alt={authUser.name} className="user-avatar" />}
-              <div className="user-details">
-                <div className="user-name">{authUser.name}</div>
-                <div className="user-email">{authUser.email}</div>
-              </div>
-              <a href={`${BACKEND_URL}/auth/logout`} className="logout-btn">Logout</a>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center' }}>
-              <a href={`${BACKEND_URL}/auth/google`} className="auth-btn">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                  <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
-                  <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                  <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
-                </svg>
-                Sign in with Google
-              </a>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: '240px' }}>
-                By signing in, you agree to our{' '}
-                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                  Privacy Policy
-                </a>
-                {' '}and{' '}
-                <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                  Terms of Service
-                </a>
-              </p>
-            </div>
-          )}
-        </div>
-
         <div className="page-wrap">
-          <header className="header">
-            <h1 className="title">
-              <span className="title-part-1">Bet Like A Pro</span>
-              <span className="title-part-2">Betgistics</span>
-            </h1>
+          <header className="panel app-shell-header">
+            <div className="brand-block">
+              <img
+                src="/betgistics.png"
+                alt="Betgistics Logo"
+                className="brand-logo"
+                title="Betgistics - Point Spread Betting Analytics"
+                loading="eager"
+                fetchpriority="high"
+                width="64"
+                height="64"
+              />
+              <div>
+                <p className="eyebrow">Smart betting workspace</p>
+                <h1 className="title title--compact">Betgistics Command Center</h1>
+                <p className="hero-copy">Compare team data, model probabilities, and size bets in one focused workflow.</p>
+              </div>
+            </div>
+
+            <div className="auth-shell">
+              {authLoading ? (
+                <div style={{color: 'var(--text-muted)', fontSize: '.9rem'}}>Loading...</div>
+              ) : authUser ? (
+                <div className="user-info">
+                  {authUser.avatar && <img src={authUser.avatar} alt={authUser.name} className="user-avatar" />}
+                  <div className="user-details">
+                    <div className="user-name">{authUser.name}</div>
+                    <div className="user-email">{authUser.email}</div>
+                  </div>
+                  <a href={`${BACKEND_URL}/auth/logout`} className="logout-btn">Logout</a>
+                </div>
+              ) : (
+                <div className="signin-card">
+                  <a href={`${BACKEND_URL}/auth/google`} className="auth-btn">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                      <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
+                      <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                      <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                    </svg>
+                    Sign in with Google
+                  </a>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: '300px' }}>
+                    By signing in, you agree to our{' '}
+                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
+                      Privacy Policy
+                    </a>
+                    {' '}and{' '}
+                    <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
+                      Terms of Service
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          </header>
+
+          <section className="panel workflow-panel">
+            <div>
+              <p className="eyebrow">Workflow</p>
+              <h2 style={{ margin: 0 }}>From matchup → probability → stake sizing</h2>
+              <p className="hero-copy" style={{ marginTop: '0.6rem' }}>Use the tabs below like a pipeline. Each tool is purpose-built and connected.</p>
+            </div>
             <SwipeableAudioOrbs
               orbs={[
                 {
@@ -2800,25 +2806,26 @@ function App() {
                 },
               ]}
             />
-          </header>
+          </section>
 
-          <div className="panel" style={{maxWidth:900}}>
+          <div className="panel tab-command-center" style={{maxWidth:1100}}>
             <div className="tabs app-tabs" role="tablist">
               {[
-                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion' },
-                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator' },
-                { key: CONSTANTS.TABS.WALTERS, label: '⚡ Walters Protocol' },
-                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups' },
-                { key: CONSTANTS.TABS.BET_HISTORY, label: '📊 Bet History' },
+                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
+                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
+                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
+                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
+                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
               ].map(tab => (
                 <button
                   key={tab.key}
-                  className={`tab ${activeTab === tab.key ? 'active' : ''}`}
+                  className={`tab tab-card ${activeTab === tab.key ? 'active' : ''}`}
                   onClick={() => handleTabChange(tab.key)}
                   aria-selected={activeTab === tab.key}
                   role="tab"
                 >
-                  {tab.label}
+                  <span className="tab-title">{tab.label}</span>
+                  <small className="tab-blurb">{tab.blurb}</small>
                 </button>
               ))}
             </div>

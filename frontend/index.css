@@ -1666,3 +1666,127 @@ button:hover,
     font-size: 0.85rem !important;
   }
 }
+
+/* ==================== UI REMAKE V2: STRUCTURE + LAYOUT ==================== */
+.page-wrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.app-shell-header {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: center;
+  gap: 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.brand-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 700;
+  color: #7dd3fc;
+  margin: 0 0 .3rem;
+}
+
+.title--compact {
+  margin: 0 !important;
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
+  line-height: 1.15;
+}
+
+.hero-copy {
+  margin: 0.35rem 0 0;
+  color: var(--ui-text-soft);
+  font-size: .95rem;
+  max-width: 58ch;
+}
+
+.auth-shell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.signin-card {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  padding: .85rem;
+}
+
+.workflow-panel {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .8rem;
+}
+
+.tab-command-center {
+  margin: 0 auto;
+}
+
+.tab-card {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start !important;
+  text-align: left !important;
+  gap: 0.4rem;
+  padding: 0.85rem 0.9rem !important;
+}
+
+.tab-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: inherit;
+}
+
+.tab-blurb {
+  font-size: .75rem;
+  line-height: 1.25;
+  color: #94a3b8;
+  opacity: .95;
+}
+
+.tab.active .tab-blurb {
+  color: #dbeafe;
+}
+
+@media (min-width: 900px) {
+  .workflow-panel {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell-header {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-shell {
+    justify-content: flex-start;
+  }
+
+  .tab-card {
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .tab-title {
+    font-size: .87rem;
+  }
+
+  .tab-blurb {
+    display: none;
+  }
+}
