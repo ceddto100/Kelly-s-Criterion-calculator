@@ -11,10 +11,10 @@
 "Columbus Blue Jackets","CBJ",3.16
 "Ottawa Senators","OTT",3.13
 "Detroit Red Wings","DET",3.13
-"Nashville Predators","NSH",3.1
-"Utah Hockey Club","UTA",3.1
-"Buffalo Sabres","BUF",3.1
 "Montreal Canadiens","MTL",3.1
+"Buffalo Sabres","BUF",3.1
+"Utah Hockey Club","UTA",3.1
+"Nashville Predators","NSH",3.1
 "Vegas Golden Knights","VGK",3.08
 "Minnesota Wild","MIN",3.06
 "Vancouver Canucks","VAN",2.97
@@ -23,8 +23,8 @@
 "New Jersey Devils","NJD",2.93
 "Los Angeles Kings","LAK",2.91
 "Boston Bruins","BOS",2.91
-"Toronto Maple Leafs","TOR",2.9
 "Calgary Flames","CGY",2.9
+"Toronto Maple Leafs","TOR",2.9
 "San Jose Sharks","SJS",2.88
 "Philadelphia Flyers","PHI",2.82
 "New York Rangers","NYR",2.78

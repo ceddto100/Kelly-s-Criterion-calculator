@@ -3,11 +3,11 @@
 "Tampa Bay Lightning","TBL",0.34
 "Colorado Avalanche","COL",0.32
 "Utah Hockey Club","UTA",0.3
-"Boston Bruins","BOS",0.28
 "Washington Capitals","WSH",0.28
+"Boston Bruins","BOS",0.28
 "Seattle Kraken","SEA",0.26
-"Buffalo Sabres","BUF",0.18
 "Winnipeg Jets","WPG",0.18
+"Buffalo Sabres","BUF",0.18
 "Dallas Stars","DAL",0.18
 "Los Angeles Kings","LAK",0.17
 "New York Rangers","NYR",0.15
@@ -26,8 +26,8 @@
 "San Jose Sharks","SJS",-0.21
 "Florida Panthers","FLA",-0.23
 "Toronto Maple Leafs","TOR",-0.26
-"Nashville Predators","NSH",-0.27
 "Philadelphia Flyers","PHI",-0.27
+"Nashville Predators","NSH",-0.27
 "Vegas Golden Knights","VGK",-0.35
 "St. Louis Blues","STL",-0.47
 "Ottawa Senators","OTT",-0.56
