@@ -1,31 +1,31 @@
 "team","abbreviation","allowed"
-"Atlanta Hawks","ATL",0
-"Boston Celtics","BOS",0
-"Brooklyn Nets","BKN",0
-"Charlotte Hornets","CHA",0
-"Chicago Bulls","CHI",0
-"Cleveland Cavaliers","CLE",0
-"Dallas Mavericks","DAL",0
-"Denver Nuggets","DEN",0
-"Detroit Pistons","DET",0
-"Golden State Warriors","GS",0
-"Houston Rockets","HOU",0
-"Indiana Pacers","IND",0
-"LA Clippers","LAC",0
-"Los Angeles Lakers","LAL",0
-"Memphis Grizzlies","MEM",0
-"Miami Heat","MIA",0
-"Milwaukee Bucks","MIL",0
-"Minnesota Timberwolves","MIN",0
-"New Orleans Pelicans","NO",0
-"New York Knicks","NY",0
-"Oklahoma City Thunder","OKC",0
-"Orlando Magic","ORL",0
-"Philadelphia 76ers","PHI",0
-"Phoenix Suns","PHX",0
-"Portland Trail Blazers","POR",0
-"Sacramento Kings","SAC",0
-"San Antonio Spurs","SA",0
-"Toronto Raptors","TOR",0
-"Utah Jazz","UTAH",0
-"Washington Wizards","WSH",0
+"Boston Celtics","BOS",1002
+"New York Knicks","NY",1037
+"Houston Rockets","HOU",1046
+"Charlotte Hornets","CHA",1062
+"Detroit Pistons","DET",1064
+"LA Clippers","LAC",1070
+"Oklahoma City Thunder","OKC",1081
+"San Antonio Spurs","SA",1101
+"Cleveland Cavaliers","CLE",1104
+"Toronto Raptors","TOR",1109
+"Miami Heat","MIA",1116
+"Phoenix Suns","PHX",1121
+"Golden State Warriors","GS",1125
+"Milwaukee Bucks","MIL",1127
+"New Orleans Pelicans","NO",1131
+"Minnesota Timberwolves","MIN",1135
+"Orlando Magic","ORL",1147
+"Los Angeles Lakers","LAL",1152
+"Brooklyn Nets","BKN",1154
+"Denver Nuggets","DEN",1155
+"Atlanta Hawks","ATL",1166
+"Utah Jazz","UTAH",1173
+"Philadelphia 76ers","PHI",1179
+"Sacramento Kings","SAC",1199
+"Indiana Pacers","IND",1200
+"Portland Trail Blazers","POR",1204
+"Dallas Mavericks","DAL",1210
+"Memphis Grizzlies","MEM",1211
+"Washington Wizards","WSH",1229
+"Chicago Bulls","CHI",1247
