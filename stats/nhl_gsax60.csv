@@ -1,33 +1,33 @@
 "team","abbreviation","gsax60"
-"New York Islanders","NYI",0.59
-"Tampa Bay Lightning","TBL",0.34
-"Colorado Avalanche","COL",0.32
-"Utah Hockey Club","UTA",0.3
-"Boston Bruins","BOS",0.28
-"Washington Capitals","WSH",0.28
-"Seattle Kraken","SEA",0.26
-"Winnipeg Jets","WPG",0.18
-"Buffalo Sabres","BUF",0.18
-"Dallas Stars","DAL",0.18
-"Los Angeles Kings","LAK",0.17
-"New York Rangers","NYR",0.15
-"Columbus Blue Jackets","CBJ",0.15
-"Calgary Flames","CGY",0.13
+"Anaheim Ducks","ANA",-0.19
+"Boston Bruins","BOS",0.26
+"Buffalo Sabres","BUF",0.2
+"Carolina Hurricanes","CAR",0.07
+"Columbus Blue Jackets","CBJ",0.18
+"Calgary Flames","CGY",0.17
 "Chicago Blackhawks","CHI",0.11
-"Pittsburgh Penguins","PIT",0.09
-"Minnesota Wild","MIN",0.08
-"Carolina Hurricanes","CAR",0.05
+"Colorado Avalanche","COL",0.32
+"Dallas Stars","DAL",0.19
 "Detroit Red Wings","DET",0.04
-"Montreal Canadiens","MTL",0.01
-"Edmonton Oilers","EDM",-0.01
-"New Jersey Devils","NJD",-0.02
-"Vancouver Canucks","VAN",-0.1
-"Anaheim Ducks","ANA",-0.18
-"San Jose Sharks","SJS",-0.21
-"Florida Panthers","FLA",-0.23
-"Toronto Maple Leafs","TOR",-0.26
-"Philadelphia Flyers","PHI",-0.27
-"Nashville Predators","NSH",-0.27
-"Vegas Golden Knights","VGK",-0.35
+"Edmonton Oilers","EDM",0.02
+"Florida Panthers","FLA",-0.27
+"Los Angeles Kings","LAK",0.17
+"Minnesota Wild","MIN",0.1
+"Montreal Canadiens","MTL",-0.02
+"New Jersey Devils","NJD",-0.06
+"Nashville Predators","NSH",-0.32
+"New York Islanders","NYI",0.59
+"New York Rangers","NYR",0.11
+"Ottawa Senators","OTT",-0.71
+"Philadelphia Flyers","PHI",-0.25
+"Pittsburgh Penguins","PIT",-0.03
+"Seattle Kraken","SEA",0.26
+"San Jose Sharks","SJS",-0.16
 "St. Louis Blues","STL",-0.47
-"Ottawa Senators","OTT",-0.56
+"Tampa Bay Lightning","TBL",0.34
+"Toronto Maple Leafs","TOR",-0.23
+"Utah Hockey Club","UTA",0.17
+"Vancouver Canucks","VAN",-0.14
+"Vegas Golden Knights","VGK",-0.4
+"Winnipeg Jets","WPG",0.12
+"Washington Capitals","WSH",0.3
