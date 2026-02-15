@@ -1,31 +1,31 @@
 "team","abbreviation","allowed"
-"Atlanta Hawks","ATL",0
-"Boston Celtics","BOS",0
-"Brooklyn Nets","BKN",0
-"Charlotte Hornets","CHA",0
-"Chicago Bulls","CHI",0
-"Cleveland Cavaliers","CLE",0
-"Dallas Mavericks","DAL",0
-"Denver Nuggets","DEN",0
-"Detroit Pistons","DET",0
-"Golden State Warriors","GS",0
-"Houston Rockets","HOU",0
-"Indiana Pacers","IND",0
-"LA Clippers","LAC",0
-"Los Angeles Lakers","LAL",0
-"Memphis Grizzlies","MEM",0
-"Miami Heat","MIA",0
-"Milwaukee Bucks","MIL",0
-"Minnesota Timberwolves","MIN",0
-"New Orleans Pelicans","NO",0
-"New York Knicks","NY",0
-"Oklahoma City Thunder","OKC",0
-"Orlando Magic","ORL",0
-"Philadelphia 76ers","PHI",0
-"Phoenix Suns","PHX",0
-"Portland Trail Blazers","POR",0
-"Sacramento Kings","SAC",0
-"San Antonio Spurs","SA",0
-"Toronto Raptors","TOR",0
-"Utah Jazz","UTAH",0
-"Washington Wizards","WSH",0
+"Denver Nuggets","DEN",116.3
+"Cleveland Cavaliers","CLE",115.9
+"Oklahoma City Thunder","OKC",108.0
+"Minnesota Timberwolves","MIN",114.8
+"Miami Heat","MIA",117.2
+"Utah Jazz","UTAH",125.9
+"San Antonio Spurs","SA",112.2
+"New York Knicks","NY",111.9
+"Atlanta Hawks","ATL",118.6
+"Detroit Pistons","DET",109.3
+"Chicago Bulls","CHI",120.6
+"Portland Trail Blazers","POR",118.3
+"Philadelphia 76ers","PHI",115.9
+"Los Angeles Lakers","LAL",116.0
+"Charlotte Hornets","CHA",113.8
+"Golden State Warriors","GS",113.7
+"Memphis Grizzlies","MEM",117.5
+"Boston Celtics","BOS",108.4
+"Orlando Magic","ORL",115.2
+"Houston Rockets","HOU",109.6
+"New Orleans Pelicans","NO",120.4
+"Dallas Mavericks","DAL",117.4
+"Toronto Raptors","TOR",112.3
+"Phoenix Suns","PHX",111.8
+"Washington Wizards","WSH",123.1
+"LA Clippers","LAC",112.3
+"Milwaukee Bucks","MIL",115.2
+"Indiana Pacers","IND",118.6
+"Sacramento Kings","SAC",120.6
+"Brooklyn Nets","BKN",114.9
