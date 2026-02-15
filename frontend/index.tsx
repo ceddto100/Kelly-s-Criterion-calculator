@@ -2593,6 +2593,7 @@ function App() {
   // Handler to transfer NBA matchup data to Basketball Estimator
   const handleTransferToEstimator = (matchupData: any) => {
     setBasketballStats({
+      ...initialBasketballState,
       teamPointsFor: matchupData.teamA.points_per_game?.toFixed(1) || '',
       opponentPointsFor: matchupData.teamB.points_per_game?.toFixed(1) || '',
       teamPointsAgainst: matchupData.teamA.points_allowed?.toFixed(1) || '',
@@ -2603,6 +2604,12 @@ function App() {
       opponentReboundMargin: matchupData.teamB.rebound_margin?.toFixed(1) || '',
       teamTurnoverMargin: matchupData.teamA.turnover_margin?.toFixed(1) || '',
       opponentTurnoverMargin: matchupData.teamB.turnover_margin?.toFixed(1) || '',
+      teamPace: matchupData.teamA.pace?.toFixed(1) || '',
+      opponentPace: matchupData.teamB.pace?.toFixed(1) || '',
+      team3PRate: matchupData.teamA.three_rate?.toFixed(1) || '',
+      opponent3PRate: matchupData.teamB.three_rate?.toFixed(1) || '',
+      team3PPct: matchupData.teamA.three_pct?.toFixed(1) || '',
+      opponent3PPct: matchupData.teamB.three_pct?.toFixed(1) || '',
       teamAName: getTeamAbbreviation(matchupData.teamA.team || ''),
       teamBName: getTeamAbbreviation(matchupData.teamB.team || ''),
     });
