@@ -347,6 +347,9 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
 • PPG: ${teamA.points_per_game.toFixed(1)}
 • PA: ${teamA.points_allowed.toFixed(1)}
 • FG%: ${teamA.field_goal_pct.toFixed(1)}%
+• Pace: ${teamA.pace.toFixed(1)}
+• 3P%: ${teamA.three_pct.toFixed(1)}%
+• 3P Rate: ${teamA.three_rate.toFixed(1)}%
 • REB: ${formatSign(teamA.rebound_margin)}
 • TO: ${formatSign(teamA.turnover_margin)}
 
@@ -354,6 +357,9 @@ export default function SportsMatchup({ onTransferToEstimator }: SportsMatchupPr
 • PPG: ${teamB.points_per_game.toFixed(1)}
 • PA: ${teamB.points_allowed.toFixed(1)}
 • FG%: ${teamB.field_goal_pct.toFixed(1)}%
+• Pace: ${teamB.pace.toFixed(1)}
+• 3P%: ${teamB.three_pct.toFixed(1)}%
+• 3P Rate: ${teamB.three_rate.toFixed(1)}%
 • REB: ${formatSign(teamB.rebound_margin)}
 • TO: ${formatSign(teamB.turnover_margin)}
 `;
