@@ -21,3 +21,8 @@ export * from './bankroll.js';
 
 // Utilities
 export * from './oddsConversion.js';
+
+// Automation
+export * from './statsUpdater.js';
+export * from './gamesOfDay.js';
+export * from './dailyCalc.js';

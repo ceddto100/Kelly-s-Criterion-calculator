@@ -16,6 +16,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
+import cron from 'node-cron';
 
 // Database connection
 import { connectToDatabase, ensureDatabaseConnection, isDatabaseConnected } from './config/database.js';
@@ -106,6 +107,23 @@ import {
   handleGetTeamStats,
   handleGetMatchupStats
 } from './tools/teamStats.js';
+import {
+  updateStatsToolDefinition,
+  updateStatsInputSchema,
+  handleUpdateStats,
+  updateAllStats
+} from './tools/statsUpdater.js';
+import {
+  getTodaysGamesToolDefinition,
+  getTodaysGamesInputSchema,
+  handleGetTodaysGames
+} from './tools/gamesOfDay.js';
+import {
+  runDailyCalcToolDefinition,
+  runDailyCalcInputSchema,
+  handleRunDailyCalc,
+  runDailyCalculations
+} from './tools/dailyCalc.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -720,6 +738,81 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // ===========================================================================
+  // STATS UPDATER TOOL
+  // ===========================================================================
+
+  server.tool(
+    updateStatsToolDefinition.name,
+    updateStatsToolDefinition.description,
+    updateStatsInputSchema.shape,
+    async (params) => {
+      log('Tool called:', updateStatsToolDefinition.name, params);
+      try {
+        const result = await handleUpdateStats(params as any);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // GAMES OF THE DAY TOOL
+  // ===========================================================================
+
+  server.tool(
+    getTodaysGamesToolDefinition.name,
+    getTodaysGamesToolDefinition.description,
+    getTodaysGamesInputSchema.shape,
+    async (params) => {
+      log('Tool called:', getTodaysGamesToolDefinition.name, params);
+      try {
+        const result = await handleGetTodaysGames(params as any);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
+  // DAILY CALCULATIONS TOOL
+  // ===========================================================================
+
+  server.tool(
+    runDailyCalcToolDefinition.name,
+    runDailyCalcToolDefinition.description,
+    runDailyCalcInputSchema.shape,
+    async (params) => {
+      log('Tool called:', runDailyCalcToolDefinition.name, params);
+      try {
+        const result = await handleRunDailyCalc(params as any);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
   return server;
 }
 
@@ -805,6 +898,74 @@ app.delete('/mcp', async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// AUTOMATION HTTP ENDPOINTS
+// ============================================================================
+
+/**
+ * Verify the admin key from request headers.
+ * If ADMIN_KEY env var is set, the header must match.
+ * If not set, the endpoint is open (development mode).
+ */
+function isAuthorized(req: Request): boolean {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) return true; // No key configured — open access
+  const provided = req.headers['x-admin-key'];
+  return provided === adminKey;
+}
+
+/**
+ * POST /api/update-stats
+ * Triggers a live stats refresh for one or all sports.
+ * Returns CSV content so GitHub Actions can commit updated files.
+ *
+ * Body: { sport?: 'NBA' | 'NFL' | 'NHL' | 'ALL' }
+ * Headers: x-admin-key (required if ADMIN_KEY env var is set)
+ */
+app.post('/api/update-stats', async (req: Request, res: Response) => {
+  if (!isAuthorized(req)) {
+    res.status(401).json({ success: false, error: 'Unauthorized' });
+    return;
+  }
+
+  const sport = (req.body?.sport || 'ALL') as 'NBA' | 'NFL' | 'NHL' | 'ALL';
+  console.log(`[HTTP] POST /api/update-stats sport=${sport}`);
+
+  try {
+    const result = await updateAllStats(sport);
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[HTTP] /api/update-stats error:', message);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+/**
+ * POST /api/daily-calcs
+ * Triggers the daily calculation pipeline manually.
+ *
+ * Body: { bankroll?, kellyFraction?, americanOdds?, logBets?, sport? }
+ * Headers: x-admin-key (required if ADMIN_KEY env var is set)
+ */
+app.post('/api/daily-calcs', async (req: Request, res: Response) => {
+  if (!isAuthorized(req)) {
+    res.status(401).json({ success: false, error: 'Unauthorized' });
+    return;
+  }
+
+  console.log('[HTTP] POST /api/daily-calcs');
+
+  try {
+    const result = await runDailyCalculations(req.body || {});
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[HTTP] /api/daily-calcs error:', message);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+// ============================================================================
 // SERVER STARTUP
 // ============================================================================
 
@@ -841,6 +1002,8 @@ async function start() {
     console.log('\n[Server] Running on port', PORT);
     console.log('[Server] MCP endpoint: POST /mcp');
     console.log('[Server] Health check: GET /health');
+    console.log('[Server] Stats update: POST /api/update-stats');
+    console.log('[Server] Daily calcs:  POST /api/daily-calcs');
     console.log('\n[Tools Available]');
     console.log('  - kelly_calculate');
     console.log('  - estimate_football_probability');
@@ -866,8 +1029,43 @@ async function start() {
     console.log('  - analyze_matchup_and_log_bet (orchestration)');
     console.log('  - get_team_stats');
     console.log('  - get_matchup_stats');
+    console.log('  - update_stats');
+    console.log('  - get_todays_games');
+    console.log('  - run_daily_calculations');
     console.log('\n' + '='.repeat(60));
   });
+
+  // ============================================================================
+  // SCHEDULED JOBS (node-cron)
+  // ============================================================================
+
+  // Stats refresh: every 12 hours (matches GitHub Actions schedule)
+  // Runs at 00:00 and 12:00 UTC — keeps Render's local CSV copies fresh
+  cron.schedule('0 0,12 * * *', async () => {
+    console.log('[Cron] Stats refresh starting...');
+    try {
+      const result = await updateAllStats('ALL');
+      const successCount = Object.values(result.sports).filter((s) => s?.success).length;
+      console.log(`[Cron] Stats refresh complete. ${successCount}/3 sports updated`);
+    } catch (err) {
+      console.error('[Cron] Stats refresh failed:', err);
+    }
+  });
+
+  // Daily calculations: every day at 9:00 AM UTC
+  // Fetches today's games, calculates probabilities, logs value bets
+  cron.schedule('0 9 * * *', async () => {
+    console.log('[Cron] Daily calculations starting...');
+    try {
+      const result = await runDailyCalculations({});
+      console.log(`[Cron] Daily calc complete. Games: ${result.gamesAnalyzed}, Value bets: ${result.highValueBets.length}, Logged: ${result.betsLogged}`);
+    } catch (err) {
+      console.error('[Cron] Daily calculations failed:', err);
+    }
+  });
+
+  console.log('[Cron] Scheduled: stats refresh at 00:00 and 12:00 UTC');
+  console.log('[Cron] Scheduled: daily calculations at 09:00 UTC');
 }
 
 start().catch((error) => {
