@@ -134,8 +134,9 @@ async function calcGame(
   }
 
   // 1. Load team stats
-  let homeStats: ReturnType<typeof getNBATeamStats> | ReturnType<typeof getNFLTeamStats> | null = null;
-  let awayStats: typeof homeStats = null;
+  type TeamStats = ReturnType<typeof getNBATeamStats> | ReturnType<typeof getNFLTeamStats> | null;
+  let homeStats: TeamStats = null;
+  let awayStats: TeamStats = null;
 
   if (game.sport === 'NBA') {
     homeStats = getNBATeamStats(game.homeTeam) || getNBATeamStats(game.homeAbbr);
