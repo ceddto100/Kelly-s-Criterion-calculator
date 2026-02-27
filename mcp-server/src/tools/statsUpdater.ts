@@ -747,7 +747,8 @@ async function fetchNHLESPNSpecialTeams(): Promise<Record<string, { pp: number; 
       }
     }
 
-    const abbr = { 'LA': 'LAK', 'NJ': 'NJD', 'SJ': 'SJS', 'TB': 'TBL' }[team.abbreviation] || team.abbreviation;
+    const abbrMap: Record<string, string> = { 'LA': 'LAK', 'NJ': 'NJD', 'SJ': 'SJS', 'TB': 'TBL' };
+    const abbr = abbrMap[team.abbreviation] || team.abbreviation;
     specialTeams[abbr] = { pp: round2(ppPct), pk: round2(pkPct) };
     await delay(300);
   }
