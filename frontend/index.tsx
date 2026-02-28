@@ -1412,8 +1412,10 @@ function ProbabilityEstimator({
 
   const formattedMargin = useMemo(() => {
     if (expectedDiff === null) return null;
-    return `${expectedDiff > 0 ? '+' : ''}${expectedDiff.toFixed(1)}`;
-  }, [expectedDiff]);
+    const spread = parseFloat(pointSpread || '0') || 0;
+    const predictedCover = expectedDiff + spread;
+    return `${predictedCover > 0 ? '+' : ''}${predictedCover.toFixed(1)}`;
+  }, [expectedDiff, pointSpread]);
 
   // UPDATED: Store matchup data when applying to Kelly
   const handleApplyAndSwitch = (prob: number) => {
@@ -1779,7 +1781,7 @@ function ProbabilityEstimator({
               <div className="matchup-result-margin">
                 {activeSport === CONSTANTS.SPORTS.HOCKEY
                   ? `Projected Total: ${expectedDiff?.toFixed(2)} goals`
-                  : `Predicted Margin: ${formattedMargin} pts`}
+                  : `Predicted Spread: ${formattedMargin} pts`}
               </div>
             )}
           </div>
