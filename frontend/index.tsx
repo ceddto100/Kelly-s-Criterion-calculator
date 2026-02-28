@@ -1575,6 +1575,14 @@ function ProbabilityEstimator({
     if (isTeamAHome !== null) {
       setIsTeamAHome(!isTeamAHome);
     }
+
+    // Auto-flip the result: complement probability and negate margin
+    if (calculatedProb !== null) {
+      setCalculatedProb(Math.max(1, Math.min(99, 100 - calculatedProb)));
+    }
+    if (expectedDiff !== null) {
+      setExpectedDiff(-expectedDiff);
+    }
   };
 
   return (
