@@ -1,33 +1,33 @@
-"team","abbreviation","xga60"
-"Anaheim Ducks","ANA",3.24
-"Boston Bruins","BOS",3.38
-"Buffalo Sabres","BUF",3.24
-"Carolina Hurricanes","CAR",2.8
-"Columbus Blue Jackets","CBJ",3.24
-"Calgary Flames","CGY",3.09
-"Chicago Blackhawks","CHI",3.22
-"Colorado Avalanche","COL",2.71
-"Dallas Stars","DAL",2.89
-"Detroit Red Wings","DET",2.97
-"Edmonton Oilers","EDM",3.25
-"Florida Panthers","FLA",3.06
-"Los Angeles Kings","LAK",2.88
-"Minnesota Wild","MIN",2.88
-"Montreal Canadiens","MTL",3.16
-"New Jersey Devils","NJD",3.01
-"Nashville Predators","NSH",3.16
-"New York Islanders","NYI",3.25
-"New York Rangers","NYR",3.27
-"Ottawa Senators","OTT",2.64
-"Philadelphia Flyers","PHI",2.83
-"Pittsburgh Penguins","PIT",2.94
-"Seattle Kraken","SEA",3.09
-"San Jose Sharks","SJS",3.24
-"St. Louis Blues","STL",3.0
-"Tampa Bay Lightning","TBL",2.82
-"Toronto Maple Leafs","TOR",3.07
-"Utah Hockey Club","UTA",3.04
-"Vancouver Canucks","VAN",3.5
-"Vegas Golden Knights","VGK",2.61
-"Winnipeg Jets","WPG",3.24
-"Washington Capitals","WSH",3.15
+team,abbreviation,xga60
+Vegas Golden Knights,VGK,2.62
+Ottawa Senators,OTT,2.63
+Colorado Avalanche,COL,2.79
+Carolina Hurricanes,CAR,2.82
+Philadelphia Flyers,PHI,2.84
+Tampa Bay Lightning,TBL,2.84
+Dallas Stars,DAL,2.9
+Minnesota Wild,MIN,2.91
+Los Angeles Kings,LAK,2.91
+Pittsburgh Penguins,PIT,2.93
+Detroit Red Wings,DET,2.97
+St. Louis Blues,STL,2.98
+Utah Hockey Club,UTA,3.04
+New Jersey Devils,NJD,3.05
+Calgary Flames,CGY,3.08
+Florida Panthers,FLA,3.08
+Seattle Kraken,SEA,3.09
+Toronto Maple Leafs,TOR,3.15
+Nashville Predators,NSH,3.15
+Washington Capitals,WSH,3.16
+Montreal Canadiens,MTL,3.16
+Chicago Blackhawks,CHI,3.21
+Edmonton Oilers,EDM,3.23
+New York Rangers,NYR,3.25
+San Jose Sharks,SJS,3.25
+Winnipeg Jets,WPG,3.25
+New York Islanders,NYI,3.25
+Anaheim Ducks,ANA,3.26
+Buffalo Sabres,BUF,3.26
+Columbus Blue Jackets,CBJ,3.26
+Boston Bruins,BOS,3.39
+Vancouver Canucks,VAN,3.48

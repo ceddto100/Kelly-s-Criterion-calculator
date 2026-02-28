@@ -1,33 +1,33 @@
-"team","abbreviation","gsax60"
-"Anaheim Ducks","ANA",-0.19
-"Boston Bruins","BOS",0.26
-"Buffalo Sabres","BUF",0.2
-"Carolina Hurricanes","CAR",0.07
-"Columbus Blue Jackets","CBJ",0.18
-"Calgary Flames","CGY",0.17
-"Chicago Blackhawks","CHI",0.11
-"Colorado Avalanche","COL",0.32
-"Dallas Stars","DAL",0.19
-"Detroit Red Wings","DET",0.04
-"Edmonton Oilers","EDM",0.02
-"Florida Panthers","FLA",-0.27
-"Los Angeles Kings","LAK",0.17
-"Minnesota Wild","MIN",0.1
-"Montreal Canadiens","MTL",-0.02
-"New Jersey Devils","NJD",-0.06
-"Nashville Predators","NSH",-0.32
-"New York Islanders","NYI",0.59
-"New York Rangers","NYR",0.11
-"Ottawa Senators","OTT",-0.71
-"Philadelphia Flyers","PHI",-0.25
-"Pittsburgh Penguins","PIT",-0.03
-"Seattle Kraken","SEA",0.26
-"San Jose Sharks","SJS",-0.16
-"St. Louis Blues","STL",-0.47
-"Tampa Bay Lightning","TBL",0.34
-"Toronto Maple Leafs","TOR",-0.23
-"Utah Hockey Club","UTA",0.17
-"Vancouver Canucks","VAN",-0.14
-"Vegas Golden Knights","VGK",-0.4
-"Winnipeg Jets","WPG",0.12
-"Washington Capitals","WSH",0.3
+team,abbreviation,gsax60
+New York Islanders,NYI,0.58
+Colorado Avalanche,COL,0.36
+Washington Capitals,WSH,0.33
+Tampa Bay Lightning,TBL,0.33
+Boston Bruins,BOS,0.31
+Utah Hockey Club,UTA,0.29
+Buffalo Sabres,BUF,0.26
+Dallas Stars,DAL,0.21
+Seattle Kraken,SEA,0.21
+Winnipeg Jets,WPG,0.17
+Calgary Flames,CGY,0.16
+Columbus Blue Jackets,CBJ,0.16
+New York Rangers,NYR,0.13
+Pittsburgh Penguins,PIT,0.12
+Chicago Blackhawks,CHI,0.09
+Detroit Red Wings,DET,0.08
+Minnesota Wild,MIN,0.08
+Los Angeles Kings,LAK,0.06
+Carolina Hurricanes,CAR,0.04
+New Jersey Devils,NJD,0.01
+Montreal Canadiens,MTL,0
+Edmonton Oilers,EDM,-0.04
+Vancouver Canucks,VAN,-0.1
+Florida Panthers,FLA,-0.17
+Anaheim Ducks,ANA,-0.2
+San Jose Sharks,SJS,-0.21
+Toronto Maple Leafs,TOR,-0.22
+Philadelphia Flyers,PHI,-0.24
+Nashville Predators,NSH,-0.25
+Vegas Golden Knights,VGK,-0.37
+St. Louis Blues,STL,-0.45
+Ottawa Senators,OTT,-0.54
