@@ -1,31 +1,31 @@
 team,abbreviation,allowed
-Atlanta Hawks,ATL,0
-Boston Celtics,BOS,0
-Brooklyn Nets,BKN,0
-Charlotte Hornets,CHA,0
-Chicago Bulls,CHI,0
-Cleveland Cavaliers,CLE,0
-Dallas Mavericks,DAL,0
-Denver Nuggets,DEN,0
-Detroit Pistons,DET,0
-Golden State Warriors,GS,0
-Houston Rockets,HOU,0
-Indiana Pacers,IND,0
-LA Clippers,LAC,0
-Los Angeles Lakers,LAL,0
-Memphis Grizzlies,MEM,0
-Miami Heat,MIA,0
-Milwaukee Bucks,MIL,0
-Minnesota Timberwolves,MIN,0
-New Orleans Pelicans,NO,0
-New York Knicks,NY,0
-Oklahoma City Thunder,OKC,0
-Orlando Magic,ORL,0
-Philadelphia 76ers,PHI,0
-Phoenix Suns,PHX,0
-Portland Trail Blazers,POR,0
-Sacramento Kings,SAC,0
-San Antonio Spurs,SA,0
-Toronto Raptors,TOR,0
-Utah Jazz,UTAH,0
-Washington Wizards,WSH,0
+Boston Celtics,BOS,107.5
+Oklahoma City Thunder,OKC,108.2
+Houston Rockets,HOU,109.1
+Detroit Pistons,DET,109.7
+Phoenix Suns,PHX,111.4
+New York Knicks,NY,111.5
+San Antonio Spurs,SA,111.7
+Toronto Raptors,TOR,111.8
+LA Clippers,LAC,112.2
+Charlotte Hornets,CHA,113.4
+Golden State Warriors,GS,113.8
+Orlando Magic,ORL,114.6
+Minnesota Timberwolves,MIN,114.7
+Cleveland Cavaliers,CLE,115.2
+Brooklyn Nets,BKN,115.6
+Milwaukee Bucks,MIL,115.6
+Denver Nuggets,DEN,115.9
+Los Angeles Lakers,LAL,115.9
+Philadelphia 76ers,PHI,115.9
+Miami Heat,MIA,117.2
+Atlanta Hawks,ATL,117.6
+Memphis Grizzlies,MEM,117.9
+Dallas Mavericks,DAL,118.0
+Portland Trail Blazers,POR,118.2
+Indiana Pacers,IND,119.5
+New Orleans Pelicans,NO,120.3
+Chicago Bulls,CHI,120.5
+Sacramento Kings,SAC,121.1
+Washington Wizards,WSH,122.8
+Utah Jazz,UTAH,125.9
