@@ -983,25 +983,36 @@ function predictedMarginFootball(stats: any, isHome: boolean | null = null): num
 }
 
 function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
-  const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
-  const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.30;
+  // 7 marquee weighted components (100% total weight):
+  // PPG (15%), points allowed (15%), FG% (25%), rebounds (17%), turnovers (13%), 3PT% (8%), 3PT rate (7%)
+  // Pace remains a tempo multiplier (not a weighted skill edge component).
+  const teamAPointsFor = parseFloat(stats.teamPointsFor) || 0;
+  const teamBPointsFor = parseFloat(stats.opponentPointsFor) || 0;
+  const ppgComponent = (teamAPointsFor - teamBPointsFor) * 0.15;
+
+  const teamAPointsAllowed = parseFloat(stats.teamPointsAgainst) || 0;
+  const teamBPointsAllowed = parseFloat(stats.opponentPointsAgainst) || 0;
+  // Lower points allowed is better, so invert the differential.
+  const pointsAllowedComponent = (teamBPointsAllowed - teamAPointsAllowed) * 0.15;
 
   // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
   const teamAFg = parseFloat(stats.teamFgPct) || 0;
   const teamBFg = parseFloat(stats.opponentFgPct) || 0;
   const fgDiffComponent = (teamAFg - teamBFg) * 2.0 * 0.25;
 
-  // 3-point shooting component (if provided)
-  let threePointComponent = 0;
+  // 3-point shooting split into accuracy + volume components.
+  let threePointPctComponent = 0;
+  let threePointRateComponent = 0;
   const teamA3PPct = parseFloat(stats.team3PPct) || 0;
   const teamB3PPct = parseFloat(stats.opponent3PPct) || 0;
   if (teamA3PPct > 0 || teamB3PPct > 0) {
     const pctDiff = (teamA3PPct - teamB3PPct) * 1.0;
+    threePointPctComponent = pctDiff * 0.08;
+
     const teamA3PRate = parseFloat(stats.team3PRate) || 0;
     const teamB3PRate = parseFloat(stats.opponent3PRate) || 0;
     const rateDiff = (teamA3PRate - teamB3PRate) * 15;
-    threePointComponent = (pctDiff + rateDiff) * 0.15;
+    threePointRateComponent = rateDiff * 0.07;
   }
 
   const teamAReb = parseFloat(stats.teamReboundMargin) || 0;
@@ -1013,7 +1024,14 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
   const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
   const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.13;
 
-  let margin = pointDiffComponent + fgDiffComponent + threePointComponent + reboundComponent + turnoverComponent;
+  let margin =
+    ppgComponent +
+    pointsAllowedComponent +
+    fgDiffComponent +
+    reboundComponent +
+    turnoverComponent +
+    threePointPctComponent +
+    threePointRateComponent;
 
   // Pace multiplier applied BEFORE home court (pace should scale stats-based margin only,
   // not the home court advantage which is a fixed constant)
@@ -1025,8 +1043,8 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
     margin *= paceFactor;
   }
 
-  // Home court added AFTER pace so it remains a fixed 3.0-point advantage
-  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
+  // Home court added AFTER pace so it remains a fixed 1.5-point advantage
+  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 1.5 : -1.5);
   margin += homeCourtAdvantage;
 
   return margin;

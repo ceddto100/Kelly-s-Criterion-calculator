@@ -27,12 +27,13 @@
  *
  * TOOL: estimate_basketball_probability
  * Calculates the probability that a basketball team will cover the spread using a weighted statistical model optimized
- * for basketball's unique characteristics. The model analyzes points differential (35% weight), field goal percentage
- * differential (30% weight), rebound margin (20% weight), and turnover margin (15% weight). The tool requires team
- * statistics for both teams including points per game scored, points allowed, and optionally field goal percentage (e.g.,
- * 45.5 for 45.5%), rebound margin per game, and turnover margin per game (positive means fewer turnovers than opponent).
+ * for basketball's unique characteristics. The model analyzes seven marquee weighted inputs: points per game (15%), points allowed (15%), field goal percentage
+ * differential (25%), rebound margin (17%), turnover margin (13%), 3PT% differential (8%), and 3PT rate differential
+ * (7%). Pace is applied as a tempo multiplier after weighted components. The tool requires team statistics for both teams
+ * including points per game scored, points allowed, and optionally field goal percentage (e.g., 45.5 for 45.5%), rebound
+ * margin per game, turnover margin per game (positive means fewer turnovers than opponent), pace, 3PT%, and 3PT rate.
  * Like the football tool, it supports both professional (NBA) and college (CBB) basketball with different calibrations -
- * NBA uses a 3.0-point home court advantage and 11.5-point standard deviation, while CBB uses a 3.5-point advantage and
+ * NBA uses a 1.5-point home court advantage and 12.0-point standard deviation, while CBB uses a 3.5-point advantage and
  * 10.5-point standard deviation, reflecting the slightly lower variance in college basketball due to shorter shot clocks
  * and different game dynamics. The venue parameter (home/away/neutral) applies the appropriate home court advantage or
  * disadvantage. The calculation methodology mirrors the football tool: calculate expected margin using weighted statistical
