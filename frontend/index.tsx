@@ -1013,11 +1013,10 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
   const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
   const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.13;
 
-  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
+  let margin = pointDiffComponent + fgDiffComponent + threePointComponent + reboundComponent + turnoverComponent;
 
-  let margin = pointDiffComponent + fgDiffComponent + threePointComponent + reboundComponent + turnoverComponent + homeCourtAdvantage;
-
-  // Pace multiplier when available
+  // Pace multiplier applied BEFORE home court (pace should scale stats-based margin only,
+  // not the home court advantage which is a fixed constant)
   const teamAPace = parseFloat(stats.teamPace) || 0;
   const teamBPace = parseFloat(stats.opponentPace) || 0;
   if (teamAPace > 0 && teamBPace > 0) {
@@ -1025,6 +1024,10 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
     const paceFactor = expectedPace / 100; // 100 = league average possessions
     margin *= paceFactor;
   }
+
+  // Home court added AFTER pace so it remains a fixed 3.0-point advantage
+  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 3.0 : -3.0);
+  margin += homeCourtAdvantage;
 
   return margin;
 }
@@ -1410,12 +1413,14 @@ function ProbabilityEstimator({
     return current.teamAName?.trim() || 'Your Team';
   }, [activeSport, basketballStats, footballStats, hockeyStats]);
 
-  const formattedMargin = useMemo(() => {
+  const formattedPredictedSpread = useMemo(() => {
     if (expectedDiff === null) return null;
-    const spread = parseFloat(pointSpread || '0') || 0;
-    const predictedCover = expectedDiff + spread;
-    return `${predictedCover > 0 ? '+' : ''}${predictedCover.toFixed(1)}`;
-  }, [expectedDiff, pointSpread]);
+    // Predicted spread = negated predicted margin
+    // If algorithm says Team A loses by 4.5 (margin = -4.5), predicted spread = +4.5
+    // If algorithm says Team A wins by 7 (margin = +7), predicted spread = -7.0
+    const predictedSpread = -expectedDiff;
+    return `${predictedSpread > 0 ? '+' : ''}${predictedSpread.toFixed(1)}`;
+  }, [expectedDiff]);
 
   // UPDATED: Store matchup data when applying to Kelly
   const handleApplyAndSwitch = (prob: number) => {
@@ -1785,11 +1790,11 @@ function ProbabilityEstimator({
             <div className="matchup-result-value">
               {calculatedProb.toFixed(2)}%
             </div>
-            {formattedMargin !== null && (
+            {formattedPredictedSpread !== null && (
               <div className="matchup-result-margin">
                 {activeSport === CONSTANTS.SPORTS.HOCKEY
                   ? `Projected Total: ${expectedDiff?.toFixed(2)} goals`
-                  : `Predicted Spread: ${formattedMargin} pts`}
+                  : `Predicted Spread: ${formattedPredictedSpread} pts`}
               </div>
             )}
           </div>

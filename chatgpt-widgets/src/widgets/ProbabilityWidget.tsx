@@ -146,6 +146,8 @@ export default function ProbabilityWidget() {
   const isFavorite = data.spread < 0;
   const spreadDisplay = data.spread > 0 ? `+${data.spread}` : data.spread.toString();
   const marginDisplay = data.predictedMargin > 0 ? `+${data.predictedMargin.toFixed(1)}` : data.predictedMargin.toFixed(1);
+  const predictedSpread = -data.predictedMargin;
+  const predictedSpreadDisplay = predictedSpread > 0 ? `+${predictedSpread.toFixed(1)}` : predictedSpread.toFixed(1);
 
   // PiP mode - minimal compact view
   if (displayMode === 'pip') {
@@ -158,7 +160,7 @@ export default function ProbabilityWidget() {
           <div className="result-label">{isFavorite ? 'Cover' : 'Upset'} Probability</div>
           <div className="result-percentage">{data.probability.toFixed(2)}%</div>
           <div className="result-detail" style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>
-            {data.sport === 'football' ? 'NFL' : 'NBA'} • Spread: {spreadDisplay}
+            {data.sport === 'football' ? 'NFL' : 'NBA'} • Spread: {spreadDisplay} • Predicted: {predictedSpreadDisplay}
           </div>
         </div>
       </div>
@@ -184,6 +186,9 @@ export default function ProbabilityWidget() {
 
             <span className="summary-label">Point Spread:</span>
             <span className="summary-value">{spreadDisplay}</span>
+
+            <span className="summary-label">Predicted Spread:</span>
+            <span className="summary-value">{predictedSpreadDisplay}</span>
 
             <span className="summary-label">Predicted Margin:</span>
             <span className="summary-value">{marginDisplay} points</span>
