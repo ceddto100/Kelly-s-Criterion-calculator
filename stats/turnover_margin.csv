@@ -1,31 +1,31 @@
 "team","abbreviation","turnover_margin"
-"Denver Nuggets","DEN",0.5
-"Cleveland Cavaliers","CLE",-1.2
-"Oklahoma City Thunder","OKC",-4.2
-"Minnesota Timberwolves","MIN",-0.6
-"Miami Heat","MIA",-1.2
-"Utah Jazz","UTAH",2.2
-"San Antonio Spurs","SA",0.1
-"New York Knicks","NY",-0.8
-"Atlanta Hawks","ATL",-1.3
-"Detroit Pistons","DET",-2.1
-"Chicago Bulls","CHI",1.8
-"Portland Trail Blazers","POR",2.0
-"Philadelphia 76ers","PHI",-1.7
-"Los Angeles Lakers","LAL",0.5
-"Charlotte Hornets","CHA",2.8
-"Golden State Warriors","GS",-0.3
-"Memphis Grizzlies","MEM",0.3
-"Boston Celtics","BOS",-1.2
-"Orlando Magic","ORL",-1.2
-"Houston Rockets","HOU",1.3
-"New Orleans Pelicans","NO",-0.7
-"Dallas Mavericks","DAL",1.5
-"Toronto Raptors","TOR",-1.7
-"Phoenix Suns","PHX",-1.9
-"Washington Wizards","WSH",2.4
+"Charlotte Hornets","CHA",2.7
+"Chicago Bulls","CHI",2.2
+"Washington Wizards","WSH",2.1
+"Utah Jazz","UTAH",2.0
+"Portland Trail Blazers","POR",1.8
+"Brooklyn Nets","BKN",1.7
+"Dallas Mavericks","DAL",1.6
+"Houston Rockets","HOU",1.5
+"Milwaukee Bucks","MIL",1.4
 "LA Clippers","LAC",1.2
-"Milwaukee Bucks","MIL",1.3
-"Indiana Pacers","IND",0.3
-"Sacramento Kings","SAC",0.4
-"Brooklyn Nets","BKN",1.9
+"Indiana Pacers","IND",0.6
+"Denver Nuggets","DEN",0.5
+"Los Angeles Lakers","LAL",0.3
+"Sacramento Kings","SAC",0.2
+"Memphis Grizzlies","MEM",0.0
+"San Antonio Spurs","SA",0.0
+"Minnesota Timberwolves","MIN",-0.3
+"Golden State Warriors","GS",-0.4
+"New Orleans Pelicans","NO",-0.7
+"Boston Celtics","BOS",-0.9
+"Miami Heat","MIA",-1.0
+"New York Knicks","NY",-1.0
+"Cleveland Cavaliers","CLE",-1.1
+"Orlando Magic","ORL",-1.2
+"Atlanta Hawks","ATL",-1.3
+"Philadelphia 76ers","PHI",-1.8
+"Toronto Raptors","TOR",-1.9
+"Detroit Pistons","DET",-2.0
+"Phoenix Suns","PHX",-2.0
+"Oklahoma City Thunder","OKC",-4.0
