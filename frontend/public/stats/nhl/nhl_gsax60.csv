@@ -1,33 +1,33 @@
 team,abbreviation,gsax60
-New York Islanders,NYI,0.58
-Colorado Avalanche,COL,0.36
-Tampa Bay Lightning,TBL,0.33
-Washington Capitals,WSH,0.33
-Boston Bruins,BOS,0.31
+New York Islanders,NYI,0.57
+Colorado Avalanche,COL,0.38
+Boston Bruins,BOS,0.3
 Utah Hockey Club,UTA,0.29
-Buffalo Sabres,BUF,0.26
-Dallas Stars,DAL,0.21
-Seattle Kraken,SEA,0.21
+Washington Capitals,WSH,0.28
+Tampa Bay Lightning,TBL,0.28
+Buffalo Sabres,BUF,0.27
+Seattle Kraken,SEA,0.23
+Dallas Stars,DAL,0.2
+Calgary Flames,CGY,0.19
 Winnipeg Jets,WPG,0.17
-Calgary Flames,CGY,0.16
-Columbus Blue Jackets,CBJ,0.16
 New York Rangers,NYR,0.16
+Columbus Blue Jackets,CBJ,0.14
 Pittsburgh Penguins,PIT,0.14
-Chicago Blackhawks,CHI,0.09
-Detroit Red Wings,DET,0.08
+Los Angeles Kings,LAK,0.11
+Chicago Blackhawks,CHI,0.1
 Minnesota Wild,MIN,0.08
-Los Angeles Kings,LAK,0.06
-Carolina Hurricanes,CAR,0.04
-New Jersey Devils,NJD,0.01
-Montreal Canadiens,MTL,0
-Edmonton Oilers,EDM,-0.04
-Vancouver Canucks,VAN,-0.1
+Carolina Hurricanes,CAR,0.05
+Detroit Red Wings,DET,0.04
+New Jersey Devils,NJD,0.03
+Montreal Canadiens,MTL,0.01
+Edmonton Oilers,EDM,-0.06
+Vancouver Canucks,VAN,-0.12
 Florida Panthers,FLA,-0.17
 Anaheim Ducks,ANA,-0.2
-San Jose Sharks,SJS,-0.21
-Toronto Maple Leafs,TOR,-0.22
-Philadelphia Flyers,PHI,-0.24
+Philadelphia Flyers,PHI,-0.22
+Toronto Maple Leafs,TOR,-0.24
+San Jose Sharks,SJS,-0.24
 Nashville Predators,NSH,-0.25
 Vegas Golden Knights,VGK,-0.37
-St. Louis Blues,STL,-0.45
-Ottawa Senators,OTT,-0.54
+St. Louis Blues,STL,-0.4
+Ottawa Senators,OTT,-0.52
