@@ -226,7 +226,7 @@ export const NFL_CONSTANTS = {
 
 export const NBA_CONSTANTS = {
   sigma: 12.0,           // Standard deviation (updated for modern 3-point era variance)
-  homeCourtAdvantage: 3.0,
+  homeCourtAdvantage: 1.5,
   decayRate: 0.85,       // 85% historical, 15% recent (faster truth convergence)
   backToBackPenalty: 2.0,
   superstarValue: 4.5,   // Points value of superstar player
@@ -309,21 +309,23 @@ export function predictedMarginFootball(stats: FootballStats): number {
 /**
  * Calculate predicted margin for basketball games
  *
- * Improved algorithm with 5 weighted components:
- *   - Points differential (30%): Net scoring efficiency
+ * Improved algorithm with 7 marquee weighted components (100% total):
+ *   - Points per game edge (15%)
+ *   - Points allowed edge (15%)
  *   - FG% differential (25%): Shooting efficiency with realistic scaling
- *   - 3-point shooting (15%): Combined 3P rate and accuracy edge (modern NBA)
  *   - Rebound margin (17%): Second-chance and transition opportunities
  *   - Turnover margin (13%): Ball security differential
+ *   - 3P% differential (8%): Three-point accuracy edge
+ *   - 3P rate differential (7%): Three-point volume edge
  *
  * Also applies a pace multiplier when both teams' pace data is available,
  * scaling the margin for games expected to have more or fewer possessions
  * than the league average (~100 per game).
  */
 export function predictedMarginBasketball(stats: BasketballStats): number {
-  const teamNetPoints = stats.teamPPG - stats.teamAllowed;
-  const opponentNetPoints = stats.opponentPPG - stats.opponentAllowed;
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.30;
+  const ppgComponent = (stats.teamPPG - stats.opponentPPG) * 0.15;
+  // Lower points allowed is better, so invert the differential.
+  const pointsAllowedComponent = (stats.opponentAllowed - stats.teamAllowed) * 0.15;
 
   // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
   // (NBA teams avg ~85 FGA, so 0.01 * 85 = 0.85 extra makes * ~2.1 pts/make including and-1s)
@@ -332,22 +334,21 @@ export function predictedMarginBasketball(stats: BasketballStats): number {
     fgComponent = (stats.teamFGPct - stats.opponentFGPct) * NBA_CONSTANTS.fgPctPointsMultiplier * 0.25;
   }
 
-  // 3-point shooting: combines volume (3PA rate) and accuracy (3P%)
-  // A team that shoots more 3s at a higher rate generates more points per possession
-  let threePointComponent = 0;
+  // 3-point shooting split into accuracy and volume components
+  let threePointPctComponent = 0;
+  let threePointRateComponent = 0;
   if (stats.team3PPct !== undefined && stats.opponent3PPct !== undefined) {
     // 3P% differential: each 1% diff in 3P% ≈ 1 point (avg ~35 3PA * 0.01 * 3 pts = 1.05)
     const pctDiff = (stats.team3PPct - stats.opponent3PPct) * 1.0;
+    threePointPctComponent = pctDiff * 0.08;
 
     // 3PA rate differential: teams shooting more 3s at league-avg 36% get ~1.08 pts per % rate
-    let rateDiff = 0;
     if (stats.team3PRate !== undefined && stats.opponent3PRate !== undefined) {
       // Convert rate diff to approximate point impact
       // e.g., 0.05 rate diff * 85 FGA * 0.36 avg 3P% * 3 pts = ~4.6 pts, but weighted down
-      rateDiff = (stats.team3PRate - stats.opponent3PRate) * 15;
+      const rateDiff = (stats.team3PRate - stats.opponent3PRate) * 15;
+      threePointRateComponent = rateDiff * 0.07;
     }
-
-    threePointComponent = (pctDiff + rateDiff) * 0.15;
   }
 
   // Rebounds: each rebound margin difference ≈ 0.5 second-chance points
@@ -363,7 +364,14 @@ export function predictedMarginBasketball(stats: BasketballStats): number {
     turnoverComponent = (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * 1.0 * 0.13;
   }
 
-  let margin = pointsComponent + fgComponent + threePointComponent + reboundComponent + turnoverComponent;
+  let margin =
+    ppgComponent +
+    pointsAllowedComponent +
+    fgComponent +
+    reboundComponent +
+    turnoverComponent +
+    threePointPctComponent +
+    threePointRateComponent;
 
   // Pace multiplier: scale the margin for expected game tempo
   // A game between two fast teams (105 pace each) amplifies margins;
