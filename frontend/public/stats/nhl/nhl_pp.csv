@@ -1,10 +1,10 @@
 team,abbreviation,pp
 Edmonton Oilers,EDM,32.3
 Dallas Stars,DAL,30.1
-Pittsburgh Penguins,PIT,26.1
+Pittsburgh Penguins,PIT,26.8
 Boston Bruins,BOS,26
-Vegas Golden Knights,VGK,25.9
-Minnesota Wild,MIN,25.8
+Minnesota Wild,MIN,26
+Vegas Golden Knights,VGK,25.6
 Montreal Canadiens,MTL,24.3
 Ottawa Senators,OTT,23.6
 Detroit Red Wings,DET,23.2
@@ -15,19 +15,19 @@ Carolina Hurricanes,CAR,22
 Tampa Bay Lightning,TBL,21.9
 New Jersey Devils,NJD,20.3
 Buffalo Sabres,BUF,20
-San Jose Sharks,SJS,20
+San Jose Sharks,SJS,19.6
 Columbus Blue Jackets,CBJ,19.6
-Florida Panthers,FLA,19.4
+Florida Panthers,FLA,19.6
+Chicago Blackhawks,CHI,19.4
 Toronto Maple Leafs,TOR,19.3
-Chicago Blackhawks,CHI,19.2
-Winnipeg Jets,WPG,18.9
+Winnipeg Jets,WPG,18.6
 Anaheim Ducks,ANA,18.3
 Vancouver Canucks,VAN,17.9
-St. Louis Blues,STL,17.5
+St. Louis Blues,STL,17.4
+Calgary Flames,CGY,16.4
 Los Angeles Kings,LAK,16.3
-Calgary Flames,CGY,16.1
-New York Islanders,NYI,15.9
 Philadelphia Flyers,PHI,15.9
+New York Islanders,NYI,15.8
 Washington Capitals,WSH,15.5
 Colorado Avalanche,COL,14.8
 Utah Hockey Club,UTA,0
