@@ -1,33 +1,33 @@
-team,abbreviation,pk
-Chicago Blackhawks,CHI,85.7
-Pittsburgh Penguins,PIT,84.3
-Colorado Avalanche,COL,83.7
-Toronto Maple Leafs,TOR,83.4
-Tampa Bay Lightning,TBL,83.1
-Buffalo Sabres,BUF,82.8
-Calgary Flames,CGY,82.5
-Florida Panthers,FLA,82.2
-New York Islanders,NYI,81.2
-Vegas Golden Knights,VGK,80.6
-Carolina Hurricanes,CAR,80.5
-Dallas Stars,DAL,80.1
-Philadelphia Flyers,PHI,79.9
-Nashville Predators,NSH,79.8
-New York Rangers,NYR,79.7
-New Jersey Devils,NJD,79.6
-Washington Capitals,WSH,79.3
-Winnipeg Jets,WPG,79.3
-Detroit Red Wings,DET,79.1
-San Jose Sharks,SJS,78.9
-Minnesota Wild,MIN,77.6
-Anaheim Ducks,ANA,77.5
-Columbus Blue Jackets,CBJ,77.4
-Montreal Canadiens,MTL,77.1
-Edmonton Oilers,EDM,76.9
-Boston Bruins,BOS,76.6
-Los Angeles Kings,LAK,75.7
-Ottawa Senators,OTT,73.1
-St. Louis Blues,STL,73
-Seattle Kraken,SEA,71.8
-Vancouver Canucks,VAN,70.9
-Utah Hockey Club,UTA,0
+"team","abbreviation","pk"
+"Chicago Blackhawks","CHI",85.7
+"Pittsburgh Penguins","PIT",84.3
+"Colorado Avalanche","COL",83.2
+"Tampa Bay Lightning","TBL",83.1
+"Toronto Maple Leafs","TOR",83.1
+"Buffalo Sabres","BUF",82.8
+"Calgary Flames","CGY",82.5
+"Florida Panthers","FLA",82.2
+"New York Islanders","NYI",81.2
+"Carolina Hurricanes","CAR",80.8
+"Vegas Golden Knights","VGK",80.6
+"Dallas Stars","DAL",80.3
+"Nashville Predators","NSH",80
+"Philadelphia Flyers","PHI",79.7
+"New Jersey Devils","NJD",79.6
+"Washington Capitals","WSH",79.3
+"Winnipeg Jets","WPG",79.3
+"New York Rangers","NYR",79.2
+"Detroit Red Wings","DET",78.9
+"San Jose Sharks","SJS",78.9
+"Utah Mammoth","UTAH",78.5
+"Columbus Blue Jackets","CBJ",77.6
+"Minnesota Wild","MIN",77.6
+"Anaheim Ducks","ANA",77.5
+"Montreal Canadiens","MTL",77.1
+"Edmonton Oilers","EDM",76.9
+"Boston Bruins","BOS",76.6
+"Los Angeles Kings","LAK",75.3
+"Ottawa Senators","OTT",73.1
+"St. Louis Blues","STL",73
+"Seattle Kraken","SEA",72
+"Vancouver Canucks","VAN",70.6
