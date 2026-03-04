@@ -1,33 +1,33 @@
-"team","abbreviation","times_shorthanded"
-"Columbus Blue Jackets","CBJ",2.78
-"New York Rangers","NYR",2.82
-"Toronto Maple Leafs","TOR",2.9
-"New Jersey Devils","NJD",2.92
-"Pittsburgh Penguins","PIT",2.98
-"Vegas Golden Knights","VGK",3.17
-"Seattle Kraken","SEA",3.22
-"St. Louis Blues","STL",3.22
-"Edmonton Oilers","EDM",3.23
-"Winnipeg Jets","WPG",3.24
-"New York Islanders","NYI",3.25
-"Los Angeles Kings","LAK",3.25
-"Dallas Stars","DAL",3.3
-"Chicago Blackhawks","CHI",3.35
-"Utah Hockey Club","UTA",3.42
-"Minnesota Wild","MIN",3.46
-"Vancouver Canucks","VAN",3.47
-"Detroit Red Wings","DET",3.49
-"Washington Capitals","WSH",3.52
-"Colorado Avalanche","COL",3.58
-"Carolina Hurricanes","CAR",3.58
-"Philadelphia Flyers","PHI",3.63
-"Nashville Predators","NSH",3.63
-"Anaheim Ducks","ANA",3.64
-"Montreal Canadiens","MTL",3.69
-"Buffalo Sabres","BUF",3.77
-"Calgary Flames","CGY",3.83
-"San Jose Sharks","SJS",3.84
-"Boston Bruins","BOS",4.02
-"Ottawa Senators","OTT",4.12
-"Tampa Bay Lightning","TBL",4.71
-"Florida Panthers","FLA",4.85
+team,abbreviation,times_shorthanded
+Columbus Blue Jackets,CBJ,2.78
+New York Rangers,NYR,2.82
+Toronto Maple Leafs,TOR,2.9
+New Jersey Devils,NJD,2.92
+Pittsburgh Penguins,PIT,2.98
+Vegas Golden Knights,VGK,3.17
+Seattle Kraken,SEA,3.22
+St. Louis Blues,STL,3.22
+Edmonton Oilers,EDM,3.23
+Winnipeg Jets,WPG,3.24
+New York Islanders,NYI,3.25
+Los Angeles Kings,LAK,3.25
+Dallas Stars,DAL,3.3
+Chicago Blackhawks,CHI,3.35
+Utah Hockey Club,UTA,3.42
+Minnesota Wild,MIN,3.46
+Vancouver Canucks,VAN,3.47
+Detroit Red Wings,DET,3.49
+Washington Capitals,WSH,3.52
+Colorado Avalanche,COL,3.58
+Carolina Hurricanes,CAR,3.58
+Philadelphia Flyers,PHI,3.63
+Nashville Predators,NSH,3.63
+Anaheim Ducks,ANA,3.64
+Montreal Canadiens,MTL,3.69
+Buffalo Sabres,BUF,3.77
+Calgary Flames,CGY,3.83
+San Jose Sharks,SJS,3.84
+Boston Bruins,BOS,4.02
+Ottawa Senators,OTT,4.12
+Tampa Bay Lightning,TBL,4.71
+Florida Panthers,FLA,4.85
