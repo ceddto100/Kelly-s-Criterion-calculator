@@ -36,10 +36,10 @@ import { AudioOrbStyles } from './components/AudioOrb';
 import { SwipeableAudioOrbs } from './components/SwipeableAudioOrbs';
 
 /* === Bottom Navigation and New Pages === */
-import { BottomNavigation } from './components/BottomNavigation';
 import { AccountSettings } from './components/AccountSettings';
 import { PromoPage } from './components/PromoPage';
 import { StatsPage } from './components/StatsPage';
+import { AppShell, Card, MetricCard, EmptyState } from './components/ui/AppShell';
 
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
@@ -2747,294 +2747,177 @@ function App() {
     <>
       {/* Dynamic SEO meta tags based on active tab */}
       <SEO {...currentSEO} />
-
-      <div className="site-bg">
-        <div className="bg-overlay" />
-        <div className="blob blob-a" />
-        <div className="blob blob-b" />
-
-        <div className="page-wrap">
-          <header className="panel app-shell-header">
-            <div className="brand-block">
-              <img
-                src="/betgistics.png"
-                alt="Betgistics Logo"
-                className="brand-logo"
-                title="Betgistics - Point Spread Betting Analytics"
-                loading="eager"
-                fetchpriority="high"
-                width="64"
-                height="64"
-              />
-              <div>
-                <p className="eyebrow">Smart betting workspace</p>
-                <h1 className="title title--compact">Betgistics Command Center</h1>
-                <p className="hero-copy">Compare team data, model probabilities, and size bets in one focused workflow.</p>
-              </div>
-            </div>
-
-            <div className="auth-shell">
-              {authLoading ? (
-                <div style={{color: 'var(--text-muted)', fontSize: '.9rem'}}>Loading...</div>
-              ) : authUser ? (
-                <div className="user-info">
-                  {authUser.avatar && <img src={authUser.avatar} alt={authUser.name} className="user-avatar" />}
-                  <div className="user-details">
-                    <div className="user-name">{authUser.name}</div>
-                    <div className="user-email">{authUser.email}</div>
-                  </div>
-                  <a href={`${BACKEND_URL}/auth/logout`} className="logout-btn">Logout</a>
-                </div>
-              ) : (
-                <div className="signin-card">
-                  <a href={`${BACKEND_URL}/auth/google`} className="auth-btn">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                      <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
-                      <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                      <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
-                    </svg>
-                    Sign in with Google
-                  </a>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: '300px' }}>
-                    By signing in, you agree to our{' '}
-                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                      Privacy Policy
-                    </a>
-                    {' '}and{' '}
-                    <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                      Terms of Service
-                    </a>
-                  </p>
-                </div>
-              )}
-            </div>
-          </header>
-
-          <section className="panel workflow-panel">
-            <div>
-              <p className="eyebrow">Workflow</p>
-              <h2 style={{ margin: 0 }}>From matchup → probability → stake sizing</h2>
-              <p className="hero-copy" style={{ marginTop: '0.6rem' }}>Use the tabs below like a pipeline. Each tool is purpose-built and connected.</p>
-            </div>
-            <SwipeableAudioOrbs
-              orbs={[
-                {
-                  audioSrc: '/intro.mp3',
-                  label: 'Introduction',
-                  icon: '🎙️',
-                },
-                {
-                  audioSrc: '/mission_statement.mp3',
-                  label: 'Mission Statement',
-                  icon: '🎯',
-                },
-                {
-                  audioSrc: '/quick_guide.mp3',
-                  label: 'Quick Start Guide',
-                  icon: '🎧',
-                },
-                {
-                  audioSrc: '/math_stats.mp3',
-                  label: 'Magnify Stats',
-                  icon: '🔍',
-                },
-              ]}
-            />
-          </section>
-
-          <div className="panel tab-command-center" style={{maxWidth:1100}}>
-            <div className="tabs app-tabs" role="tablist">
+      <AppShell
+        sidebar={
+          <div className="cc-sidebar-stack">
+            <button className="cc-brand-button" onClick={() => handleTabChange(CONSTANTS.TABS.KELLY)}>
+              <img src="/betgistics.png" alt="Betgistics Logo" className="cc-brand-logo" />
+              <span>Betgistics OS</span>
+            </button>
+            <nav className="cc-nav">
               {[
-                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
-                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
-                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
-                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
-                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
-              ].map(tab => (
+                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Calculator' },
+                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Lab' },
+                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol' },
+                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Matchup Explorer' },
+                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History' },
+                { key: CONSTANTS.TABS.STATS, label: 'Stats Hub' },
+                { key: CONSTANTS.TABS.ACCOUNT, label: 'Account' },
+                { key: CONSTANTS.TABS.PROMO, label: 'Core Access' },
+              ].map((tab) => (
                 <button
                   key={tab.key}
-                  className={`tab tab-card ${activeTab === tab.key ? 'active' : ''}`}
+                  className={`cc-nav-link ${activeTab === tab.key ? 'active' : ''}`}
                   onClick={() => handleTabChange(tab.key)}
-                  aria-selected={activeTab === tab.key}
-                  role="tab"
                 >
-                  <span className="tab-title">{tab.label}</span>
-                  <small className="tab-blurb">{tab.blurb}</small>
+                  {tab.label}
                 </button>
               ))}
+            </nav>
+          </div>
+        }
+        topbar={
+          <div className="cc-topbar-inner">
+            <div>
+              <p className="cc-eyebrow">Dashboard Command Center</p>
+              <h1>{currentSEO.title}</h1>
+            </div>
+            <div className="cc-topbar-actions">
+              <input className="cc-search" readOnly value="Search coming soon..." aria-label="Search (placeholder)" />
+              {authLoading ? (
+                <span className="cc-user-pill">Loading...</span>
+              ) : authUser ? (
+                <button className="cc-user-pill" onClick={handleLogout}>{authUser.name}</button>
+              ) : (
+                <button className="cc-user-pill" onClick={handleGoogleLogin}>Sign in</button>
+              )}
             </div>
           </div>
+        }
+        main={
+          <>
+            <div className="cc-metrics-row">
+              <MetricCard label="Active sport" value={activeSport} />
+              <MetricCard label="Kelly probability" value={`${Number(probability || 0).toFixed(2)}%`} />
+              <MetricCard label="Saved theme" value={theme} />
+            </div>
 
-          <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
-          {activeTab === CONSTANTS.TABS.KELLY && (
-            <KellyCalculator
-              probability={probability}
-              setProbability={setProbability}
-              isAuthenticated={!!authUser}
-              matchupData={currentMatchup}
-              estimationData={currentEstimation}
-              onLoginRequired={handleLoginRequired}
-              bankrollRefreshTrigger={bankrollRefreshTrigger}
-            />
-          )}
-          {activeTab === CONSTANTS.TABS.ESTIMATOR && (
-            <ProbabilityEstimator
-              setProbability={setProbability}
-              setActiveTab={setActiveTab}
-              activeSport={activeSport}
-              setActiveSport={setActiveSport}
-              footballStats={footballStats}
-              setFootballStats={setFootballStats}
-              basketballStats={basketballStats}
-              setBasketballStats={setBasketballStats}
-              hockeyStats={hockeyStats}
-              setHockeyStats={setHockeyStats}
-              pointSpread={pointSpread}
-              setPointSpread={setPointSpread}
-              totalGoalsLine={totalGoalsLine}
-              setTotalGoalsLine={setTotalGoalsLine}
-              calculatedProb={calculatedProb}
-              setCalculatedProb={setCalculatedProb}
-              expectedDiff={expectedDiff}
-              setExpectedDiff={setExpectedDiff}
-              isTeamAHome={isTeamAHome}
-              setIsTeamAHome={setIsTeamAHome}
-              isAuthenticated={!!authUser}
-              onLoginRequired={handleLoginRequired}
-              // NEW: Pass setters for bet logging
-              setCurrentMatchup={setCurrentMatchup}
-              setCurrentEstimation={setCurrentEstimation}
-            />
-          )}
-          {activeTab === CONSTANTS.TABS.WALTERS && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading Walters Protocol...</div>}>
-                <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
-              </Suspense>
-            </div>
-          )}
-          {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
-                <ConsolidatedSportsMatchup
-                  onTransferToNBAEstimator={handleTransferToEstimator}
-                  onTransferToNFLEstimator={handleNFLTransferToEstimator}
-                  onTransferToNHLEstimator={handleNHLTransferToEstimator}
-                />
-              </Suspense>
-            </div>
-          )}
-          {/* NEW: Bet History Tab */}
-          {activeTab === CONSTANTS.TABS.BET_HISTORY && (
-            <div className="panel">
-              <BetHistory
-                isAuthenticated={!!authUser}
-                onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+            <Card title="Audio Briefing" subtitle="Swipe through onboarding clips and strategic explainers.">
+              <SwipeableAudioOrbs
+                orbs={[
+                  { audioSrc: '/intro.mp3', label: 'Introduction', icon: '🎙️' },
+                  { audioSrc: '/mission_statement.mp3', label: 'Mission Statement', icon: '🎯' },
+                  { audioSrc: '/quick_guide.mp3', label: 'Quick Start Guide', icon: '🎧' },
+                  { audioSrc: '/math_stats.mp3', label: 'Magnify Stats', icon: '🔍' },
+                ]}
               />
-            </div>
-          )}
+            </Card>
 
-          {/* Stats Page Tab */}
-          {activeTab === CONSTANTS.TABS.STATS && (
-            <StatsPage />
-          )}
-
-          {/* Account Settings Tab */}
-          {activeTab === CONSTANTS.TABS.ACCOUNT && (
-            <AccountSettings
-              user={authUser}
-              onLogout={handleLogout}
-              onLogin={handleGoogleLogin}
-              theme={theme}
-              themeOptions={THEME_OPTIONS}
-              onThemeChange={(value) => setTheme(value as ThemeKey)}
-            />
-          )}
-
-          {/* Promo Page Tab */}
-          {activeTab === CONSTANTS.TABS.PROMO && (
-            <PromoPage user={authUser} />
-          )}
-          </section>
-
-          <div
-            className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
-            id="app-documentation"
-            aria-hidden={!isDocOpen}
-          >
-            <div className="panel info-panel doc-panel">
-              <button className="doc-close" type="button" onClick={() => setIsDocOpen(false)} aria-label="Close documentation">
-                Close
-              </button>
-              <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
-                <p style={{color:'var(--text-muted)', marginTop:0}}>
-                  Follow these steps to move from matchup stats to a fully logged bet:
-                </p>
-                
-                <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                  <li>
-                    Start in the <strong>Sports Matchups</strong> tab to load team stats and compare both sides of the game. Toggle between NBA, NFL, and NHL.
-                  </li>
-                  <li>
-                    Move to the <strong>Probability Estimator</strong>, enter your point spread, select whether your team is home or away, and hit <strong>Calculate Probability</strong> to generate your fair win probability.
-                  </li>
-                  <li>
-                    Switch to the <strong>Kelly Criterion</strong>, enter your bankroll and odds, then paste in the win probability to calculate your optimal bet size.
-                  </li>
-                  <li>
-                    Finally, use <strong>Log Bet</strong> to save the wager and track your results over time.
-                  </li>
+            <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
+              {activeTab === CONSTANTS.TABS.KELLY && (
+                <KellyCalculator
+                  probability={probability}
+                  setProbability={setProbability}
+                  isAuthenticated={!!authUser}
+                  matchupData={currentMatchup}
+                  estimationData={currentEstimation}
+                  onLoginRequired={handleLoginRequired}
+                  bankrollRefreshTrigger={bankrollRefreshTrigger}
+                />
+              )}
+              {activeTab === CONSTANTS.TABS.ESTIMATOR && (
+                <ProbabilityEstimator
+                  setProbability={setProbability}
+                  setActiveTab={setActiveTab}
+                  activeSport={activeSport}
+                  setActiveSport={setActiveSport}
+                  footballStats={footballStats}
+                  setFootballStats={setFootballStats}
+                  basketballStats={basketballStats}
+                  setBasketballStats={setBasketballStats}
+                  hockeyStats={hockeyStats}
+                  setHockeyStats={setHockeyStats}
+                  pointSpread={pointSpread}
+                  setPointSpread={setPointSpread}
+                  totalGoalsLine={totalGoalsLine}
+                  setTotalGoalsLine={setTotalGoalsLine}
+                  calculatedProb={calculatedProb}
+                  setCalculatedProb={setCalculatedProb}
+                  expectedDiff={expectedDiff}
+                  setExpectedDiff={setExpectedDiff}
+                  isTeamAHome={isTeamAHome}
+                  setIsTeamAHome={setIsTeamAHome}
+                  isAuthenticated={!!authUser}
+                  onLoginRequired={handleLoginRequired}
+                  setCurrentMatchup={setCurrentMatchup}
+                  setCurrentEstimation={setCurrentEstimation}
+                />
+              )}
+              {activeTab === CONSTANTS.TABS.WALTERS && (
+                <Card title="Walters Protocol">
+                  <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading Walters Protocol...</div>}>
+                    <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
+                  </Suspense>
+                </Card>
+              )}
+              {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
+                <Card title="Sports Matchup Explorer">
+                  <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading matchup data...</div>}>
+                    <ConsolidatedSportsMatchup
+                      onTransferToNBAEstimator={handleTransferToEstimator}
+                      onTransferToNFLEstimator={handleNFLTransferToEstimator}
+                      onTransferToNHLEstimator={handleNHLTransferToEstimator}
+                    />
+                  </Suspense>
+                </Card>
+              )}
+              {activeTab === CONSTANTS.TABS.BET_HISTORY && (
+                <Card title="Bet History Ledger">
+                  <BetHistory
+                    isAuthenticated={!!authUser}
+                    onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+                  />
+                </Card>
+              )}
+              {activeTab === CONSTANTS.TABS.STATS && <StatsPage />}
+              {activeTab === CONSTANTS.TABS.ACCOUNT && (
+                <AccountSettings
+                  user={authUser}
+                  onLogout={handleLogout}
+                  onLogin={handleGoogleLogin}
+                  theme={theme}
+                  themeOptions={THEME_OPTIONS}
+                  onThemeChange={(value) => setTheme(value as ThemeKey)}
+                />
+              )}
+              {activeTab === CONSTANTS.TABS.PROMO && <PromoPage user={authUser} />}
+            </section>
+          </>
+        }
+        aside={
+          <div className="cc-context-stack">
+            <Card title="Workflow Guide" actions={<button className="btn-secondary" onClick={() => setIsDocOpen((open) => !open)}>{isDocOpen ? 'Hide' : 'Show'}</button>}>
+              {isDocOpen ? (
+                <ol className="cc-list">
+                  <li>Open Matchup Explorer and transfer your preferred teams.</li>
+                  <li>Run Probability Lab to produce projected edge.</li>
+                  <li>Apply projection in Kelly Calculator to size your stake.</li>
+                  <li>Log result in Bet History for bankroll analytics.</li>
                 </ol>
-                
-                <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
-                <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                  <li><strong>Kelly Criterion</strong>: Calculates your optimal stake based on bankroll, odds, and your win probability.</li>
-                  <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
-                  <li><strong>Sports Matchups</strong>: Pulls NBA, NFL, or NHL team performance data and pre-fills stats for the estimator.</li>
-                  <li><strong>📊 Bet History</strong>: Stores your logged bets and tracks performance (sign-in required).</li>
-                </ul>
-            </div>
+              ) : (
+                <EmptyState title="Guide collapsed" description="Expand this card to view the full workflow checklist." />
+              )}
+            </Card>
+            <Card title="Quick Actions">
+              <button id="demoPopoverBtn" className="btn-primary" type="button">🎬 Watch Demo</button>
+              <div className="cc-links">
+                <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+              </div>
+            </Card>
           </div>
-        </div>
-
-        <footer className="footer">
-          <div className="footer-card">
-            <button
-              type="button"
-              className="doc-toggle"
-              onClick={() => setIsDocOpen((open) => !open)}
-              aria-expanded={isDocOpen}
-              aria-controls="app-documentation"
-            >
-              <span>{isDocOpen ? 'Hide documentation & workflow guide' : 'Show documentation & workflow guide'}</span>
-              <span className={`doc-chevron ${isDocOpen ? 'open' : ''}`} aria-hidden>▾</span>
-            </button>
-            <p className="doc-hint">
-              {isDocOpen
-                ? 'Click to tuck the instructions away once you are comfortable with the flow.'
-                : 'Open the drop-up to review the workflow and feature explanations.'}
-            </p>
-
-            {/* Watch Demo Button */}
-            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-              <button id="demoPopoverBtn" className="demo-btn" type="button">
-                🎬 Watch Demo
-              </button>
-            </div>
-
-            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.5rem 0' }}>
-                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none', marginRight: '1.5rem' }}>
-                  Privacy Policy
-                </a>
-                <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                  Terms of Service
-                </a>
-              </p>
-            </div>
-          </div>
-        </footer>
+        }
+      />
 
         {/* Demo Popover (place right after footer) */}
         <div id="demoPopover" className="demo-popover" role="dialog" aria-hidden="true" aria-label="Demo video popover">
@@ -3053,19 +2936,6 @@ function App() {
             </iframe>
           </div>
         </div>
-
-        {/* Bottom Navigation Bar */}
-        <BottomNavigation
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          TABS={{
-            BET_HISTORY: CONSTANTS.TABS.BET_HISTORY,
-            STATS: CONSTANTS.TABS.STATS,
-            ACCOUNT: CONSTANTS.TABS.ACCOUNT,
-            PROMO: CONSTANTS.TABS.PROMO,
-          }}
-        />
-      </div>
     </>
   );
 }
@@ -3073,7 +2943,6 @@ function App() {
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(
   <HelmetProvider>
-    <GlobalStyle />
     <App />
   </HelmetProvider>
 );
