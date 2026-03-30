@@ -113,41 +113,38 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>🎁 Promotions & Links</h2>
-        <p style={styles.subtitle}>
+    <div className="p-5 max-w-6xl mx-auto pb-24">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold mb-2.5 accent-gradient-text">🎁 Promotions & Links</h2>
+        <p className="text-base text-[var(--text-secondary)]">
           Exclusive offers and promotional links for sports betting
         </p>
       </div>
 
       {isAdmin && (
-        <div style={styles.adminActions}>
+        <div className="flex flex-col gap-4 mb-6">
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            style={styles.addButton}
+            className="btn-accent self-start"
           >
             {showAddForm ? '✕ Cancel' : '➕ Add New Promo'}
           </button>
-          <div style={styles.resetCard}>
+          <div className="glass-card p-5 flex flex-col gap-3">
             <div>
-              <div style={styles.resetTitle}>Reset Free Probability Checks</div>
-              <div style={styles.resetDescription}>
+              <div className="text-base font-bold text-[var(--text-primary)]">Reset Free Probability Checks</div>
+              <div className="text-[13px] text-[var(--text-secondary)]">
                 Clears monthly free calculations for all free-tier users.
               </div>
             </div>
             <button
               onClick={handleResetFreeCalculations}
-              style={styles.resetButton}
+              className="self-start px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-red-500 border-none rounded-xl cursor-pointer shadow-lg"
               disabled={resetStatus === 'loading'}
             >
               {resetStatus === 'loading' ? 'Resetting...' : 'Master Reset'}
             </button>
             {resetMessage && (
-              <div style={{
-                ...styles.resetMessage,
-                color: resetStatus === 'success' ? '#4ade80' : '#f87171'
-              }}>
+              <div className={`text-[13px] font-semibold ${resetStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
                 {resetMessage}
               </div>
             )}
@@ -156,8 +153,8 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
       )}
 
       {showAddForm && (
-        <div style={styles.addForm}>
-          <h3 style={styles.formTitle}>Add New Promotion</h3>
+        <div className="glass-card p-6 mb-8">
+          <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-5">Add New Promotion</h3>
           <input
             type="text"
             placeholder="Promo Title *"
@@ -165,7 +162,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
             onChange={(e) =>
               setNewPromo({ ...newPromo, title: e.target.value })
             }
-            style={styles.input}
+            className="input-field mb-4"
           />
           <textarea
             placeholder="Description"
@@ -173,14 +170,14 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
             onChange={(e) =>
               setNewPromo({ ...newPromo, description: e.target.value })
             }
-            style={{ ...styles.input, ...styles.textarea }}
+            className="input-field mb-4 min-h-[80px] resize-y font-[inherit]"
           />
           <input
             type="url"
             placeholder="Promo URL *"
             value={newPromo.url}
             onChange={(e) => setNewPromo({ ...newPromo, url: e.target.value })}
-            style={styles.input}
+            className="input-field mb-4"
           />
           <input
             type="url"
@@ -189,62 +186,62 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
             onChange={(e) =>
               setNewPromo({ ...newPromo, imageUrl: e.target.value })
             }
-            style={styles.input}
+            className="input-field mb-4"
           />
-          <button onClick={handleAddPromo} style={styles.submitButton}>
+          <button onClick={handleAddPromo} className="btn-accent bg-gradient-to-br from-emerald-500 to-emerald-600">
             Add Promotion
           </button>
         </div>
       )}
 
-      <div style={styles.promoGrid}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5">
         {promos.length === 0 ? (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>📭</div>
-            <p style={styles.emptyText}>No promotions yet</p>
+          <div className="text-center py-16 px-5 col-span-full">
+            <div className="text-6xl mb-5">📭</div>
+            <p className="text-lg text-[var(--text-primary)] mb-2.5">No promotions yet</p>
             {isAdmin && (
-              <p style={styles.emptySubtext}>
+              <p className="text-sm text-[var(--text-secondary)]">
                 Click "Add New Promo" to get started
               </p>
             )}
           </div>
         ) : (
           promos.map((promo) => (
-            <div key={promo.id} style={styles.promoCard}>
+            <div key={promo.id} className="glass-card overflow-hidden">
               {promo.imageUrl && (
-                <div style={styles.promoImageContainer}>
+                <div className="w-full h-[150px] overflow-hidden bg-white/5">
                   <img
                     src={promo.imageUrl}
                     alt={promo.title}
                     title={promo.title}
-                    style={styles.promoImage}
+                    className="w-full h-full object-cover"
                     width="100%"
                     height="auto"
                     loading="lazy"
                   />
                 </div>
               )}
-              <div style={styles.promoContent}>
-                <div style={styles.promoHeader}>
-                  <h3 style={styles.promoTitle}>{promo.title}</h3>
-                  <span style={styles.promoDate}>{formatDate(promo.date)}</span>
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-2.5 gap-2.5">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] flex-1">{promo.title}</h3>
+                  <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">{formatDate(promo.date)}</span>
                 </div>
                 {promo.description && (
-                  <p style={styles.promoDescription}>{promo.description}</p>
+                  <p className="text-sm text-[var(--text-secondary)] mb-4 leading-relaxed">{promo.description}</p>
                 )}
-                <div style={styles.promoActions}>
+                <div className="flex gap-2.5 items-center">
                   <a
                     href={promo.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={styles.promoLink}
+                    className="btn-accent flex-1 inline-flex items-center justify-center gap-1.5 no-underline text-sm"
                   >
                     🔗 Visit Link
                   </a>
                   {isAdmin && (
                     <button
                       onClick={() => handleDeletePromo(promo.id)}
-                      style={styles.deleteButton}
+                      className="btn-danger px-4 py-2.5"
                     >
                       🗑️
                     </button>
@@ -257,246 +254,12 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
       </div>
 
       {user && !isAdmin && (
-        <div style={styles.loginPrompt}>
-          <p style={styles.loginText}>
+        <div className="mt-8 p-5 bg-[var(--accent-muted)] rounded-xl border border-[var(--accent)]/30 text-center">
+          <p className="text-sm text-[var(--text-secondary)]">
             Only the site administrator can add and manage promotional links
           </p>
         </div>
       )}
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    paddingBottom: '100px',
-  },
-  header: {
-    marginBottom: '30px',
-  },
-  adminActions: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-    marginBottom: '24px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: 'bold',
-    marginBottom: '10px',
-    background: 'var(--accent-gradient)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-  },
-  subtitle: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  addButton: {
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'white',
-    background: 'var(--accent-gradient)',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    marginBottom: '20px',
-    boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
-    transition: 'all 0.3s ease',
-  },
-  resetCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    padding: '18px',
-    borderRadius: '16px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    background: 'rgba(15, 23, 42, 0.6)',
-    color: 'rgba(255, 255, 255, 0.9)',
-    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.35)',
-  },
-  resetTitle: {
-    fontSize: '16px',
-    fontWeight: '700',
-  },
-  resetDescription: {
-    fontSize: '13px',
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  resetButton: {
-    alignSelf: 'flex-start',
-    padding: '10px 18px',
-    fontSize: '14px',
-    fontWeight: '700',
-    color: '#fff',
-    background: 'linear-gradient(135deg, #f97316, #ef4444)',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    boxShadow: '0 6px 20px rgba(239, 68, 68, 0.35)',
-  },
-  resetMessage: {
-    fontSize: '13px',
-    fontWeight: '600',
-  },
-  addForm: {
-    background: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '16px',
-    padding: '25px',
-    marginBottom: '30px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-  },
-  formTitle: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: '20px',
-  },
-  input: {
-    width: '100%',
-    padding: '12px 16px',
-    marginBottom: '15px',
-    fontSize: '14px',
-    color: 'white',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: '10px',
-    outline: 'none',
-    transition: 'all 0.3s ease',
-    boxSizing: 'border-box',
-  },
-  textarea: {
-    minHeight: '80px',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-  },
-  submitButton: {
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'white',
-    background: 'linear-gradient(135deg, #10b981, #059669)',
-    border: 'none',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
-  },
-  promoGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-    gap: '20px',
-  },
-  promoCard: {
-    background: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-    transition: 'all 0.3s ease',
-  },
-  promoImageContainer: {
-    width: '100%',
-    height: '150px',
-    overflow: 'hidden',
-    background: 'rgba(255, 255, 255, 0.05)',
-  },
-  promoImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  promoContent: {
-    padding: '20px',
-  },
-  promoHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '10px',
-    gap: '10px',
-  },
-  promoTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: 'white',
-    flex: 1,
-  },
-  promoDate: {
-    fontSize: '12px',
-    color: 'rgba(255, 255, 255, 0.5)',
-    whiteSpace: 'nowrap',
-  },
-  promoDescription: {
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: '15px',
-    lineHeight: '1.5',
-  },
-  promoActions: {
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'center',
-  },
-  promoLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: 'white',
-    background: 'var(--accent-gradient)',
-    textDecoration: 'none',
-    borderRadius: '10px',
-    flex: 1,
-    justifyContent: 'center',
-    transition: 'all 0.3s ease',
-  },
-  deleteButton: {
-    padding: '10px 15px',
-    fontSize: '16px',
-    background: 'rgba(239, 68, 68, 0.8)',
-    border: 'none',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    gridColumn: '1 / -1',
-  },
-  emptyIcon: {
-    fontSize: '64px',
-    marginBottom: '20px',
-  },
-  emptyText: {
-    fontSize: '18px',
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: '10px',
-  },
-  emptySubtext: {
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  loginPrompt: {
-    marginTop: '30px',
-    padding: '20px',
-    background: 'rgba(168, 85, 247, 0.1)',
-    borderRadius: '12px',
-    border: '1px solid rgba(168, 85, 247, 0.3)',
-    textAlign: 'center',
-  },
-  loginText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: '14px',
-  },
 };

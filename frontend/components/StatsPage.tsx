@@ -182,7 +182,7 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
   };
 
   const getCellColor = (value: number, column: string) => {
-    if (column === getTableHeaders()[0]) return null; // Don't color team names
+    if (column === getTableHeaders()[0]) return null;
 
     const statColumn = getStatColumn();
     if (column !== statColumn) return null;
@@ -198,7 +198,6 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
     const higherIsBetter = currentCategory?.higherIsBetter ?? true;
     const score = higherIsBetter ? normalized : 1 - normalized;
 
-    // Green to red gradient
     if (score >= 0.7) {
       return { background: 'rgba(34, 197, 94, 0.2)', border: '1px solid rgba(34, 197, 94, 0.4)' };
     } else if (score >= 0.4) {
@@ -219,25 +218,26 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
   const topPerformers = getTopPerformers();
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>📈 Sports Statistics</h2>
-        <p style={styles.subtitle}>
+    <div className="p-5 max-w-6xl mx-auto pb-24">
+      <div className="mb-8 text-center">
+        <h2 className="text-4xl font-bold mb-2.5 accent-gradient-text">📈 Sports Statistics</h2>
+        <p className="text-base text-[var(--text-secondary)] max-w-xl mx-auto">
           Comprehensive team analytics from {sport} - Make data-driven betting decisions
         </p>
       </div>
 
-      <div style={styles.controls}>
-        <div style={styles.sportToggle}>
+      <div className="flex gap-4 mb-6 flex-wrap items-center">
+        <div className="flex gap-2.5">
           <button
             onClick={() => {
               setSport('NBA');
               setStatCategory('ppg');
             }}
-            style={{
-              ...styles.sportButton,
-              ...(sport === 'NBA' ? styles.sportButtonActive : {}),
-            }}
+            className={`px-6 py-3 text-base font-semibold rounded-xl cursor-pointer transition-all duration-300 border ${
+              sport === 'NBA'
+                ? 'bg-[var(--accent)] text-white shadow-[var(--accent-glow)] -translate-y-0.5 border-transparent'
+                : 'text-[var(--text-secondary)] bg-[var(--bg-surface)] border-[var(--border-default)]'
+            }`}
           >
             🏀 NBA
           </button>
@@ -246,10 +246,11 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
               setSport('NFL');
               setStatCategory('ppg');
             }}
-            style={{
-              ...styles.sportButton,
-              ...(sport === 'NFL' ? styles.sportButtonActive : {}),
-            }}
+            className={`px-6 py-3 text-base font-semibold rounded-xl cursor-pointer transition-all duration-300 border ${
+              sport === 'NFL'
+                ? 'bg-[var(--accent)] text-white shadow-[var(--accent-glow)] -translate-y-0.5 border-transparent'
+                : 'text-[var(--text-secondary)] bg-[var(--bg-surface)] border-[var(--border-default)]'
+            }`}
           >
             🏈 NFL
           </button>
@@ -258,10 +259,11 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
               setSport('NHL');
               setStatCategory('xgf60');
             }}
-            style={{
-              ...styles.sportButton,
-              ...(sport === 'NHL' ? styles.sportButtonActive : {}),
-            }}
+            className={`px-6 py-3 text-base font-semibold rounded-xl cursor-pointer transition-all duration-300 border ${
+              sport === 'NHL'
+                ? 'bg-[var(--accent)] text-white shadow-[var(--accent-glow)] -translate-y-0.5 border-transparent'
+                : 'text-[var(--text-secondary)] bg-[var(--bg-surface)] border-[var(--border-default)]'
+            }`}
           >
             🏒 NHL
           </button>
@@ -270,7 +272,7 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
         <select
           value={statCategory}
           onChange={(e) => setStatCategory(e.target.value)}
-          style={styles.categorySelect}
+          className="input-field min-w-[200px]"
         >
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
@@ -284,14 +286,14 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
           placeholder="🔍 Search teams..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={styles.searchInput}
+          className="input-field flex-1 min-w-[200px]"
         />
       </div>
 
       {!loading && !error && statsData.length > 0 && topPerformers.length > 0 && (
-        <div style={styles.topPerformersSection}>
-          <h3 style={styles.sectionTitle}>🏆 Top Performers</h3>
-          <div style={styles.topPerformersGrid}>
+        <div className="mb-8">
+          <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">🏆 Top Performers</h3>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 mb-2.5">
             {topPerformers.map((team, index) => {
               const teamName = String(team[getTableHeaders()[0]]);
               const statValue = team[getStatColumn()];
@@ -300,19 +302,18 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
               return (
                 <div
                   key={index}
-                  style={{
-                    ...styles.performerCard,
-                    ...(index === 0 ? styles.performerCardFirst : {}),
-                  }}
+                  className={`glass-card p-5 flex flex-col items-center gap-2 cursor-pointer ${
+                    index === 0 ? 'bg-yellow-500/15 border-2 border-yellow-500/40 shadow-lg' : ''
+                  }`}
                 >
-                  <div style={styles.medalBadge}>{medal}</div>
-                  <div style={styles.performerTeam}>{teamName}</div>
-                  <div style={styles.performerStat}>
+                  <div className="text-3xl mb-1">{medal}</div>
+                  <div className="text-lg font-bold text-[var(--text-primary)] text-center">{teamName}</div>
+                  <div className="text-3xl font-bold accent-gradient-text">
                     {typeof statValue === 'number'
                       ? statValue.toLocaleString(undefined, { maximumFractionDigits: 2 })
                       : statValue}
                   </div>
-                  <div style={styles.performerLabel}>
+                  <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">
                     {currentCategory?.label}
                   </div>
                 </div>
@@ -322,66 +323,63 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
         </div>
       )}
 
-      <div style={styles.statsCard}>
+      <div className="glass-card min-h-[400px] overflow-hidden">
         {loading && (
-          <div style={styles.loadingState}>
-            <div style={styles.spinner}>⏳</div>
-            <p style={styles.loadingText}>Loading statistics...</p>
+          <div className="flex flex-col items-center justify-center py-16 px-5">
+            <div className="text-5xl mb-5 loading-spinner">⏳</div>
+            <p className="text-[var(--text-secondary)] text-base">Loading statistics...</p>
           </div>
         )}
 
         {error && (
-          <div style={styles.errorState}>
-            <div style={styles.errorIcon}>⚠️</div>
-            <p style={styles.errorText}>{error}</p>
-            <button onClick={loadStats} style={styles.retryButton}>
+          <div className="flex flex-col items-center justify-center py-16 px-5">
+            <div className="text-5xl mb-5">⚠️</div>
+            <p className="text-[var(--danger)] text-base mb-5">{error}</p>
+            <button onClick={loadStats} className="btn-accent">
               Retry
             </button>
           </div>
         )}
 
         {!loading && !error && statsData.length === 0 && (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>📊</div>
-            <p style={styles.emptyText}>No statistics available</p>
+          <div className="flex flex-col items-center justify-center py-16 px-5">
+            <div className="text-5xl mb-5">📊</div>
+            <p className="text-[var(--text-secondary)] text-base">No statistics available</p>
           </div>
         )}
 
         {!loading && !error && displayData.length === 0 && statsData.length > 0 && (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>🔍</div>
-            <p style={styles.emptyText}>No teams match your search</p>
+          <div className="flex flex-col items-center justify-center py-16 px-5">
+            <div className="text-5xl mb-5">🔍</div>
+            <p className="text-[var(--text-secondary)] text-base">No teams match your search</p>
           </div>
         )}
 
         {!loading && !error && displayData.length > 0 && (
           <>
-            <div style={styles.tableHeader}>
-              <div style={styles.tableTitle}>
+            <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center flex-wrap gap-2.5">
+              <div className="text-lg font-bold text-[var(--text-primary)]">
                 📊 {currentCategory?.label} Rankings
               </div>
-              <div style={styles.tableInfo}>
+              <div className="text-sm text-[var(--text-muted)]">
                 Showing {displayData.length} of {statsData.length} teams
               </div>
             </div>
-            <div style={styles.tableContainer}>
-              <table style={styles.table}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th style={{ ...styles.th, ...styles.rankColumn }}>#</th>
+                    <th className="p-4 text-left text-xs font-bold text-white bg-[var(--accent-muted)] border-b-2 border-[var(--accent)] sticky top-0 z-10 uppercase tracking-wider w-[60px] text-center">#</th>
                     {getTableHeaders().map((header, index) => (
                       <th
                         key={index}
-                        style={{
-                          ...styles.th,
-                          cursor: 'pointer',
-                        }}
+                        className="p-4 text-left text-xs font-bold text-white bg-[var(--accent-muted)] border-b-2 border-[var(--accent)] sticky top-0 z-10 uppercase tracking-wider cursor-pointer hover:bg-[var(--accent)]/20 transition-colors"
                         onClick={() => handleSort(header)}
                       >
-                        <div style={styles.thContent}>
+                        <div className="flex items-center gap-1">
                           {header}
                           {sortColumn === header && (
-                            <span style={styles.sortIcon}>
+                            <span className="text-[10px] opacity-80">
                               {sortDirection === 'asc' ? ' ▲' : ' ▼'}
                             </span>
                           )}
@@ -394,18 +392,10 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                   {displayData.map((row, rowIndex) => (
                     <tr
                       key={rowIndex}
-                      style={styles.tr}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = 'rgba(168, 85, 247, 0.1)';
-                        (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = 'transparent';
-                        (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
-                      }}
+                      className="transition-all duration-200 hover:bg-[var(--accent-muted)] hover:translate-x-1"
                     >
-                      <td style={{ ...styles.td, ...styles.rankCell }}>
-                        <span style={styles.rankNumber}>
+                      <td className="px-4 py-3.5 text-sm text-white/90 border-b border-white/5 text-center font-semibold">
+                        <span className="text-base">
                           {rowIndex < 3 ? getMedalIcon(rowIndex) : rowIndex + 1}
                         </span>
                       </td>
@@ -419,11 +409,10 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                         return (
                           <td
                             key={colIndex}
-                            style={{
-                              ...styles.td,
-                              ...(colIndex === 0 ? styles.teamNameCell : {}),
-                              ...(cellStyle || {}),
-                            }}
+                            className={`px-4 py-3.5 text-sm text-white/90 border-b border-white/5 ${
+                              colIndex === 0 ? 'font-semibold text-white' : ''
+                            }`}
+                            style={cellStyle || undefined}
                           >
                             {typeof value === 'number'
                               ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
@@ -440,336 +429,25 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
         )}
       </div>
 
-      <div style={styles.infoCard}>
-        <div style={styles.infoHeader}>
-          <h3 style={styles.infoTitle}>💡 How to Use These Stats</h3>
+      <div className="mt-6 p-6 glass-card">
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">💡 How to Use These Stats</h3>
         </div>
-        <ul style={styles.infoList}>
-          <li style={styles.infoItem}>
+        <ul className="m-0 pl-5 list-none space-y-2">
+          <li className="text-sm text-[var(--text-secondary)] leading-relaxed">
             <strong>Search:</strong> Use the search bar to quickly find specific teams
           </li>
-          <li style={styles.infoItem}>
+          <li className="text-sm text-[var(--text-secondary)] leading-relaxed">
             <strong>Sort:</strong> Click column headers to sort by any metric
           </li>
-          <li style={styles.infoItem}>
+          <li className="text-sm text-[var(--text-secondary)] leading-relaxed">
             <strong>Color Coding:</strong> Green indicates top performers, yellow is average, red is below average
           </li>
-          <li style={styles.infoItem}>
+          <li className="text-sm text-[var(--text-secondary)] leading-relaxed">
             <strong>Kelly Criterion:</strong> Use these statistics to inform your probability estimates when calculating optimal bet sizes
           </li>
         </ul>
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    padding: '20px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    paddingBottom: '100px',
-  },
-  header: {
-    marginBottom: '30px',
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: '36px',
-    fontWeight: 'bold',
-    marginBottom: '10px',
-    background: 'var(--accent-gradient)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-  },
-  subtitle: {
-    fontSize: '16px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  controls: {
-    display: 'flex',
-    gap: '15px',
-    marginBottom: '25px',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  sportToggle: {
-    display: 'flex',
-    gap: '10px',
-  },
-  sportButton: {
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-  },
-  sportButtonActive: {
-    background: 'var(--accent-gradient)',
-    color: 'white',
-    boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
-    transform: 'translateY(-2px)',
-  },
-  categorySelect: {
-    padding: '12px 16px',
-    fontSize: '14px',
-    color: 'white',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    outline: 'none',
-    minWidth: '200px',
-    transition: 'all 0.3s ease',
-  },
-  searchInput: {
-    padding: '12px 16px',
-    fontSize: '14px',
-    color: 'white',
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: '12px',
-    outline: 'none',
-    flex: '1',
-    minWidth: '200px',
-    transition: 'all 0.3s ease',
-  },
-  topPerformersSection: {
-    marginBottom: '30px',
-  },
-  sectionTitle: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: 'white',
-    marginBottom: '15px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  topPerformersGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '15px',
-    marginBottom: '10px',
-  },
-  performerCard: {
-    background: 'rgba(255, 255, 255, 0.08)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '16px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-  },
-  performerCardFirst: {
-    background: 'rgba(234, 179, 8, 0.15)',
-    border: '2px solid rgba(234, 179, 8, 0.4)',
-    boxShadow: '0 8px 32px rgba(234, 179, 8, 0.2)',
-  },
-  medalBadge: {
-    fontSize: '32px',
-    marginBottom: '5px',
-  },
-  performerTeam: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: 'white',
-    textAlign: 'center',
-  },
-  performerStat: {
-    fontSize: '28px',
-    fontWeight: 'bold',
-    background: 'var(--accent-gradient)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-  },
-  performerLabel: {
-    fontSize: '12px',
-    color: 'rgba(255, 255, 255, 0.6)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  statsCard: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '16px',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-    minHeight: '400px',
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    padding: '20px 24px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '10px',
-  },
-  tableTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: 'white',
-  },
-  tableInfo: {
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  tableContainer: {
-    overflowX: 'auto',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  th: {
-    padding: '16px',
-    textAlign: 'left',
-    fontSize: '13px',
-    fontWeight: '700',
-    color: 'white',
-    background: 'rgba(168, 85, 247, 0.15)',
-    borderBottom: '2px solid rgba(168, 85, 247, 0.4)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    transition: 'background 0.2s ease',
-  },
-  thContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-  },
-  sortIcon: {
-    fontSize: '10px',
-    opacity: 0.8,
-  },
-  rankColumn: {
-    width: '60px',
-    textAlign: 'center',
-  },
-  td: {
-    padding: '14px 16px',
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.9)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-    transition: 'all 0.2s ease',
-  },
-  teamNameCell: {
-    fontWeight: '600',
-    color: 'white',
-  },
-  rankCell: {
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  rankNumber: {
-    fontSize: '16px',
-  },
-  tr: {
-    background: 'transparent',
-    transition: 'all 0.2s ease',
-  },
-  loadingState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-  },
-  spinner: {
-    fontSize: '48px',
-    marginBottom: '20px',
-    animation: 'spin 2s linear infinite',
-  },
-  loadingText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: '16px',
-  },
-  errorState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-  },
-  errorIcon: {
-    fontSize: '48px',
-    marginBottom: '20px',
-  },
-  errorText: {
-    color: 'rgba(239, 68, 68, 0.9)',
-    fontSize: '16px',
-    marginBottom: '20px',
-  },
-  retryButton: {
-    padding: '12px 24px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: 'white',
-    background: 'var(--accent-gradient)',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-  },
-  emptyIcon: {
-    fontSize: '48px',
-    marginBottom: '20px',
-  },
-  emptyText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: '16px',
-  },
-  infoCard: {
-    marginTop: '25px',
-    padding: '24px',
-    background: 'rgba(59, 130, 246, 0.1)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '16px',
-    border: '1px solid rgba(59, 130, 246, 0.3)',
-  },
-  infoHeader: {
-    marginBottom: '15px',
-  },
-  infoTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
-    color: 'white',
-  },
-  infoList: {
-    margin: 0,
-    paddingLeft: '20px',
-    listStyle: 'none',
-  },
-  infoItem: {
-    fontSize: '14px',
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: '1.8',
-    marginBottom: '8px',
-    position: 'relative',
-    paddingLeft: '0',
-  },
 };

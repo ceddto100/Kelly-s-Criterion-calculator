@@ -29,10 +29,9 @@ const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsM
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
-import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
+import { LogBetButton, BetHistory } from './components/BetLogger';
 
 /* === Audio Orb Component === */
-import { AudioOrbStyles } from './components/AudioOrb';
 import { SwipeableAudioOrbs } from './components/SwipeableAudioOrbs';
 
 /* === Bottom Navigation and New Pages === */
@@ -87,835 +86,8 @@ const THEME_OPTIONS = [
 
 type ThemeKey = typeof THEME_OPTIONS[number]['key'];
 
-/* =========================== Inline theme tweaks - GLASSMORPHISM =========================== */
-const GlobalStyle = () => (
-  <style>{`
-    /* Additional glassmorphism styles for components not in main CSS */
-    .site-bg {
-      position: relative;
-      min-height: 100vh;
-      width: 100%;
-      max-width: 100vw;
-      background: #050510;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .site-bg img.bg-fallback {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0.15;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        90deg,
-        rgba(6, 182, 212, 0.05),
-        rgba(139, 92, 246, 0.05)
-      );
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    .page-wrap {
-      position: relative;
-      z-index: 1;
-      padding:
-        max(3rem, env(safe-area-inset-top, 3rem))
-        max(1rem, env(safe-area-inset-right, 1rem))
-        max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
-        max(1rem, env(safe-area-inset-left, 1rem));
-      max-width: 1100px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    @media (max-width: 480px) {
-      .page-wrap {
-        padding:
-          max(2rem, env(safe-area-inset-top, 2rem))
-          max(0.75rem, env(safe-area-inset-right, 0.75rem))
-          max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
-          max(0.75rem, env(safe-area-inset-left, 0.75rem));
-      }
-    }
-    @media (max-width: 360px) {
-      .page-wrap {
-        padding:
-          max(1.5rem, env(safe-area-inset-top, 1.5rem))
-          max(0.5rem, env(safe-area-inset-right, 0.5rem))
-          max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
-          max(0.5rem, env(safe-area-inset-left, 0.5rem));
-      }
-    }
-
-    /* Panel Overrides for Glass Effect */
-    .panel {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 1.5rem;
-      box-shadow:
-        0 24px 48px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-      margin: 0 auto 1rem;
-      max-width: 900px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    .panel-strong {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .info-panel {
-      max-width: 1100px;
-    }
-
-    /* Footer Glass Panel */
-    .footer {
-      color: rgba(255, 255, 255, 0.7);
-      text-align: center;
-      padding: 2rem 1rem calc(80px + env(safe-area-inset-bottom, 0px));
-      font-size: 0.95rem;
-      display: flex;
-      justify-content: center;
-      position: relative;
-      z-index: 2;
-    }
-
-    .footer-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 1rem 1.5rem;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      max-width: 820px;
-      width: 100%;
-    }
-
-    /* Documentation Toggle */
-    .doc-toggle {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      justify-content: center;
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border-radius: 12px;
-      transition: 0.3s ease;
-    }
-
-    .doc-toggle:hover {
-      color: var(--text-primary);
-      background: var(--surface-1);
-    }
-
-    .doc-toggle:focus-visible {
-      outline: 2px solid var(--control-focus);
-      outline-offset: 2px;
-    }
-
-    .doc-chevron {
-      transition: transform 0.2s ease;
-    }
-
-    .doc-chevron.open {
-      transform: rotate(180deg);
-    }
-
-    .doc-hint {
-      margin: 0.5rem 0 0;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    .doc-panel-wrapper {
-      max-width: 1100px;
-      margin: 0 auto 1rem;
-      transition: all 0.25s ease;
-      overflow: hidden;
-    }
-
-    .doc-panel-wrapper.closed {
-      max-height: 0;
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-    }
-
-    .doc-panel-wrapper.open {
-      max-height: 1200px;
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .doc-panel {
-      position: relative;
-    }
-
-    .doc-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-secondary);
-      border-radius: 10px;
-      padding: 0.5rem 0.8rem;
-      cursor: pointer;
-      font-weight: 700;
-      transition: 0.25s ease;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    /* Mobile-first tab styling to mirror the compact layout */
-    .tabs {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-      margin: 1rem auto 1.25rem;
-      flex-wrap: wrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    @media (min-width: 768px) {
-      .tabs {
-        flex-wrap: nowrap;
-        overflow-x: visible;
-      }
-    }
-
-    .tab {
-      background: var(--surface-1);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-subtle);
-      padding: 0.6rem 1rem;
-      border-radius: 0.75rem;
-      cursor: pointer;
-      transition: 0.25s ease;
-      font-weight: 600;
-    }
-
-    .tab:hover {
-      background: var(--surface-2);
-      color: var(--text-primary);
-    }
-
-    .tab.active {
-      color: var(--text-primary);
-      background: var(--button-primary);
-      border-color: transparent;
-      box-shadow: var(--button-glow);
-    }
-
-    /* Main top tab row (Kelly / Estimator / Walters / etc.) */
-    .app-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.5rem;
-      overflow: visible;
-      padding: 0.3rem;
-      border-radius: 16px;
-      justify-items: stretch;
-      align-items: stretch;
-    }
-
-    .app-tabs .tab {
-      width: 100%;
-      min-width: 0;
-      min-height: 88px;
-      aspect-ratio: 1 / 1;
-      white-space: normal;
-      text-wrap: balance;
-      padding: 0.6rem;
-      border-radius: 12px;
-      line-height: 1.2;
-      font-size: 0.98rem;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Row 2 with two side-by-side buttons */
-    .app-tabs .tab:nth-child(4) {
-      grid-column: 1 / 2;
-    }
-
-    .app-tabs .tab:nth-child(5) {
-      grid-column: 2 / 3;
-    }
-
-    @media (max-width: 420px) {
-      .app-tabs .tab {
-        min-height: 80px;
-        font-size: 0.9rem;
-        padding: 0.5rem;
-      }
-    }
-
-
-    .doc-close:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 1);
-    }
-
-    /* Brand Logo Circle */
-    .brand-logo-container {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      z-index: 100;
-    }
-
-    .brand-logo {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      border: 2px solid color-mix(in srgb, var(--accent-electric) 45%, transparent);
-      box-shadow: 0 4px 12px rgba(var(--accent-electric-rgb), 0.3);
-      object-fit: cover;
-      display: block;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      transform: translate3d(0, 0, 0);
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      contain: layout paint;
-    }
-
-    .brand-logo:hover {
-      transform: translate3d(0, 0, 0) scale(1.05);
-      box-shadow: 0 6px 16px rgba(var(--accent-electric-rgb), 0.4);
-    }
-
-    /* Auth Container Glass */
-    .auth-container {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      z-index: 100;
-    }
-
-    .auth-btn {
-      background: var(--button-primary);
-      color: #fff;
-      border: none;
-      padding: 0.75rem 1.25rem;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.25s ease;
-      box-shadow:
-        0 6px 20px rgba(var(--accent-electric-rgb), 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      text-decoration: none;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .auth-btn:hover {
-      transform: translateY(-2px);
-      box-shadow:
-        0 8px 24px rgba(var(--accent-electric-rgb), 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
-    }
-
-    .user-info {
-      background: var(--surface-2);
-      border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 0.75rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 2px solid color-mix(in srgb, var(--accent-electric) 45%, transparent);
-    }
-
-    .user-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-    }
-
-    .user-name {
-      color: var(--text-primary);
-      font-weight: 600;
-      font-size: 0.9rem;
-      line-height: 1.2;
-    }
-
-    .user-email {
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      line-height: 1.2;
-    }
-
-    .logout-btn {
-      background: color-mix(in srgb, var(--danger-color) 16%, transparent);
-      border: 1px solid color-mix(in srgb, var(--danger-color) 45%, transparent);
-      color: color-mix(in srgb, var(--danger-color) 70%, #fff 30%);
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.25s ease;
-      font-size: 0.85rem;
-      margin-left: 0.5rem;
-      text-decoration: none;
-    }
-
-    .logout-btn:hover {
-      background: color-mix(in srgb, var(--danger-color) 28%, transparent);
-    }
-
-    /* Chat & Sports Matchup Glass Panels */
-    .sports-matchup-container {
-      display: flex;
-      flex-direction: column;
-      height: 600px;
-      max-height: 70vh;
-    }
-
-    .quick-examples {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      align-items: center;
-      padding: 0.75rem;
-      background: var(--surface-2);
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .example-btn {
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-secondary);
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 600;
-      transition: 0.2s ease;
-    }
-
-    .example-btn:hover {
-      background: var(--surface-2);
-      transform: translateY(-1px);
-      color: var(--text-primary);
-    }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      background: var(--surface-2);
-      border-radius: 16px;
-      border: 1px solid var(--border-subtle);
-      margin-bottom: 1rem;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .chat-messages::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .chat-messages::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 4px;
-    }
-
-    .chat-messages::-webkit-scrollbar-thumb {
-      background: rgba(59, 130, 246, 0.4);
-      border-radius: 4px;
-    }
-
-    .chat-messages::-webkit-scrollbar-thumb:hover {
-      background: rgba(59, 130, 246, 0.6);
-    }
-
-    .chat-message {
-      margin-bottom: 1.25rem;
-      padding: 0.75rem 1rem;
-      border-radius: 14px;
-      animation: fadeInScale 0.3s ease-out;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .chat-message.user {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      margin-left: 2rem;
-    }
-
-    .chat-message.assistant {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      margin-right: 2rem;
-    }
-
-    .message-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      font-size: 0.8rem;
-    }
-
-    .message-role {
-      font-weight: 700;
-      color: var(--accent-cyan);
-    }
-
-    .message-time {
-      color: var(--text-muted);
-      font-size: 0.75rem;
-    }
-
-    .message-content {
-      color: var(--text-primary);
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    .chat-input-form {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .chat-input {
-      flex: 1;
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      outline: none;
-      transition: all 0.25s ease;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .chat-input:focus {
-      border-color: var(--control-focus);
-      box-shadow: 0 0 0 1px var(--control-focus);
-    }
-
-    .chat-input:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .chat-submit-btn {
-      background: var(--button-primary);
-      color: #fff;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 1.2rem;
-      transition: 0.2s ease;
-      box-shadow: 0 6px 18px rgba(var(--accent-electric-rgb), 0.35);
-      min-width: 60px;
-    }
-
-    .chat-submit-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(var(--accent-electric-rgb), 0.45);
-    }
-
-    .chat-submit-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .clear-chat-btn {
-      background: color-mix(in srgb, var(--danger-color) 16%, transparent);
-      border: 1px solid color-mix(in srgb, var(--danger-color) 45%, transparent);
-      color: color-mix(in srgb, var(--danger-color) 70%, #fff 30%);
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.2s ease;
-    }
-
-    .clear-chat-btn:hover {
-      background: color-mix(in srgb, var(--danger-color) 28%, transparent);
-    }
-
-    /* Team Name Label for forms */
-    .team-name-label {
-      position: absolute;
-      top: 0.35rem;
-      left: 0.75rem;
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--accent-cyan);
-      pointer-events: none;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      opacity: 0.8;
-      line-height: 1;
-    }
-
-    /* Responsive Overrides */
-    @media (max-width: 640px) {
-      .brand-logo-container {
-        position: relative;
-        left: auto;
-        right: auto;
-        top: auto;
-        margin: 0 auto 1rem;
-        display: flex;
-        justify-content: center;
-      }
-
-      .brand-logo {
-        width: 56px;
-        height: 56px;
-      }
-
-      .auth-container {
-        position: relative;
-        left: auto;
-        right: auto;
-        top: auto;
-        margin: 0 auto 1rem;
-        display: flex;
-        justify-content: center;
-      }
-
-      .user-info {
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      .user-details {
-        text-align: center;
-      }
-
-      .sports-matchup-container {
-        height: 500px;
-      }
-
-      .chat-message.user {
-        margin-left: 0.5rem;
-      }
-
-      .chat-message.assistant {
-        margin-right: 0.5rem;
-      }
-    }
-
-    @media (min-width: 768px) {
-      .page-wrap {
-        padding: 3.5rem 1.5rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 1.5rem;
-      }
-
-      .panel {
-        padding: 2rem;
-      }
-
-      .chat-message.user {
-        margin-left: 3rem;
-      }
-
-      .chat-message.assistant {
-        margin-right: 3rem;
-      }
-
-      .sports-matchup-container {
-        height: 650px;
-        max-height: 75vh;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .page-wrap {
-        padding: 4rem 2rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 2rem;
-      }
-
-      .panel {
-        padding: 2.5rem;
-        max-width: 1000px;
-      }
-
-      .chat-message.user {
-        margin-left: 4rem;
-      }
-
-      .chat-message.assistant {
-        margin-right: 4rem;
-      }
-
-      .chat-message {
-        padding: 1rem 1.25rem;
-      }
-
-      .message-content {
-        font-size: 1.05rem;
-        line-height: 1.7;
-      }
-
-      .sports-matchup-container {
-        height: 700px;
-        max-height: 80vh;
-      }
-    }
-
-    @media (min-width: 1440px) {
-      .page-wrap {
-        padding: 4.5rem 2.5rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 2.5rem;
-      }
-
-      .panel {
-        max-width: 1100px;
-      }
-
-      .sports-matchup-container {
-        height: 750px;
-      }
-    }
-
-    /* NEW: Include Bet Logger Styles */
-    ${BetLoggerStyles}
-
-    /* Audio Orb Styles */
-    ${AudioOrbStyles()}
-
-    /* Demo Popover Button & Popover */
-    .demo-btn {
-      padding: 10px 14px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-primary);
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-      transition: 0.25s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .demo-btn:hover {
-      background: rgba(255, 255, 255, 0.10);
-      transform: translateY(-1px);
-    }
-
-    /* Popover */
-    .demo-popover {
-      position: absolute;
-      margin-top: 10px;
-      width: min(420px, calc(100vw - 24px));
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(10, 12, 18, 0.92);
-      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.55);
-      padding: 10px;
-      display: none;
-      z-index: 9999;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-
-    .demo-popover.is-open {
-      display: block;
-    }
-
-    .demo-popover__header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 6px 10px;
-    }
-
-    .demo-popover__title {
-      font-size: 14px;
-      color: var(--text-primary);
-      font-weight: 600;
-      opacity: 0.9;
-    }
-
-    .demo-popover__close {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: 0.2s ease;
-    }
-
-    .demo-popover__close:hover {
-      background: rgba(255, 255, 255, 0.14);
-    }
-
-    .demo-popover__video {
-      width: 100%;
-      aspect-ratio: 9 / 16;
-      border-radius: 14px;
-      overflow: hidden;
-      background: #000;
-    }
-
-    .demo-popover__video iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-
-    @media (max-width: 640px) {
-      .demo-popover {
-        width: calc(100vw - 32px);
-      }
-    }
-  `}</style>
-);
+/* =============================== (GlobalStyle removed — using Tailwind CSS) =============================== */
+/* (GlobalStyle deleted) */
 
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
@@ -1609,38 +781,59 @@ function ProbabilityEstimator({
   };
 
   return (
-    <div className="panel panel-strong">
-      <div className="tabs nested-tabs" role="tablist" aria-label="Sport selector">
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.FOOTBALL ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.FOOTBALL)}>Football</button>
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.BASKETBALL ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.HOCKEY ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.HOCKEY)}>NHL</button>
+    <div className="glass-card p-5 md:p-6 max-w-[900px] mx-auto animate-fade-in space-y-5">
+      {/* Sport Tabs */}
+      <div className="flex gap-2 justify-center" role="tablist" aria-label="Sport selector">
+        {[
+          { key: CONSTANTS.SPORTS.FOOTBALL, label: 'Football' },
+          { key: CONSTANTS.SPORTS.BASKETBALL, label: 'Basketball' },
+          { key: CONSTANTS.SPORTS.HOCKEY, label: 'NHL' },
+        ].map(s => (
+          <button
+            key={s.key}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeSport === s.key
+                ? 'bg-[var(--accent-gradient)] text-white shadow-[var(--accent-glow)]'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
+            }`}
+            onClick={() => setActiveSport(s.key)}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
-      <div className="progress-container">
-        <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
+      {/* Progress Steps */}
+      <div className="flex gap-3 justify-center text-xs font-semibold">
+        <span className={`px-3 py-1.5 rounded-full border ${
+          progress.spread ? 'border-[var(--success)] text-[var(--success)] bg-[var(--success-muted)]' : 'border-[var(--border-default)] text-[var(--text-muted)]'
+        }`}>
           {progress.spread ? '✓' : '1'} {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Total Goals Line' : 'Point Spread'}
-        </div>
-        <div className={`progress-step ${progress.allComplete ? 'completed' : progress.spread ? 'active' : ''}`}>
+        </span>
+        <span className={`px-3 py-1.5 rounded-full border ${
+          progress.allComplete ? 'border-[var(--success)] text-[var(--success)] bg-[var(--success-muted)]' : 'border-[var(--border-default)] text-[var(--text-muted)]'
+        }`}>
           {progress.allComplete ? '✓' : progress.stats}/{progress.totalStats} Team Stats
-        </div>
+        </span>
       </div>
 
+      {/* Empty State */}
       {progress.stats === 0 && (activeSport === CONSTANTS.SPORTS.HOCKEY ? !totalGoalsLine : !pointSpread) && (
-        <div className="empty-state">
-          <h3>Get Started</h3>
-          <p>Enter team statistics and {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'total goals line to calculate over/under probability' : 'point spread to calculate win probability'}</p>
-          <button className="try-example-btn" onClick={loadExample}>
+        <div className="text-center py-8 space-y-3">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Get Started</h3>
+          <p className="text-sm text-[var(--text-muted)] max-w-md mx-auto">
+            Enter team statistics and {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'total goals line to calculate over/under probability' : 'point spread to calculate win probability'}
+          </p>
+          <button className="btn-ghost text-sm" onClick={loadExample}>
             Try Example Data
           </button>
         </div>
       )}
 
+      {/* Spread / Total Goals Input */}
       {activeSport === CONSTANTS.SPORTS.HOCKEY ? (
-        <div className="input-group">
-          <label htmlFor="totalGoalsLine">
+        <div className="space-y-1.5">
+          <label htmlFor="totalGoalsLine" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
             Total Goals (Over/Under)
             <span className="tooltip">
               <span className="help-icon">?</span>
@@ -1648,15 +841,13 @@ function ProbabilityEstimator({
             </span>
           </label>
           <input id="totalGoalsLine" type="number" name="totalGoalsLine" value={totalGoalsLine}
-                 onChange={(e)=>setTotalGoalsLine(e.target.value)} className="input-field" placeholder="e.g., 5.5 or 6" step="0.5" />
-          <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
-            Positive = Over, Negative = Under
-          </p>
+                 onChange={(e) => setTotalGoalsLine(e.target.value)} className="input-field" placeholder="e.g., 5.5 or 6" step="0.5" />
+          <p className="text-xs text-[var(--text-muted)]">Positive = Over, Negative = Under</p>
         </div>
       ) : (
         <>
-          <div className="input-group">
-            <label htmlFor="pointSpread">
+          <div className="space-y-1.5">
+            <label htmlFor="pointSpread" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
               Point Spread (Your Team)
               <span className="tooltip">
                 <span className="help-icon">?</span>
@@ -1664,14 +855,12 @@ function ProbabilityEstimator({
               </span>
             </label>
             <input id="pointSpread" type="number" name="pointSpread" value={pointSpread}
-                   onChange={(e)=>setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" step="0.5" />
-            <p style={{fontSize:'.8rem', color:'var(--text-muted)'}}>
-              Negative = your team favored, Positive = your team underdog
-            </p>
+                   onChange={(e) => setPointSpread(e.target.value)} className="input-field" placeholder="e.g., -6.5 or 3" step="0.5" />
+            <p className="text-xs text-[var(--text-muted)]">Negative = your team favored, Positive = your team underdog</p>
           </div>
 
-          <div className="input-group">
-            <label htmlFor="venue">
+          <div className="space-y-1.5">
+            <label htmlFor="venue" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
               Venue
               <span className="tooltip">
                 <span className="help-icon">?</span>
@@ -1682,20 +871,21 @@ function ProbabilityEstimator({
               id="venue"
               className="input-field"
               value={isTeamAHome === null ? 'neutral' : isTeamAHome ? 'home' : 'away'}
-          onChange={(e) => {
-            const val = e.target.value;
-            setIsTeamAHome(val === 'neutral' ? null : val === 'home');
-          }}
-        >
-          <option value="neutral">Neutral Site</option>
-          <option value="home">Your Team is Home</option>
-          <option value="away">Your Team is Away</option>
+              onChange={(e) => {
+                const val = e.target.value;
+                setIsTeamAHome(val === 'neutral' ? null : val === 'home');
+              }}
+            >
+              <option value="neutral">Neutral Site</option>
+              <option value="home">Your Team is Home</option>
+              <option value="away">Your Team is Away</option>
             </select>
           </div>
         </>
       )}
 
-      <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
+      {/* Sport-Specific Form */}
+      <Suspense fallback={<div className="py-8 text-center text-sm text-[var(--text-muted)]">Loading...</div>}>
         {activeSport === CONSTANTS.SPORTS.FOOTBALL ? (
           <FootballEstimator
             stats={footballStats}
@@ -1719,131 +909,95 @@ function ProbabilityEstimator({
 
       {/* Over/Under Toggle for NHL */}
       {activeSport === CONSTANTS.SPORTS.HOCKEY && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '1rem',
-          marginBottom: '1rem'
-        }}>
+        <div className="flex items-center justify-center gap-4">
           <button
             type="button"
             onClick={() => setIsOverBet(true)}
-            style={{
-              flex: '1',
-              maxWidth: '140px',
-              padding: '0.85rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: 700,
-              borderRadius: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.25s ease',
-              border: 'none',
-              background: isOverBet
-                ? 'var(--accent-gradient)'
-                : 'var(--glass-surface)',
-              color: 'var(--text-primary)',
-              boxShadow: isOverBet
-                ? '0 8px 24px rgba(59, 130, 246, 0.35)'
-                : 'none'
-            }}
+            className={`flex-1 max-w-[140px] py-3 px-5 text-sm font-bold rounded-xl transition-all border-none cursor-pointer ${
+              isOverBet
+                ? 'bg-[var(--accent-gradient)] text-white shadow-[var(--accent-glow)]'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
+            }`}
           >
             OVER
           </button>
-          <span style={{
-            color: 'var(--text-secondary)',
-            fontWeight: 600,
-            fontSize: '0.95rem'
-          }}>
-            OR
-          </span>
+          <span className="text-sm font-semibold text-[var(--text-muted)]">OR</span>
           <button
             type="button"
             onClick={() => setIsOverBet(false)}
-            style={{
-              flex: '1',
-              maxWidth: '140px',
-              padding: '0.85rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: 700,
-              borderRadius: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.25s ease',
-              border: 'none',
-              background: !isOverBet
-                ? 'var(--accent-gradient)'
-                : 'var(--glass-surface)',
-              color: 'var(--text-primary)',
-              boxShadow: !isOverBet
-                ? '0 8px 24px rgba(59, 130, 246, 0.35)'
-                : 'none'
-            }}
+            className={`flex-1 max-w-[140px] py-3 px-5 text-sm font-bold rounded-xl transition-all border-none cursor-pointer ${
+              !isOverBet
+                ? 'bg-[var(--accent-gradient)] text-white shadow-[var(--accent-glow)]'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
+            }`}
           >
             UNDER
           </button>
         </div>
       )}
 
-      <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
-        <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid} style={{flex:'1'}}>
+      {/* Action Buttons */}
+      <div className="flex gap-3 flex-wrap">
+        <button className="btn-accent flex-1" onClick={handleCalculate} disabled={!isFormValid}>
           Calculate Probability
         </button>
         {activeSport !== CONSTANTS.SPORTS.HOCKEY && (
           <button
-            className="btn-secondary"
+            className="btn-ghost min-w-[150px]"
             onClick={handleSwap}
-            style={{flex:'0 0 auto', minWidth:'150px'}}
             title="Swap team and opponent values to see probability from the other perspective"
           >
-            ⇄ Swap Teams
+            Swap Teams
           </button>
         )}
       </div>
 
+      {/* Results */}
       {calculatedProb !== null && (
-        <div ref={resultsRef} className="results" role="status" aria-live="polite">
-          <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? `Estimated ${isOverBet ? 'Over' : 'Under'} Probability` : 'Estimated Cover Probability'}</p>
-          <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
-          <div className="matchup-result-stats">
-            <div className="matchup-result-value">
-              {calculatedProb.toFixed(2)}%
-            </div>
-            {formattedPredictedSpread !== null && (
-              <div className="matchup-result-margin">
-                {activeSport === CONSTANTS.SPORTS.HOCKEY
-                  ? `Projected Total: ${expectedDiff?.toFixed(2)} goals`
-                  : `Predicted Spread: ${formattedPredictedSpread} pts`}
-              </div>
-            )}
+        <div ref={resultsRef} className="glass-card-strong p-5 text-center space-y-2 animate-fade-in" role="status" aria-live="polite">
+          <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">
+            {activeSport === CONSTANTS.SPORTS.HOCKEY ? `Estimated ${isOverBet ? 'Over' : 'Under'} Probability` : 'Estimated Cover Probability'}
+          </p>
+          <h2 className="text-base font-semibold text-[var(--text-secondary)]">{selectedTeamName}</h2>
+          <div className="text-4xl font-bold font-mono accent-gradient-text py-1">
+            {calculatedProb.toFixed(2)}%
           </div>
-          <div style={{marginTop:'.6rem'}}>
-            <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>
-              Use in Kelly Calculator →
+          {formattedPredictedSpread !== null && (
+            <p className="text-sm text-[var(--text-muted)]">
+              {activeSport === CONSTANTS.SPORTS.HOCKEY
+                ? `Projected Total: ${expectedDiff?.toFixed(2)} goals`
+                : `Predicted Spread: ${formattedPredictedSpread} pts`}
+            </p>
+          )}
+          <div className="pt-2">
+            <button className="btn-accent text-sm" onClick={() => handleApplyAndSwitch(calculatedProb!)}>
+              Use in Kelly Calculator &rarr;
             </button>
           </div>
         </div>
       )}
 
+      {/* Free Calc Modal */}
       {showFreeCalcModal && (
-        <div style={styles.freeCalcOverlay} role="dialog" aria-live="polite">
-          <div style={styles.freeCalcModal} tabIndex={-1} ref={modalRef}>
-            <div style={styles.freeCalcBadge}>✨ Free Core Preview</div>
-            <h3 style={styles.freeCalcTitle}>You have {freeCalculationsLeft ?? 0} free probability checks left</h3>
-            <p style={styles.freeCalcDescription}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 z-50" role="dialog" aria-live="polite">
+          <div className="max-w-[420px] w-full bg-gradient-to-br from-slate-900/95 to-slate-800/95 rounded-2xl p-7 border border-slate-600/20 shadow-2xl text-center" tabIndex={-1} ref={modalRef}>
+            <span className="inline-flex px-3 py-1 rounded-full bg-blue-500/20 text-blue-200 text-xs font-semibold mb-4">Free Core Preview</span>
+            <h3 className="text-xl font-bold text-white mb-3">You have {freeCalculationsLeft ?? 0} free probability checks left</h3>
+            <p className="text-sm text-slate-300/80 mb-5 leading-relaxed">
               Upgrade to Core Access for unlimited calculations, premium insights, and uninterrupted flow.
             </p>
-            <div style={styles.freeCalcActions}>
+            <div className="flex gap-3 justify-center flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowFreeCalcModal(false)}
-                style={styles.freeCalcGhostButton}
+                className="btn-ghost text-sm"
               >
                 Continue free
               </button>
               <button
                 type="button"
                 onClick={handleUpgrade}
-                style={styles.freeCalcPrimaryButton}
+                className="btn-accent text-sm"
                 disabled={isUpgradeLoading}
               >
                 {isUpgradeLoading ? 'Redirecting...' : 'Upgrade to Core Access'}
@@ -1856,78 +1010,7 @@ function ProbabilityEstimator({
   );
 }
 
-const styles: { [key: string]: React.CSSProperties } = {
-  freeCalcOverlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(5, 5, 16, 0.82)',
-    backdropFilter: 'blur(6px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '24px',
-    zIndex: 9999,
-  },
-  freeCalcModal: {
-    maxWidth: '420px',
-    width: '100%',
-    background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
-    borderRadius: '24px',
-    padding: '28px',
-    border: '1px solid rgba(148, 163, 184, 0.2)',
-    boxShadow: '0 25px 60px rgba(0, 0, 0, 0.55)',
-    textAlign: 'center',
-  },
-  freeCalcBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '6px 12px',
-    borderRadius: '999px',
-    background: 'rgba(59, 130, 246, 0.2)',
-    color: '#bfdbfe',
-    fontWeight: 600,
-    fontSize: '0.8rem',
-    letterSpacing: '0.02em',
-    marginBottom: '16px',
-  },
-  freeCalcTitle: {
-    color: '#f8fafc',
-    fontSize: '1.4rem',
-    margin: '0 0 12px',
-  },
-  freeCalcDescription: {
-    color: 'rgba(226, 232, 240, 0.8)',
-    fontSize: '0.95rem',
-    marginBottom: '22px',
-    lineHeight: 1.5,
-  },
-  freeCalcActions: {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  freeCalcGhostButton: {
-    padding: '10px 18px',
-    borderRadius: '12px',
-    border: '1px solid rgba(148, 163, 184, 0.4)',
-    background: 'transparent',
-    color: '#e2e8f0',
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-  freeCalcPrimaryButton: {
-    padding: '10px 18px',
-    borderRadius: '12px',
-    border: 'none',
-    background: 'linear-gradient(135deg, #38bdf8, #6366f1)',
-    color: '#fff',
-    fontWeight: 700,
-    cursor: 'pointer',
-    boxShadow: '0 12px 30px rgba(59, 130, 246, 0.45)',
-  },
-};
+/* (styles object removed — using Tailwind classes) */
 
 /* ============================== Kelly Calculator =========================== */
 const calculateImpliedProbability = (americanOdds: string): number | null => {
@@ -2163,63 +1246,48 @@ function KellyCalculator({
   const canLogBet = hasValue && matchupData && estimationData;
 
   return (
-    <div className="panel">
-      <div className="input-group">
-        <label htmlFor="bankroll">
+    <div className="glass-card p-5 md:p-6 max-w-[900px] mx-auto animate-fade-in space-y-5">
+      {/* Bankroll */}
+      <div className="space-y-1.5">
+        <label htmlFor="bankroll" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
           Bankroll
           <span className="tooltip">
             <span className="help-icon">?</span>
             <span className="tooltiptext">Total amount of money available for betting</span>
           </span>
         </label>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+        <div className="flex gap-2 items-start">
           <input
             id="bankroll"
             type="text"
-            className={`input-field ${getValidationClass(validation.bankroll)}`}
+            className={`input-field flex-1 ${getValidationClass(validation.bankroll)}`}
             value={bankroll}
-            onChange={(e)=>handleBankrollChange(e.target.value)}
+            onChange={(e) => handleBankrollChange(e.target.value)}
             placeholder="e.g., 1000"
-            style={{ flex: 1 }}
             inputMode="decimal"
           />
           {isAuthenticated && hasBankrollChanged && (
             <button
               onClick={handleSaveBankroll}
               disabled={isSavingBankroll || validation.bankroll === false}
-              className="save-bankroll-btn"
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'var(--accent)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: isSavingBankroll ? 'not-allowed' : 'pointer',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                whiteSpace: 'nowrap',
-                opacity: validation.bankroll === false ? 0.5 : 1
-              }}
+              className="btn-accent text-sm py-2 px-4 whitespace-nowrap"
             >
               {isSavingBankroll ? 'Saving...' : 'Save'}
             </button>
           )}
         </div>
-        {validation.bankroll === false && <div className="error-message">⚠ Bankroll must be positive</div>}
+        {validation.bankroll === false && <p className="text-xs text-[var(--danger)]">Bankroll must be positive</p>}
         {isAuthenticated && hasBankrollChanged && validation.bankroll !== false && (
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            💡 Click "Save" to update your bankroll
-          </div>
+          <p className="text-xs text-[var(--text-muted)]">Click "Save" to update your bankroll</p>
         )}
         {!isAuthenticated && (
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Default bankroll is set to $1,000. Sign in with Google to save your preferred bankroll size.
-          </div>
+          <p className="text-xs text-[var(--text-muted)]">Default bankroll is set to $1,000. Sign in with Google to save your preferred bankroll size.</p>
         )}
       </div>
 
-      <div className="input-group">
-        <label htmlFor="odds">
+      {/* American Odds */}
+      <div className="space-y-1.5">
+        <label htmlFor="odds" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
           American Odds
           <span className="tooltip">
             <span className="help-icon">?</span>
@@ -2231,60 +1299,60 @@ function KellyCalculator({
           type="number"
           className={`input-field ${getValidationClass(validation.odds)}`}
           value={odds}
-          onChange={(e)=>setOdds(e.target.value)}
+          onChange={(e) => setOdds(e.target.value)}
           placeholder="e.g., -110 or 150"
         />
-        {validation.odds === false && <div className="error-message">⚠ Odds must be ≤-100 or ≥100</div>}
+        {validation.odds === false && <p className="text-xs text-[var(--danger)]">Odds must be &le;-100 or &ge;100</p>}
       </div>
 
-      <div className="input-group">
-        <label htmlFor="probability">
+      {/* Win Probability */}
+      <div className="space-y-1.5">
+        <label htmlFor="probability" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
           Win Probability (%)
           <span className="tooltip">
             <span className="help-icon">?</span>
             <span className="tooltiptext">Your estimated probability of winning (0-100%)</span>
           </span>
         </label>
-        <div className="slider-group">
+        <div className="space-y-2">
           <input
             id="probability"
             type="number"
             className={`input-field ${getValidationClass(validation.probability)}`}
             value={probability}
-            onChange={(e)=>setProbability(e.target.value)}
+            onChange={(e) => setProbability(e.target.value)}
             min="0"
             max="100"
             step="0.1"
           />
-          <input type="range" min="0" max="100" value={probability} step="0.1" className="slider" onChange={(e)=>setProbability(e.target.value)} />
+          <input type="range" min="0" max="100" value={probability} step="0.1" className="w-full" onChange={(e) => setProbability(e.target.value)} />
         </div>
-        {validation.probability === false && <div className="error-message">⚠ Probability must be between 0 and 100</div>}
+        {validation.probability === false && <p className="text-xs text-[var(--danger)]">Probability must be between 0 and 100</p>}
       </div>
 
-      <div className="input-group">
-        <label htmlFor="fraction">
+      {/* Kelly Fraction */}
+      <div className="space-y-1.5">
+        <label htmlFor="fraction" className="text-sm font-medium text-[var(--text-secondary)] flex items-center gap-1">
           Kelly Fraction
           <span className="tooltip">
             <span className="help-icon">?</span>
             <span className="tooltiptext">Half Kelly (0.5x) reduces volatility</span>
           </span>
         </label>
-        <select id="fraction" className="input-field" value={fraction} onChange={(e)=>setFraction(e.target.value)}>
+        <select id="fraction" className="input-field" value={fraction} onChange={(e) => setFraction(e.target.value)}>
           <option value="1">Full Kelly (1x)</option>
           <option value="0.5">Half Kelly (0.5x)</option>
           <option value="0.25">Quarter Kelly (0.25x)</option>
         </select>
       </div>
 
+      {/* Results */}
       {hasValue ? (
-        <div className="results">
-          <p>Recommended Stake</p>
-          <h2>{formatCurrency(stake)}</h2>
-          <div className="results-details">
-            <span>{stakePercentage.toFixed(2)}% of Bankroll</span>
-          </div>
+        <div className="glass-card-strong p-5 text-center space-y-3 animate-fade-in">
+          <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">Recommended Stake</p>
+          <h2 className="text-4xl font-bold font-mono accent-gradient-text">{formatCurrency(stake)}</h2>
+          <p className="text-sm text-[var(--text-secondary)]">{stakePercentage.toFixed(2)}% of Bankroll</p>
 
-          {/* NEW: Log Bet Button */}
           {canLogBet && (
             <LogBetButton
               sport={matchupData!.sport}
@@ -2307,82 +1375,75 @@ function KellyCalculator({
             />
           )}
 
-          {/* Show sign-in prompt if no matchup data or not authenticated */}
           {!canLogBet && hasValue && (
-            <div style={{ marginTop: '1rem', padding: '.75rem', background: 'rgba(99,102,241,.1)', borderRadius: '.5rem', textAlign: 'center' }}>
+            <div className="mt-3 p-3 bg-[var(--accent-muted)] rounded-lg text-center">
               {!isAuthenticated ? (
-                <button className="log-bet-btn" style={{ opacity: 0.8 }} onClick={onLoginRequired}>
-                  🔒 Sign in to Log Bets
+                <button className="btn-ghost text-sm opacity-80" onClick={onLoginRequired}>
+                  Sign in to Log Bets
                 </button>
               ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '.9rem', margin: 0 }}>
-                  💡 Use the Probability Estimator first to enable bet logging with full matchup data
+                <p className="text-sm text-[var(--text-muted)] m-0">
+                  Use the Probability Estimator first to enable bet logging with full matchup data
                 </p>
               )}
             </div>
           )}
         </div>
       ) : (
-        <div className="results no-value"><h2>No Value - Do Not Bet</h2></div>
+        <div className="glass-card-strong p-5 text-center">
+          <h2 className="text-xl font-bold text-[var(--danger)]">No Value - Do Not Bet</h2>
+        </div>
       )}
 
+      {/* Implied Prob / Edge */}
       {impliedProb !== null && edge !== null && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '.75rem',
-          borderRadius: '.6rem',
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid rgba(148, 163, 184, 0.2)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: '0.9rem'
-        }}>
+        <div className="flex justify-between items-center p-3 rounded-xl bg-slate-900/60 border border-slate-600/20 text-sm">
           <div>
-            <span style={{color: 'var(--text-muted)', display:'block', fontSize:'.75rem'}}>Implied Win %</span>
-            <strong>{impliedProb.toFixed(1)}%</strong>
+            <span className="block text-xs text-[var(--text-muted)]">Implied Win %</span>
+            <strong className="font-mono">{impliedProb.toFixed(1)}%</strong>
           </div>
-          <div style={{textAlign: 'right'}}>
-            <span style={{color: 'var(--text-muted)', display:'block', fontSize:'.75rem'}}>Your Edge</span>
-            <strong style={{color: edgeColor}}>
+          <div className="text-right">
+            <span className="block text-xs text-[var(--text-muted)]">Your Edge</span>
+            <strong className="font-mono" style={{ color: edgeColor }}>
               {edge > 0 ? '+' : ''}{edge.toFixed(1)}%
             </strong>
           </div>
         </div>
       )}
 
-      <div className="analyst-insight">
-        <h3 style={{marginTop:0}}>Analyst's Insight</h3>
+      {/* Analyst Insight */}
+      <div className="glass-card p-4 space-y-2">
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Analyst's Insight</h3>
         {isGenerating && (
-          <p style={{display:'flex', alignItems:'center'}}>
+          <p className="flex items-center text-sm text-[var(--text-muted)]">
             <span className="loading-spinner"></span>
             Analyst is analyzing your bet...
           </p>
         )}
-        {!isGenerating && explanation && <p>{explanation}</p>}
+        {!isGenerating && explanation && <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{explanation}</p>}
       </div>
 
+      {/* History */}
       {history.length > 0 && (
-        <div className="history-panel">
-          <h3 style={{marginTop:0, marginBottom:'.75rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-            <span>Recent Calculations</span>
+        <div className="glass-card p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Recent Calculations</h3>
             <button
-              className="btn-secondary"
-              style={{width:'auto', padding:'.3rem .6rem', fontSize:'.8rem'}}
+              className="btn-ghost text-xs py-1 px-3"
               onClick={() => setShowHistory(!showHistory)}
             >
               {showHistory ? 'Hide' : 'Show'}
             </button>
-          </h3>
-          {showHistory && history.map((item, i) => (
-            <div key={item.timestamp} className="history-item" onClick={() => loadHistoryItem(item)}>
+          </div>
+          {showHistory && history.map((item) => (
+            <div key={item.timestamp} className="flex justify-between items-center p-3 rounded-lg bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors border border-[var(--border-default)]" onClick={() => loadHistoryItem(item)}>
               <div>
-                <strong>{formatCurrency(item.stake)}</strong>
-                <div style={{fontSize:'.75rem', color:'var(--text-muted)'}}>
+                <strong className="font-mono text-sm">{formatCurrency(item.stake)}</strong>
+                <div className="text-xs text-[var(--text-muted)] mt-0.5">
                   Bankroll: {formatCurrency(item.bankroll)} | Odds: {item.odds} | Prob: {item.probability}%
                 </div>
               </div>
-              <span style={{fontSize:'.75rem', color:'var(--text-muted)'}}>Load</span>
+              <span className="text-xs text-[var(--accent)] font-medium">Load</span>
             </div>
           ))}
         </div>
@@ -2745,50 +1806,52 @@ function App() {
 
   return (
     <>
-      {/* Dynamic SEO meta tags based on active tab */}
       <SEO {...currentSEO} />
 
-      <div className="site-bg">
-        <div className="bg-overlay" />
-        <div className="blob blob-a" />
-        <div className="blob blob-b" />
+      <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] relative">
+        {/* Background Ambience */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-[var(--accent)]/5 blur-3xl" />
+          <div className="absolute -bottom-1/3 -right-1/4 w-[500px] h-[500px] rounded-full bg-[var(--accent-secondary,#8b5cf6)]/5 blur-3xl" />
+        </div>
 
-        <div className="page-wrap">
-          <header className="panel app-shell-header">
-            <div className="brand-block">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 pt-6 pb-28 md:pb-8 space-y-5">
+          {/* Header */}
+          <header className="glass-card p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+            <div className="flex items-center gap-4">
               <img
                 src="/betgistics.png"
                 alt="Betgistics Logo"
-                className="brand-logo"
+                className="w-14 h-14 rounded-full border-2 border-[var(--accent)]/30 shadow-lg"
                 title="Betgistics - Point Spread Betting Analytics"
                 loading="eager"
-                fetchpriority="high"
-                width="64"
-                height="64"
+                fetchPriority="high"
+                width="56"
+                height="56"
               />
               <div>
-                <p className="eyebrow">Smart betting workspace</p>
-                <h1 className="title title--compact">Betgistics Command Center</h1>
-                <p className="hero-copy">Compare team data, model probabilities, and size bets in one focused workflow.</p>
+                <p className="text-xs uppercase tracking-wider text-[var(--accent)] font-semibold mb-0.5">Smart betting workspace</p>
+                <h1 className="text-xl md:text-2xl font-bold accent-gradient-text leading-tight">Betgistics</h1>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 hidden sm:block">Compare team data, model probabilities, and size bets.</p>
               </div>
             </div>
 
-            <div className="auth-shell">
+            <div className="flex-shrink-0">
               {authLoading ? (
-                <div style={{color: 'var(--text-muted)', fontSize: '.9rem'}}>Loading...</div>
+                <span className="text-sm text-[var(--text-muted)]">Loading...</span>
               ) : authUser ? (
-                <div className="user-info">
-                  {authUser.avatar && <img src={authUser.avatar} alt={authUser.name} className="user-avatar" />}
-                  <div className="user-details">
-                    <div className="user-name">{authUser.name}</div>
-                    <div className="user-email">{authUser.email}</div>
+                <div className="flex items-center gap-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-2.5 backdrop-blur-sm">
+                  {authUser.avatar && <img src={authUser.avatar} alt={authUser.name} className="w-8 h-8 rounded-full border border-[var(--accent)]/30" />}
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-semibold leading-tight">{authUser.name}</div>
+                    <div className="text-xs text-[var(--text-muted)] leading-tight">{authUser.email}</div>
                   </div>
-                  <a href={`${BACKEND_URL}/auth/logout`} className="logout-btn">Logout</a>
+                  <a href={`${BACKEND_URL}/auth/logout`} className="btn-danger text-xs py-1.5 px-3 ml-1 no-underline">Logout</a>
                 </div>
               ) : (
-                <div className="signin-card">
-                  <a href={`${BACKEND_URL}/auth/google`} className="auth-btn">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <div>
+                  <a href={`${BACKEND_URL}/auth/google`} className="btn-accent inline-flex items-center gap-2 text-sm no-underline">
+                    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
                       <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
                       <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
@@ -2796,265 +1859,231 @@ function App() {
                     </svg>
                     Sign in with Google
                   </a>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: '300px' }}>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1.5 max-w-[280px]">
                     By signing in, you agree to our{' '}
-                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                      Privacy Policy
-                    </a>
+                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] no-underline hover:underline">Privacy Policy</a>
                     {' '}and{' '}
-                    <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                      Terms of Service
-                    </a>
+                    <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] no-underline hover:underline">Terms of Service</a>
                   </p>
                 </div>
               )}
             </div>
           </header>
 
-          <section className="panel workflow-panel">
+          {/* Workflow + Audio Orbs */}
+          <section className="glass-card p-5 md:p-6 space-y-4">
             <div>
-              <p className="eyebrow">Workflow</p>
-              <h2 style={{ margin: 0 }}>From matchup → probability → stake sizing</h2>
-              <p className="hero-copy" style={{ marginTop: '0.6rem' }}>Use the tabs below like a pipeline. Each tool is purpose-built and connected.</p>
+              <p className="text-xs uppercase tracking-wider text-[var(--accent)] font-semibold mb-1">Workflow</p>
+              <h2 className="text-lg font-bold m-0">From matchup &rarr; probability &rarr; stake sizing</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-1">Use the tabs below like a pipeline. Each tool is purpose-built and connected.</p>
             </div>
             <SwipeableAudioOrbs
               orbs={[
-                {
-                  audioSrc: '/intro.mp3',
-                  label: 'Introduction',
-                  icon: '🎙️',
-                },
-                {
-                  audioSrc: '/mission_statement.mp3',
-                  label: 'Mission Statement',
-                  icon: '🎯',
-                },
-                {
-                  audioSrc: '/quick_guide.mp3',
-                  label: 'Quick Start Guide',
-                  icon: '🎧',
-                },
-                {
-                  audioSrc: '/math_stats.mp3',
-                  label: 'Magnify Stats',
-                  icon: '🔍',
-                },
+                { audioSrc: '/intro.mp3', label: 'Introduction', icon: '🎙️' },
+                { audioSrc: '/mission_statement.mp3', label: 'Mission Statement', icon: '🎯' },
+                { audioSrc: '/quick_guide.mp3', label: 'Quick Start Guide', icon: '🎧' },
+                { audioSrc: '/math_stats.mp3', label: 'Magnify Stats', icon: '🔍' },
               ]}
             />
           </section>
 
-          <div className="panel tab-command-center" style={{maxWidth:1100}}>
-            <div className="tabs app-tabs" role="tablist">
+          {/* Tab Navigation */}
+          <div className="glass-card p-3 max-w-[1100px] mx-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2" role="tablist">
               {[
-                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
-                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
-                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
-                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
-                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
+                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake' },
+                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Prob. Estimator', blurb: 'Stats to probability' },
+                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Edge + line value' },
+                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Compare teams' },
+                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track results' },
               ].map(tab => (
                 <button
                   key={tab.key}
-                  className={`tab tab-card ${activeTab === tab.key ? 'active' : ''}`}
+                  className={`flex flex-col items-center justify-center text-center p-3 rounded-xl transition-all text-xs sm:text-sm font-semibold min-h-[72px] ${
+                    activeTab === tab.key
+                      ? 'bg-[var(--accent-gradient)] text-white shadow-[var(--accent-glow)]'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
+                  }`}
                   onClick={() => handleTabChange(tab.key)}
                   aria-selected={activeTab === tab.key}
                   role="tab"
                 >
-                  <span className="tab-title">{tab.label}</span>
-                  <small className="tab-blurb">{tab.blurb}</small>
+                  <span>{tab.label}</span>
+                  <small className="text-[10px] opacity-70 mt-0.5 font-normal hidden sm:block">{tab.blurb}</small>
                 </button>
               ))}
             </div>
           </div>
 
-          <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
-          {activeTab === CONSTANTS.TABS.KELLY && (
-            <KellyCalculator
-              probability={probability}
-              setProbability={setProbability}
-              isAuthenticated={!!authUser}
-              matchupData={currentMatchup}
-              estimationData={currentEstimation}
-              onLoginRequired={handleLoginRequired}
-              bankrollRefreshTrigger={bankrollRefreshTrigger}
-            />
-          )}
-          {activeTab === CONSTANTS.TABS.ESTIMATOR && (
-            <ProbabilityEstimator
-              setProbability={setProbability}
-              setActiveTab={setActiveTab}
-              activeSport={activeSport}
-              setActiveSport={setActiveSport}
-              footballStats={footballStats}
-              setFootballStats={setFootballStats}
-              basketballStats={basketballStats}
-              setBasketballStats={setBasketballStats}
-              hockeyStats={hockeyStats}
-              setHockeyStats={setHockeyStats}
-              pointSpread={pointSpread}
-              setPointSpread={setPointSpread}
-              totalGoalsLine={totalGoalsLine}
-              setTotalGoalsLine={setTotalGoalsLine}
-              calculatedProb={calculatedProb}
-              setCalculatedProb={setCalculatedProb}
-              expectedDiff={expectedDiff}
-              setExpectedDiff={setExpectedDiff}
-              isTeamAHome={isTeamAHome}
-              setIsTeamAHome={setIsTeamAHome}
-              isAuthenticated={!!authUser}
-              onLoginRequired={handleLoginRequired}
-              // NEW: Pass setters for bet logging
-              setCurrentMatchup={setCurrentMatchup}
-              setCurrentEstimation={setCurrentEstimation}
-            />
-          )}
-          {activeTab === CONSTANTS.TABS.WALTERS && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading Walters Protocol...</div>}>
-                <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
-              </Suspense>
-            </div>
-          )}
-          {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
-                <ConsolidatedSportsMatchup
-                  onTransferToNBAEstimator={handleTransferToEstimator}
-                  onTransferToNFLEstimator={handleNFLTransferToEstimator}
-                  onTransferToNHLEstimator={handleNHLTransferToEstimator}
-                />
-              </Suspense>
-            </div>
-          )}
-          {/* NEW: Bet History Tab */}
-          {activeTab === CONSTANTS.TABS.BET_HISTORY && (
-            <div className="panel">
-              <BetHistory
+          {/* Active Tab Content */}
+          <section ref={activeTabContentRef} aria-live="polite">
+            {activeTab === CONSTANTS.TABS.KELLY && (
+              <KellyCalculator
+                probability={probability}
+                setProbability={setProbability}
                 isAuthenticated={!!authUser}
-                onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+                matchupData={currentMatchup}
+                estimationData={currentEstimation}
+                onLoginRequired={handleLoginRequired}
+                bankrollRefreshTrigger={bankrollRefreshTrigger}
               />
-            </div>
-          )}
-
-          {/* Stats Page Tab */}
-          {activeTab === CONSTANTS.TABS.STATS && (
-            <StatsPage />
-          )}
-
-          {/* Account Settings Tab */}
-          {activeTab === CONSTANTS.TABS.ACCOUNT && (
-            <AccountSettings
-              user={authUser}
-              onLogout={handleLogout}
-              onLogin={handleGoogleLogin}
-              theme={theme}
-              themeOptions={THEME_OPTIONS}
-              onThemeChange={(value) => setTheme(value as ThemeKey)}
-            />
-          )}
-
-          {/* Promo Page Tab */}
-          {activeTab === CONSTANTS.TABS.PROMO && (
-            <PromoPage user={authUser} />
-          )}
+            )}
+            {activeTab === CONSTANTS.TABS.ESTIMATOR && (
+              <ProbabilityEstimator
+                setProbability={setProbability}
+                setActiveTab={setActiveTab}
+                activeSport={activeSport}
+                setActiveSport={setActiveSport}
+                footballStats={footballStats}
+                setFootballStats={setFootballStats}
+                basketballStats={basketballStats}
+                setBasketballStats={setBasketballStats}
+                hockeyStats={hockeyStats}
+                setHockeyStats={setHockeyStats}
+                pointSpread={pointSpread}
+                setPointSpread={setPointSpread}
+                totalGoalsLine={totalGoalsLine}
+                setTotalGoalsLine={setTotalGoalsLine}
+                calculatedProb={calculatedProb}
+                setCalculatedProb={setCalculatedProb}
+                expectedDiff={expectedDiff}
+                setExpectedDiff={setExpectedDiff}
+                isTeamAHome={isTeamAHome}
+                setIsTeamAHome={setIsTeamAHome}
+                isAuthenticated={!!authUser}
+                onLoginRequired={handleLoginRequired}
+                setCurrentMatchup={setCurrentMatchup}
+                setCurrentEstimation={setCurrentEstimation}
+              />
+            )}
+            {activeTab === CONSTANTS.TABS.WALTERS && (
+              <div className="glass-card p-5 md:p-6 max-w-[900px] mx-auto">
+                <Suspense fallback={<div className="py-8 text-center text-sm text-[var(--text-muted)]">Loading Walters Protocol...</div>}>
+                  <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
+                </Suspense>
+              </div>
+            )}
+            {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
+              <div className="glass-card p-5 md:p-6 max-w-[900px] mx-auto">
+                <Suspense fallback={<div className="py-8 text-center text-sm text-[var(--text-muted)]">Loading matchup data...</div>}>
+                  <ConsolidatedSportsMatchup
+                    onTransferToNBAEstimator={handleTransferToEstimator}
+                    onTransferToNFLEstimator={handleNFLTransferToEstimator}
+                    onTransferToNHLEstimator={handleNHLTransferToEstimator}
+                  />
+                </Suspense>
+              </div>
+            )}
+            {activeTab === CONSTANTS.TABS.BET_HISTORY && (
+              <div className="glass-card p-5 md:p-6 max-w-[900px] mx-auto">
+                <BetHistory
+                  isAuthenticated={!!authUser}
+                  onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+                />
+              </div>
+            )}
+            {activeTab === CONSTANTS.TABS.STATS && (
+              <StatsPage />
+            )}
+            {activeTab === CONSTANTS.TABS.ACCOUNT && (
+              <AccountSettings
+                user={authUser}
+                onLogout={handleLogout}
+                onLogin={handleGoogleLogin}
+                theme={theme}
+                themeOptions={THEME_OPTIONS}
+                onThemeChange={(value) => setTheme(value as ThemeKey)}
+              />
+            )}
+            {activeTab === CONSTANTS.TABS.PROMO && (
+              <PromoPage user={authUser} />
+            )}
           </section>
 
+          {/* Documentation Panel */}
           <div
-            className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
+            className={`max-w-[1100px] mx-auto transition-all duration-300 overflow-hidden ${
+              isDocOpen ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+            }`}
             id="app-documentation"
             aria-hidden={!isDocOpen}
           >
-            <div className="panel info-panel doc-panel">
-              <button className="doc-close" type="button" onClick={() => setIsDocOpen(false)} aria-label="Close documentation">
+            <div className="glass-card p-5 md:p-6 relative">
+              <button className="btn-ghost text-xs py-1.5 px-3 absolute top-4 right-4" type="button" onClick={() => setIsDocOpen(false)} aria-label="Close documentation">
                 Close
               </button>
-              <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
-                <p style={{color:'var(--text-muted)', marginTop:0}}>
-                  Follow these steps to move from matchup stats to a fully logged bet:
-                </p>
-                
-                <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                  <li>
-                    Start in the <strong>Sports Matchups</strong> tab to load team stats and compare both sides of the game. Toggle between NBA, NFL, and NHL.
-                  </li>
-                  <li>
-                    Move to the <strong>Probability Estimator</strong>, enter your point spread, select whether your team is home or away, and hit <strong>Calculate Probability</strong> to generate your fair win probability.
-                  </li>
-                  <li>
-                    Switch to the <strong>Kelly Criterion</strong>, enter your bankroll and odds, then paste in the win probability to calculate your optimal bet size.
-                  </li>
-                  <li>
-                    Finally, use <strong>Log Bet</strong> to save the wager and track your results over time.
-                  </li>
-                </ol>
-                
-                <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
-                <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                  <li><strong>Kelly Criterion</strong>: Calculates your optimal stake based on bankroll, odds, and your win probability.</li>
-                  <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
-                  <li><strong>Sports Matchups</strong>: Pulls NBA, NFL, or NHL team performance data and pre-fills stats for the estimator.</li>
-                  <li><strong>📊 Bet History</strong>: Stores your logged bets and tracks performance (sign-in required).</li>
-                </ul>
+              <h2 className="text-lg font-bold mt-0 mb-2">How this app works</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-0">
+                Follow these steps to move from matchup stats to a fully logged bet:
+              </p>
+              <ol className="pl-5 text-sm text-[var(--text-muted)] leading-relaxed space-y-1 mt-3">
+                <li>Start in <strong className="text-[var(--text-secondary)]">Sports Matchups</strong> to load team stats and compare both sides of the game.</li>
+                <li>Move to <strong className="text-[var(--text-secondary)]">Probability Estimator</strong>, enter your point spread and hit <strong className="text-[var(--text-secondary)]">Calculate Probability</strong>.</li>
+                <li>Switch to <strong className="text-[var(--text-secondary)]">Kelly Criterion</strong>, enter your bankroll and odds to calculate your optimal bet size.</li>
+                <li>Finally, use <strong className="text-[var(--text-secondary)]">Log Bet</strong> to save the wager and track your results over time.</li>
+              </ol>
+              <h3 className="text-sm font-semibold mt-4 mb-1 text-[var(--text-primary)]">Feature guide</h3>
+              <ul className="pl-5 text-sm text-[var(--text-muted)] leading-relaxed space-y-1">
+                <li><strong className="text-[var(--text-secondary)]">Kelly Criterion</strong>: Optimal stake based on bankroll, odds, and win probability.</li>
+                <li><strong className="text-[var(--text-secondary)]">Probability Estimator</strong>: Converts matchup stats into cover probability.</li>
+                <li><strong className="text-[var(--text-secondary)]">Sports Matchups</strong>: Pulls NBA, NFL, or NHL data and pre-fills estimator.</li>
+                <li><strong className="text-[var(--text-secondary)]">Bet History</strong>: Stores your bets and tracks performance (sign-in required).</li>
+              </ul>
             </div>
           </div>
         </div>
 
-        <footer className="footer">
-          <div className="footer-card">
+        {/* Footer */}
+        <footer className="text-center py-6 pb-24 md:pb-8 px-4 relative z-10">
+          <div className="glass-card max-w-[820px] mx-auto p-4 space-y-3">
             <button
               type="button"
-              className="doc-toggle"
+              className="w-full flex items-center justify-center gap-2 bg-transparent border-none text-[var(--text-secondary)] font-semibold text-sm cursor-pointer py-2 rounded-lg transition-colors hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]"
               onClick={() => setIsDocOpen((open) => !open)}
               aria-expanded={isDocOpen}
               aria-controls="app-documentation"
             >
               <span>{isDocOpen ? 'Hide documentation & workflow guide' : 'Show documentation & workflow guide'}</span>
-              <span className={`doc-chevron ${isDocOpen ? 'open' : ''}`} aria-hidden>▾</span>
+              <span className={`transition-transform duration-200 ${isDocOpen ? 'rotate-180' : ''}`}>&#9662;</span>
             </button>
-            <p className="doc-hint">
-              {isDocOpen
-                ? 'Click to tuck the instructions away once you are comfortable with the flow.'
-                : 'Open the drop-up to review the workflow and feature explanations.'}
+            <p className="text-xs text-[var(--text-muted)]">
+              {isDocOpen ? 'Click to tuck the instructions away.' : 'Open the drop-up to review the workflow.'}
             </p>
 
-            {/* Watch Demo Button */}
-            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-              <button id="demoPopoverBtn" className="demo-btn" type="button">
-                🎬 Watch Demo
+            <div className="text-center">
+              <button id="demoPopoverBtn" className="btn-ghost text-sm py-2 px-4" type="button">
+                Watch Demo
               </button>
             </div>
 
-            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.5rem 0' }}>
-                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none', marginRight: '1.5rem' }}>
-                  Privacy Policy
-                </a>
-                <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                  Terms of Service
-                </a>
+            <div className="pt-3 border-t border-white/10">
+              <p className="text-xs text-[var(--text-muted)] flex gap-6 justify-center">
+                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] no-underline hover:underline">Privacy Policy</a>
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] no-underline hover:underline">Terms of Service</a>
               </p>
             </div>
           </div>
         </footer>
 
-        {/* Demo Popover (place right after footer) */}
-        <div id="demoPopover" className="demo-popover" role="dialog" aria-hidden="true" aria-label="Demo video popover">
-          <div className="demo-popover__header">
-            <span className="demo-popover__title">Demo</span>
-            <button id="demoPopoverClose" className="demo-popover__close" type="button" aria-label="Close">✕</button>
+        {/* Demo Popover */}
+        <div id="demoPopover" className="absolute hidden mt-2.5 w-[min(420px,calc(100vw-24px))] rounded-2xl border border-white/12 bg-[rgba(10,12,18,0.92)] shadow-2xl p-2.5 z-[9999] backdrop-blur-xl" role="dialog" aria-hidden="true" aria-label="Demo video popover">
+          <div className="flex items-center justify-between px-1.5 pb-2.5">
+            <span className="text-sm text-[var(--text-primary)] font-semibold opacity-90">Demo</span>
+            <button id="demoPopoverClose" className="w-8 h-8 rounded-lg border border-white/14 bg-white/8 text-[var(--text-primary)] cursor-pointer text-lg flex items-center justify-center transition-colors hover:bg-white/14" type="button" aria-label="Close">&#10005;</button>
           </div>
-
-          <div className="demo-popover__video">
+          <div className="w-full aspect-[9/16] rounded-xl overflow-hidden bg-black">
             <iframe
               id="demoPopoverIframe"
               src=""
               title="Demo video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen>
-            </iframe>
+              allowFullScreen
+              className="w-full h-full border-0"
+            />
           </div>
         </div>
 
-        {/* Bottom Navigation Bar */}
+        {/* Bottom Navigation */}
         <BottomNavigation
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -3073,7 +2102,6 @@ function App() {
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(
   <HelmetProvider>
-    <GlobalStyle />
     <App />
   </HelmetProvider>
 );
