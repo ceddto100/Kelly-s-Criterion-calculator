@@ -84,13 +84,13 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
   if (!user) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <h2 style={styles.title}>Account Settings</h2>
-          <div style={styles.notLoggedIn}>
-            <div style={styles.iconLarge}>🔒</div>
-            <p style={styles.message}>Please sign in to access your account settings</p>
-            <button onClick={onLogin} style={styles.loginButton}>
+      <div className="p-5 max-w-3xl mx-auto pb-24">
+        <div className="glass-card p-8">
+          <h2 className="text-3xl font-bold mb-8 accent-gradient-text">Account Settings</h2>
+          <div className="text-center py-10 px-5">
+            <div className="text-6xl mb-5">🔒</div>
+            <p className="text-[var(--text-secondary)] text-base mb-8">Please sign in to access your account settings</p>
+            <button onClick={onLogin} className="btn-accent inline-flex items-center gap-2">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
                 <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
@@ -108,17 +108,17 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
   const activeTheme = themeOptions.find((option) => option.key === theme);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Account Settings</h2>
+    <div className="p-5 max-w-3xl mx-auto pb-24">
+      <div className="glass-card p-8">
+        <h2 className="text-3xl font-bold mb-8 accent-gradient-text">Account Settings</h2>
 
-        <div style={styles.profileSection}>
+        <div className="flex items-center justify-center mb-8 p-8 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)]">
           {user.avatar && (
             <img
               src={user.avatar}
               alt={user.name || 'User'}
               title={`${user.name || 'User'} Profile Picture`}
-              style={styles.avatar}
+              className="w-20 h-20 rounded-full border-2 border-[var(--accent)]"
               width="80"
               height="80"
               loading="lazy"
@@ -126,337 +126,100 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
           )}
         </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Account Information</h3>
-          <div style={styles.infoGrid}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Name</span>
-              <span style={styles.infoValue}>{user.name || 'Not set'}</span>
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Account Information</h3>
+          <div className="grid gap-4">
+            <div className="flex justify-between p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)]">
+              <span className="text-[var(--text-muted)] text-sm">Name</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium">{user.name || 'Not set'}</span>
             </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Email</span>
-              <span style={styles.infoValue}>{user.email || 'Not set'}</span>
+            <div className="flex justify-between p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)]">
+              <span className="text-[var(--text-muted)] text-sm">Email</span>
+              <span className="text-[var(--text-primary)] text-sm font-medium">{user.email || 'Not set'}</span>
             </div>
           </div>
         </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Subscription</h3>
-          <div style={styles.subscriptionCard}>
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Subscription</h3>
+          <div className="flex flex-col gap-3 p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)]">
             <div>
-              <div style={styles.planTitle}>Betgistics – Core Access</div>
-              <div style={styles.planDetails}>$60/month · Unlimited calculations</div>
+              <div className="text-base font-bold text-[var(--text-primary)]">Betgistics – Core Access</div>
+              <div className="text-sm text-[var(--text-secondary)]">$60/month · Unlimited calculations</div>
             </div>
             <button
               onClick={handleUpgrade}
-              style={styles.upgradeButton}
+              className="btn-accent self-start"
               disabled={upgradeStatus === 'loading'}
             >
               {upgradeStatus === 'loading' ? 'Redirecting...' : 'Upgrade to Core Access'}
             </button>
             {upgradeStatus === 'error' && upgradeError && (
-              <div style={styles.upgradeError}>{upgradeError}</div>
+              <div className="text-red-400 text-sm">{upgradeError}</div>
             )}
           </div>
         </div>
 
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Preferences</h3>
-          <div style={styles.preferenceItem}>
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Preferences</h3>
+          <div className="flex justify-between items-center p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] mb-2.5">
             <div>
-              <div style={styles.preferenceLabel}>Notifications</div>
-              <div style={styles.preferenceDescription}>
+              <div className="text-[var(--text-primary)] text-base font-medium mb-1">Notifications</div>
+              <div className="text-[var(--text-secondary)] text-[13px]">
                 Receive updates about your bets
               </div>
             </div>
-            <div style={styles.comingSoon}>Coming Soon</div>
+            <div className="px-3 py-1.5 bg-[var(--accent-muted)] text-[var(--accent)] rounded-lg text-xs font-semibold">Coming Soon</div>
           </div>
-          <div style={{ ...styles.preferenceItem, flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+          <div className="flex flex-col items-start gap-3 p-4 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] mb-2.5">
             <div>
-              <div style={styles.preferenceLabel}>Theme</div>
-              <div style={styles.preferenceDescription}>
+              <div className="text-[var(--text-primary)] text-base font-medium mb-1">Theme</div>
+              <div className="text-[var(--text-secondary)] text-[13px]">
                 Choose the glow you want across the app
               </div>
             </div>
-            <div style={styles.themeGrid}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2.5 w-full">
               {themeOptions.map((option) => (
                 <button
                   key={option.key}
                   onClick={() => onThemeChange(option.key)}
-                  style={{
-                    ...styles.themeButton,
-                    ...(theme === option.key ? styles.themeButtonActive : {}),
-                    background: option.preview || 'var(--surface-1)',
-                  }}
+                  className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
+                    theme === option.key
+                      ? 'border-[var(--accent)] shadow-[var(--accent-glow)] text-[var(--text-primary)]'
+                      : 'border-[var(--border-default)] text-[var(--text-primary)]'
+                  }`}
+                  style={{ background: option.preview || 'var(--bg-surface)' }}
                   aria-label={`Activate ${option.label} theme`}
                   aria-pressed={theme === option.key}
                 >
-                  <div style={styles.themeButtonText}>
-                    <span style={styles.themeTitle}>{option.label}</span>
-                    <span style={styles.themeSub}>{option.description}</span>
+                  <div className="flex flex-col items-start gap-1 text-left">
+                    <span className="font-bold text-[15px]">{option.label}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{option.description}</span>
                   </div>
-                  <div style={{
-                    ...styles.themeSwatch,
-                    boxShadow: theme === option.key
-                      ? '0 0 0 2px var(--control-focus), 0 10px 20px rgba(0,0,0,0.35)'
-                      : '0 6px 16px rgba(0,0,0,0.25)',
-                    borderColor: theme === option.key ? 'var(--control-focus)' : 'var(--border-strong)',
-                    background: option.preview || 'var(--accent-gradient)',
-                  }} />
+                  <div
+                    className="w-10 h-10 rounded-xl border shrink-0 transition-all duration-300"
+                    style={{
+                      boxShadow: theme === option.key
+                        ? '0 0 0 2px var(--accent), 0 10px 20px rgba(0,0,0,0.35)'
+                        : '0 6px 16px rgba(0,0,0,0.25)',
+                      borderColor: theme === option.key ? 'var(--accent)' : 'var(--border-default)',
+                      background: option.preview || 'var(--accent-gradient)',
+                    }}
+                  />
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div style={styles.dangerZone}>
-          <h3 style={styles.dangerTitle}>Account Actions</h3>
-          <button onClick={onLogout} style={styles.logoutButton}>
-            <span style={styles.logoutIcon}>🚪</span>
+        <div className="mt-10 pt-8 border-t border-[var(--border-default)]">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Account Actions</h3>
+          <button onClick={onLogout} className="btn-danger inline-flex items-center gap-2.5">
+            <span className="text-lg">🚪</span>
             Sign Out
           </button>
         </div>
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    padding: '20px',
-    maxWidth: '800px',
-    margin: '0 auto',
-    paddingBottom: '100px',
-  },
-  card: {
-    background: 'var(--surface-2)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '20px',
-    padding: '30px',
-    border: '1px solid var(--border-strong)',
-    boxShadow: 'var(--shadow-strong)',
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: 'bold',
-    marginBottom: '30px',
-    background: 'var(--accent-gradient)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-  },
-  notLoggedIn: {
-    textAlign: 'center',
-    padding: '40px 20px',
-  },
-  iconLarge: {
-    fontSize: '64px',
-    marginBottom: '20px',
-  },
-  message: {
-    color: 'var(--text-secondary)',
-    fontSize: '16px',
-    marginBottom: '30px',
-  },
-  loginButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.75rem 1.25rem',
-    fontSize: '0.95rem',
-    fontWeight: '600',
-    color: '#fff',
-    background: 'var(--accent-gradient)',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: '0.2s ease',
-    boxShadow: '0 6px 20px rgba(var(--accent-electric-rgb), 0.4), 0 0 0 1px rgba(255, 255, 255, 0.12) inset',
-    backdropFilter: 'blur(5px)',
-    textDecoration: 'none',
-  },
-  profileSection: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '30px',
-    padding: '30px 20px',
-    background: 'var(--surface-1)',
-    borderRadius: '16px',
-    border: '1px solid var(--border-subtle)',
-  },
-  avatar: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    border: '3px solid color-mix(in srgb, var(--accent-violet) 50%, transparent)',
-    boxShadow: '0 4px 15px rgba(var(--accent-electric-rgb), 0.25)',
-  },
-  section: {
-    marginBottom: '30px',
-  },
-  sectionTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: 'var(--text-primary)',
-    marginBottom: '15px',
-  },
-  subscriptionCard: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    padding: '16px',
-    borderRadius: '16px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid var(--border-subtle)',
-  },
-  planTitle: {
-    fontSize: '16px',
-    fontWeight: 700,
-    color: 'var(--text-primary)',
-  },
-  planDetails: {
-    fontSize: '14px',
-    color: 'var(--text-secondary)',
-  },
-  upgradeButton: {
-    alignSelf: 'flex-start',
-    padding: '0.75rem 1.5rem',
-    borderRadius: '12px',
-    border: 'none',
-    background: 'var(--accent-gradient)',
-    color: '#fff',
-    fontWeight: 700,
-    cursor: 'pointer',
-    boxShadow: '0 10px 30px rgba(var(--accent-electric-rgb), 0.35)',
-  },
-  upgradeError: {
-    color: '#f87171',
-    fontSize: '0.85rem',
-  },
-  infoGrid: {
-    display: 'grid',
-    gap: '15px',
-  },
-  infoItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '15px',
-    background: 'var(--surface-1)',
-    borderRadius: '12px',
-    border: '1px solid var(--border-subtle)',
-  },
-  infoLabel: {
-    color: 'var(--text-muted)',
-    fontSize: '14px',
-  },
-  infoValue: {
-    color: 'var(--text-primary)',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  preferenceItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '15px',
-    background: 'var(--surface-1)',
-    borderRadius: '12px',
-    border: '1px solid var(--border-subtle)',
-    marginBottom: '10px',
-  },
-  preferenceLabel: {
-    color: 'var(--text-primary)',
-    fontSize: '16px',
-    fontWeight: '500',
-    marginBottom: '5px',
-  },
-  preferenceDescription: {
-    color: 'var(--text-secondary)',
-    fontSize: '13px',
-  },
-  comingSoon: {
-    padding: '6px 12px',
-    background: 'color-mix(in srgb, var(--accent-violet) 25%, transparent)',
-    color: 'var(--accent-violet)',
-    borderRadius: '8px',
-    fontSize: '12px',
-    fontWeight: '600',
-  },
-  themeGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '10px',
-    width: '100%',
-  },
-  themeButton: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    padding: '12px 14px',
-    borderRadius: '14px',
-    border: '1px solid var(--border-subtle)',
-    color: 'var(--text-primary)',
-    background: 'var(--surface-1)',
-    cursor: 'pointer',
-    transition: 'all 0.35s ease',
-    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.22)',
-  },
-  themeButtonActive: {
-    border: '1px solid var(--control-focus)',
-    boxShadow: '0 10px 30px rgba(var(--accent-electric-rgb), 0.35)',
-    color: 'var(--text-primary)',
-  },
-  themeButtonText: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: '4px',
-    textAlign: 'left',
-  },
-  themeTitle: {
-    fontWeight: 700,
-    fontSize: '15px',
-  },
-  themeSub: {
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-  },
-  themeSwatch: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '12px',
-    border: '1px solid var(--border-strong)',
-    flexShrink: 0,
-    transition: 'all 0.35s ease',
-  },
-  dangerZone: {
-    marginTop: '40px',
-    paddingTop: '30px',
-    borderTop: '1px solid var(--border-subtle)',
-  },
-  dangerTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: 'var(--text-primary)',
-    marginBottom: '15px',
-  },
-  logoutButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: 'var(--text-primary)',
-    background: 'color-mix(in srgb, var(--danger-color) 40%, transparent)',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-  },
-  logoutIcon: {
-    fontSize: '18px',
-  },
 };

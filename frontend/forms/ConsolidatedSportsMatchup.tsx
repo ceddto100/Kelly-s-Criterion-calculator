@@ -31,20 +31,21 @@ export default function ConsolidatedSportsMatchup({
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className="w-full">
       {/* Sport Toggle */}
-      <div style={styles.sportToggleContainer}>
-        <div style={styles.sportToggle}>
+      <div className="flex justify-center mb-4">
+        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
           {sportOptions.map((sport) => (
             <button
               key={sport.key}
               onClick={() => setActiveSport(sport.key)}
-              style={{
-                ...styles.sportButton,
-                ...(activeSport === sport.key ? styles.sportButtonActive : {}),
-              }}
+              className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold border-none rounded-lg cursor-pointer transition-all duration-200 ${
+                activeSport === sport.key
+                  ? 'bg-[var(--accent)] text-white shadow-[var(--accent-glow)]'
+                  : 'text-white/70 bg-transparent'
+              }`}
             >
-              <span style={styles.sportIcon}>{sport.icon}</span>
+              <span className="text-base">{sport.icon}</span>
               <span>{sport.label}</span>
             </button>
           ))}
@@ -54,8 +55,8 @@ export default function ConsolidatedSportsMatchup({
       {/* Sport-specific Matchup Component */}
       <Suspense
         fallback={
-          <div style={styles.loadingContainer}>
-            <span className="loading-spinner" style={{ marginRight: '.5rem' }}></span>
+          <div className="p-8 text-center text-[var(--text-muted)]">
+            <span className="loading-spinner mr-2"></span>
             Loading {activeSport} matchup data...
           </div>
         }
@@ -73,46 +74,3 @@ export default function ConsolidatedSportsMatchup({
     </div>
   );
 }
-
-const styles: { [key: string]: React.CSSProperties } = {
-  sportToggleContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: '1rem',
-  },
-  sportToggle: {
-    display: 'flex',
-    gap: '8px',
-    padding: '4px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: '12px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-  },
-  sportButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: 600,
-    color: 'rgba(255, 255, 255, 0.7)',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  sportButtonActive: {
-    background: 'var(--accent-gradient, linear-gradient(135deg, #a855f7 0%, #6366f1 100%))',
-    color: 'white',
-    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
-  },
-  sportIcon: {
-    fontSize: '16px',
-  },
-  loadingContainer: {
-    padding: '2rem',
-    textAlign: 'center',
-    color: 'var(--text-muted)',
-  },
-};

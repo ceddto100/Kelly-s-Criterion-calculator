@@ -58,10 +58,11 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
   };
 
   return (
-    <div style={styles.container}>
+    <div className="flex flex-col items-center gap-4 my-8 relative">
       <div
         ref={containerRef}
-        style={styles.orbWrapper}
+        className="relative flex items-center justify-center w-full min-h-[220px]"
+        style={{ touchAction: 'pan-y' }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -70,7 +71,7 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
         {currentIndex > 0 && (
           <button
             onClick={goToPrevious}
-            style={{...styles.navButton, ...styles.navButtonLeft}}
+            className="absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 text-white text-3xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 z-10 leading-none p-0 left-5"
             aria-label="Previous orb"
           >
             ‹
@@ -78,7 +79,7 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
         )}
 
         {/* Current Orb */}
-        <div style={styles.orbContainer}>
+        <div className="transition-all duration-300">
           <AudioOrb
             audioSrc={orbs[currentIndex].audioSrc}
             label={orbs[currentIndex].label}
@@ -89,7 +90,7 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
         {currentIndex < orbs.length - 1 && (
           <button
             onClick={goToNext}
-            style={{...styles.navButton, ...styles.navButtonRight}}
+            className="absolute top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 text-white text-3xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 z-10 leading-none p-0 right-5"
             aria-label="Next orb"
           >
             ›
@@ -98,15 +99,16 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
       </div>
 
       {/* Dot Indicators */}
-      <div style={styles.indicators}>
+      <div className="flex gap-2 items-center justify-center">
         {orbs.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            style={{
-              ...styles.dot,
-              ...(index === currentIndex ? styles.dotActive : {}),
-            }}
+            className={`rounded-full border-none cursor-pointer transition-all duration-300 p-0 ${
+              index === currentIndex
+                ? 'w-3 h-3 bg-[var(--accent)] shadow-[var(--accent-glow)]'
+                : 'w-2.5 h-2.5 bg-white/30'
+            }`}
             aria-label={`Go to ${orbs[index].label}`}
           />
         ))}
@@ -114,89 +116,10 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
 
       {/* Swipe Hint */}
       {orbs.length > 1 && (
-        <p style={styles.hint}>
+        <p className="text-white/50 text-sm mt-2 text-center">
           Swipe or click arrows to explore
         </p>
       )}
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '1rem',
-    margin: '2rem 0',
-    position: 'relative',
-  },
-  orbWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    minHeight: '220px',
-    touchAction: 'pan-y',
-  },
-  orbContainer: {
-    transition: 'opacity 0.3s ease, transform 0.3s ease',
-  },
-  navButton: {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    color: 'white',
-    fontSize: '32px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.3s ease',
-    zIndex: 10,
-    lineHeight: '1',
-    padding: 0,
-  },
-  navButtonLeft: {
-    left: '20px',
-  },
-  navButtonRight: {
-    right: '20px',
-  },
-  indicators: {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    background: 'rgba(255, 255, 255, 0.3)',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    padding: 0,
-  },
-  dotActive: {
-    background: 'var(--accent-gradient)',
-    width: '12px',
-    height: '12px',
-    boxShadow: '0 0 10px rgba(var(--orb-primary-rgb), 0.5)',
-  },
-  hint: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: '0.85rem',
-    margin: '0.5rem 0 0 0',
-    textAlign: 'center',
-  },
 };

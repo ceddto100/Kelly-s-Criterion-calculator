@@ -63,30 +63,29 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   ];
 
   return (
-    <nav style={styles.bottomNav} id="bottom-navigation-bar">
-      <div style={styles.navContainer}>
+    <nav className="fixed bottom-0 left-0 right-0 z-[99999] pb-[env(safe-area-inset-bottom,0)] visible opacity-100 pointer-events-auto w-full max-w-[100vw] overflow-visible" id="bottom-navigation-bar">
+      <div className="flex justify-evenly items-center bg-[var(--bg-surface)] backdrop-blur-lg border-t border-[var(--border-default)] shadow-[0_-8px_28px_rgba(0,0,0,0.3)] p-1 gap-0.5 flex-nowrap w-full overflow-x-visible">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
-            style={{
-              ...styles.navItem,
-              ...(activeTab === item.id ? styles.navItemActive : {}),
-            }}
+            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 bg-transparent border-none cursor-pointer text-[var(--text-secondary)] transition-all duration-300 rounded-lg min-w-[50px] max-w-[70px] shrink-0 ${
+              activeTab === item.id ? 'bg-[var(--accent-muted)] text-[var(--text-primary)]' : ''
+            }`}
           >
-            <span style={styles.navIcon}>{item.icon}</span>
-            <span style={styles.navLabel}>{item.label}</span>
+            <span className="text-xl">{item.icon}</span>
+            <span className="text-[10px] font-medium">{item.label}</span>
           </button>
         ))}
 
         {/* Logo in the center */}
-        <div style={styles.logoContainer}>
-          <div style={styles.logo}>
+        <div className="flex items-center justify-center px-1 shrink-0">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-[var(--accent-glow)] transition-all duration-300 overflow-hidden bg-[var(--bg-surface)]">
             <img
               src="/betgistics.png"
               alt="Betgistics Logo"
               title="Betgistics - Sports Betting Calculator"
-              style={styles.logoImage}
+              className="w-full h-full object-cover"
               width="40"
               height="40"
               loading="lazy"
@@ -98,102 +97,15 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
-            style={{
-              ...styles.navItem,
-              ...(activeTab === item.id ? styles.navItemActive : {}),
-            }}
+            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 px-1 bg-transparent border-none cursor-pointer text-[var(--text-secondary)] transition-all duration-300 rounded-lg min-w-[50px] max-w-[70px] shrink-0 ${
+              activeTab === item.id ? 'bg-[var(--accent-muted)] text-[var(--text-primary)]' : ''
+            }`}
           >
-            <span style={styles.navIcon}>{item.icon}</span>
-            <span style={styles.navLabel}>{item.label}</span>
+            <span className="text-xl">{item.icon}</span>
+            <span className="text-[10px] font-medium">{item.label}</span>
           </button>
         ))}
       </div>
     </nav>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  bottomNav: {
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 99999,
-    paddingBottom: 'env(safe-area-inset-bottom, 0)',
-    visibility: 'visible',
-    opacity: 1,
-    pointerEvents: 'auto',
-    width: '100%',
-    maxWidth: '100vw',
-    transform: 'none',
-    overflow: 'visible',
-  },
-  navContainer: {
-    display: 'flex',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    background: 'var(--surface-2)',
-    backdropFilter: 'blur(10px)',
-    borderTop: '1px solid var(--border-strong)',
-    boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.3)',
-    padding: '4px 4px',
-    gap: '2px',
-    flexWrap: 'nowrap',
-    width: '100%',
-    overflowX: 'visible',
-  },
-  navItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '2px',
-    padding: '6px 4px',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'var(--text-secondary)',
-    transition: 'all 0.35s ease',
-    borderRadius: '8px',
-    minWidth: '50px',
-    maxWidth: '70px',
-    flex: '0 1 auto',
-    flexShrink: 0,
-  },
-  navItemActive: {
-    background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-violet) 38%, transparent), color-mix(in srgb, var(--accent-electric) 40%, transparent))',
-    color: 'var(--text-primary)',
-    boxShadow: '0 4px 15px rgba(var(--accent-electric-rgb), 0.3)',
-  },
-  navIcon: {
-    fontSize: '20px',
-  },
-  navLabel: {
-    fontSize: '10px',
-    fontWeight: '500',
-  },
-  logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0 4px',
-    flexShrink: 0,
-  },
-  logo: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(var(--accent-electric-rgb), 0.35)',
-    transition: 'all 0.3s ease',
-    overflow: 'hidden',
-    background: 'var(--surface-2)',
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
 };
