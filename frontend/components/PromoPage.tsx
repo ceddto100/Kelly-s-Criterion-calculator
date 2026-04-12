@@ -1,74 +1,201 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
+type MediaType = 'link' | 'youtube' | 'vimeo' | 'iframe' | 'pdf' | 'ebook';
+
 interface Promo {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  url: string;
+  mediaType: MediaType;
+  embedUrl: string;
+  ctaUrl: string;
   imageUrl?: string;
-  date: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface PromoPageProps {
   user: { name?: string; email?: string; avatar?: string } | null;
 }
 
+interface PromoDraft {
+  title: string;
+  description: string;
+  mediaType: MediaType;
+  embedUrl: string;
+  ctaUrl: string;
+  imageUrl: string;
+}
+
 const ADMIN_EMAIL = 'cartercedrick35@gmail.com';
 const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? '';
 
+const INITIAL_DRAFT: PromoDraft = {
+  title: '',
+  description: '',
+  mediaType: 'link',
+  embedUrl: '',
+  ctaUrl: '',
+  imageUrl: '',
+};
+
+const MEDIA_OPTIONS: Array<{ value: MediaType; label: string; hint: string }> = [
+  { value: 'link', label: 'Link only', hint: 'External page with no inline embed' },
+  { value: 'youtube', label: 'YouTube', hint: 'Video via youtube.com or youtu.be URL' },
+  { value: 'vimeo', label: 'Vimeo', hint: 'Video via Vimeo URL' },
+  { value: 'iframe', label: 'Custom iframe', hint: 'Paste provider embed URL (not raw HTML)' },
+  { value: 'pdf', label: 'PDF / e-book file', hint: 'Embed a PDF URL' },
+  { value: 'ebook', label: 'e-Book platform', hint: 'Use provider embed URL or fallback button link' },
+];
+
+function extractYouTubeId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtu.be')) {
+      return parsed.pathname.replace('/', '') || null;
+    }
+    if (parsed.searchParams.get('v')) {
+      return parsed.searchParams.get('v');
+    }
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    return parts[parts.length - 1] || null;
+  } catch {
+    return null;
+  }
+}
+
+function extractVimeoId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const id = parts[parts.length - 1] || '';
+    return /^\d+$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveEmbedUrl(promo: Promo): string {
+  if (!promo.embedUrl) return '';
+
+  if (promo.mediaType === 'youtube') {
+    const id = extractYouTubeId(promo.embedUrl);
+    return id ? `https://www.youtube.com/embed/${id}` : '';
+  }
+
+  if (promo.mediaType === 'vimeo') {
+    const id = extractVimeoId(promo.embedUrl);
+    return id ? `https://player.vimeo.com/video/${id}` : '';
+  }
+
+  return promo.embedUrl;
+}
+
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
-  // Check if current user is admin
   const isAdmin = normalizeEmail(user?.email) === ADMIN_EMAIL;
+
   const [resetStatus, setResetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  const [promos, setPromos] = useState<Promo[]>([
-    {
-      id: '1',
-      title: 'Welcome Bonus - DraftKings',
-      description: 'Get up to $1,000 in bonus bets on your first deposit',
-      url: 'https://draftkings.com',
-      imageUrl: '',
-      date: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      title: 'FanDuel Sportsbook Promo',
-      description: 'Bet $5, Get $150 in bonus bets',
-      url: 'https://fanduel.com',
-      imageUrl: '',
-      date: new Date().toISOString(),
-    },
-  ]);
+  const [promos, setPromos] = useState<Promo[]>([]);
+  const [loadingPromos, setLoadingPromos] = useState(true);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newPromo, setNewPromo] = useState({
-    title: '',
-    description: '',
-    url: '',
-    imageUrl: '',
-  });
+  const [submittingPromo, setSubmittingPromo] = useState(false);
+  const [newPromo, setNewPromo] = useState<PromoDraft>(INITIAL_DRAFT);
 
-  const handleAddPromo = () => {
-    if (!newPromo.title || !newPromo.url) {
-      alert('Please fill in at least the title and URL');
+  const requiresEmbedUrl = useMemo(
+    () => newPromo.mediaType !== 'link',
+    [newPromo.mediaType]
+  );
+
+  const loadPromos = async () => {
+    setLoadingPromos(true);
+    setPromoError(null);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/promos`);
+      if (!response.ok) {
+        throw new Error('Unable to load promos');
+      }
+
+      const data = await response.json();
+      setPromos(Array.isArray(data.promos) ? data.promos : []);
+    } catch {
+      setPromoError('Could not load promo embeds right now.');
+    } finally {
+      setLoadingPromos(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPromos();
+  }, []);
+
+  const handleAddPromo = async () => {
+    if (!newPromo.title.trim()) {
+      alert('Please add a title');
       return;
     }
 
-    const promo: Promo = {
-      id: Date.now().toString(),
-      title: newPromo.title,
-      description: newPromo.description,
-      url: newPromo.url,
-      imageUrl: newPromo.imageUrl,
-      date: new Date().toISOString(),
-    };
+    if (requiresEmbedUrl && !newPromo.embedUrl.trim()) {
+      alert('This media type needs an embed URL');
+      return;
+    }
 
-    setPromos([promo, ...promos]);
-    setNewPromo({ title: '', description: '', url: '', imageUrl: '' });
-    setShowAddForm(false);
+    if (!newPromo.embedUrl.trim() && !newPromo.ctaUrl.trim()) {
+      alert('Please provide at least one URL (embed URL or button URL)');
+      return;
+    }
+
+    setSubmittingPromo(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/promos`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newPromo),
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to save promo');
+      }
+
+      setNewPromo(INITIAL_DRAFT);
+      setShowAddForm(false);
+      await loadPromos();
+    } catch {
+      alert('Unable to save promo right now.');
+    } finally {
+      setSubmittingPromo(false);
+    }
+  };
+
+  const handleDeletePromo = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this item?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/promos/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+
+      setPromos((prev) => prev.filter((p) => p._id !== id));
+    } catch {
+      alert('Unable to delete this item right now.');
+    }
   };
 
   const handleResetFreeCalculations = async () => {
@@ -91,15 +218,9 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
       const data = await response.json();
       setResetStatus('success');
       setResetMessage(`Reset free calculations for ${data.modified} users.`);
-    } catch (error) {
+    } catch {
       setResetStatus('error');
       setResetMessage('Unable to reset free calculations.');
-    }
-  };
-
-  const handleDeletePromo = (id: string) => {
-    if (confirm('Are you sure you want to delete this promo?')) {
-      setPromos(promos.filter((p) => p.id !== id));
     }
   };
 
@@ -115,9 +236,9 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2 style={styles.title}>🎁 Promotions & Links</h2>
+        <h2 style={styles.title}>🎬 Media & Promotions</h2>
         <p style={styles.subtitle}>
-          Exclusive offers and promotional links for sports betting
+          Admin-controlled embeds for trailers, videos, PDF e-books, and external platforms (including future 11Reader embeds)
         </p>
       </div>
 
@@ -127,7 +248,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
             onClick={() => setShowAddForm(!showAddForm)}
             style={styles.addButton}
           >
-            {showAddForm ? '✕ Cancel' : '➕ Add New Promo'}
+            {showAddForm ? '✕ Cancel' : '➕ Add Media Item'}
           </button>
           <div style={styles.resetCard}>
             <div>
@@ -157,109 +278,152 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
 
       {showAddForm && (
         <div style={styles.addForm}>
-          <h3 style={styles.formTitle}>Add New Promotion</h3>
+          <h3 style={styles.formTitle}>Create Embedded Media Item</h3>
           <input
             type="text"
-            placeholder="Promo Title *"
+            placeholder="Title *"
             value={newPromo.title}
-            onChange={(e) =>
-              setNewPromo({ ...newPromo, title: e.target.value })
-            }
+            onChange={(e) => setNewPromo({ ...newPromo, title: e.target.value })}
             style={styles.input}
           />
           <textarea
             placeholder="Description"
             value={newPromo.description}
-            onChange={(e) =>
-              setNewPromo({ ...newPromo, description: e.target.value })
-            }
+            onChange={(e) => setNewPromo({ ...newPromo, description: e.target.value })}
             style={{ ...styles.input, ...styles.textarea }}
           />
+
+          <label style={styles.label}>Media Type</label>
+          <select
+            value={newPromo.mediaType}
+            onChange={(e) => setNewPromo({ ...newPromo, mediaType: e.target.value as MediaType })}
+            style={styles.input}
+          >
+            {MEDIA_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label} — {opt.hint}
+              </option>
+            ))}
+          </select>
+
           <input
             type="url"
-            placeholder="Promo URL *"
-            value={newPromo.url}
-            onChange={(e) => setNewPromo({ ...newPromo, url: e.target.value })}
+            placeholder={requiresEmbedUrl ? 'Embed URL *' : 'Embed URL (optional)'}
+            value={newPromo.embedUrl}
+            onChange={(e) => setNewPromo({ ...newPromo, embedUrl: e.target.value })}
             style={styles.input}
           />
           <input
             type="url"
-            placeholder="Image URL (optional)"
+            placeholder="Button URL (optional fallback or CTA)"
+            value={newPromo.ctaUrl}
+            onChange={(e) => setNewPromo({ ...newPromo, ctaUrl: e.target.value })}
+            style={styles.input}
+          />
+          <input
+            type="url"
+            placeholder="Thumbnail Image URL (optional)"
             value={newPromo.imageUrl}
-            onChange={(e) =>
-              setNewPromo({ ...newPromo, imageUrl: e.target.value })
-            }
+            onChange={(e) => setNewPromo({ ...newPromo, imageUrl: e.target.value })}
             style={styles.input}
           />
-          <button onClick={handleAddPromo} style={styles.submitButton}>
-            Add Promotion
+
+          <button onClick={handleAddPromo} style={styles.submitButton} disabled={submittingPromo}>
+            {submittingPromo ? 'Saving...' : 'Save Media Item'}
           </button>
         </div>
       )}
 
+      {promoError && <div style={styles.errorBanner}>{promoError}</div>}
+
       <div style={styles.promoGrid}>
-        {promos.length === 0 ? (
+        {loadingPromos ? (
+          <div style={styles.emptyState}>
+            <p style={styles.emptyText}>Loading media items…</p>
+          </div>
+        ) : promos.length === 0 ? (
           <div style={styles.emptyState}>
             <div style={styles.emptyIcon}>📭</div>
-            <p style={styles.emptyText}>No promotions yet</p>
+            <p style={styles.emptyText}>No media items yet</p>
             {isAdmin && (
               <p style={styles.emptySubtext}>
-                Click "Add New Promo" to get started
+                Add your trailer, e-book, or platform embed from the admin form.
               </p>
             )}
           </div>
         ) : (
-          promos.map((promo) => (
-            <div key={promo.id} style={styles.promoCard}>
-              {promo.imageUrl && (
-                <div style={styles.promoImageContainer}>
-                  <img
-                    src={promo.imageUrl}
-                    alt={promo.title}
-                    title={promo.title}
-                    style={styles.promoImage}
-                    width="100%"
-                    height="auto"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-              <div style={styles.promoContent}>
-                <div style={styles.promoHeader}>
-                  <h3 style={styles.promoTitle}>{promo.title}</h3>
-                  <span style={styles.promoDate}>{formatDate(promo.date)}</span>
-                </div>
-                {promo.description && (
-                  <p style={styles.promoDescription}>{promo.description}</p>
+          promos.map((promo) => {
+            const embedSrc = resolveEmbedUrl(promo);
+            return (
+              <div key={promo._id} style={styles.promoCard}>
+                {promo.imageUrl && (
+                  <div style={styles.promoImageContainer}>
+                    <img
+                      src={promo.imageUrl}
+                      alt={promo.title}
+                      title={promo.title}
+                      style={styles.promoImage}
+                      width="100%"
+                      height="auto"
+                      loading="lazy"
+                    />
+                  </div>
                 )}
-                <div style={styles.promoActions}>
-                  <a
-                    href={promo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={styles.promoLink}
-                  >
-                    🔗 Visit Link
-                  </a>
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDeletePromo(promo.id)}
-                      style={styles.deleteButton}
-                    >
-                      🗑️
-                    </button>
+
+                {embedSrc && promo.mediaType !== 'link' && (
+                  <div style={styles.embedContainer}>
+                    <iframe
+                      src={embedSrc}
+                      title={`${promo.title} embed`}
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      style={styles.iframe}
+                    />
+                  </div>
+                )}
+
+                <div style={styles.promoContent}>
+                  <div style={styles.promoHeader}>
+                    <h3 style={styles.promoTitle}>{promo.title}</h3>
+                    <span style={styles.promoDate}>{formatDate(promo.createdAt)}</span>
+                  </div>
+                  {promo.description && (
+                    <p style={styles.promoDescription}>{promo.description}</p>
                   )}
+                  <div style={styles.badge}>{promo.mediaType.toUpperCase()}</div>
+                  <div style={styles.promoActions}>
+                    {(promo.ctaUrl || promo.embedUrl) && (
+                      <a
+                        href={promo.ctaUrl || promo.embedUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={styles.promoLink}
+                      >
+                        🔗 Open
+                      </a>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeletePromo(promo._id)}
+                        style={styles.deleteButton}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
       {user && !isAdmin && (
         <div style={styles.loginPrompt}>
           <p style={styles.loginText}>
-            Only the site administrator can add and manage promotional links
+            Only the site administrator can add and manage media embeds.
           </p>
         </div>
       )}
@@ -305,9 +469,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
     borderRadius: '12px',
     cursor: 'pointer',
-    marginBottom: '20px',
     boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
-    transition: 'all 0.3s ease',
   },
   resetCard: {
     display: 'flex',
@@ -359,6 +521,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: 'white',
     marginBottom: '20px',
   },
+  label: {
+    display: 'block',
+    marginBottom: '8px',
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: '13px',
+    fontWeight: 600,
+  },
   input: {
     width: '100%',
     padding: '12px 16px',
@@ -369,7 +538,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '1px solid rgba(255, 255, 255, 0.2)',
     borderRadius: '10px',
     outline: 'none',
-    transition: 'all 0.3s ease',
     boxSizing: 'border-box',
   },
   textarea: {
@@ -388,6 +556,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
   },
+  errorBanner: {
+    background: 'rgba(248, 113, 113, 0.15)',
+    border: '1px solid rgba(248, 113, 113, 0.35)',
+    color: '#fecaca',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    marginBottom: '18px',
+  },
   promoGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -400,7 +576,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     overflow: 'hidden',
     border: '1px solid rgba(255, 255, 255, 0.2)',
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-    transition: 'all 0.3s ease',
   },
   promoImageContainer: {
     width: '100%',
@@ -412,6 +587,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+  },
+  embedContainer: {
+    width: '100%',
+    aspectRatio: '16 / 9',
+    background: 'rgba(0, 0, 0, 0.45)',
+    borderBottom: '1px solid rgba(255,255,255,0.12)',
+  },
+  iframe: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
   },
   promoContent: {
     padding: '20px',
@@ -433,6 +619,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '12px',
     color: 'rgba(255, 255, 255, 0.5)',
     whiteSpace: 'nowrap',
+  },
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    marginBottom: '10px',
+    fontSize: '11px',
+    letterSpacing: '0.08em',
+    fontWeight: 700,
+    color: '#22d3ee',
+    background: 'rgba(34, 211, 238, 0.12)',
+    border: '1px solid rgba(34, 211, 238, 0.35)',
+    borderRadius: '999px',
+    padding: '5px 10px',
   },
   promoDescription: {
     fontSize: '14px',
@@ -458,7 +657,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '10px',
     flex: 1,
     justifyContent: 'center',
-    transition: 'all 0.3s ease',
   },
   deleteButton: {
     padding: '10px 15px',
@@ -467,7 +665,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
   },
   emptyState: {
     textAlign: 'center',
