@@ -28,6 +28,7 @@ const authRoutes = require('./routes/auth');
 const betsRoutes = require('./routes/bets');
 const adminRoutes = require('./routes/admin');
 const stripeRoutes = require('./routes/stripe');
+const promosRoutes = require('./routes/promos');
 
 // Sports Scraper Routes
 const offense = require('./scrapers/offense');
@@ -530,6 +531,7 @@ app.use('/auth', authRoutes);
 app.use('/api/bets', betsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/promos', promosRoutes);
 
 // Protected Dashboard Route - displays logged-in user information
 app.get('/dashboard', ensureAuthenticated, (req, res) => {
