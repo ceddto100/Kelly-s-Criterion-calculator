@@ -4,196 +4,84 @@ interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   TABS: {
-    BET_HISTORY: string;
-    STATS: string;
+    HOME: string;
+    GAMES: string;
+    ANALYSIS: string;
+    TRACKER: string;
     ACCOUNT: string;
-    PROMO: string;
   };
 }
 
-export const BottomNavigation: React.FC<BottomNavigationProps> = ({
-  activeTab,
-  onTabChange,
-  TABS,
-}) => {
-  const navItems = [
-    {
-      id: TABS.BET_HISTORY,
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="20" x2="12" y2="10"></line>
-          <line x1="18" y1="20" x2="18" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="16"></line>
-        </svg>
-      ),
-      label: 'Bets',
-    },
-    {
-      id: TABS.STATS,
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-        </svg>
-      ),
-      label: 'Stats',
-    },
-  ];
+const HomeIcon = () => (
+  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m3 11 9-8 9 8" />
+    <path d="M5 10v10h14V10" />
+    <path d="M9 20v-6h6v6" />
+  </svg>
+);
 
-  const navItemsRight = [
-    {
-      id: TABS.PROMO,
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="8" r="7"></circle>
-          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-        </svg>
-      ),
-      label: 'Promos',
-    },
-    {
-      id: TABS.ACCOUNT,
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-      ),
-      label: 'Account',
-    },
+const BallIcon = () => (
+  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M4.5 9.5c4.5 1 6 5.5 4.8 10" />
+    <path d="M19.5 14.5c-4.5-1-6-5.5-4.8-10" />
+    <path d="M7 5.8c3.2 2.5 6.6 2.6 10.1 0" />
+    <path d="M6.9 18.2c3.3-2.5 6.7-2.5 10.2 0" />
+  </svg>
+);
+
+const BarsIcon = () => (
+  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20V10" />
+    <path d="M9.3 20V4" />
+    <path d="M14.7 20v-8" />
+    <path d="M20 20V7" />
+    <path d="M2.5 20h19" />
+  </svg>
+);
+
+const TrackerIcon = () => (
+  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="5" width="16" height="16" rx="3" />
+    <path d="M8 3v4" />
+    <path d="M16 3v4" />
+    <path d="M8 12h8" />
+    <path d="m9 16 2 2 4-5" />
+  </svg>
+);
+
+const ProfileIcon = () => (
+  <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </svg>
+);
+
+export const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabChange, TABS }) => {
+  const navItems = [
+    { id: TABS.HOME, icon: <HomeIcon />, label: 'Home' },
+    { id: TABS.GAMES, icon: <BallIcon />, label: 'Games' },
+    { id: TABS.ANALYSIS, icon: <BarsIcon />, label: 'Analysis' },
+    { id: TABS.TRACKER, icon: <TrackerIcon />, label: 'Tracker' },
+    { id: TABS.ACCOUNT, icon: <ProfileIcon />, label: 'Profile' },
   ];
 
   return (
-    <nav style={styles.bottomNav} id="bottom-navigation-bar">
-      <div style={styles.navContainer}>
+    <nav className="bottom-nav" id="bottom-navigation-bar" aria-label="Primary navigation">
+      <div className="bottom-nav__container">
         {navItems.map((item) => (
           <button
             key={item.id}
+            type="button"
             onClick={() => onTabChange(item.id)}
-            style={{
-              ...styles.navItem,
-              ...(activeTab === item.id ? styles.navItemActive : {}),
-            }}
+            className={`bottom-nav__item ${activeTab === item.id ? 'bottom-nav__item--active' : ''}`}
+            aria-current={activeTab === item.id ? 'page' : undefined}
           >
-            <span style={styles.navIcon}>{item.icon}</span>
-            <span style={styles.navLabel}>{item.label}</span>
-          </button>
-        ))}
-
-        {/* Logo in the center */}
-        <div style={styles.logoContainer}>
-          <div style={styles.logo}>
-            <img
-              src="/betgistics.png"
-              alt="Betgistics Logo"
-              title="Betgistics - Sports Betting Calculator"
-              style={styles.logoImage}
-              width="40"
-              height="40"
-              loading="lazy"
-            />
-          </div>
-        </div>
-
-        {navItemsRight.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            style={{
-              ...styles.navItem,
-              ...(activeTab === item.id ? styles.navItemActive : {}),
-            }}
-          >
-            <span style={styles.navIcon}>{item.icon}</span>
-            <span style={styles.navLabel}>{item.label}</span>
+            <span className="bottom-nav__icon">{item.icon}</span>
+            <span className="bottom-nav__label">{item.label}</span>
           </button>
         ))}
       </div>
     </nav>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  bottomNav: {
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 99999,
-    paddingBottom: 'env(safe-area-inset-bottom, 0)',
-    visibility: 'visible',
-    opacity: 1,
-    pointerEvents: 'auto',
-    width: '100%',
-    maxWidth: '100vw',
-    transform: 'none',
-    overflow: 'visible',
-  },
-  navContainer: {
-    display: 'flex',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    background: 'var(--surface-2)',
-    backdropFilter: 'blur(10px)',
-    borderTop: '1px solid var(--border-strong)',
-    boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.3)',
-    padding: '4px 4px',
-    gap: '2px',
-    flexWrap: 'nowrap',
-    width: '100%',
-    overflowX: 'visible',
-  },
-  navItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '2px',
-    padding: '6px 4px',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'var(--text-secondary)',
-    transition: 'all 0.35s ease',
-    borderRadius: '8px',
-    minWidth: '50px',
-    maxWidth: '70px',
-    flex: '0 1 auto',
-    flexShrink: 0,
-  },
-  navItemActive: {
-    background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-violet) 38%, transparent), color-mix(in srgb, var(--accent-electric) 40%, transparent))',
-    color: 'var(--text-primary)',
-    boxShadow: '0 4px 15px rgba(var(--accent-electric-rgb), 0.3)',
-  },
-  navIcon: {
-    fontSize: '20px',
-  },
-  navLabel: {
-    fontSize: '10px',
-    fontWeight: '500',
-  },
-  logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '0 4px',
-    flexShrink: 0,
-  },
-  logo: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(var(--accent-electric-rgb), 0.35)',
-    transition: 'all 0.3s ease',
-    overflow: 'hidden',
-    background: 'var(--surface-2)',
-  },
-  logoImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
 };

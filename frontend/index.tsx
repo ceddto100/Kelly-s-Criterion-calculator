@@ -933,6 +933,145 @@ const CONSTANTS = {
   SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball', HOCKEY: 'hockey', MLB: 'mlb' },
 };
 
+
+
+/* ======================= Betgistics mobile dashboard ======================= */
+const DashboardIcon = ({ children }: { children: React.ReactNode }) => (
+  <span className="dashboard-icon" aria-hidden="true">{children}</span>
+);
+
+function ConfidenceRing({ value, tone = 'green' }: { value: number; tone?: 'green' | 'red' }) {
+  const angle = Math.max(0, Math.min(100, value)) * 3.6;
+  return (
+    <div
+      className={`confidence-ring confidence-ring--${tone}`}
+      style={{ '--ring-angle': `${angle}deg` } as React.CSSProperties}
+      aria-label={`${value}% confidence`}
+    >
+      <span>{value}%</span>
+    </div>
+  );
+}
+
+function BetgisticsDashboard() {
+  const statCards = [
+    { icon: '▣', label: 'Bankroll', value: '$12,580.00', change: '▲ 11.33%' },
+    { icon: '♜', label: 'ROI (30D)', value: '18.62%', change: '▲ 4.75%' },
+    { icon: '◎', label: 'Win Rate', value: '58.3%', change: '▲ 6.1%' },
+    { icon: '▰', label: 'Units (30D)', value: '+23.45', change: '▲ 8.67 Units' },
+  ];
+
+  const edges = [
+    { league: 'MLB', time: '7:05 PM ☀️', teams: ['Braves', 'Phillies'], projection: '9.1', edge: '+1.1', lean: 'OVER', confidence: 82, tone: 'green' as const, marks: ['A', 'P'] },
+    { league: 'MLB', time: '7:10 PM 🌥️', teams: ['Yankees', 'Red Sox'], projection: '7.6', edge: '-1.4', lean: 'UNDER', confidence: 78, tone: 'red' as const, marks: ['N', 'B'] },
+    { league: 'MLB', time: '10:15 PM 🌙', teams: ['Dodgers', 'Giants'], projection: '8.3', edge: '+0.8', lean: 'OVER', confidence: 71, tone: 'green' as const, marks: ['LA', 'SF'] },
+    { league: 'NBA', time: '8:30 PM 🌙', teams: ['Celtics', 'Heat'], projection: '215.2', edge: '-5.3', lean: 'UNDER', confidence: 76, tone: 'red' as const, marks: ['C', 'M'] },
+  ];
+
+  return (
+    <section className="betgistics-dashboard" aria-label="Betgistics dashboard preview">
+      <div className="mobile-status-row" aria-hidden="true">
+        <strong>9:41</strong>
+        <span>▮▮▮  Wi‑Fi  ▱</span>
+      </div>
+
+      <div className="dashboard-topbar">
+        <button className="ghost-icon-btn" type="button" aria-label="Open menu">☰</button>
+        <div className="dashboard-logo-lockup">
+          <img src="/betgistics.png" alt="Betgistics" />
+          <div>
+            <strong>BETGISTICS</strong>
+            <span>Play smart. Bet disciplined.</span>
+          </div>
+        </div>
+        <div className="dashboard-actions">
+          <button className="bell-btn" type="button" aria-label="Notifications">♧<span>3</span></button>
+          <div className="avatar-chip" aria-label="Signed in user"><span>CG</span><i /></div>
+        </div>
+      </div>
+
+      <div className="dashboard-greeting-row">
+        <div>
+          <h2>Good evening, Cedric <span aria-hidden="true">👋</span></h2>
+          <p>Here's your edge for today.</p>
+        </div>
+        <div className="dashboard-filter-actions">
+          <button type="button" aria-label="Calendar">▣</button>
+          <button type="button" aria-label="Filters">≋</button>
+        </div>
+      </div>
+
+      <div className="metric-grid">
+        {statCards.map((card) => (
+          <article className="metric-card" key={card.label}>
+            <div className="metric-label"><DashboardIcon>{card.icon}</DashboardIcon><span>{card.label}</span></div>
+            <strong>{card.value}</strong>
+            <em>{card.change}</em>
+          </article>
+        ))}
+      </div>
+
+      <article className="dashboard-card edges-card">
+        <div className="card-title-row">
+          <div>
+            <h3>Top Edges Today</h3>
+            <p>Games with the strongest projected edges</p>
+          </div>
+          <a href="#app-tools">View All</a>
+        </div>
+        <div className="edge-list">
+          {edges.map((edge) => (
+            <div className="edge-row" key={`${edge.league}-${edge.teams.join('-')}`}>
+              <div className="edge-time">
+                <span>{edge.league}</span>
+                <small>{edge.time}</small>
+              </div>
+              <div className="edge-teams">
+                <span><b className={`team-mark team-mark--${edge.tone}`}>{edge.marks[0]}</b>{edge.teams[0]}</span>
+                <span><b className="team-mark">{edge.marks[1]}</b>{edge.teams[1]}</span>
+              </div>
+              <div className="edge-metrics">
+                <small>Projection</small>
+                <strong>{edge.projection}</strong>
+              </div>
+              <div className={`edge-value edge-value--${edge.tone}`}>
+                <small>Edge</small>
+                <strong>{edge.edge}</strong>
+              </div>
+              <strong className={`lean lean--${edge.tone}`}>{edge.lean}</strong>
+              <ConfidenceRing value={edge.confidence} tone={edge.tone} />
+              <span className="chevron">›</span>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="dashboard-card insight-card">
+        <div>
+          <h3><span aria-hidden="true">✦</span> AI Insight of the Day</h3>
+          <p><strong>The Braves vs Phillies game has a strong Over lean.</strong></p>
+          <p>Both bullpens are overworked, and the wind blowing out to right field increases run expectancy by 8%.</p>
+          <a href="#app-tools">View Full Analysis ›</a>
+        </div>
+        <div className="ai-tile" aria-hidden="true">♙</div>
+      </article>
+
+      <article className="dashboard-card upcoming-card">
+        <div className="card-title-row">
+          <h3>Upcoming Games</h3>
+          <a href="#app-tools">View All</a>
+        </div>
+        <div className="upcoming-row">
+          <div className="game-badge">LA</div>
+          <div><strong>Lakers vs Nuggets</strong><span>NBA</span></div>
+          <time>May 15 · 8:30 PM</time>
+          <span className="star">★</span>
+        </div>
+      </article>
+    </section>
+  );
+}
+
 /* ========================= API helper (Kelly insight) ====================== */
 async function fetchFromApi(prompt: string, systemInstruction: string) {
   const response = await fetch(`${BACKEND_URL}/api/calculate`, {
@@ -2767,7 +2906,9 @@ function App() {
         <div className="blob blob-b" />
 
         <div className="page-wrap">
-          <header className="panel app-shell-header">
+          {activeTab === CONSTANTS.TABS.KELLY && <BetgisticsDashboard />}
+
+          <header className="panel app-shell-header" id="app-tools">
             <div className="brand-block">
               <img
                 src="/betgistics.png"
@@ -2781,8 +2922,8 @@ function App() {
               />
               <div>
                 <p className="eyebrow">Smart betting workspace</p>
-                <h1 className="title title--compact">Betgistics Command Center</h1>
-                <p className="hero-copy">Compare team data, model probabilities, and size bets in one focused workflow.</p>
+                <h1 className="title title--compact">Betgistics Tools</h1>
+                <p className="hero-copy">Calculator, matchup models, and tracking tools styled to match the mobile betting dashboard.</p>
               </div>
             </div>
 
@@ -2827,8 +2968,8 @@ function App() {
           <section className="panel workflow-panel">
             <div>
               <p className="eyebrow">Workflow</p>
-              <h2 style={{ margin: 0 }}>From matchup → probability → stake sizing</h2>
-              <p className="hero-copy" style={{ marginTop: '0.6rem' }}>Use the tabs below like a pipeline. Each tool is purpose-built and connected.</p>
+              <h2 style={{ margin: 0 }}>From games → analysis → tracked stake</h2>
+              <p className="hero-copy" style={{ marginTop: '0.6rem' }}>Use the tools below like the bottom navigation: games, analysis, tracker, profile.</p>
             </div>
             <SwipeableAudioOrbs
               orbs={[
@@ -3072,10 +3213,11 @@ function App() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           TABS={{
-            BET_HISTORY: CONSTANTS.TABS.BET_HISTORY,
-            STATS: CONSTANTS.TABS.STATS,
+            HOME: CONSTANTS.TABS.KELLY,
+            GAMES: CONSTANTS.TABS.SPORTS_MATCHUP,
+            ANALYSIS: CONSTANTS.TABS.ESTIMATOR,
+            TRACKER: CONSTANTS.TABS.BET_HISTORY,
             ACCOUNT: CONSTANTS.TABS.ACCOUNT,
-            PROMO: CONSTANTS.TABS.PROMO,
           }}
         />
       </div>
