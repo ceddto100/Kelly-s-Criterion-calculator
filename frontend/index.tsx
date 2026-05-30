@@ -25,6 +25,7 @@ import {
 const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
+const MLBEstimator = lazy(() => import("./forms/MLBEstimator"));
 const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
@@ -929,7 +930,7 @@ const CONSTANTS = {
     ACCOUNT: 'account',  // Account settings
     PROMO: 'promo'  // Promotional links
   },
-  SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball', HOCKEY: 'hockey' },
+  SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball', HOCKEY: 'hockey', MLB: 'mlb' },
 };
 
 /* ========================= API helper (Kelly insight) ====================== */
@@ -1617,6 +1618,8 @@ function ProbabilityEstimator({
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
         <button className={`tab ${activeSport === CONSTANTS.SPORTS.HOCKEY ? 'active' : ''}`}
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.HOCKEY)}>NHL</button>
+        <button className={`tab ${activeSport === CONSTANTS.SPORTS.MLB ? 'active' : ''}`}
+                onClick={()=>setActiveSport(CONSTANTS.SPORTS.MLB)}>MLB</button>
       </div>
 
       <div className="progress-container">
