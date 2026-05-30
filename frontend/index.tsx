@@ -1622,6 +1622,15 @@ function ProbabilityEstimator({
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.MLB)}>MLB</button>
       </div>
 
+      {activeSport === CONSTANTS.SPORTS.MLB && (
+        <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
+          <MLBEstimator
+            onUseInKelly={(p)=>{ setProbability(p.toFixed(2)); setActiveTab(CONSTANTS.TABS.KELLY); }}
+          />
+        </Suspense>
+      )}
+
+      {activeSport !== CONSTANTS.SPORTS.MLB && (<>
       <div className="progress-container">
         <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
           {progress.spread ? '✓' : '1'} {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Total Goals Line' : 'Point Spread'}
@@ -1826,6 +1835,7 @@ function ProbabilityEstimator({
           </div>
         </div>
       )}
+      </>)}
 
       {showFreeCalcModal && (
         <div style={styles.freeCalcOverlay} role="dialog" aria-live="polite">
