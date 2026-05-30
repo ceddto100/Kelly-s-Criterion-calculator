@@ -26,6 +26,7 @@ const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
 const MLBEstimator = lazy(() => import("./forms/MLBEstimator"));
+const DecisionPanel = lazy(() => import("./components/DecisionPanel"));
 const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
@@ -44,6 +45,7 @@ import { StatsPage } from './components/StatsPage';
 
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
+import { evaluateDecision } from './utils/decision';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -1441,6 +1443,35 @@ function ProbabilityEstimator({
     return `${predictedSpread > 0 ? '+' : ''}${predictedSpread.toFixed(1)}`;
   }, [expectedDiff]);
 
+  // Shared decision layer: turn the model probability into a disciplined
+  // recommendation (edge vs the standard -110 fair line, bet/pass/no-bet,
+  // confidence). Mirrors the backend so every sport reads consistently.
+  const decision = useMemo(() => {
+    if (calculatedProb === null) return null;
+    // Data completeness from optional stat coverage for the active sport.
+    const current = activeSport === CONSTANTS.SPORTS.HOCKEY
+      ? hockeyStats
+      : activeSport === CONSTANTS.SPORTS.FOOTBALL
+        ? footballStats
+        : basketballStats;
+    const statEntries = Object.entries(current).filter(([k]) => k !== 'teamAName' && k !== 'teamBName');
+    const filled = statEntries.filter(([, v]) => v !== '' && v !== undefined).length;
+    const dataCompleteness = statEntries.length > 0 ? filled / statEntries.length : 1;
+    return evaluateDecision({ modelProbabilityPct: calculatedProb, dataCompleteness });
+  }, [calculatedProb, activeSport, footballStats, basketballStats, hockeyStats]);
+
+  const decisionRiskFactors = useMemo(() => {
+    const risks: string[] = [];
+    if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
+      risks.push('Goalie confirmation matters: a backup start or hot/cold goalie can swing the total.');
+    }
+    if (calculatedProb !== null && Math.abs(calculatedProb - 50) < 5) {
+      risks.push('Projection is near a coin flip — small input changes can flip the lean.');
+    }
+    risks.push('Model uses season-long team rates; it does not account for injuries, rest, weather, or late line moves.');
+    return risks;
+  }, [activeSport, calculatedProb]);
+
   // UPDATED: Store matchup data when applying to Kelly
   const handleApplyAndSwitch = (prob: number) => {
     setProbability(prob.toFixed(2));
@@ -1828,11 +1859,19 @@ function ProbabilityEstimator({
               </div>
             )}
           </div>
+          {decision && (
+            <Suspense fallback={null}>
+              <DecisionPanel decision={decision} riskFactors={decisionRiskFactors} />
+            </Suspense>
+          )}
           <div style={{marginTop:'.6rem'}}>
             <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>
               Use in Kelly Calculator →
             </button>
           </div>
+          <p style={{marginTop:'0.75rem', fontSize:'0.7rem', color:'rgba(255,255,255,0.4)', lineHeight:1.5}}>
+            Model projection only — a possible edge based on formula output, not a guaranteed result. No bet is risk-free. Use bankroll discipline.
+          </p>
         </div>
       )}
       </>)}
