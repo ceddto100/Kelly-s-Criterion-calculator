@@ -25,6 +25,7 @@ import {
 const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
+const MLBEstimator = lazy(() => import("./forms/MLBEstimator"));
 const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 
@@ -929,7 +930,7 @@ const CONSTANTS = {
     ACCOUNT: 'account',  // Account settings
     PROMO: 'promo'  // Promotional links
   },
-  SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball', HOCKEY: 'hockey' },
+  SPORTS: { FOOTBALL: 'football', BASKETBALL: 'basketball', HOCKEY: 'hockey', MLB: 'mlb' },
 };
 
 /* ========================= API helper (Kelly insight) ====================== */
@@ -1617,8 +1618,19 @@ function ProbabilityEstimator({
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
         <button className={`tab ${activeSport === CONSTANTS.SPORTS.HOCKEY ? 'active' : ''}`}
                 onClick={()=>setActiveSport(CONSTANTS.SPORTS.HOCKEY)}>NHL</button>
+        <button className={`tab ${activeSport === CONSTANTS.SPORTS.MLB ? 'active' : ''}`}
+                onClick={()=>setActiveSport(CONSTANTS.SPORTS.MLB)}>MLB</button>
       </div>
 
+      {activeSport === CONSTANTS.SPORTS.MLB && (
+        <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
+          <MLBEstimator
+            onUseInKelly={(p)=>{ setProbability(p.toFixed(2)); setActiveTab(CONSTANTS.TABS.KELLY); }}
+          />
+        </Suspense>
+      )}
+
+      {activeSport !== CONSTANTS.SPORTS.MLB && (<>
       <div className="progress-container">
         <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
           {progress.spread ? '✓' : '1'} {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Total Goals Line' : 'Point Spread'}
@@ -1823,6 +1835,7 @@ function ProbabilityEstimator({
           </div>
         </div>
       )}
+      </>)}
 
       {showFreeCalcModal && (
         <div style={styles.freeCalcOverlay} role="dialog" aria-live="polite">

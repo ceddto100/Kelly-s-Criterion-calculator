@@ -100,6 +100,11 @@ import {
   handleOrchestration
 } from './tools/orchestration.js';
 import {
+  mlbProjectionToolDefinition,
+  mlbProjectionInputSchema,
+  handleMLBProjection
+} from './tools/mlbProjection.js';
+import {
   getTeamStatsToolDefinition,
   getMatchupStatsToolDefinition,
   getTeamStatsInputSchema,
@@ -693,6 +698,31 @@ function createMcpServer(): McpServer {
   );
 
   // ===========================================================================
+  // MLB PROJECTION TOOL (stat-based run totals + moneyline)
+  // ===========================================================================
+
+  server.tool(
+    mlbProjectionToolDefinition.name,
+    mlbProjectionToolDefinition.description,
+    mlbProjectionInputSchema.shape,
+    async (params) => {
+      log('Tool called:', mlbProjectionToolDefinition.name, params);
+      try {
+        const result = await handleMLBProjection(params);
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
   // TEAM STATS TOOLS
   // ===========================================================================
 
@@ -1009,6 +1039,7 @@ async function start() {
     console.log('  - estimate_football_probability');
     console.log('  - estimate_basketball_probability');
     console.log('  - estimate_hockey_probability');
+    console.log('  - estimate_mlb_projection');
     console.log('  - ai_estimate_probability');
     console.log('  - ai_analyze_matchup');
     console.log('  - log_bet');
