@@ -124,11 +124,45 @@ Current math: `mcp-server/src/utils/calculations.ts` (mirrored in `index.tsx`).
   variance, OT boost, home-ice. Good.
 - **Gap:** still reports a raw over/under % with no edge-vs-line or no-bet rule.
 
-### Cross-cutting recommendation
-Extract the MLB decision layer (`calculateEdge` / `determineLean` /
-`calculateConfidenceScore` / no-bet thresholds) into a shared module so NFL/NBA/
-NHL emit the same disciplined output shape (edge, lean, confidence, no-bet,
-drivers, risks). This is the highest-value next step after MLB.
+### Cross-cutting recommendation — DONE
+The MLB decision discipline is now extracted into a shared module so NFL/NBA/NHL
+emit the same disciplined output (edge vs line, lean/no-bet, confidence, risks).
+
+**Source:** `mcp-server/src/utils/decision.ts` (+ `config/decisionConfig.ts`)
+**Tests:** `mcp-server/test/decision.test.ts` (14 unit tests)
+
+Every spread/total tool (`estimate_football_probability`,
+`estimate_basketball_probability`, `estimate_hockey_probability`) now returns,
+**in addition to** its existing fields (kept for backward compatibility):
+
+```
+decision: {
+  fairImpliedPct,    // vig-free implied probability of the chosen side
+  edgePct,           // model probability − fair implied (percentage points)
+  recommendation,    // 'bet' | 'pass' | 'no-bet'
+  confidence,        // 0-100, blends edge + decisiveness + data quality
+  confidenceLabel,   // low | medium | high
+  summary            // plain-language, non-hype explanation
+}
+dataCompleteness,    // 0-1, drives the confidence ceiling
+riskFactors[],       // structural uncertainties (injuries/rest/lines not modeled)
+disclaimer           // never promises a guaranteed result
+```
+
+How it works (sport-agnostic):
+- The model's probability for a side (cover% for spreads, over/under% for totals)
+  is compared against the **vig-free implied probability** of that side, computed
+  by de-vigging the two-way price (defaults to the standard −110/−110 line when
+  odds aren't supplied; callers may pass `spreadOdds`/`betOdds` + the opposite
+  side to use the real market price).
+- **No-bet** fires when data completeness is below 50% or the edge is under the
+  threshold (default 3%). **Pass** fires when the model actively disfavors the
+  side. Otherwise **bet** (a *possible edge*, never a guarantee).
+- **Confidence** blends edge size, how decisively the model leaves a coin flip,
+  and data quality — with data quality as a hard ceiling so a big edge on thin
+  inputs can't read as high confidence (same philosophy as MLB).
+
+All thresholds live in `config/decisionConfig.ts` for tuning/backtesting.
 
 ---
 

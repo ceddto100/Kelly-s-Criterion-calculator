@@ -56,6 +56,11 @@ import {
   BasketballStats,
   ProbabilityResult
 } from '../utils/calculations.js';
+import {
+  evaluateDecision,
+  dataCompletenessFrom,
+  type DecisionResult
+} from '../utils/decision.js';
 
 // ============================================================================
 // INPUT SCHEMAS
@@ -83,6 +88,9 @@ export const footballProbabilityInputSchema = z.object({
   }).describe('Statistics for Team B (the opponent)'),
 
   spread: z.number().describe('Point spread from Team A perspective. Negative if Team A is favored (e.g., -7 means Team A favored by 7). Positive if Team A is underdog (e.g., +3.5).'),
+
+  spreadOdds: z.number().optional().describe('American odds for Team A to cover this spread (default -110). Used to compute edge vs the fair line.'),
+  oppSpreadOdds: z.number().optional().describe('American odds for the opposite side of the spread (default -110). Used to de-vig.'),
 
   venue: venueSchema.describe('Where Team A is playing: home, away, or neutral site'),
 
@@ -115,6 +123,9 @@ export const basketballProbabilityInputSchema = z.object({
   }).describe('Statistics for Team B (the opponent)'),
 
   spread: z.number().describe('Point spread from Team A perspective. Negative if Team A is favored, positive if underdog.'),
+
+  spreadOdds: z.number().optional().describe('American odds for Team A to cover this spread (default -110). Used to compute edge vs the fair line.'),
+  oppSpreadOdds: z.number().optional().describe('American odds for the opposite side of the spread (default -110). Used to de-vig.'),
 
   venue: venueSchema.describe('Where Team A is playing: home, away, or neutral site'),
 
@@ -271,6 +282,25 @@ export async function handleFootballProbability(input: unknown): Promise<Probabi
 
   const constants = parsed.league === 'NFL' ? NFL_CONSTANTS : CFB_CONSTANTS;
 
+  // Data completeness from the optional inputs the football model can use
+  // (yards + turnovers for each team = 4 optional signals).
+  const optionalPresent = [
+    parsed.teamA.offensiveYards,
+    parsed.teamA.turnoverDiff,
+    parsed.teamB.offensiveYards,
+    parsed.teamB.turnoverDiff
+  ].filter((v) => v !== undefined).length;
+  const dataCompleteness = dataCompletenessFrom(optionalPresent, 4);
+
+  const decision = evaluateDecision({
+    modelProbabilityPct: result.probability,
+    sideOdds: parsed.spreadOdds,
+    otherSideOdds: parsed.oppSpreadOdds,
+    dataCompleteness
+  });
+
+  const riskFactors = buildSpreadRiskFactors(dataCompleteness, parsed.venue, result.probability);
+
   return {
     success: true,
     sport: 'football',
@@ -287,7 +317,11 @@ export async function handleFootballProbability(input: unknown): Promise<Probabi
       sigma: result.sigma,
       homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeFieldAdvantage : 0
     },
-    interpretation: getInterpretation(result.probability, parsed.teamA.name, parsed.spread)
+    decision,
+    dataCompleteness: Math.round(dataCompleteness * 100) / 100,
+    riskFactors,
+    interpretation: getInterpretation(result.probability, parsed.teamA.name, parsed.spread),
+    disclaimer: PROJECTION_DISCLAIMER
   };
 }
 
@@ -322,6 +356,25 @@ export async function handleBasketballProbability(input: unknown): Promise<Proba
 
   const constants = parsed.league === 'NBA' ? NBA_CONSTANTS : CBB_CONSTANTS;
 
+  // Data completeness from the optional basketball inputs (FG%, rebound margin,
+  // turnover margin, pace, 3PT%, 3PT rate for each team = 12 optional signals).
+  const optionalPresent = [
+    parsed.teamA.fgPct, parsed.teamA.reboundMargin, parsed.teamA.turnoverMargin,
+    parsed.teamA.pace, parsed.teamA.threePPct, parsed.teamA.threePRate,
+    parsed.teamB.fgPct, parsed.teamB.reboundMargin, parsed.teamB.turnoverMargin,
+    parsed.teamB.pace, parsed.teamB.threePPct, parsed.teamB.threePRate
+  ].filter((v) => v !== undefined).length;
+  const dataCompleteness = dataCompletenessFrom(optionalPresent, 12);
+
+  const decision = evaluateDecision({
+    modelProbabilityPct: result.probability,
+    sideOdds: parsed.spreadOdds,
+    otherSideOdds: parsed.oppSpreadOdds,
+    dataCompleteness
+  });
+
+  const riskFactors = buildSpreadRiskFactors(dataCompleteness, parsed.venue, result.probability);
+
   return {
     success: true,
     sport: 'basketball',
@@ -338,8 +391,40 @@ export async function handleBasketballProbability(input: unknown): Promise<Proba
       sigma: result.sigma,
       homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeCourtAdvantage : 0
     },
-    interpretation: getInterpretation(result.probability, parsed.teamA.name, parsed.spread)
+    decision,
+    dataCompleteness: Math.round(dataCompleteness * 100) / 100,
+    riskFactors,
+    interpretation: getInterpretation(result.probability, parsed.teamA.name, parsed.spread),
+    disclaimer: PROJECTION_DISCLAIMER
   };
+}
+
+export const PROJECTION_DISCLAIMER =
+  'Model projection only — a possible edge based on formula output, not a guaranteed result. ' +
+  'No bet is risk-free. Use bankroll discipline.';
+
+/**
+ * Surface risk factors that should lower trust in a spread/total projection.
+ * Spread models rely on season-long team rates and don't see injuries, rest, or
+ * line moves, so we flag the structural uncertainties.
+ */
+function buildSpreadRiskFactors(
+  dataCompleteness: number,
+  venue: 'home' | 'away' | 'neutral',
+  probability: number
+): string[] {
+  const risks: string[] = [];
+  if (dataCompleteness < 0.8) {
+    risks.push('Incomplete optional stats — projection uses fewer inputs, confidence reduced.');
+  }
+  if (venue === 'neutral') {
+    risks.push('Neutral-site assumption — no home-field/court adjustment applied.');
+  }
+  if (Math.abs(probability - 50) < 5) {
+    risks.push('Projection is near a coin flip — small input changes can flip the lean.');
+  }
+  risks.push('Model uses season-long team rates; it does not account for injuries, rest, weather, or late line moves.');
+  return risks;
 }
 
 function getInterpretation(probability: number, teamName: string, spread: number): string {
@@ -376,5 +461,9 @@ export interface ProbabilityOutput {
     sigma: number;
     homeFieldAdvantage: number;
   };
+  decision: DecisionResult;
+  dataCompleteness: number;
+  riskFactors: string[];
   interpretation: string;
+  disclaimer: string;
 }
