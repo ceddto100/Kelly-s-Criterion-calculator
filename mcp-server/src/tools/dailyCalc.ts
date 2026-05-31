@@ -31,6 +31,7 @@ import { evaluateDecision } from '../utils/decision.js';
 import { projectMLBGame } from '../utils/mlb.js';
 import {
   fetchMLBSchedule,
+  fetchMLBTotals,
   fetchMLBGameInputs,
   type TeamSeasonOffense,
 } from '../utils/mlbDataService.js';
@@ -521,8 +522,10 @@ async function runMLBDailyCalc(
 ): Promise<void> {
   const season = new Date().getUTCFullYear();
   let games;
+  let totals;
   try {
-    games = await fetchMLBSchedule();
+    // Schedule + probable starters from StatsAPI; book totals from ESPN.
+    [games, totals] = await Promise.all([fetchMLBSchedule(), fetchMLBTotals()]);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     summary.errors.push(`MLB: failed to fetch schedule: ${msg}`);
@@ -531,14 +534,16 @@ async function runMLBDailyCalc(
 
   // Only project games that haven't started yet.
   const upcoming = games.filter((g) => g.abstractState === 'Preview');
-  console.log(`[DailyCalc] MLB: ${upcoming.length} upcoming games today`);
+  console.log(
+    `[DailyCalc] MLB: ${upcoming.length} upcoming games today, ${totals.size / 2 | 0} with book totals`
+  );
 
   const offenseCache = new Map<number, TeamSeasonOffense>();
 
   for (const game of upcoming) {
     const label = `${game.away.name} @ ${game.home.name} (MLB)`;
     try {
-      const input = await fetchMLBGameInputs(game, season, offenseCache);
+      const input = await fetchMLBGameInputs(game, season, offenseCache, totals);
       const result = projectMLBGame(input);
       summary.gamesAnalyzed++;
 

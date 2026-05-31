@@ -238,19 +238,23 @@ Sport coverage in the daily pipeline:
   backtesting only — it is not auto-logged as a wager (the bet-logging flow is
   spread/moneyline-shaped). Team-name lookup handles ESPN's abbreviations
   (TB/NJ/SJ/LA) mapping to the CSV forms (TBL/NJD/SJS/LAK).
-- **MLB** — totals market, via **MLB StatsAPI** (`utils/mlbDataService.ts`,
-  free/no-auth). Pulls today's schedule + **real probable starters** (with a
-  genuine confirmed flag), starter season ERA/WHIP, and team season OPS + runs/
-  game. Deliberately partial: StatsAPI does **not** expose the FanGraphs metrics
+- **MLB** — totals market, via **MLB StatsAPI** (stats) **+ ESPN** (the line),
+  both free/no-auth (`utils/mlbDataService.ts`). From StatsAPI: today's schedule
+  + **real probable starters** (with a genuine confirmed flag), starter season
+  ERA/WHIP, and team season OPS + runs/game. From ESPN's MLB scoreboard: the
+  consensus **over/under total** (`competition.odds[0].overUnder`, the same field
+  the NBA/NFL/NHL pipeline uses), matched to each StatsAPI game by normalized
+  team name. With a book line in hand the engine computes a real over/under edge
+  and can lean a side — the no-line "always no-bet" floor is gone.
+
+  Still deliberately partial: StatsAPI does **not** expose the FanGraphs metrics
   the engine prefers (FIP/xFIP/SIERA/wRC+/wOBA), bullpen splits, park factors, or
-  weather, so those inputs are left unset. The engine's data-completeness logic
-  then (correctly) lowers confidence — MLB projections come back low-confidence
-  and, with no book line from StatsAPI, **no-bet** by design. We record them
-  anyway so the backtest log can later reveal whether even this thin signal
-  carries any edge. MLB is analysis + backtesting only, never auto-logged as a
-  wager. The documented upgrade path that raises MLB confidence is a FanGraphs
-  (or similar) data source + a totals line feed — that is the real prerequisite,
-  not more engine code. Parsers are pure and unit-tested against fixtures; the
-  live fetch wrappers are runtime-verified (the build sandbox blocks egress).
-  For richer manual projections, `estimate_mlb_projection` still accepts the full
+  weather, so those inputs stay unset and the engine's data-completeness logic
+  keeps confidence modest. Games where ESPN has no posted total fall back to
+  no-bet. Every analyzed game is recorded for backtesting; MLB is still analysis
+  + backtesting only, never auto-logged as a wager. The remaining upgrade path
+  that raises MLB *confidence* (not just enables a lean) is a FanGraphs-style
+  metrics source. Parsers are pure and unit-tested against fixtures; the live
+  fetch wrappers are runtime-verified (the build sandbox blocks egress). For
+  richer manual projections, `estimate_mlb_projection` still accepts the full
   input set (bullpen, park, weather, lineup).

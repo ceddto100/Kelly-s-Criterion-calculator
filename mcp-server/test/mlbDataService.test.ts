@@ -6,9 +6,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   toNum,
+  normalizeTeamName,
   parseScheduleResponse,
   parsePitcherStats,
   parseTeamOffense,
+  parseESPNMLBTotals,
+  lookupBookTotal,
   buildMLBProjectionInput,
   type MLBScheduleGame,
 } from '../src/utils/mlbDataService.js';
@@ -136,6 +139,82 @@ describe('parseTeamOffense', () => {
   });
 });
 
+describe('normalizeTeamName', () => {
+  it('collapses to lowercase alphanumerics', () => {
+    expect(normalizeTeamName('Boston Red Sox')).toBe('bostonredsox');
+    expect(normalizeTeamName('Boston Red Sox ')).toBe('bostonredsox');
+  });
+
+  it('keeps Red Sox and White Sox distinct (full name, not nickname)', () => {
+    expect(normalizeTeamName('Boston Red Sox')).not.toBe(
+      normalizeTeamName('Chicago White Sox')
+    );
+  });
+});
+
+describe('parseESPNMLBTotals + lookupBookTotal', () => {
+  const espn = {
+    events: [
+      {
+        competitions: [
+          {
+            odds: [{ overUnder: '8.5' }],
+            competitors: [
+              { team: { displayName: 'Colorado Rockies' } },
+              { team: { displayName: 'Los Angeles Dodgers' } },
+            ],
+          },
+        ],
+      },
+      {
+        // game with no posted total → contributes nothing
+        competitions: [
+          {
+            odds: [],
+            competitors: [
+              { team: { displayName: 'New York Yankees' } },
+              { team: { displayName: 'Boston Red Sox' } },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it('maps both teams of a game to its total and skips lineless games', () => {
+    const totals = parseESPNMLBTotals(espn);
+    expect(totals.get('coloradorockies')).toBe(8.5);
+    expect(totals.get('losangelesdodgers')).toBe(8.5);
+    expect(totals.has('newyorkyankees')).toBe(false);
+  });
+
+  it('looks up a StatsAPI game from either side', () => {
+    const totals = parseESPNMLBTotals(espn);
+    const game: MLBScheduleGame = {
+      gamePk: 1,
+      gameDate: '',
+      detailedState: '',
+      abstractState: 'Preview',
+      home: { teamId: 115, name: 'Colorado Rockies' },
+      away: { teamId: 119, name: 'Los Angeles Dodgers' },
+    };
+    expect(lookupBookTotal(game, totals)).toBe(8.5);
+  });
+
+  it('returns undefined when neither team has a total', () => {
+    const totals = parseESPNMLBTotals(espn);
+    const game: MLBScheduleGame = {
+      gamePk: 2,
+      gameDate: '',
+      detailedState: '',
+      abstractState: 'Preview',
+      home: { teamId: 147, name: 'New York Yankees' },
+      away: { teamId: 111, name: 'Boston Red Sox' },
+    };
+    expect(lookupBookTotal(game, totals)).toBeUndefined();
+  });
+});
+
 describe('buildMLBProjectionInput → engine', () => {
   const game: MLBScheduleGame = {
     gamePk: 1,
@@ -169,9 +248,30 @@ describe('buildMLBProjectionInput → engine', () => {
     const result = projectMLBGame(input);
     expect(result.totals.projectedTotal).toBeGreaterThan(4);
     expect(result.totals.projectedTotal).toBeLessThan(16);
-    // No book line supplied → must be no-bet.
+    // No book line supplied → must be no-bet, and the probabilities stay neutral.
     expect(result.totals.lean).toBe('no-bet');
+    expect(result.totals.bookTotal).toBeNull();
+    expect(result.totals.overProbability).toBe(50);
     // Thin data (no FIP/wRC+/bullpen/park) → completeness well below full.
     expect(result.dataCompleteness).toBeLessThan(0.8);
+  });
+
+  it('threads an ESPN book total into the engine so a real edge is computed', () => {
+    const input = buildMLBProjectionInput(
+      game,
+      { home: { ops: 0.72, runsPerGame: 4.5 }, away: { ops: 0.78, runsPerGame: 5.1 } },
+      { home: { era: 4.2 }, away: { era: 3.6 } },
+      8.5
+    );
+    expect(input.line?.total).toBe(8.5);
+    const result = projectMLBGame(input);
+    expect(result.totals.bookTotal).toBe(8.5);
+    // With a line, the over/under split is no longer the neutral 50/50 default
+    // and the edge reflects projection minus the book number.
+    expect(result.totals.overProbability).not.toBe(50);
+    expect(result.totals.edgeRuns).toBeCloseTo(
+      result.totals.projectedTotal - 8.5,
+      5
+    );
   });
 });

@@ -25,6 +25,8 @@
 import type { MLBProjectionInput, MLBTeamInput } from './mlb.js';
 
 export const MLB_STATSAPI_BASE = 'https://statsapi.mlb.com/api/v1';
+export const ESPN_MLB_SCOREBOARD =
+  'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard';
 
 // ---------------------------------------------------------------------------
 // Parsed shapes
@@ -66,6 +68,16 @@ export function toNum(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const n = typeof value === 'number' ? value : parseFloat(String(value));
   return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Normalize a team name for cross-source matching (StatsAPI ↔ ESPN). Lowercases
+ * and strips everything but letters/digits, so "Boston Red Sox" and
+ * "Boston Red Sox " collapse to the same key. Full names are used (not just the
+ * nickname) because "Red Sox"/"White Sox" share a nickname.
+ */
+export function normalizeTeamName(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 async function fetchJson(url: string): Promise<unknown | null> {
@@ -149,6 +161,42 @@ export function parseTeamOffense(json: unknown): TeamSeasonOffense {
 }
 
 /**
+ * Parse ESPN's MLB scoreboard into a lookup of over/under total by team. ESPN
+ * publishes the consensus total at `competition.odds[0].overUnder` (same shape
+ * the NBA/NFL/NHL pipeline already uses). Both the home and away team names of
+ * each game point to that game's total, so a StatsAPI game can be matched from
+ * either side. Within a single day a team appears in only one game, so there are
+ * no key collisions.
+ */
+export function parseESPNMLBTotals(json: unknown): Map<string, number> {
+  const data = json as any;
+  const byTeam = new Map<string, number>();
+  for (const event of data?.events ?? []) {
+    const competition = event?.competitions?.[0];
+    if (!competition) continue;
+    const rawOU = competition.odds?.[0]?.overUnder;
+    const total = toNum(rawOU);
+    if (total === undefined) continue;
+    for (const c of competition.competitors ?? []) {
+      const name = c?.team?.displayName || c?.team?.name;
+      if (name) byTeam.set(normalizeTeamName(name), total);
+    }
+  }
+  return byTeam;
+}
+
+/** Look up a game's book total from the ESPN map, trying home then away name. */
+export function lookupBookTotal(
+  game: MLBScheduleGame,
+  totals: Map<string, number>
+): number | undefined {
+  return (
+    totals.get(normalizeTeamName(game.home.name)) ??
+    totals.get(normalizeTeamName(game.away.name))
+  );
+}
+
+/**
  * Assemble the engine input from the real signals we have. Premium inputs
  * (FIP/xFIP/SIERA/wRC+/wOBA, bullpen, park, weather) are intentionally left
  * unset so the engine reflects the true data quality. `confirmed` is true only
@@ -157,7 +205,8 @@ export function parseTeamOffense(json: unknown): TeamSeasonOffense {
 export function buildMLBProjectionInput(
   game: MLBScheduleGame,
   offense: { home: TeamSeasonOffense; away: TeamSeasonOffense },
-  starters: { home: PitcherSeasonStats | null; away: PitcherSeasonStats | null }
+  starters: { home: PitcherSeasonStats | null; away: PitcherSeasonStats | null },
+  bookTotal?: number
 ): MLBProjectionInput {
   const team = (
     g: MLBScheduleTeam,
@@ -174,7 +223,9 @@ export function buildMLBProjectionInput(
     home: team(game.home, offense.home, starters.home),
     away: team(game.away, offense.away, starters.away),
     // No park/weather from this source — engine treats as neutral, lowers confidence.
-    line: {},
+    // The book total comes from ESPN (StatsAPI carries no odds); without it the
+    // engine has nothing to take a side against and stays no-bet.
+    line: bookTotal !== undefined ? { total: bookTotal } : {},
   };
 }
 
@@ -212,6 +263,17 @@ export async function fetchTeamOffense(
 }
 
 /**
+ * Fetch today's MLB over/under totals from ESPN, keyed by normalized team name.
+ * Returns an empty map on failure — missing totals simply leave games no-bet
+ * rather than breaking the slate.
+ */
+export async function fetchMLBTotals(): Promise<Map<string, number>> {
+  const json = await fetchJson(ESPN_MLB_SCOREBOARD);
+  if (!json) return new Map();
+  return parseESPNMLBTotals(json);
+}
+
+/**
  * Fetch everything needed to project one game and assemble the engine input.
  * Caches per-team offense within a slate via the provided map to avoid
  * refetching teams that appear more than once.
@@ -219,7 +281,8 @@ export async function fetchTeamOffense(
 export async function fetchMLBGameInputs(
   game: MLBScheduleGame,
   season: number,
-  offenseCache: Map<number, TeamSeasonOffense>
+  offenseCache: Map<number, TeamSeasonOffense>,
+  totals?: Map<string, number>
 ): Promise<MLBProjectionInput> {
   const getOffense = async (teamId: number): Promise<TeamSeasonOffense> => {
     const cached = offenseCache.get(teamId);
@@ -243,9 +306,12 @@ export async function fetchMLBGameInputs(
       : Promise.resolve(null),
   ]);
 
+  const bookTotal = totals ? lookupBookTotal(game, totals) : undefined;
+
   return buildMLBProjectionInput(
     game,
     { home: homeOff, away: awayOff },
-    { home: homeSp, away: awaySp }
+    { home: homeSp, away: awaySp },
+    bookTotal
   );
 }
