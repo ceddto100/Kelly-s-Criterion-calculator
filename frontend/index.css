@@ -167,6 +167,31 @@
   --orb-tertiary-rgb: 255, 165, 0;
 }
 
+:root[data-theme='matrix'] {
+  --background-color: #000000;
+  --background-secondary: #000000;
+  /* Keep interior surfaces consistent across themes while accents shift */
+  --surface-1: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --border-subtle: color-mix(in srgb, #39ff14 22%, rgba(255, 255, 255, 0.18));
+  --border-strong: color-mix(in srgb, #39ff14 28%, rgba(255, 255, 255, 0.28));
+  --accent-cyan: #00ff66;
+  --accent-cyan-rgb: 0, 255, 102;
+  --accent-electric: #39ff14;
+  --accent-electric-rgb: 57, 255, 20;
+  --accent-violet: #aaff00;
+  --accent-violet-rgb: 170, 255, 0;
+  --accent-gradient: linear-gradient(135deg, #00ff66 0%, #39ff14 50%, #aaff00 100%);
+  --primary-accent: #39ff14;
+  --orb-primary: #39ff14;
+  --orb-primary-rgb: 57, 255, 20;
+  --orb-secondary: #00ff66;
+  --orb-secondary-rgb: 0, 255, 102;
+  --orb-tertiary: #aaff00;
+  --orb-tertiary-rgb: 170, 255, 0;
+}
+
 /* ==================== GLOBAL RESETS ==================== */
 * {
   box-sizing: border-box;
@@ -1538,8 +1563,6 @@ body::after {
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62)) !important;
   border: 1px solid var(--ui-border) !important;
   box-shadow: var(--ui-shadow) !important;
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
   border-radius: 22px !important;
 }
 
@@ -1644,9 +1667,12 @@ button:hover,
 
 #bottom-navigation-bar > div {
   border-top: 1px solid rgba(148, 163, 184, 0.28) !important;
-  background: rgba(2, 6, 23, 0.9) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
+  /* Opaque so we can skip backdrop-filter: a fixed frosted bar re-blurs the
+     page behind it on every scroll frame, which is a major mobile jank
+     source. The bar was already 90% opaque, so this looks the same. */
+  background: rgba(2, 6, 23, 0.96) !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 #bottom-navigation-bar button {
@@ -1841,6 +1867,10 @@ body {
   background: url('/stadium-field.svg') center bottom / cover no-repeat;
   opacity: 0.14;
   pointer-events: none;
+  /* Promote to its own compositor layer so it paints once and is not
+     repainted on every scroll frame (mobile scroll-glitch fix). */
+  transform: translateZ(0);
+  backface-visibility: hidden;
   /* Fade the top of the field into the page so it reads as a      */
   /* watermark rather than a photo.                                */
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 100%);
@@ -1854,7 +1884,11 @@ body {
   border-radius: 50%;
   filter: blur(90px);
   pointer-events: none;
+  /* Keep the expensive blur on its own static GPU layer so scrolling the
+     page over it doesn't trigger a re-blur each frame. */
   will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 .blob-a {
   top: -18%;
@@ -1914,8 +1948,9 @@ body {
     inset 0 0 0 1px rgba(125, 211, 252, 0.08),
     0 0 26px rgba(139, 92, 246, 0.18),
     0 18px 48px rgba(2, 2, 16, 0.55) !important;
-  backdrop-filter: blur(16px) saturate(135%);
-  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  /* No backdrop-filter here: these cards sit above fixed background layers
+     and are ~85-92% opaque, so a per-frame backdrop re-blur during scroll
+     cost a lot of jank for no visible gain. */
 }
 
 /* ---- Feature tabs as a glowing card grid (the screenshot) ---- */
@@ -2042,4 +2077,106 @@ body {
   .app-tabs {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+}
+
+/* ============================================================= */
+/* MATRIX THEME — pure black + neon green.                        */
+/* Scoped to [data-theme='matrix'] so the other themes are        */
+/* untouched. These selectors carry the data-theme prefix, so     */
+/* they out-specify (and override) the violet/cyan !important     */
+/* rules in the V2 + stadium layers above.                        */
+/* ============================================================= */
+:root[data-theme='matrix'] body {
+  background:
+    radial-gradient(circle at 12% 6%, rgba(57, 255, 20, 0.16), transparent 44%),
+    radial-gradient(circle at 88% 96%, rgba(0, 255, 102, 0.12), transparent 48%),
+    linear-gradient(180deg, #000000 0%, #020a04 55%, #000000 100%) !important;
+}
+
+:root[data-theme='matrix'] .blob-a {
+  background: radial-gradient(circle, rgba(57, 255, 20, 0.42), transparent 70%);
+}
+:root[data-theme='matrix'] .blob-b {
+  background: radial-gradient(circle, rgba(0, 255, 102, 0.30), transparent 70%);
+}
+
+/* Cards / panels on every page */
+:root[data-theme='matrix'] :is(
+  .panel, .footer-card, .doc-panel, .results, .calculator, .calculator-body,
+  .walters-panel, .breakdown-panel, .projection-card, .sports-matchup-container,
+  .teams-container, .bet-history-container, [class*='history-item'], [class*='stat-card']
+) {
+  background:
+    linear-gradient(155deg, rgba(6, 22, 6, 0.94), rgba(0, 0, 0, 0.9)) !important;
+  border: 1px solid rgba(57, 255, 20, 0.40) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(57, 255, 20, 0.08),
+    0 0 26px rgba(57, 255, 20, 0.20),
+    0 18px 48px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Feature tab grid */
+:root[data-theme='matrix'] .tab-card {
+  border: 1px solid rgba(57, 255, 20, 0.32) !important;
+  background:
+    linear-gradient(155deg, rgba(8, 26, 8, 0.92), rgba(0, 0, 0, 0.95)) !important;
+  color: #d8ffd0 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(57, 255, 20, 0.06),
+    0 0 18px rgba(57, 255, 20, 0.20) !important;
+}
+:root[data-theme='matrix'] .tab-card:hover {
+  border-color: rgba(120, 255, 90, 0.7) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(57, 255, 20, 0.10),
+    0 0 28px rgba(57, 255, 20, 0.45) !important;
+}
+:root[data-theme='matrix'] .tab-card.active,
+:root[data-theme='matrix'] .tab.active {
+  border-color: rgba(150, 255, 120, 0.95) !important;
+  background:
+    linear-gradient(155deg, rgba(57, 255, 20, 0.22), rgba(0, 180, 60, 0.30)) !important;
+  color: #001a08 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(180, 255, 160, 0.45),
+    0 0 30px rgba(57, 255, 20, 0.55),
+    0 0 64px rgba(0, 255, 102, 0.30) !important;
+}
+:root[data-theme='matrix'] .tab-icon {
+  filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.7));
+}
+
+/* Buttons */
+:root[data-theme='matrix'] :is(button, .btn, .btn-primary, .auth-btn, .chat-submit-btn, .example-btn) {
+  border: 1px solid rgba(57, 255, 20, 0.45) !important;
+  color: #001a08 !important;
+  background: linear-gradient(135deg, rgba(0, 200, 70, 0.95), rgba(57, 255, 20, 0.9)) !important;
+  box-shadow: 0 10px 28px rgba(57, 255, 20, 0.30) !important;
+}
+
+/* Inputs / focus */
+:root[data-theme='matrix'] :is(input, select, textarea):focus {
+  border-color: #39ff14 !important;
+  box-shadow: 0 0 0 4px rgba(57, 255, 20, 0.18) !important;
+}
+
+/* Neon section accents */
+:root[data-theme='matrix'] .eyebrow {
+  color: #7dff5a !important;
+  text-shadow: 0 0 16px rgba(57, 255, 20, 0.45);
+}
+:root[data-theme='matrix'] :is(.title, .title--compact, .app-shell-header h1) {
+  background: linear-gradient(135deg, #7dff5a 0%, #00ff88 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Value readouts + progress */
+:root[data-theme='matrix'] :is(.result-value, .probability-value, .kelly-value, .expected-value) {
+  color: #7dff5a !important;
+  text-shadow: 0 0 24px rgba(57, 255, 20, 0.4);
+}
+:root[data-theme='matrix'] :is(.progress-fill, .progress-bar-fill) {
+  background: linear-gradient(90deg, #00ff66, #aaff00) !important;
 }

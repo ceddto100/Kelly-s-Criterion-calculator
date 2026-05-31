@@ -87,6 +87,13 @@ const THEME_OPTIONS = [
     accent: '#FFD700',
     preview: 'linear-gradient(135deg, #DAA520, #FFD700, #FFA500)',
   },
+  {
+    key: 'matrix',
+    label: 'Matrix Black',
+    description: 'Pure black with neon green glow',
+    accent: '#39ff14',
+    preview: 'linear-gradient(135deg, #00ff66, #39ff14, #aaff00)',
+  },
 ] as const;
 
 type ThemeKey = typeof THEME_OPTIONS[number]['key'];
@@ -95,36 +102,14 @@ type ThemeKey = typeof THEME_OPTIONS[number]['key'];
 const GlobalStyle = () => (
   <style>{`
     /* Additional glassmorphism styles for components not in main CSS */
+    /* NOTE: .site-bg / .bg-overlay / .blob are owned by index.css (the
+       stadium watermark + ambient glow layers). They were previously
+       redefined here, and because this injected <style> lands later in the
+       DOM than the <head> stylesheet it silently overrode the real design
+       AND re-introduced a scroll-repaint glitch. Keep only scroll behavior
+       here; let index.css drive the actual background. */
     .site-bg {
-      position: relative;
-      min-height: 100vh;
-      width: 100%;
-      max-width: 100vw;
-      background: #050510;
       -webkit-overflow-scrolling: touch;
-    }
-
-    .site-bg img.bg-fallback {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0.15;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        90deg,
-        rgba(6, 182, 212, 0.05),
-        rgba(139, 92, 246, 0.05)
-      );
-      z-index: 0;
-      pointer-events: none;
     }
 
     .page-wrap {
@@ -170,8 +155,6 @@ const GlobalStyle = () => (
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
       margin: 0 auto 1rem;
       max-width: 900px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
     }
 
     .panel-strong {
@@ -200,8 +183,6 @@ const GlobalStyle = () => (
       border-radius: 20px;
       padding: 1rem 1.5rem;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       max-width: 820px;
       width: 100%;
     }
