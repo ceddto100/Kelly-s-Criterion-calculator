@@ -105,24 +105,35 @@ Every constant lives in `config/mlbConfig.ts` (backend) / `MLB_CONFIG`
 
 Current math: `mcp-server/src/utils/calculations.ts` (mirrored in `index.tsx`).
 
+All sport weights/constants are now centralized in `config/sportsConfig.ts`
+(football/basketball) so the formulas can be tuned and backtested without
+editing math — the spec's "weights in a config file" requirement. `calculations.ts`
+reads from there; the old `*_CONSTANTS` exports remain as thin compatibility
+wrappers.
+
 ### NFL/CFB (`predictedMarginFootball` + `estimateFootballProbability`)
-- Weights points 40% / yards 25% / turnovers 20% — directionally sound.
-- **Gap:** no confidence score, no edge-vs-line, no no-bet — every game returns a
-  cover %. Recommend adding the same confidence/edge/no-bet layer MLB now has.
-- **Unused constants:** `decayRate`, `qbValue` are defined but never applied.
-  Either wire QB-out adjustments in or remove to avoid implying they're used.
+- Weights points 40% / yards 25% / turnovers 20% — directionally sound, now in config.
+- **FIXED — unused constants wired in:** `decayRate` now drives an optional
+  recent-form blend (effective = decay·season + (1−decay)·recent), applied only
+  when recent rates are supplied so default behavior is unchanged. `qbValue` now
+  caps an optional `qbEdge` input (reflect a backup/injured starter), clamped to
+  ±qbValue so it can never dominate the projection.
+- **DONE — confidence/edge/no-bet:** added via the shared decision layer.
 
 ### NBA/CBB (`predictedMarginBasketball`)
-- 7 weighted components + pace multiplier — the strongest existing model.
-- **Risk:** PPG (15%) + points-allowed (15%) + FG% (25%) are correlated
-  (efficiency shows up in all three) and may over-weight offense. Worth a
-  correlation review and possibly folding PPG/allowed into net rating.
-- Same missing confidence/no-bet layer as football.
+- 7 weighted components + pace multiplier — the strongest existing model, now in config.
+- **FIXED — CBB pace bug:** the model reused the NBA's ~100-possession baseline
+  for college, which wrongly compressed CBB margins by ~32%. CBB now uses ~68.
+- **Correlation note:** PPG-for, points-allowed and FG% are positively correlated
+  (efficiency shows up in all three). They're kept separate (volume vs efficiency
+  carry distinct signal) but the weights are now in one place to retune against
+  backtest data. Recent-form blend added (decay 0.85) like football.
+- **DONE — confidence/edge/no-bet:** added via the shared decision layer.
 
 ### NHL (`calculateNHLProjection`)
 - Most mature: graduated pace & special-teams scaling, overdispersion-adjusted
   variance, OT boost, home-ice. Good.
-- **Gap:** still reports a raw over/under % with no edge-vs-line or no-bet rule.
+- **DONE — confidence/edge/no-bet:** added via the shared decision layer.
 
 ### Cross-cutting recommendation — DONE
 The MLB decision discipline is now extracted into a shared module so NFL/NBA/NHL
@@ -166,23 +177,43 @@ All thresholds live in `config/decisionConfig.ts` for tuning/backtesting.
 
 ---
 
-## 3. Backtesting schema (design now, measure later)
+## 3. Backtesting storage — IMPLEMENTED
 
-Every projection should be storable so formulas can be scored against reality.
-Recommended record (one row per projection):
+Every projection is now storable so formulas can be scored against reality.
+
+**Model:** `mcp-server/src/models/Projection.ts` (Mongoose)
+**Tools:** `mcp-server/src/tools/projectionLog.ts`
+**Tests:** `mcp-server/test/projectionGrading.test.ts` (16 grading tests)
+
+Stored record (one row per projection, unique per game+market+model):
 
 ```
-game_date, sport, home_team, away_team,
-market,                 // total | moneyline | spread | runline
-book_line, book_odds,
-projected_value,        // projected total / win prob / margin
+gameDate, sport, league, homeTeam, awayTeam,
+market,                 // total | spread | moneyline
+bookLine, bookOdds,
+projectedValue,         // projected total / margin / win prob
 edge, lean, confidence,
-stats_snapshot,         // JSON of the exact inputs used at projection time
-final_home_score, final_away_score,
-result,                 // over/under hit, ML hit, spread hit (filled post-game)
-closing_line            // for CLV analysis
+modelVersion,           // which engine/config produced it
+statsSnapshot,          // JSON of the EXACT inputs used at projection time
+result,                 // pending | win | loss | push (filled post-game)
+finalHomeScore, finalAwayScore,
+closingLine,            // for CLV analysis
+settledAt
 ```
 
-Storing the **stats snapshot at projection time** is what makes backtesting
-honest — it lets us replay and recalibrate weights (in `mlbConfig.ts`) against
-outcomes without leaking future data.
+Three MCP tools:
+- **`record_projection`** — store a projection + its stat snapshot (idempotent
+  per game+market+model, so re-running a slate updates rather than duplicates).
+- **`settle_projection`** — after the game, grade the stored projection against
+  the final score. Grading is a pure, unit-tested function (`gradeProjection`)
+  covering totals (over/under vs line), moneyline (home/away), and spread (home
+  perspective). `no-bet`/`pass` settle as push (no action).
+- **`get_backtest_summary`** — aggregate hit rate, average edge, average
+  confidence, and **hit rate bucketed by confidence band** — the key
+  calibration check: do higher-confidence projections actually win more often?
+  Filterable by sport/league/market/modelVersion.
+
+Storing the **stats snapshot + modelVersion at projection time** is what makes
+backtesting honest: we can replay the stored inputs, recompute under new weights
+(in `sportsConfig.ts` / `mlbConfig.ts`), and score against outcomes without
+leaking future data — then compare model versions head-to-head.
