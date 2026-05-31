@@ -28,6 +28,12 @@ import { isDatabaseConnected, ensureDatabaseConnection } from '../config/databas
 import { User } from '../models/User.js';
 import { handleRecordProjection } from './projectionLog.js';
 import { evaluateDecision } from '../utils/decision.js';
+import { projectMLBGame } from '../utils/mlb.js';
+import {
+  fetchMLBSchedule,
+  fetchMLBGameInputs,
+  type TeamSeasonOffense,
+} from '../utils/mlbDataService.js';
 
 // ============================================================================
 // CONFIG
@@ -51,7 +57,7 @@ const MODEL_VERSION = 'daily-v1';
 
 export interface GameCalcResult {
   game: string;           // "Home Team vs Away Team (SPORT)"
-  sport: 'NBA' | 'NFL' | 'NHL';
+  sport: 'NBA' | 'NFL' | 'NHL' | 'MLB';
   homeTeam: string;
   awayTeam: string;
   probability: number;    // Calculated probability that home team covers
@@ -496,6 +502,96 @@ async function calcGame(
 }
 
 // ============================================================================
+// MLB DAILY CALCULATION (totals, via MLB StatsAPI)
+// ============================================================================
+
+/**
+ * Project today's MLB games from MLB StatsAPI and record them as totals
+ * projections for backtesting. Mutates the shared summary in place (counts
+ * analyzed games and projections recorded; surfaces per-source errors).
+ *
+ * Deliberately conservative: with only ERA + team OPS/RPG available, the engine
+ * produces low-data-completeness projections that usually settle to no-bet. We
+ * record them anyway so the backtest log can later show whether even this thin
+ * signal carries any edge.
+ */
+async function runMLBDailyCalc(
+  summary: DailyCalcSummary,
+  recordProjections: boolean
+): Promise<void> {
+  const season = new Date().getUTCFullYear();
+  let games;
+  try {
+    games = await fetchMLBSchedule();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    summary.errors.push(`MLB: failed to fetch schedule: ${msg}`);
+    return;
+  }
+
+  // Only project games that haven't started yet.
+  const upcoming = games.filter((g) => g.abstractState === 'Preview');
+  console.log(`[DailyCalc] MLB: ${upcoming.length} upcoming games today`);
+
+  const offenseCache = new Map<number, TeamSeasonOffense>();
+
+  for (const game of upcoming) {
+    const label = `${game.away.name} @ ${game.home.name} (MLB)`;
+    try {
+      const input = await fetchMLBGameInputs(game, season, offenseCache);
+      const result = projectMLBGame(input);
+      summary.gamesAnalyzed++;
+
+      if (result.totals.lean !== 'no-bet') {
+        summary.highValueBets.push({
+          game: label,
+          sport: 'MLB',
+          homeTeam: game.home.name,
+          awayTeam: game.away.name,
+          probability:
+            result.totals.lean === 'under'
+              ? result.totals.underProbability
+              : result.totals.overProbability,
+          impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+          edge: result.totals.edgeRuns ?? 0,
+          hasValue: true,
+          kellyFraction: 0,
+          recommendedStake: 0,
+          stakePercentage: 0,
+          betLogged: false,
+        });
+      }
+
+      if (recordProjections) {
+        await handleRecordProjection({
+          gameDate: new Date().toISOString().split('T')[0],
+          sport: 'baseball',
+          league: 'MLB',
+          homeTeam: game.home.name,
+          awayTeam: game.away.name,
+          market: 'total',
+          bookLine: result.totals.bookTotal,
+          projectedValue: result.totals.projectedTotal,
+          edge: result.totals.edgeRuns,
+          lean: result.totals.lean,
+          confidence: result.totals.confidence,
+          modelVersion: MODEL_VERSION,
+          statsSnapshot: {
+            input,
+            dataCompleteness: result.dataCompleteness,
+            riskFactors: result.riskFactors,
+          },
+        });
+        summary.projectionsRecorded++;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      summary.errors.push(`MLB ${label}: ${msg}`);
+    }
+  }
+}
+
+// ============================================================================
 // MAIN DAILY CALC FUNCTION
 // ============================================================================
 
@@ -540,17 +636,19 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   // Refresh stats cache before calculations
   clearStatsCache();
 
-  // MLB is not yet automatable here: the MLB engine needs probable-starter,
-  // bullpen, park and weather inputs that no team-level stats feed in this repo
-  // provides. Surface that honestly rather than producing a hollow projection.
-  if (sport === 'MLB') {
-    summary.success = true;
-    summary.errors.push(
-      'MLB automated daily analysis is not yet supported: the MLB engine requires ' +
-        'probable-starter, bullpen, park and weather inputs that are not available from ' +
-        'a team-level feed. Use the estimate_mlb_projection tool with manual inputs.'
-    );
-    return summary;
+  // MLB uses MLB StatsAPI (probable starters + ERA + team OPS/RPG), not ESPN, so
+  // it runs through its own pipeline. It is intentionally limited: StatsAPI does
+  // not expose FIP/xFIP/SIERA/wRC+/bullpen/park/weather, so MLB projections rely
+  // on partial data and the engine's confidence/no-bet logic will (correctly)
+  // decline most games. MLB is analysis + backtesting only — never auto-logged
+  // as a wager. Runs when sport is MLB or ALL.
+  if (sport === 'MLB' || sport === 'ALL') {
+    await runMLBDailyCalc(summary, recordProjections);
+    // When the caller asked only for MLB, we're done.
+    if (sport === 'MLB') {
+      summary.success = true;
+      return summary;
+    }
   }
 
   // Fetch today's games (NHL is included under ALL; ESPN feeds NBA/NFL/NHL).
@@ -612,7 +710,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
 
 export const runDailyCalcToolDefinition = {
   name: 'run_daily_calculations',
-  description: 'Run the daily betting analysis pipeline: fetch today\'s NBA, NFL and NHL games from ESPN, project each one (NBA/NFL moneyline win probability, NHL over/under total), apply Kelly Criterion to NBA/NFL value bets, log positive-edge bets, and record every analyzed game as a backtesting projection. MLB is not yet automated. Returns a summary of analyzed games, value bets, and projections recorded.',
+  description: 'Run the daily betting analysis pipeline: fetch today\'s NBA, NFL and NHL games from ESPN plus MLB games from MLB StatsAPI, project each one (NBA/NFL moneyline win probability, NHL & MLB over/under totals), apply Kelly Criterion to NBA/NFL value bets, log positive-edge bets, and record every analyzed game as a backtesting projection. MLB uses partial data (probable starter ERA + team OPS/RPG; no FIP/bullpen/park/weather) so its projections are low-confidence and usually no-bet by design. Returns a summary of analyzed games, value bets, and projections recorded.',
 };
 
 export const runDailyCalcInputSchema = z.object({

@@ -238,10 +238,19 @@ Sport coverage in the daily pipeline:
   backtesting only — it is not auto-logged as a wager (the bet-logging flow is
   spread/moneyline-shaped). Team-name lookup handles ESPN's abbreviations
   (TB/NJ/SJ/LA) mapping to the CSV forms (TBL/NJD/SJS/LAK).
-- **MLB** — intentionally **not** automated. The MLB engine needs
-  probable-starter, bullpen, park and weather inputs that no team-level stats
-  feed in this repo provides; auto-projecting from team stats alone would be a
-  hollow, misleading number. `run_daily_calculations({ sport: 'MLB' })` returns
-  a clear "not yet supported" message instead. Use `estimate_mlb_projection`
-  with manual inputs for MLB until a starter/bullpen/park/weather data source is
-  wired in — that is the real prerequisite, not more code.
+- **MLB** — totals market, via **MLB StatsAPI** (`utils/mlbDataService.ts`,
+  free/no-auth). Pulls today's schedule + **real probable starters** (with a
+  genuine confirmed flag), starter season ERA/WHIP, and team season OPS + runs/
+  game. Deliberately partial: StatsAPI does **not** expose the FanGraphs metrics
+  the engine prefers (FIP/xFIP/SIERA/wRC+/wOBA), bullpen splits, park factors, or
+  weather, so those inputs are left unset. The engine's data-completeness logic
+  then (correctly) lowers confidence — MLB projections come back low-confidence
+  and, with no book line from StatsAPI, **no-bet** by design. We record them
+  anyway so the backtest log can later reveal whether even this thin signal
+  carries any edge. MLB is analysis + backtesting only, never auto-logged as a
+  wager. The documented upgrade path that raises MLB confidence is a FanGraphs
+  (or similar) data source + a totals line feed — that is the real prerequisite,
+  not more engine code. Parsers are pure and unit-tested against fixtures; the
+  live fetch wrappers are runtime-verified (the build sandbox blocks egress).
+  For richer manual projections, `estimate_mlb_projection` still accepts the full
+  input set (bullpen, park, weather, lineup).
