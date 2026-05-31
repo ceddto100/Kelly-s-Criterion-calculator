@@ -25,6 +25,8 @@ import { handleLogBet } from './betLogging.js';
 import { getNBATeamStats, getNFLTeamStats, clearStatsCache } from '../utils/statsLoader.js';
 import { isDatabaseConnected, ensureDatabaseConnection } from '../config/database.js';
 import { User } from '../models/User.js';
+import { handleRecordProjection } from './projectionLog.js';
+import { evaluateDecision } from '../utils/decision.js';
 
 // ============================================================================
 // CONFIG
@@ -37,6 +39,10 @@ const DEFAULT_AMERICAN_ODDS = -110;
 
 // Implied probability from -110 odds: 110 / (110 + 100) = 52.38%
 const IMPLIED_PROB_AT_MINUS_110 = 52.38;
+
+// Version tag stored with every recorded projection so backtests can compare
+// model iterations head-to-head. Bump when the formulas/config change materially.
+const MODEL_VERSION = 'daily-v1';
 
 // ============================================================================
 // TYPES
@@ -56,6 +62,7 @@ export interface GameCalcResult {
   stakePercentage: number;
   betLogged: boolean;
   betId?: string;
+  projectionRecorded?: boolean;  // Whether a backtesting projection was stored
   skipped?: string;       // Reason if skipped (no stats, no value, etc.)
   error?: string;
 }
@@ -66,6 +73,7 @@ export interface DailyCalcSummary {
   gamesAnalyzed: number;
   gamesSkipped: number;
   betsLogged: number;
+  projectionsRecorded: number;
   highValueBets: GameCalcResult[];
   allResults: GameCalcResult[];
   errors: string[];
@@ -77,6 +85,13 @@ export interface DailyCalcOptions {
   kellyFraction?: number;
   americanOdds?: number;
   logBets?: boolean;
+  /**
+   * Record every analyzed game as a backtesting projection (moneyline market,
+   * home perspective) with its stat snapshot. Independent of logBets: bets are
+   * only the value plays, projections capture the model's opinion on every game.
+   * Defaults to true.
+   */
+  recordProjections?: boolean;
   sport?: 'NBA' | 'NFL' | 'ALL';
 }
 
@@ -109,7 +124,8 @@ async function calcGame(
   kellyFraction: number,
   americanOdds: number,
   userId: string | null,
-  logBets: boolean
+  logBets: boolean,
+  recordProjections: boolean
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (${game.sport})`;
 
@@ -301,6 +317,48 @@ async function calcGame(
     }
   }
 
+  // 5. Record a backtesting projection for EVERY analyzed game (not just value
+  //    bets). The decision layer turns the home win probability into a
+  //    home/away/no-bet lean so the stored record matches how the model would
+  //    advise. The stat snapshot is exactly what fed the projection.
+  let projectionRecorded = false;
+  if (recordProjections) {
+    try {
+      const decision = evaluateDecision({
+        modelProbabilityPct: probability,
+        sideOdds: americanOdds,
+        otherSideOdds: americanOdds,
+        dataCompleteness: 1, // daily-calc stats are complete by construction
+      });
+      const lean = decision.recommendation === 'bet' ? 'home' : 'no-bet';
+
+      await handleRecordProjection({
+        gameDate: new Date().toISOString().split('T')[0],
+        sport: game.sport === 'NBA' ? 'basketball' : 'football',
+        league: game.sport,
+        homeTeam: game.homeTeam,
+        awayTeam: game.awayTeam,
+        market: 'moneyline',
+        bookLine: null,
+        bookOdds: americanOdds,
+        projectedValue: probability,
+        edge: decision.edgePct,
+        lean,
+        confidence: decision.confidence,
+        modelVersion: MODEL_VERSION,
+        statsSnapshot: {
+          home: homeStats,
+          away: awayStats,
+          predictedMargin,
+          venue: 'home',
+        },
+      });
+      projectionRecorded = true;
+    } catch (err) {
+      console.warn(`[DailyCalc] Projection recording failed for ${label}:`, err);
+    }
+  }
+
   return {
     game: label,
     sport: game.sport,
@@ -315,6 +373,7 @@ async function calcGame(
     stakePercentage,
     betLogged,
     betId,
+    projectionRecorded,
   };
 }
 
@@ -328,6 +387,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     kellyFraction = DEFAULT_KELLY_FRACTION,
     americanOdds = DEFAULT_AMERICAN_ODDS,
     logBets = true,
+    recordProjections = true,
     sport = 'ALL',
   } = options;
 
@@ -341,6 +401,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     gamesAnalyzed: 0,
     gamesSkipped: 0,
     betsLogged: 0,
+    projectionsRecorded: 0,
     highValueBets: [],
     allResults: [],
     errors: [],
@@ -386,7 +447,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   for (const game of games) {
     console.log(`[DailyCalc] Processing: ${game.awayTeam} @ ${game.homeTeam} (${game.sport})`);
 
-    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, logBets);
+    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, logBets, recordProjections);
     summary.allResults.push(result);
 
     if (result.skipped) {
@@ -397,6 +458,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
       summary.gamesSkipped++;
     } else {
       summary.gamesAnalyzed++;
+      if (result.projectionRecorded) summary.projectionsRecorded++;
       if (result.hasValue) {
         summary.highValueBets.push(result);
         if (result.betLogged) summary.betsLogged++;
@@ -408,7 +470,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   }
 
   summary.success = true;
-  console.log(`[DailyCalc] Done. ${summary.gamesAnalyzed} analyzed, ${summary.highValueBets.length} value bets, ${summary.betsLogged} logged`);
+  console.log(`[DailyCalc] Done. ${summary.gamesAnalyzed} analyzed, ${summary.highValueBets.length} value bets, ${summary.betsLogged} logged, ${summary.projectionsRecorded} projections recorded`);
 
   return summary;
 }
@@ -442,6 +504,10 @@ export const runDailyCalcInputSchema = z.object({
     .boolean()
     .optional()
     .describe('Whether to log positive-edge bets to MongoDB. Defaults to true.'),
+  recordProjections: z
+    .boolean()
+    .optional()
+    .describe('Whether to record every analyzed game as a backtesting projection. Defaults to true.'),
   sport: z
     .enum(['NBA', 'NFL', 'ALL'])
     .optional()
@@ -456,6 +522,7 @@ export async function handleRunDailyCalc(
     kellyFraction: params.kellyFraction,
     americanOdds: params.americanOdds,
     logBets: params.logBets !== false,
+    recordProjections: params.recordProjections !== false,
     sport: (params.sport || 'ALL') as 'NBA' | 'NFL' | 'ALL',
   });
 }

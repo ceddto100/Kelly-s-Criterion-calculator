@@ -217,3 +217,13 @@ Storing the **stats snapshot + modelVersion at projection time** is what makes
 backtesting honest: we can replay the stored inputs, recompute under new weights
 (in `sportsConfig.ts` / `mlbConfig.ts`), and score against outcomes without
 leaking future data — then compare model versions head-to-head.
+
+### Auto-population via the daily pipeline
+`run_daily_calculations` (`tools/dailyCalc.ts`) now calls `record_projection`
+for **every analyzed NBA/NFL game** (not just value bets), tagged
+`modelVersion: 'daily-v1'`, with the full stat snapshot. The decision layer turns
+each home win probability into a `home`/`no-bet` lean so the stored record
+matches the model's actual advice. This runs on the existing 9:00 AM UTC cron,
+so the backtest log fills itself daily. Toggle with the `recordProjections`
+option (default true). After games finish, call `settle_projection` with the
+final score to grade each one, then `get_backtest_summary` to track calibration.
