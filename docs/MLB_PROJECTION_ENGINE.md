@@ -219,11 +219,29 @@ backtesting honest: we can replay the stored inputs, recompute under new weights
 leaking future data — then compare model versions head-to-head.
 
 ### Auto-population via the daily pipeline
-`run_daily_calculations` (`tools/dailyCalc.ts`) now calls `record_projection`
-for **every analyzed NBA/NFL game** (not just value bets), tagged
-`modelVersion: 'daily-v1'`, with the full stat snapshot. The decision layer turns
-each home win probability into a `home`/`no-bet` lean so the stored record
-matches the model's actual advice. This runs on the existing 9:00 AM UTC cron,
-so the backtest log fills itself daily. Toggle with the `recordProjections`
-option (default true). After games finish, call `settle_projection` with the
-final score to grade each one, then `get_backtest_summary` to track calibration.
+`run_daily_calculations` (`tools/dailyCalc.ts`) calls `record_projection` for
+**every analyzed game** (not just value bets), tagged `modelVersion: 'daily-v1'`,
+with the full stat snapshot. It runs on the existing 9:00 AM UTC cron, so the
+backtest log fills itself daily. Toggle with the `recordProjections` option
+(default true). After games finish, call `settle_projection` with the final
+score to grade each one, then `get_backtest_summary` to track calibration.
+
+Sport coverage in the daily pipeline:
+- **NBA / NFL** — moneyline market. The decision layer turns each home win
+  probability into a `home`/`no-bet` lean; value bets are also Kelly-sized and
+  logged as wagers.
+- **NHL** — totals (over/under) market, via a new NHL stats loader
+  (`getNHLTeamStats`) that reads the seven `nhl_*.csv` files and feeds them
+  straight into the hockey engine. The over/under line comes from ESPN's odds
+  feed (`overUnder`); when present the model leans over/under/no-bet, when absent
+  it still records the projected total as a no-bet. NHL is analysis +
+  backtesting only — it is not auto-logged as a wager (the bet-logging flow is
+  spread/moneyline-shaped). Team-name lookup handles ESPN's abbreviations
+  (TB/NJ/SJ/LA) mapping to the CSV forms (TBL/NJD/SJS/LAK).
+- **MLB** — intentionally **not** automated. The MLB engine needs
+  probable-starter, bullpen, park and weather inputs that no team-level stats
+  feed in this repo provides; auto-projecting from team stats alone would be a
+  hollow, misleading number. `run_daily_calculations({ sport: 'MLB' })` returns
+  a clear "not yet supported" message instead. Use `estimate_mlb_projection`
+  with manual inputs for MLB until a starter/bullpen/park/weather data source is
+  wired in — that is the real prerequisite, not more code.
