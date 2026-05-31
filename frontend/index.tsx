@@ -2902,12 +2902,12 @@ function App() {
           <div className="panel tab-command-center" style={{maxWidth:1100}}>
             <div className="tabs app-tabs" role="tablist">
               {[
-                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
-                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
-                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
-                { key: CONSTANTS.TABS.DAILY_GAMES, label: "Today's Games", blurb: 'Live MLB/NBA/NFL/NHL slate with projections' },
-                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
-                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
+                { key: CONSTANTS.TABS.KELLY, icon: '📈', label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
+                { key: CONSTANTS.TABS.ESTIMATOR, icon: '🎯', label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
+                { key: CONSTANTS.TABS.WALTERS, icon: '🛡️', label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
+                { key: CONSTANTS.TABS.DAILY_GAMES, icon: '⚾', label: "Today's Games", blurb: 'Live MLB/NBA/NFL/NHL slate with projections' },
+                { key: CONSTANTS.TABS.SPORTS_MATCHUP, icon: '🏈', label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
+                { key: CONSTANTS.TABS.BET_HISTORY, icon: '📋', label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -2916,6 +2916,7 @@ function App() {
                   aria-selected={activeTab === tab.key}
                   role="tab"
                 >
+                  <span className="tab-icon" aria-hidden="true">{tab.icon}</span>
                   <span className="tab-title">{tab.label}</span>
                   <small className="tab-blurb">{tab.blurb}</small>
                 </button>

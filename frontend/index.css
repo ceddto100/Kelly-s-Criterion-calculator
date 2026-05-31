@@ -1797,3 +1797,249 @@ button:hover,
   display: grid;
   gap: 1rem;
 }
+
+/* ============================================================= */
+/* BETGISTICS NEON — REFERENCE MATCH (mobile-first, last word)   */
+/* Deep-violet stadium UI: faded football-field watermark,       */
+/* ambient neon glow blobs, and glowing-bordered cards on every  */
+/* page. Mobile is the primary target (100dvh / 100vw fit).      */
+/* ============================================================= */
+
+/* ---- Full-viewport background stack -------------------------- */
+/* NOTE: deliberately NO background on <html>. Leaving html        */
+/* unpainted lets <body>'s gradient propagate to the canvas, which */
+/* paints BEHIND the fixed negative-z layers below (the stadium    */
+/* watermark + glow blobs). Painting the gradient on html instead  */
+/* would cover them.                                               */
+body {
+  /* Violet-forward ambient wash matching the reference screenshot */
+  background:
+    radial-gradient(circle at 12% 6%, rgba(139, 92, 246, 0.30), transparent 42%),
+    radial-gradient(circle at 88% 96%, rgba(56, 189, 248, 0.22), transparent 46%),
+    linear-gradient(180deg, #0a0620 0%, #0b0a22 52%, #05030f 100%) !important;
+  /* Mobile-first: full-bleed width, no side gutters on the body  */
+  padding: 0 0 calc(86px + env(safe-area-inset-bottom, 0px)) 0 !important;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Wrapper that holds the bg layers + the actual page content.    */
+.site-bg {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Faded football-stadium-field watermark — fixed, behind all.    */
+.bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url('/stadium-field.svg') center bottom / cover no-repeat;
+  opacity: 0.14;
+  pointer-events: none;
+  /* Fade the top of the field into the page so it reads as a      */
+  /* watermark rather than a photo.                                */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 100%);
+          mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 100%);
+}
+
+/* Ambient neon glow blobs in the corners (screenshot vibe).      */
+.blob {
+  position: fixed;
+  z-index: -2;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  will-change: transform;
+}
+.blob-a {
+  top: -18%;
+  left: -22%;
+  width: 80vw;
+  height: 80vw;
+  max-width: 560px;
+  max-height: 560px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.55), transparent 70%);
+}
+.blob-b {
+  bottom: -20%;
+  right: -25%;
+  width: 90vw;
+  height: 90vw;
+  max-width: 620px;
+  max-height: 620px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.40), transparent 70%);
+}
+
+/* ---- Page width: snug to the mobile viewport ----------------- */
+.page-wrap {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  max-width: 720px !important;
+  margin: 0 auto;
+  padding:
+    calc(0.85rem + env(safe-area-inset-top, 0px))
+    0.85rem
+    calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  gap: 0.85rem !important;
+}
+
+/* ---- Glowing neon cards on EVERY page ------------------------ */
+/* One treatment, applied to every card/panel container so the    */
+/* whole app shares the reference look.                            */
+.panel,
+.footer-card,
+.doc-panel,
+.results,
+.calculator,
+.calculator-body,
+.walters-panel,
+.breakdown-panel,
+.projection-card,
+.sports-matchup-container,
+.teams-container,
+.bet-history-container,
+[class*='history-item'],
+[class*='stat-card'] {
+  background:
+    linear-gradient(155deg, rgba(26, 20, 56, 0.92), rgba(10, 8, 26, 0.82)) !important;
+  border: 1px solid rgba(139, 92, 246, 0.38) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(125, 211, 252, 0.08),
+    0 0 26px rgba(139, 92, 246, 0.18),
+    0 18px 48px rgba(2, 2, 16, 0.55) !important;
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+
+/* ---- Feature tabs as a glowing card grid (the screenshot) ---- */
+.app-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.tab-card {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center;
+  text-align: center !important;
+  gap: 0.4rem;
+  min-height: 104px;
+  padding: 0.9rem 0.7rem !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(125, 211, 252, 0.30) !important;
+  background:
+    linear-gradient(155deg, rgba(30, 23, 64, 0.88), rgba(12, 10, 30, 0.92)) !important;
+  color: #e6ecff !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 18px rgba(99, 102, 241, 0.18) !important;
+  transition: transform 0.18s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.tab-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 211, 252, 0.65) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 28px rgba(56, 189, 248, 0.38) !important;
+}
+
+.tab-card.active {
+  border-color: rgba(165, 220, 255, 0.9) !important;
+  background:
+    linear-gradient(155deg, rgba(56, 189, 248, 0.24), rgba(139, 92, 246, 0.34)) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(191, 219, 254, 0.45),
+    0 0 30px rgba(56, 189, 248, 0.48),
+    0 0 64px rgba(139, 92, 246, 0.28) !important;
+}
+
+.tab-icon {
+  font-size: 1.7rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.55));
+}
+
+.tab-card .tab-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: inherit;
+}
+
+/* ---- Neon section accents ------------------------------------ */
+.eyebrow {
+  color: #67e8f9 !important;
+  text-shadow: 0 0 16px rgba(103, 232, 249, 0.45);
+}
+
+.title,
+.title--compact,
+.app-shell-header h1 {
+  background: linear-gradient(135deg, #7dd3fc 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---- Mobile: lock the layout to the viewport ----------------- */
+@media (max-width: 700px) {
+  .page-wrap {
+    padding:
+      calc(0.7rem + env(safe-area-inset-top, 0px))
+      0.7rem
+      calc(92px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 0.7rem !important;
+  }
+
+  /* Header collapses to a single stacked column, full width.     */
+  .app-shell-header {
+    grid-template-columns: 1fr !important;
+    text-align: left;
+  }
+
+  /* Three glowing tiles across, titles only (blurb already hidden) */
+  .app-tabs {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.55rem !important;
+  }
+  .tab-card {
+    min-height: 92px;
+    padding: 0.7rem 0.4rem !important;
+  }
+  .tab-card .tab-title {
+    font-size: 0.72rem;
+  }
+  .tab-icon {
+    font-size: 1.5rem;
+  }
+
+  /* Slightly tighter cards so content fits the narrow viewport.  */
+  .panel,
+  .results,
+  .calculator,
+  .walters-panel {
+    border-radius: 16px !important;
+    padding: 0.9rem !important;
+  }
+}
+
+/* Very small phones: two tiles across stay legible.              */
+@media (max-width: 380px) {
+  .app-tabs {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
