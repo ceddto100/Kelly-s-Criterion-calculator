@@ -29,6 +29,7 @@ const MLBEstimator = lazy(() => import("./forms/MLBEstimator"));
 const DecisionPanel = lazy(() => import("./components/DecisionPanel"));
 const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
+const DailyGamesView = lazy(() => import("./components/DailyGamesView"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
@@ -926,6 +927,7 @@ const CONSTANTS = {
     KELLY: 'kelly',
     ESTIMATOR: 'estimator',
     WALTERS: 'walters',
+    DAILY_GAMES: 'daily_games',  // Live "Today's Games" slate + projections
     SPORTS_MATCHUP: 'sports_matchup',  // Consolidated NBA/NFL/NHL matchup
     BET_HISTORY: 'bet_history',  // Bet tracking
     STATS: 'stats',  // NBA/NFL/NHL statistics
@@ -2778,6 +2780,8 @@ function App() {
         return SEO_CONFIG.kelly;
       case CONSTANTS.TABS.ESTIMATOR:
         return SEO_CONFIG.estimator;
+      case CONSTANTS.TABS.DAILY_GAMES:
+        return SEO_CONFIG.sports_matchup;
       case CONSTANTS.TABS.SPORTS_MATCHUP:
         return SEO_CONFIG.sports_matchup;
       case CONSTANTS.TABS.BET_HISTORY:
@@ -2901,6 +2905,7 @@ function App() {
                 { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
                 { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
                 { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
+                { key: CONSTANTS.TABS.DAILY_GAMES, label: "Today's Games", blurb: 'Live MLB/NBA/NFL/NHL slate with projections' },
                 { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
                 { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
               ].map(tab => (
@@ -2965,6 +2970,11 @@ function App() {
                 <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
               </Suspense>
             </div>
+          )}
+          {activeTab === CONSTANTS.TABS.DAILY_GAMES && (
+            <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading today's games...</div>}>
+              <DailyGamesView />
+            </Suspense>
           )}
           {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
             <div className="panel">
