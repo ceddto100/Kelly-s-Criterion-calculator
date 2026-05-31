@@ -32,6 +32,7 @@ export interface DailyGame {
   status: 'scheduled' | 'in_progress' | 'final' | 'postponed';
   homeScore?: number;
   awayScore?: number;
+  overUnder?: number;      // sportsbook total from ESPN odds, when available
 }
 
 export interface TodaysGamesResult {
@@ -108,6 +109,10 @@ function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): Daily
     const homeScore = home.score !== undefined ? parseFloat(home.score) : undefined;
     const awayScore = away.score !== undefined ? parseFloat(away.score) : undefined;
 
+    // ESPN exposes the consensus total under competition.odds[0].overUnder.
+    const rawOU = competition.odds?.[0]?.overUnder;
+    const overUnder = rawOU !== undefined && rawOU !== null ? parseFloat(rawOU) : undefined;
+
     games.push({
       gameId: event.id || competition.id,
       sport,
@@ -119,6 +124,7 @@ function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): Daily
       status: mapStatus(statusType, statusDetail),
       homeScore: isNaN(homeScore as number) ? undefined : homeScore,
       awayScore: isNaN(awayScore as number) ? undefined : awayScore,
+      overUnder: overUnder !== undefined && !isNaN(overUnder) ? overUnder : undefined,
     });
   }
 

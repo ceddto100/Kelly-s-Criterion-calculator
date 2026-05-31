@@ -105,6 +105,17 @@ import {
   handleMLBProjection
 } from './tools/mlbProjection.js';
 import {
+  recordProjectionToolDefinition,
+  recordProjectionInputSchema,
+  handleRecordProjection,
+  settleProjectionToolDefinition,
+  settleProjectionInputSchema,
+  handleSettleProjection,
+  backtestSummaryToolDefinition,
+  backtestSummaryInputSchema,
+  handleBacktestSummary
+} from './tools/projectionLog.js';
+import {
   getTeamStatsToolDefinition,
   getMatchupStatsToolDefinition,
   getTeamStatsInputSchema,
@@ -723,6 +734,67 @@ function createMcpServer(): McpServer {
   );
 
   // ===========================================================================
+  // BACKTESTING TOOLS (record / settle / summarize projections)
+  // ===========================================================================
+
+  server.tool(
+    recordProjectionToolDefinition.name,
+    recordProjectionToolDefinition.description,
+    recordProjectionInputSchema.shape,
+    async (params) => {
+      log('Tool called:', recordProjectionToolDefinition.name, params);
+      try {
+        const result = await handleRecordProjection(params);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    settleProjectionToolDefinition.name,
+    settleProjectionToolDefinition.description,
+    settleProjectionInputSchema.shape,
+    async (params) => {
+      log('Tool called:', settleProjectionToolDefinition.name, params);
+      try {
+        const result = await handleSettleProjection(params);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    backtestSummaryToolDefinition.name,
+    backtestSummaryToolDefinition.description,
+    backtestSummaryInputSchema.shape,
+    async (params) => {
+      log('Tool called:', backtestSummaryToolDefinition.name, params);
+      try {
+        const result = await handleBacktestSummary(params);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ success: false, error: message }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ===========================================================================
   // TEAM STATS TOOLS
   // ===========================================================================
 
@@ -1040,6 +1112,9 @@ async function start() {
     console.log('  - estimate_basketball_probability');
     console.log('  - estimate_hockey_probability');
     console.log('  - estimate_mlb_projection');
+    console.log('  - record_projection (backtesting)');
+    console.log('  - settle_projection (backtesting)');
+    console.log('  - get_backtest_summary (backtesting)');
     console.log('  - ai_estimate_probability');
     console.log('  - ai_analyze_matchup');
     console.log('  - log_bet');

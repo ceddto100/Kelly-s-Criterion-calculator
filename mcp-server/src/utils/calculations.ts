@@ -3,6 +3,24 @@
  * Includes Kelly Criterion, probability estimation, and odds conversions
  */
 
+import {
+  FOOTBALL_CONFIG,
+  BASKETBALL_CONFIG,
+  type FootballLeague,
+  type BasketballLeague,
+} from '../config/sportsConfig.js';
+
+/**
+ * Recent-form blend used by the spread models. When a recent rate is supplied,
+ * blend it with the season rate per the league decay rate
+ * (effective = decay*season + (1-decay)*recent). Falls back to season-only when
+ * no recent value is given, so default behavior is unchanged.
+ */
+function blendRecent(season: number, recent: number | undefined, decay: number): number {
+  if (recent === undefined || !isFinite(recent)) return season;
+  return decay * season + (1 - decay) * recent;
+}
+
 // ============================================================================
 // ODDS CONVERSIONS
 // ============================================================================
@@ -215,35 +233,38 @@ export function coverProbability(predictedMargin: number, spread: number, sigma:
 
 // ============================================================================
 // SPORT-SPECIFIC CONSTANTS (WALTERS PROTOCOL)
+// ----------------------------------------------------------------------------
+// Sourced from config/sportsConfig.ts (single source of truth for tuning &
+// backtesting). These compatibility exports preserve the existing API surface.
 // ============================================================================
 
 export const NFL_CONSTANTS = {
-  sigma: 13.5,           // Standard deviation
-  homeFieldAdvantage: 2.5,
-  decayRate: 0.9,        // 90% historical, 10% recent
-  qbValue: 7.0           // Points value of starting QB
+  sigma: FOOTBALL_CONFIG.NFL.sigma,
+  homeFieldAdvantage: FOOTBALL_CONFIG.NFL.homeFieldAdvantage,
+  decayRate: FOOTBALL_CONFIG.NFL.decayRate,
+  qbValue: FOOTBALL_CONFIG.NFL.qbValue,
 };
 
 export const NBA_CONSTANTS = {
-  sigma: 12.0,           // Standard deviation (updated for modern 3-point era variance)
-  homeCourtAdvantage: 1.5,
-  decayRate: 0.85,       // 85% historical, 15% recent (faster truth convergence)
+  sigma: BASKETBALL_CONFIG.NBA.sigma,
+  homeCourtAdvantage: BASKETBALL_CONFIG.NBA.homeCourtAdvantage,
+  decayRate: BASKETBALL_CONFIG.NBA.decayRate,
   backToBackPenalty: 2.0,
-  superstarValue: 4.5,   // Points value of superstar player
-  leagueAvgPace: 100,    // League average possessions per game
-  fgPctPointsMultiplier: 2.0  // Each 1% FG% diff ≈ 2 points (85 FGA * 0.01 * 2 + free throw variance)
+  superstarValue: 4.5,
+  leagueAvgPace: BASKETBALL_CONFIG.NBA.leagueAvgPace,
+  fgPctPointsMultiplier: BASKETBALL_CONFIG.NBA.scaling.fgPctPointsMultiplier,
 };
 
 export const CFB_CONSTANTS = {
-  sigma: 16.0,           // Higher variance in college
-  homeFieldAdvantage: 3.0,
-  decayRate: 0.85
+  sigma: FOOTBALL_CONFIG.CFB.sigma,
+  homeFieldAdvantage: FOOTBALL_CONFIG.CFB.homeFieldAdvantage,
+  decayRate: FOOTBALL_CONFIG.CFB.decayRate,
 };
 
 export const CBB_CONSTANTS = {
-  sigma: 10.5,
-  homeCourtAdvantage: 3.5,
-  decayRate: 0.85
+  sigma: BASKETBALL_CONFIG.CBB.sigma,
+  homeCourtAdvantage: BASKETBALL_CONFIG.CBB.homeCourtAdvantage,
+  decayRate: BASKETBALL_CONFIG.CBB.decayRate,
 };
 
 // ============================================================================
@@ -261,6 +282,16 @@ export interface FootballStats {
   opponentDefYards?: number;
   teamTurnoverDiff?: number;  // Turnover differential
   opponentTurnoverDiff?: number;
+  // Recent-form rates (last few games). When provided, blended with season
+  // rates via the league decay rate. Optional — omit for season-only behavior.
+  teamRecentPPG?: number;
+  teamRecentAllowed?: number;
+  opponentRecentPPG?: number;
+  opponentRecentAllowed?: number;
+  // Net starting-QB advantage for the team in points (positive = team's QB edge,
+  // negative = opponent's). Clamped to ±qbValue. Use to reflect a backup/injured
+  // starter. Optional — omit for no QB adjustment.
+  qbEdge?: number;
 }
 
 export interface BasketballStats {
@@ -280,30 +311,58 @@ export interface BasketballStats {
   opponent3PRate?: number;
   team3PPct?: number;       // 3-point percentage (e.g., 36.5 for 36.5%)
   opponent3PPct?: number;
+  // Recent-form rates. When provided, blended with season rates via the league
+  // decay rate. Optional — omit for season-only behavior.
+  teamRecentPPG?: number;
+  teamRecentAllowed?: number;
+  opponentRecentPPG?: number;
+  opponentRecentAllowed?: number;
 }
 
 /**
  * Calculate predicted margin for football games
- * Uses weighted components: points (40%), yards (25%), turnovers (20%)
+ * Uses weighted components from FOOTBALL_CONFIG (points / yards / turnovers),
+ * an optional recent-form blend (decay rate), and an optional starting-QB edge.
  */
-export function predictedMarginFootball(stats: FootballStats): number {
-  const teamNetPoints = stats.teamPPG - stats.teamAllowed;
-  const opponentNetPoints = stats.opponentPPG - stats.opponentAllowed;
-  const pointsComponent = (teamNetPoints - opponentNetPoints) * 0.4;
+export function predictedMarginFootball(
+  stats: FootballStats,
+  league: FootballLeague = 'NFL'
+): number {
+  const cfg = FOOTBALL_CONFIG[league];
+  const { weights, scaling, decayRate, qbValue } = cfg;
+
+  const teamPPG = blendRecent(stats.teamPPG, stats.teamRecentPPG, decayRate);
+  const teamAllowed = blendRecent(stats.teamAllowed, stats.teamRecentAllowed, decayRate);
+  const oppPPG = blendRecent(stats.opponentPPG, stats.opponentRecentPPG, decayRate);
+  const oppAllowed = blendRecent(stats.opponentAllowed, stats.opponentRecentAllowed, decayRate);
+
+  const teamNetPoints = teamPPG - teamAllowed;
+  const opponentNetPoints = oppPPG - oppAllowed;
+  const pointsComponent = (teamNetPoints - opponentNetPoints) * weights.points;
 
   let yardsComponent = 0;
   if (stats.teamOffYards && stats.teamDefYards && stats.opponentOffYards && stats.opponentDefYards) {
     const teamNetYards = stats.teamOffYards - stats.teamDefYards;
     const opponentNetYards = stats.opponentOffYards - stats.opponentDefYards;
-    yardsComponent = ((teamNetYards - opponentNetYards) / 25) * 0.25;
+    yardsComponent = ((teamNetYards - opponentNetYards) / scaling.yardsPerPoint) * weights.yards;
   }
 
   let turnoverComponent = 0;
   if (stats.teamTurnoverDiff !== undefined && stats.opponentTurnoverDiff !== undefined) {
-    turnoverComponent = (stats.teamTurnoverDiff - stats.opponentTurnoverDiff) * 4 * 0.5 * 0.2;
+    const clampTO = (v: number) => Math.max(-scaling.turnoverClamp, Math.min(scaling.turnoverClamp, v));
+    const teamTO = clampTO(stats.teamTurnoverDiff);
+    const oppTO = clampTO(stats.opponentTurnoverDiff);
+    turnoverComponent =
+      (teamTO - oppTO) * scaling.pointsPerTurnover * scaling.turnoverRegression * weights.turnovers;
   }
 
-  return pointsComponent + yardsComponent + turnoverComponent;
+  // Starting-QB edge: optional, clamped to ±qbValue so it can never dominate.
+  let qbComponent = 0;
+  if (stats.qbEdge !== undefined && isFinite(stats.qbEdge)) {
+    qbComponent = Math.max(-qbValue, Math.min(qbValue, stats.qbEdge));
+  }
+
+  return pointsComponent + yardsComponent + turnoverComponent + qbComponent;
 }
 
 /**
@@ -322,46 +381,49 @@ export function predictedMarginFootball(stats: FootballStats): number {
  * scaling the margin for games expected to have more or fewer possessions
  * than the league average (~100 per game).
  */
-export function predictedMarginBasketball(stats: BasketballStats): number {
-  const ppgComponent = (stats.teamPPG - stats.opponentPPG) * 0.15;
-  // Lower points allowed is better, so invert the differential.
-  const pointsAllowedComponent = (stats.opponentAllowed - stats.teamAllowed) * 0.15;
+export function predictedMarginBasketball(
+  stats: BasketballStats,
+  league: BasketballLeague = 'NBA'
+): number {
+  const cfg = BASKETBALL_CONFIG[league];
+  const { weights, scaling, decayRate, leagueAvgPace } = cfg;
 
-  // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
-  // (NBA teams avg ~85 FGA, so 0.01 * 85 = 0.85 extra makes * ~2.1 pts/make including and-1s)
+  const teamPPG = blendRecent(stats.teamPPG, stats.teamRecentPPG, decayRate);
+  const teamAllowed = blendRecent(stats.teamAllowed, stats.teamRecentAllowed, decayRate);
+  const oppPPG = blendRecent(stats.opponentPPG, stats.opponentRecentPPG, decayRate);
+  const oppAllowed = blendRecent(stats.opponentAllowed, stats.opponentRecentAllowed, decayRate);
+
+  const ppgComponent = (teamPPG - oppPPG) * weights.ppgFor;
+  // Lower points allowed is better, so invert the differential.
+  const pointsAllowedComponent = (oppAllowed - teamAllowed) * weights.pointsAllowed;
+
   let fgComponent = 0;
   if (stats.teamFGPct !== undefined && stats.opponentFGPct !== undefined) {
-    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * NBA_CONSTANTS.fgPctPointsMultiplier * 0.25;
+    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * scaling.fgPctPointsMultiplier * weights.fgPct;
   }
 
-  // 3-point shooting split into accuracy and volume components
   let threePointPctComponent = 0;
   let threePointRateComponent = 0;
   if (stats.team3PPct !== undefined && stats.opponent3PPct !== undefined) {
-    // 3P% differential: each 1% diff in 3P% ≈ 1 point (avg ~35 3PA * 0.01 * 3 pts = 1.05)
-    const pctDiff = (stats.team3PPct - stats.opponent3PPct) * 1.0;
-    threePointPctComponent = pctDiff * 0.08;
+    const pctDiff = (stats.team3PPct - stats.opponent3PPct) * scaling.threePctMultiplier;
+    threePointPctComponent = pctDiff * weights.threePct;
 
-    // 3PA rate differential: teams shooting more 3s at league-avg 36% get ~1.08 pts per % rate
     if (stats.team3PRate !== undefined && stats.opponent3PRate !== undefined) {
-      // Convert rate diff to approximate point impact
-      // e.g., 0.05 rate diff * 85 FGA * 0.36 avg 3P% * 3 pts = ~4.6 pts, but weighted down
-      const rateDiff = (stats.team3PRate - stats.opponent3PRate) * 15;
-      threePointRateComponent = rateDiff * 0.07;
+      const rateDiff = (stats.team3PRate - stats.opponent3PRate) * scaling.threeRateMultiplier;
+      threePointRateComponent = rateDiff * weights.threeRate;
     }
   }
 
-  // Rebounds: each rebound margin difference ≈ 0.5 second-chance points
   let reboundComponent = 0;
   if (stats.teamReboundMargin !== undefined && stats.opponentReboundMargin !== undefined) {
-    reboundComponent = (stats.teamReboundMargin - stats.opponentReboundMargin) * 0.5 * 0.17;
+    reboundComponent =
+      (stats.teamReboundMargin - stats.opponentReboundMargin) * scaling.reboundPointValue * weights.rebounds;
   }
 
-  // Turnovers: positive margin = team forces more turnovers than it commits (good)
-  // Each turnover differential ≈ 1 point of margin
   let turnoverComponent = 0;
   if (stats.teamTurnoverMargin !== undefined && stats.opponentTurnoverMargin !== undefined) {
-    turnoverComponent = (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * 1.0 * 0.13;
+    turnoverComponent =
+      (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * scaling.turnoverPointValue * weights.turnovers;
   }
 
   let margin =
@@ -373,13 +435,11 @@ export function predictedMarginBasketball(stats: BasketballStats): number {
     threePointPctComponent +
     threePointRateComponent;
 
-  // Pace multiplier: scale the margin for expected game tempo
-  // A game between two fast teams (105 pace each) amplifies margins;
-  // a game between two slow teams (95 pace each) compresses them
+  // Pace multiplier: scale the margin for expected game tempo using the
+  // league-appropriate average (NBA ~100, CBB ~68 — see sportsConfig).
   if (stats.teamPace !== undefined && stats.opponentPace !== undefined) {
     const expectedPace = (stats.teamPace + stats.opponentPace) / 2;
-    const paceFactor = expectedPace / NBA_CONSTANTS.leagueAvgPace;
-    margin *= paceFactor;
+    margin *= expectedPace / leagueAvgPace;
   }
 
   return margin;
@@ -395,7 +455,7 @@ export function estimateFootballProbability(
   isNFL: boolean = true
 ): ProbabilityResult {
   const constants = isNFL ? NFL_CONSTANTS : CFB_CONSTANTS;
-  let predictedMargin = predictedMarginFootball(stats);
+  let predictedMargin = predictedMarginFootball(stats, isNFL ? 'NFL' : 'CFB');
 
   // Apply home field advantage
   if (venue === 'home') {
@@ -425,7 +485,7 @@ export function estimateBasketballProbability(
   isNBA: boolean = true
 ): ProbabilityResult {
   const constants = isNBA ? NBA_CONSTANTS : CBB_CONSTANTS;
-  let predictedMargin = predictedMarginBasketball(stats);
+  let predictedMargin = predictedMarginBasketball(stats, isNBA ? 'NBA' : 'CBB');
 
   // Apply home court advantage
   if (venue === 'home') {

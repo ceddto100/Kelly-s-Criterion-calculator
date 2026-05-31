@@ -42,6 +42,7 @@
 
 import { z } from 'zod';
 import { normCdf } from '../utils/calculations.js';
+import { evaluateDecision, type DecisionResult } from '../utils/decision.js';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -192,7 +193,9 @@ export const hockeyProbabilityInputSchema = z.object({
   homeTeam: nhlTeamStatsSchema.describe('Statistics for the home team'),
   awayTeam: nhlTeamStatsSchema.describe('Statistics for the away team'),
   line: z.number().describe('The over/under total goals line (e.g., 6.5)'),
-  betType: z.enum(['over', 'under']).describe('Whether betting on over or under the line')
+  betType: z.enum(['over', 'under']).describe('Whether betting on over or under the line'),
+  betOdds: z.number().optional().describe('American odds for the chosen over/under side (default -110). Used to compute edge vs the fair line.'),
+  oppOdds: z.number().optional().describe('American odds for the opposite over/under side (default -110). Used to de-vig.')
 });
 
 export type HockeyProbabilityInput = z.infer<typeof hockeyProbabilityInputSchema>;
@@ -280,7 +283,29 @@ export interface HockeyProbabilityOutput {
     standardDeviation: number;
     zScore: number;
   };
+  decision: DecisionResult;
+  dataCompleteness: number;
+  riskFactors: string[];
   interpretation: string;
+  disclaimer: string;
+}
+
+const HOCKEY_DISCLAIMER =
+  'Model projection only — a possible edge based on formula output, not a guaranteed result. ' +
+  'No bet is risk-free. Use bankroll discipline.';
+
+/** Risk factors for an NHL totals projection. */
+function buildHockeyRiskFactors(projectedTotal: number, line: number, probability: number): string[] {
+  const risks: string[] = [];
+  if (Math.abs(probability - 50) < 5) {
+    risks.push('Projection is near a coin flip — small input changes can flip the lean.');
+  }
+  if (Math.abs(projectedTotal - line) < 0.25) {
+    risks.push('Projected total sits almost exactly on the line — little margin for an edge.');
+  }
+  risks.push('Goalie confirmation matters: a backup/rookie start or a hot/cold goalie can swing the total.');
+  risks.push('Model uses season-long rates; it does not see late scratches, back-to-backs, or empty-net variance.');
+  return risks;
 }
 
 function getHockeyInterpretation(probability: number, betType: 'over' | 'under', line: number, projectedTotal: number): string {
@@ -329,6 +354,18 @@ export async function handleHockeyProbability(input: unknown): Promise<HockeyPro
   // Return the probability for the selected bet type
   const probability = parsed.betType === 'over' ? result.overProbability : result.underProbability;
 
+  // The hockey tool requires all 7 stats per team, so inputs are always complete.
+  const dataCompleteness = 1;
+
+  const decision = evaluateDecision({
+    modelProbabilityPct: probability,
+    sideOdds: parsed.betOdds,
+    otherSideOdds: parsed.oppOdds,
+    dataCompleteness
+  });
+
+  const riskFactors = buildHockeyRiskFactors(result.projectedTotal, parsed.line, probability);
+
   return {
     success: true,
     sport: 'hockey',
@@ -353,6 +390,10 @@ export async function handleHockeyProbability(input: unknown): Promise<HockeyPro
       standardDeviation: result.standardDeviation,
       zScore: result.zScore
     },
-    interpretation: getHockeyInterpretation(probability, parsed.betType, parsed.line, result.projectedTotal)
+    decision,
+    dataCompleteness,
+    riskFactors,
+    interpretation: getHockeyInterpretation(probability, parsed.betType, parsed.line, result.projectedTotal),
+    disclaimer: HOCKEY_DISCLAIMER
   };
 }

@@ -26,8 +26,10 @@ const FootballEstimator = lazy(() => import("./forms/FootballEstimator"));
 const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
 const MLBEstimator = lazy(() => import("./forms/MLBEstimator"));
+const DecisionPanel = lazy(() => import("./components/DecisionPanel"));
 const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
+const DailyGamesView = lazy(() => import("./components/DailyGamesView"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
@@ -44,6 +46,7 @@ import { StatsPage } from './components/StatsPage';
 
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
+import { evaluateDecision } from './utils/decision';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -84,6 +87,13 @@ const THEME_OPTIONS = [
     accent: '#FFD700',
     preview: 'linear-gradient(135deg, #DAA520, #FFD700, #FFA500)',
   },
+  {
+    key: 'matrix',
+    label: 'Matrix Black',
+    description: 'Pure black with neon green glow',
+    accent: '#39ff14',
+    preview: 'linear-gradient(135deg, #00ff66, #39ff14, #aaff00)',
+  },
 ] as const;
 
 type ThemeKey = typeof THEME_OPTIONS[number]['key'];
@@ -92,36 +102,14 @@ type ThemeKey = typeof THEME_OPTIONS[number]['key'];
 const GlobalStyle = () => (
   <style>{`
     /* Additional glassmorphism styles for components not in main CSS */
+    /* NOTE: .site-bg / .bg-overlay / .blob are owned by index.css (the
+       stadium watermark + ambient glow layers). They were previously
+       redefined here, and because this injected <style> lands later in the
+       DOM than the <head> stylesheet it silently overrode the real design
+       AND re-introduced a scroll-repaint glitch. Keep only scroll behavior
+       here; let index.css drive the actual background. */
     .site-bg {
-      position: relative;
-      min-height: 100vh;
-      width: 100%;
-      max-width: 100vw;
-      background: #050510;
       -webkit-overflow-scrolling: touch;
-    }
-
-    .site-bg img.bg-fallback {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0.15;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        90deg,
-        rgba(6, 182, 212, 0.05),
-        rgba(139, 92, 246, 0.05)
-      );
-      z-index: 0;
-      pointer-events: none;
     }
 
     .page-wrap {
@@ -167,8 +155,6 @@ const GlobalStyle = () => (
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
       margin: 0 auto 1rem;
       max-width: 900px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
     }
 
     .panel-strong {
@@ -197,8 +183,6 @@ const GlobalStyle = () => (
       border-radius: 20px;
       padding: 1rem 1.5rem;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       max-width: 820px;
       width: 100%;
     }
@@ -924,6 +908,7 @@ const CONSTANTS = {
     KELLY: 'kelly',
     ESTIMATOR: 'estimator',
     WALTERS: 'walters',
+    DAILY_GAMES: 'daily_games',  // Live "Today's Games" slate + projections
     SPORTS_MATCHUP: 'sports_matchup',  // Consolidated NBA/NFL/NHL matchup
     BET_HISTORY: 'bet_history',  // Bet tracking
     STATS: 'stats',  // NBA/NFL/NHL statistics
@@ -1441,6 +1426,35 @@ function ProbabilityEstimator({
     return `${predictedSpread > 0 ? '+' : ''}${predictedSpread.toFixed(1)}`;
   }, [expectedDiff]);
 
+  // Shared decision layer: turn the model probability into a disciplined
+  // recommendation (edge vs the standard -110 fair line, bet/pass/no-bet,
+  // confidence). Mirrors the backend so every sport reads consistently.
+  const decision = useMemo(() => {
+    if (calculatedProb === null) return null;
+    // Data completeness from optional stat coverage for the active sport.
+    const current = activeSport === CONSTANTS.SPORTS.HOCKEY
+      ? hockeyStats
+      : activeSport === CONSTANTS.SPORTS.FOOTBALL
+        ? footballStats
+        : basketballStats;
+    const statEntries = Object.entries(current).filter(([k]) => k !== 'teamAName' && k !== 'teamBName');
+    const filled = statEntries.filter(([, v]) => v !== '' && v !== undefined).length;
+    const dataCompleteness = statEntries.length > 0 ? filled / statEntries.length : 1;
+    return evaluateDecision({ modelProbabilityPct: calculatedProb, dataCompleteness });
+  }, [calculatedProb, activeSport, footballStats, basketballStats, hockeyStats]);
+
+  const decisionRiskFactors = useMemo(() => {
+    const risks: string[] = [];
+    if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
+      risks.push('Goalie confirmation matters: a backup start or hot/cold goalie can swing the total.');
+    }
+    if (calculatedProb !== null && Math.abs(calculatedProb - 50) < 5) {
+      risks.push('Projection is near a coin flip — small input changes can flip the lean.');
+    }
+    risks.push('Model uses season-long team rates; it does not account for injuries, rest, weather, or late line moves.');
+    return risks;
+  }, [activeSport, calculatedProb]);
+
   // UPDATED: Store matchup data when applying to Kelly
   const handleApplyAndSwitch = (prob: number) => {
     setProbability(prob.toFixed(2));
@@ -1828,11 +1842,19 @@ function ProbabilityEstimator({
               </div>
             )}
           </div>
+          {decision && (
+            <Suspense fallback={null}>
+              <DecisionPanel decision={decision} riskFactors={decisionRiskFactors} />
+            </Suspense>
+          )}
           <div style={{marginTop:'.6rem'}}>
             <button className="btn-primary" onClick={()=>handleApplyAndSwitch(calculatedProb!)}>
               Use in Kelly Calculator →
             </button>
           </div>
+          <p style={{marginTop:'0.75rem', fontSize:'0.7rem', color:'rgba(255,255,255,0.4)', lineHeight:1.5}}>
+            Model projection only — a possible edge based on formula output, not a guaranteed result. No bet is risk-free. Use bankroll discipline.
+          </p>
         </div>
       )}
       </>)}
@@ -2739,6 +2761,8 @@ function App() {
         return SEO_CONFIG.kelly;
       case CONSTANTS.TABS.ESTIMATOR:
         return SEO_CONFIG.estimator;
+      case CONSTANTS.TABS.DAILY_GAMES:
+        return SEO_CONFIG.sports_matchup;
       case CONSTANTS.TABS.SPORTS_MATCHUP:
         return SEO_CONFIG.sports_matchup;
       case CONSTANTS.TABS.BET_HISTORY:
@@ -2859,11 +2883,12 @@ function App() {
           <div className="panel tab-command-center" style={{maxWidth:1100}}>
             <div className="tabs app-tabs" role="tablist">
               {[
-                { key: CONSTANTS.TABS.KELLY, label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
-                { key: CONSTANTS.TABS.ESTIMATOR, label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
-                { key: CONSTANTS.TABS.WALTERS, label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
-                { key: CONSTANTS.TABS.SPORTS_MATCHUP, label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
-                { key: CONSTANTS.TABS.BET_HISTORY, label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
+                { key: CONSTANTS.TABS.KELLY, icon: '📈', label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
+                { key: CONSTANTS.TABS.ESTIMATOR, icon: '🎯', label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
+                { key: CONSTANTS.TABS.WALTERS, icon: '🛡️', label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
+                { key: CONSTANTS.TABS.DAILY_GAMES, icon: '⚾', label: "Today's Games", blurb: 'Live MLB/NBA/NFL/NHL slate with projections' },
+                { key: CONSTANTS.TABS.SPORTS_MATCHUP, icon: '🏈', label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
+                { key: CONSTANTS.TABS.BET_HISTORY, icon: '📋', label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
               ].map(tab => (
                 <button
                   key={tab.key}
@@ -2872,6 +2897,7 @@ function App() {
                   aria-selected={activeTab === tab.key}
                   role="tab"
                 >
+                  <span className="tab-icon" aria-hidden="true">{tab.icon}</span>
                   <span className="tab-title">{tab.label}</span>
                   <small className="tab-blurb">{tab.blurb}</small>
                 </button>
@@ -2926,6 +2952,11 @@ function App() {
                 <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
               </Suspense>
             </div>
+          )}
+          {activeTab === CONSTANTS.TABS.DAILY_GAMES && (
+            <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading today's games...</div>}>
+              <DailyGamesView />
+            </Suspense>
           )}
           {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
             <div className="panel">

@@ -563,6 +563,26 @@ app.get('/api/matchup', asyncHandler(matchup));
 // Get AI-powered matchup analysis using Groq
 app.get('/api/analyze', asyncHandler(analyzeMatchupRoute));
 
+// ==================== DAILY GAMES ROUTES ====================
+
+// Today's games + betting lines for NBA/NFL/NHL/MLB (or ?sport=MLB) from ESPN.
+app.get('/api/games/daily', asyncHandler(async (req, res) => {
+  const sport = (req.query.sport || 'ALL').toString().toUpperCase();
+  const allowed = ['NBA', 'NFL', 'NHL', 'MLB', 'ALL'];
+  if (!allowed.includes(sport)) {
+    return res.status(400).json({ success: false, error: `Invalid sport: ${sport}` });
+  }
+  const data = await fetchDailyGames(sport);
+  res.json({ success: true, ...data });
+}));
+
+// Today's MLB games as ready-to-project inputs (StatsAPI starters/stats + ESPN
+// totals). The browser feeds each `input` straight into projectMLBGame().
+app.get('/api/mlb/daily', asyncHandler(async (req, res) => {
+  const data = await buildDailyMLBInputs();
+  res.json({ success: true, ...data });
+}));
+
 // Health check for sports API
 app.get('/api/sports/health', asyncHandler(async (req, res) => {
   const results = {
