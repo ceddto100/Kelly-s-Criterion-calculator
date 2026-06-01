@@ -1864,7 +1864,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: url('/stadium-field.svg') center bottom / cover no-repeat;
+  background: url('/Betgistics_baseball.png') center center / cover no-repeat;
   opacity: 0.14;
   pointer-events: none;
   /* Promote to its own compositor layer so it paints once and is not
