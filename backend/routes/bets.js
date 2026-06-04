@@ -316,6 +316,16 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
+// DELETE /api/bets - Delete all bets for the user
+router.delete('/', asyncHandler(async (req, res) => {
+  const result = await BetLog.deleteMany({ userId: getUserId(req) });
+
+  res.json({
+    success: true,
+    message: `Deleted ${result.deletedCount} bets`
+  });
+}));
+
 // GET /api/bets/export/csv - Export bets as CSV
 router.get('/export/csv', asyncHandler(async (req, res) => {
   const bets = await BetLog.find({ userId: getUserId(req) })

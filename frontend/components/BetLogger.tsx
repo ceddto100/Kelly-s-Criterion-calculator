@@ -480,6 +480,25 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate }: BetHistoryProp
     }
   };
 
+  // Delete all bets
+  const deleteAllBets = async () => {
+    if (!confirm('Are you sure you want to delete ALL betting history? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/bets`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setBets([]);
+        setStats(null);
+      }
+    } catch (err) {
+      console.error('Failed to delete all bets:', err);
+    }
+  };
+
   // Delete bet
   const deleteBet = async (betId: string) => {
     if (!confirm('Are you sure you want to delete this bet?')) return;
@@ -589,6 +608,11 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate }: BetHistoryProp
         >
           📥 Export CSV
         </a>
+        {bets.length > 0 && (
+          <button className="delete-all-btn" onClick={deleteAllBets}>
+            🗑️ Delete All
+          </button>
+        )}
       </div>
 
       {/* Bet List */}
@@ -1144,6 +1168,22 @@ export const BetLoggerStyles = `
   .export-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  }
+  .delete-all-btn {
+    padding: .5rem 1rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 600;
+    transition: .2s ease;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  }
+  .delete-all-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.45);
   }
 
   /* No Bets State */
