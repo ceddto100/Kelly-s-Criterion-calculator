@@ -37,6 +37,8 @@ const differential = require('./scrapers/differential');
 const matchup = require('./scrapers/matchup');
 const { analyzeMatchupRoute } = require('./gemini/chat');
 const { fetchNBATeamStats, findTeamByName } = require('./scrapers/nbaStatsApi');
+const { fetchDailyGames } = require('./scrapers/dailyGames');
+const { buildDailyMLBInputs } = require('./scrapers/mlbStatsApi');
 
 // Configure Passport
 require('./config/passport')(passport);
