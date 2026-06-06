@@ -47,6 +47,7 @@ import { StatsPage } from './components/StatsPage';
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
 import { evaluateDecision } from './utils/decision';
+import type { DailyGameSelection, MLBFieldState } from './utils/dailyGameTransfer';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -1136,7 +1137,8 @@ function ProbabilityEstimator({
   onLoginRequired,
   // NEW: Callbacks to store data for bet logging
   setCurrentMatchup,
-  setCurrentEstimation
+  setCurrentEstimation,
+  mlbInitialFields
 }: {
   setProbability:(v:string)=>void;
   setActiveTab:(t:string)=>void;
@@ -1163,6 +1165,7 @@ function ProbabilityEstimator({
   // NEW props
   setCurrentMatchup: (v: MatchupData | null) => void;
   setCurrentEstimation: (v: EstimationData | null) => void;
+  mlbInitialFields: MLBFieldState | null;
 }) {
   const [showFreeCalcModal, setShowFreeCalcModal] = useState(false);
   const [freeCalculationsLeft, setFreeCalculationsLeft] = useState<number | null>(null);
@@ -1640,6 +1643,7 @@ function ProbabilityEstimator({
         <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
           <MLBEstimator
             onUseInKelly={(p)=>{ setProbability(p.toFixed(2)); setActiveTab(CONSTANTS.TABS.KELLY); }}
+            initialFields={mlbInitialFields}
           />
         </Suspense>
       )}
@@ -2442,6 +2446,8 @@ function App() {
   const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
   const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
   const [isTeamAHome, setIsTeamAHome] = useState<boolean | null>(null);
+  // Pre-fill payload for the MLB estimator when a "Today's Games" card is tapped.
+  const [mlbPrefill, setMlbPrefill] = useState<MLBFieldState | null>(null);
 
   // Authentication state
   const [authUser, setAuthUser] = useState<{name: string; email: string; avatar: string} | null>(null);
@@ -2741,6 +2747,42 @@ function App() {
     setActiveTab(CONSTANTS.TABS.ESTIMATOR);
   };
 
+  // Handler for a tapped "Today's Games" card: drop the matchup straight into the
+  // Probability Estimator with the line pre-filled (spread for NBA/NFL, total for
+  // NHL, over/under for MLB) and the team stats that drive the projection.
+  const handleDailyGameSelect = (selection: DailyGameSelection) => {
+    switch (selection.sport) {
+      case 'NBA':
+        setBasketballStats({ ...initialBasketballState, ...selection.basketball });
+        setPointSpread(selection.spread);
+        setIsTeamAHome(selection.isTeamAHome);
+        setCalculatedProb(null);
+        setExpectedDiff(null);
+        setActiveSport(CONSTANTS.SPORTS.BASKETBALL);
+        break;
+      case 'NFL':
+        setFootballStats({ ...initialFootballState, ...selection.football });
+        setPointSpread(selection.spread);
+        setIsTeamAHome(selection.isTeamAHome);
+        setCalculatedProb(null);
+        setExpectedDiff(null);
+        setActiveSport(CONSTANTS.SPORTS.FOOTBALL);
+        break;
+      case 'NHL':
+        setHockeyStats({ ...initialHockeyState, ...selection.hockey });
+        setTotalGoalsLine(selection.totalGoalsLine);
+        setCalculatedProb(null);
+        setExpectedDiff(null);
+        setActiveSport(CONSTANTS.SPORTS.HOCKEY);
+        break;
+      case 'MLB':
+        setMlbPrefill(selection.mlb);
+        setActiveSport(CONSTANTS.SPORTS.MLB);
+        break;
+    }
+    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
+  };
+
   // Handler for Walters Protocol to apply to Kelly Calculator
   const handleWaltersApplyToKelly = (probability: number, matchupData: any, estimationData: any) => {
     setProbability(probability.toFixed(2));
@@ -2944,6 +2986,8 @@ function App() {
               // NEW: Pass setters for bet logging
               setCurrentMatchup={setCurrentMatchup}
               setCurrentEstimation={setCurrentEstimation}
+              // Pre-fill for the MLB estimator from a tapped Today's Games card
+              mlbInitialFields={mlbPrefill}
             />
           )}
           {activeTab === CONSTANTS.TABS.WALTERS && (
@@ -2955,7 +2999,7 @@ function App() {
           )}
           {activeTab === CONSTANTS.TABS.DAILY_GAMES && (
             <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading today's games...</div>}>
-              <DailyGamesView />
+              <DailyGamesView onSelectGame={handleDailyGameSelect} />
             </Suspense>
           )}
           {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (

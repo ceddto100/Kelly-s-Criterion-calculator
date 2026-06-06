@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { projectMLBGame, type MLBProjectionInput, type WindDirection } from "../utils/mlbProjection";
 import ProjectionResultCard from "../components/ProjectionResultCard";
 
@@ -17,6 +17,12 @@ import ProjectionResultCard from "../components/ProjectionResultCard";
 
 type Props = {
   onUseInKelly?: (probabilityPercent: number, label: string) => void;
+  /**
+   * Pre-filled field values (e.g. from a "Today's Games" card). When this object
+   * changes the form re-seeds and auto-runs the projection so the user lands on
+   * a result immediately.
+   */
+  initialFields?: FieldState | null;
 };
 
 type FieldState = Record<string, string>;
@@ -26,6 +32,85 @@ const num = (v: string): number | undefined => {
   const n = parseFloat(v);
   return Number.isFinite(n) ? n : undefined;
 };
+
+const yesField = (v?: string): boolean | undefined =>
+  v === undefined ? undefined : v === "yes";
+
+// Assemble the engine input from the flat field state. Shared by the manual
+// "Run Projection" button and the auto-run when fields are pre-filled.
+function buildInput(f: FieldState): MLBProjectionInput {
+  return {
+    home: {
+      name: f.homeName?.trim() || "Home",
+      offense: {
+        wrcPlus: num(f.homeWrc),
+        ops: num(f.homeOps),
+        recentRunsPerGame: num(f.homeRecentRpg),
+      },
+      starter: {
+        siera: num(f.homeSierra),
+        fip: num(f.homeFip),
+        era: num(f.homeEra),
+        confirmed: yesField(f.homeStarterConfirmed),
+      },
+      bullpen: {
+        fip: num(f.homeBpFip),
+        inningsLast1d: num(f.homeBpIp1),
+        inningsLast3d: num(f.homeBpIp3),
+        closerAvailable: yesField(f.homeCloser),
+      },
+      lineup: {
+        confirmed: yesField(f.homeLineupConfirmed),
+        starsOut: num(f.homeStarsOut),
+        platoonAdvantage: yesField(f.homePlatoon),
+      },
+    },
+    away: {
+      name: f.awayName?.trim() || "Away",
+      offense: {
+        wrcPlus: num(f.awayWrc),
+        ops: num(f.awayOps),
+        recentRunsPerGame: num(f.awayRecentRpg),
+      },
+      starter: {
+        siera: num(f.awaySierra),
+        fip: num(f.awayFip),
+        era: num(f.awayEra),
+        confirmed: yesField(f.awayStarterConfirmed),
+      },
+      bullpen: {
+        fip: num(f.awayBpFip),
+        inningsLast1d: num(f.awayBpIp1),
+        inningsLast3d: num(f.awayBpIp3),
+        closerAvailable: yesField(f.awayCloser),
+      },
+      lineup: {
+        confirmed: yesField(f.awayLineupConfirmed),
+        starsOut: num(f.awayStarsOut),
+        platoonAdvantage: yesField(f.awayPlatoon),
+      },
+    },
+    environment: {
+      parkFactor: num(f.parkFactor),
+      temperatureF: num(f.temperatureF),
+      windSpeedMph: num(f.windSpeedMph),
+      windDirection: (f.windDirection as WindDirection) || undefined,
+      roofClosed: yesField(f.roofClosed),
+    },
+    line: {
+      total: num(f.bookTotal),
+      homeMoneyline: num(f.homeMoneyline),
+      awayMoneyline: num(f.awayMoneyline),
+    },
+  };
+}
+
+// At least one offense signal per team is required to project.
+function canProject(f: FieldState): boolean {
+  const homeOff = num(f.homeWrc) ?? num(f.homeOps) ?? num(f.homeRecentRpg);
+  const awayOff = num(f.awayWrc) ?? num(f.awayOps) ?? num(f.awayRecentRpg);
+  return homeOff !== undefined && awayOff !== undefined;
+}
 
 const EXAMPLE: FieldState = {
   homeName: "Dodgers",
@@ -62,88 +147,29 @@ const EXAMPLE: FieldState = {
   awayStarsOut: "0",
 };
 
-export default function MLBEstimator({ onUseInKelly }: Props) {
-  const [f, setF] = useState<FieldState>({ windDirection: "out" });
+export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
+  const [f, setF] = useState<FieldState>(() =>
+    initialFields ? { windDirection: "out", ...initialFields } : { windDirection: "out" },
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof projectMLBGame> | null>(null);
+
+  // Re-seed + auto-run whenever a new pre-fill arrives (e.g. a Today's Games tap).
+  useEffect(() => {
+    if (!initialFields) return;
+    const seeded: FieldState = { windDirection: "out", ...initialFields };
+    setF(seeded);
+    setResult(canProject(seeded) ? projectMLBGame(buildInput(seeded)) : null);
+  }, [initialFields]);
 
   const set = (name: string, value: string) => setF((prev) => ({ ...prev, [name]: value }));
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     set(e.target.name, e.target.value);
 
-  const yes = (v?: string) => (v === undefined ? undefined : v === "yes");
-
-  const canCalculate = useMemo(() => {
-    // Need at least one offense signal per team and the book total to lean.
-    const homeOff = num(f.homeWrc) ?? num(f.homeOps) ?? num(f.homeRecentRpg);
-    const awayOff = num(f.awayWrc) ?? num(f.awayOps) ?? num(f.awayRecentRpg);
-    return homeOff !== undefined && awayOff !== undefined;
-  }, [f]);
+  const canCalculate = useMemo(() => canProject(f), [f]);
 
   const handleCalculate = () => {
-    const input: MLBProjectionInput = {
-      home: {
-        name: f.homeName?.trim() || "Home",
-        offense: {
-          wrcPlus: num(f.homeWrc),
-          ops: num(f.homeOps),
-          recentRunsPerGame: num(f.homeRecentRpg),
-        },
-        starter: {
-          siera: num(f.homeSierra),
-          fip: num(f.homeFip),
-          confirmed: yes(f.homeStarterConfirmed),
-        },
-        bullpen: {
-          fip: num(f.homeBpFip),
-          inningsLast1d: num(f.homeBpIp1),
-          inningsLast3d: num(f.homeBpIp3),
-          closerAvailable: yes(f.homeCloser),
-        },
-        lineup: {
-          confirmed: yes(f.homeLineupConfirmed),
-          starsOut: num(f.homeStarsOut),
-          platoonAdvantage: yes(f.homePlatoon),
-        },
-      },
-      away: {
-        name: f.awayName?.trim() || "Away",
-        offense: {
-          wrcPlus: num(f.awayWrc),
-          ops: num(f.awayOps),
-          recentRunsPerGame: num(f.awayRecentRpg),
-        },
-        starter: {
-          siera: num(f.awaySierra),
-          fip: num(f.awayFip),
-          confirmed: yes(f.awayStarterConfirmed),
-        },
-        bullpen: {
-          fip: num(f.awayBpFip),
-          inningsLast1d: num(f.awayBpIp1),
-          inningsLast3d: num(f.awayBpIp3),
-          closerAvailable: yes(f.awayCloser),
-        },
-        lineup: {
-          confirmed: yes(f.awayLineupConfirmed),
-          starsOut: num(f.awayStarsOut),
-          platoonAdvantage: yes(f.awayPlatoon),
-        },
-      },
-      environment: {
-        parkFactor: num(f.parkFactor),
-        temperatureF: num(f.temperatureF),
-        windSpeedMph: num(f.windSpeedMph),
-        windDirection: (f.windDirection as WindDirection) || undefined,
-        roofClosed: yes(f.roofClosed),
-      },
-      line: {
-        total: num(f.bookTotal),
-        homeMoneyline: num(f.homeMoneyline),
-        awayMoneyline: num(f.awayMoneyline),
-      },
-    };
-    setResult(projectMLBGame(input));
+    setResult(projectMLBGame(buildInput(f)));
   };
 
   return (
@@ -211,6 +237,10 @@ export default function MLBEstimator({ onUseInKelly }: Props) {
         <span>FIP</span>
         <input className="input-field" type="number" step="0.01" name="homeFip" value={f.homeFip || ""} onChange={onChange} placeholder="3.90" />
         <input className="input-field" type="number" step="0.01" name="awayFip" value={f.awayFip || ""} onChange={onChange} placeholder="4.30" />
+
+        <span>ERA (season)</span>
+        <input className="input-field" type="number" step="0.01" name="homeEra" value={f.homeEra || ""} onChange={onChange} placeholder="3.85" />
+        <input className="input-field" type="number" step="0.01" name="awayEra" value={f.awayEra || ""} onChange={onChange} placeholder="4.25" />
 
         <span>Confirmed starter?</span>
         <YesNo name="homeStarterConfirmed" value={f.homeStarterConfirmed} onChange={onChange} />

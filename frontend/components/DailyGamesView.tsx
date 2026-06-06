@@ -24,6 +24,13 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { projectMLBGame, type MLBProjectionInput, type MLBProjectionResult } from '../utils/mlbProjection';
+import {
+  buildGenericSelection,
+  mlbInputToFields,
+  preloadSportStats,
+  TeamsNotFoundError,
+  type DailyGameSelection,
+} from '../utils/dailyGameTransfer';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -55,6 +62,8 @@ interface GenericDailyGame {
   sport: string;
   homeTeam: string;
   awayTeam: string;
+  homeAbbr?: string;
+  awayAbbr?: string;
   startTime: string;
   status: string;
   statusDetail?: string;
@@ -90,7 +99,7 @@ function confColor(label: string): string {
 
 // ---- MLB projection card ----------------------------------------------------
 
-function MLBGameCard({ game }: { game: MLBDailyGame }) {
+function MLBGameCard({ game, onSelect }: { game: MLBDailyGame; onSelect?: () => void }) {
   const result: MLBProjectionResult = projectMLBGame(game.input);
   const t = result.totals;
   const leanColor = LEAN_COLORS[t.lean] || '#94a3b8';
@@ -100,7 +109,7 @@ function MLBGameCard({ game }: { game: MLBDailyGame }) {
       : `${t.lean.toUpperCase()}${t.bookTotal !== null ? ' ' + t.bookTotal : ''}`;
 
   return (
-    <div style={styles.card}>
+    <ClickableCard onSelect={onSelect}>
       <div style={styles.cardHeader}>
         <div>
           <div style={styles.matchup}>{game.awayTeam} @ {game.homeTeam}</div>
@@ -144,17 +153,35 @@ function MLBGameCard({ game }: { game: MLBDailyGame }) {
       {t.bookTotal === null && (
         <div style={styles.note}>No book total posted yet — projection shown, no lean.</div>
       )}
-    </div>
+
+      {onSelect && <CardCTA label="Open in Probability Estimator" />}
+    </ClickableCard>
   );
 }
 
 // ---- generic (NBA/NFL/NHL) slate card ---------------------------------------
 
-function GenericGameCard({ game }: { game: GenericDailyGame }) {
+function GenericGameCard({
+  game,
+  sport,
+  onSelect,
+  busy,
+}: {
+  game: GenericDailyGame;
+  sport: SportKey;
+  onSelect?: () => void;
+  busy?: boolean;
+}) {
   const isLive = game.status === 'in_progress';
   const isFinal = game.status === 'final';
+  // NHL projects on the total; NBA/NFL project against the spread.
+  const ctaLabel = busy
+    ? 'Loading team stats…'
+    : sport === 'NHL'
+      ? 'Open over/under in Estimator'
+      : 'Open spread in Estimator';
   return (
-    <div style={styles.card}>
+    <ClickableCard onSelect={onSelect} busy={busy}>
       <div style={styles.cardHeader}>
         <div>
           <div style={styles.matchup}>{game.awayTeam} @ {game.homeTeam}</div>
@@ -178,18 +205,104 @@ function GenericGameCard({ game }: { game: GenericDailyGame }) {
           <div style={styles.statValue}>{game.spread || '—'}</div>
         </div>
       </div>
+
+      {onSelect && <CardCTA label={ctaLabel} />}
+    </ClickableCard>
+  );
+}
+
+// ---- shared clickable card shell --------------------------------------------
+
+function ClickableCard({
+  onSelect,
+  busy,
+  children,
+}: {
+  onSelect?: () => void;
+  busy?: boolean;
+  children: React.ReactNode;
+}) {
+  const [hover, setHover] = useState(false);
+  if (!onSelect) return <div style={styles.card}>{children}</div>;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-busy={busy || undefined}
+      onClick={() => { if (!busy) onSelect(); }}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !busy) {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        ...styles.card,
+        cursor: busy ? 'progress' : 'pointer',
+        ...(hover ? styles.cardHover : {}),
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CardCTA({ label }: { label: string }) {
+  return (
+    <div style={styles.cardCta}>
+      <span>{label}</span>
+      <span aria-hidden style={{ fontWeight: 800 }}>→</span>
     </div>
   );
 }
 
 // ---- main view --------------------------------------------------------------
 
-export default function DailyGamesView() {
+export default function DailyGamesView({
+  onSelectGame,
+}: {
+  onSelectGame?: (selection: DailyGameSelection) => void;
+}) {
   const [sport, setSport] = useState<SportKey>('MLB');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mlbGames, setMlbGames] = useState<MLBDailyGame[]>([]);
   const [genericGames, setGenericGames] = useState<GenericDailyGame[]>([]);
+  const [busyGameId, setBusyGameId] = useState<string | null>(null);
+  const [selectError, setSelectError] = useState<string | null>(null);
+
+  // Warm the CSV cache for the active sport so the first card tap is instant.
+  useEffect(() => {
+    if (sport !== 'MLB') preloadSportStats(sport);
+  }, [sport]);
+
+  const handleMlbSelect = useCallback((game: MLBDailyGame) => {
+    if (!onSelectGame) return;
+    setSelectError(null);
+    onSelectGame({ sport: 'MLB', mlb: mlbInputToFields(game) });
+  }, [onSelectGame]);
+
+  const handleGenericSelect = useCallback(async (game: GenericDailyGame) => {
+    if (!onSelectGame || sport === 'MLB') return;
+    setSelectError(null);
+    setBusyGameId(game.gameId);
+    try {
+      const selection = await buildGenericSelection(sport, game);
+      onSelectGame(selection);
+    } catch (e) {
+      if (e instanceof TeamsNotFoundError) {
+        setSelectError(
+          `${e.message}. Open the Probability Estimator and enter this matchup manually.`,
+        );
+      } else {
+        setSelectError(e instanceof Error ? e.message : 'Could not load that matchup.');
+      }
+    } finally {
+      setBusyGameId(null);
+    }
+  }, [onSelectGame, sport]);
 
   const load = useCallback(async (s: SportKey) => {
     setLoading(true);
@@ -223,6 +336,11 @@ export default function DailyGamesView() {
           <p style={styles.subtle}>
             Live slate with model projections. {new Date().toLocaleDateString()}
           </p>
+          {onSelectGame && (
+            <p style={styles.tapHint}>
+              👉 Tap a game to send its line and team stats to the Probability Estimator.
+            </p>
+          )}
         </div>
         <button onClick={() => load(sport)} style={styles.refreshBtn} disabled={loading}>
           {loading ? 'Loading…' : '↻ Refresh'}
@@ -248,6 +366,8 @@ export default function DailyGamesView() {
         </div>
       )}
 
+      {selectError && <div style={styles.errorBox}>{selectError}</div>}
+
       {loading && <div style={styles.loading}>Loading {sport} games…</div>}
 
       {!loading && !error && (
@@ -256,20 +376,35 @@ export default function DailyGamesView() {
             mlbGames.length === 0 ? (
               <div style={styles.empty}>No upcoming MLB games found for today.</div>
             ) : (
-              mlbGames.map((g) => <MLBGameCard key={g.gamePk} game={g} />)
+              mlbGames.map((g) => (
+                <MLBGameCard
+                  key={g.gamePk}
+                  game={g}
+                  onSelect={onSelectGame ? () => handleMlbSelect(g) : undefined}
+                />
+              ))
             )
           ) : genericGames.length === 0 ? (
             <div style={styles.empty}>No {sport} games found for today.</div>
           ) : (
-            genericGames.map((g) => <GenericGameCard key={g.gameId} game={g} />)
+            genericGames.map((g) => (
+              <GenericGameCard
+                key={g.gameId}
+                game={g}
+                sport={sport}
+                busy={busyGameId === g.gameId}
+                onSelect={onSelectGame ? () => handleGenericSelect(g) : undefined}
+              />
+            ))
           )}
         </>
       )}
 
       {sport !== 'MLB' && !loading && genericGames.length > 0 && (
         <div style={styles.note}>
-          {sport} shows today's lines and scores. For a full {sport} projection, open the
-          Sports Matchups or Probability Estimator tab.
+          {sport === 'NHL'
+            ? 'Tap a game to load both teams and the over/under into the Probability Estimator.'
+            : `Tap a game to load both teams and the spread into the Probability Estimator.`}
         </div>
       )}
 
@@ -308,6 +443,20 @@ const styles: { [key: string]: React.CSSProperties } = {
   card: {
     background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: 16, padding: '1rem 1.1rem', marginBottom: '0.85rem',
+    transition: 'transform 0.12s ease, border-color 0.12s ease, background 0.12s ease',
+  },
+  cardHover: {
+    background: 'rgba(255,255,255,0.07)', borderColor: 'var(--button-primary, rgba(99,102,241,0.6))',
+    transform: 'translateY(-2px)',
+  },
+  cardCta: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: '0.5rem', marginTop: '0.9rem', paddingTop: '0.7rem',
+    borderTop: '1px solid rgba(255,255,255,0.06)',
+    color: 'var(--button-primary, #818cf8)', fontWeight: 700, fontSize: '0.82rem',
+  },
+  tapHint: {
+    color: 'var(--button-primary, #818cf8)', fontSize: '0.8rem', marginTop: '0.35rem', fontWeight: 600,
   },
   cardHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem',
