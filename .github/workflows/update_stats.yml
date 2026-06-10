@@ -6,9 +6,22 @@ on:
     - cron: '0 0,12 * * *'
   workflow_dispatch: # Allow manual triggering
 
+# Allow the default GITHUB_TOKEN to push the regenerated CSVs back to the repo.
+# Without this, modern repos default the token to read-only and `git push` fails
+# silently — a common reason a working stats updater quietly stops committing.
+permissions:
+  contents: write
+
+# Never let two updater runs race on the same files / push.
+concurrency:
+  group: update-stats
+  cancel-in-progress: false
+
 jobs:
   update-stats:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -104,11 +117,17 @@ jobs:
         continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
 
+      # Record when each sport's CSVs were actually refreshed (only advances a
+      # sport's timestamp if its files changed this run) so the app and the
+      # freshness check can tell how current the data is.
+      - name: Write freshness manifest
+        run: node scripts/writeStatsManifest.js
+
       - name: Commit and push updated CSV files
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add frontend/public/stats/**/*.csv stats/*.csv 2>/dev/null || true
+          git add frontend/public/stats stats 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Update NBA/NFL/NHL stats (automated) - $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
 

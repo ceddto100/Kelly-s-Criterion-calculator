@@ -1,0 +1,30 @@
+name: Check Stats Freshness
+
+# Independent watchdog: if the NBA/NFL/NHL CSVs haven't been refreshed in 48h,
+# this run FAILS — which sends the repo owner GitHub's automatic failed-run
+# email. That way a silently-disabled "Update Sports Stats" workflow can't go
+# unnoticed for months.
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # daily at 06:00 UTC
+  workflow_dispatch:
+
+# Read-only — this job never writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  check-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check stats freshness (fail if > 48h old)
+        run: node scripts/checkStatsFreshness.js --hours=48
