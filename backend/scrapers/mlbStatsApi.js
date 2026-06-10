@@ -18,6 +18,7 @@
 // =============================================================================
 
 const axios = require('axios');
+const { getTeamOffense, getStarter } = require('./mlbAdvanced');
 
 const STATSAPI_BASE = 'https://statsapi.mlb.com/api/v1';
 const ESPN_MLB_SCOREBOARD =
@@ -117,12 +118,28 @@ function lookupBookTotal(game, totals) {
 // --- assemble an MLBProjectionInput (matches the frontend type) --------------
 
 function buildProjectionInput(game, offense, starters, bookTotal) {
-  const team = (g, off, sp) => ({
-    name: g.name,
-    offense: { ops: off.ops, runsPerGame: off.runsPerGame },
-    starter: { era: sp ? sp.era : undefined, confirmed: g.probablePitcherId !== undefined },
-    bullpen: {},
-  });
+  const team = (g, off, sp) => {
+    // FanGraphs enrichment (no-ops to {} when the data files aren't present).
+    const adv = getTeamOffense(g.name);
+    const spAdv = getStarter(g.probablePitcherName, g.name);
+    return {
+      name: g.name,
+      offense: {
+        ops: off.ops,
+        runsPerGame: off.runsPerGame,
+        wrcPlus: adv.wrcPlus,
+        woba: adv.woba,
+      },
+      starter: {
+        era: sp ? sp.era : undefined,
+        fip: spAdv.fip,
+        xfip: spAdv.xfip,
+        siera: spAdv.siera,
+        confirmed: g.probablePitcherId !== undefined,
+      },
+      bullpen: {},
+    };
+  };
   return {
     home: team(game.home, offense.home, starters.home),
     away: team(game.away, offense.away, starters.away),

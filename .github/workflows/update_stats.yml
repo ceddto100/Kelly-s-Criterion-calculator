@@ -117,6 +117,23 @@ jobs:
         continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
 
+      # MLB advanced stats (wRC+/wOBA/FIP/xFIP/SIERA) from FanGraphs via
+      # pybaseball, written to backend/data/mlb/ for the backend to merge into
+      # /api/mlb/daily. Best-effort: failure never blocks the NBA/NFL/NHL update,
+      # it just leaves MLB on OPS/ERA (today's behavior).
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pybaseball
+        run: pip install --quiet pybaseball
+
+      - name: Update MLB advanced stats
+        id: mlb_advanced
+        continue-on-error: true
+        run: python scripts/updateMLBAdvanced.py
+
       # Record when each sport's CSVs were actually refreshed (only advances a
       # sport's timestamp if its files changed this run) so the app and the
       # freshness check can tell how current the data is.
@@ -127,7 +144,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add frontend/public/stats stats 2>/dev/null || true
+          git add frontend/public/stats stats backend/data 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Update NBA/NFL/NHL stats (automated) - $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
 
