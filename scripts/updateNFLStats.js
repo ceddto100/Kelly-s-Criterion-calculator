@@ -5,6 +5,7 @@ const axios = require('axios');
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
+const { fetchPointsAllowed } = require('./espnPointsAllowed');
 
 const STATS_DIR = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'nfl');
 
@@ -218,6 +219,18 @@ async function main() {
 
   console.log(`\nFetched stats for ${allStats.length} / ${teams.length} teams`);
   if (zeroCount > 0) console.warn(`  (${zeroCount} teams had zero stats)\n`);
+
+  // Points allowed: ESPN's per-team /statistics endpoint omits opponent points,
+  // so fill it from the standings feed (cloud-friendly). Keyed by ESPN abbr.
+  const pointsAllowedMap = await fetchPointsAllowed('football/nfl', getCurrentSeason());
+  if (pointsAllowedMap.size > 0) {
+    let filled = 0;
+    for (const s of allStats) {
+      const pa = pointsAllowedMap.get(s.abbreviation);
+      if (pa !== undefined) { s.allowed = pa; filled++; }
+    }
+    console.log(`Filled points-allowed for ${filled}/${allStats.length} NFL teams from standings`);
+  }
 
   fs.mkdirSync(STATS_DIR, { recursive: true });
 

@@ -291,6 +291,66 @@ function getStat(map: Map<string, number>, aliases: string[], fallback = 0): num
   return fallback;
 }
 
+// ── ESPN Standings: reliable points-allowed (cloud-friendly, unlike stats.nba.com) ──
+// ESPN's per-team /statistics endpoint has no opponent points, so the fallback
+// left "allowed" at 0. The standings feed carries avgPointsAgainst per team.
+function collectStandingEntries(node: any, out: any[] = []): any[] {
+  if (Array.isArray(node)) {
+    for (const x of node) collectStandingEntries(x, out);
+    return out;
+  }
+  if (node && typeof node === 'object') {
+    if (Array.isArray(node.entries)) for (const e of node.entries) out.push(e);
+    for (const k of Object.keys(node)) {
+      if (k !== 'entries') collectStandingEntries(node[k], out);
+    }
+  }
+  return out;
+}
+
+function standStat(stats: any[], names: string[]): number | undefined {
+  for (const n of names) {
+    const s = stats.find((st: any) => st.name === n || st.abbreviation === n || st.shortDisplayName === n);
+    if (s) {
+      const v = parseFloat(s.value ?? s.displayValue);
+      if (!Number.isNaN(v)) return v;
+    }
+  }
+  return undefined;
+}
+
+// leaguePath: 'basketball/nba' | 'football/nfl'; season: start year (e.g. 2025).
+async function fetchESPNPointsAllowed(leaguePath: string, season: number): Promise<Map<string, number>> {
+  const urls = [
+    `https://site.api.espn.com/apis/v2/sports/${leaguePath}/standings?season=${season}&type=2&level=3`,
+    `https://site.web.api.espn.com/apis/v2/sports/${leaguePath}/standings?region=us&lang=en&season=${season}&seasontype=2&level=3`,
+    `https://site.api.espn.com/apis/v2/sports/${leaguePath}/standings?season=${season}`,
+  ];
+  for (const url of urls) {
+    const data = (await fetchWithRetry(url, { headers: ESPN_HEADERS }, 2)) as any;
+    if (!data) continue;
+    const map = new Map<string, number>();
+    for (const e of collectStandingEntries(data)) {
+      const abbr = e.team && e.team.abbreviation;
+      if (!abbr) continue;
+      const stats = e.stats || [];
+      let allowed = standStat(stats, ['avgPointsAgainst']);
+      if (allowed === undefined) {
+        const pa = standStat(stats, ['pointsAgainst']);
+        const gp = standStat(stats, ['gamesPlayed']);
+        if (pa !== undefined && gp) allowed = pa / gp;
+      }
+      if (allowed !== undefined) map.set(abbr, round1(allowed));
+    }
+    if (map.size >= 20) {
+      console.log(`[StatsUpdater] ESPN standings (${leaguePath}): points-allowed for ${map.size} teams`);
+      return map;
+    }
+  }
+  console.warn(`[StatsUpdater] ESPN standings (${leaguePath}) did not yield points-allowed`);
+  return new Map();
+}
+
 async function fetchNBAESPNFallback(): Promise<Record<string, NBARecord> | null> {
   console.log('[StatsUpdater] NBA.com failed — trying ESPN fallback...');
   const ESPN_NBA = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
@@ -303,6 +363,9 @@ async function fetchNBAESPNFallback(): Promise<Record<string, NBARecord> | null>
   const season = getESPNNBASeasonYear();
   const teamStats: Record<string, NBARecord> = {};
 
+  // Points-allowed from the standings feed (per-team /statistics has no opponent data).
+  const pointsAllowedMap = await fetchESPNPointsAllowed('basketball/nba', season);
+
   for (const { team } of teams) {
     const url = `${ESPN_NBA_CORE}/seasons/${season}/types/2/teams/${team.id}/statistics`;
     const data = await fetchWithRetry(url, { headers: ESPN_HEADERS }) as any;
@@ -314,7 +377,8 @@ async function fetchNBAESPNFallback(): Promise<Record<string, NBARecord> | null>
     const gp = getStat(statMap, ['gamesPlayed', 'gp']);
     const points = getStat(statMap, ['points', 'pts']);
     const ppg = getStat(statMap, ['avgPoints', 'pointsPerGame', 'ppg']) || (gp > 0 ? points / gp : 0);
-    const allowed = getStat(statMap, ['avgPointsAgainst', 'pointsAgainstPerGame', 'oppPointsPerGame']);
+    const allowed = pointsAllowedMap.get(team.abbreviation) ??
+      getStat(statMap, ['avgPointsAgainst', 'pointsAgainstPerGame', 'oppPointsPerGame']);
     const fgPct = getStat(statMap, ['fieldGoalPct', 'fgPct', 'fieldGoalPercentage']);
     const fgPctNorm = fgPct <= 1 ? fgPct * 100 : fgPct;
     const threePct = getStat(statMap, ['threePointFieldGoalPct', 'threePointPct', '3ptPct']);
@@ -544,6 +608,16 @@ export async function updateNFLStats(): Promise<SportUpdateResult> {
 
     if (allStats.length < 20) throw new Error(`Only got ${allStats.length} NFL teams`);
     result.teamsUpdated = allStats.length;
+
+    // Points allowed: ESPN's per-team /statistics omits opponent points, so fill
+    // it from the standings feed (cloud-friendly), keyed by ESPN abbreviation.
+    const nflPointsAllowed = await fetchESPNPointsAllowed('football/nfl', season);
+    if (nflPointsAllowed.size > 0) {
+      for (const s of allStats) {
+        const pa = nflPointsAllowed.get(s.abbreviation);
+        if (pa !== undefined) s.allowed = pa;
+      }
+    }
 
     const csvFiles = [
       { name: 'nfl_ppg.csv', fields: ['team', 'abbreviation', 'ppg'], sort: 'ppg', asc: false },
