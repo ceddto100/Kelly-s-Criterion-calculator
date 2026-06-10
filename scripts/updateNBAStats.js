@@ -7,6 +7,7 @@ const axios = require('axios');
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
+const { fetchPointsAllowed } = require('./espnPointsAllowed');
 
 const STATS_DIR = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'nba');
 const ESPN_SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
@@ -238,6 +239,10 @@ async function fetchESPNFallback() {
   const season = getESPNSeasonYear();
   const teamStats = {};
 
+  // Points-allowed comes from the standings feed (the per-team /statistics
+  // endpoint has no opponent data). Fetched once, keyed by ESPN abbreviation.
+  const pointsAllowedMap = await fetchPointsAllowed('basketball/nba', season);
+
   // Get per-team stats from core API
   for (const { team } of teams) {
     const url = `${ESPN_CORE}/seasons/${season}/types/2/teams/${team.id}/statistics`;
@@ -268,8 +273,9 @@ async function fetchESPNFallback() {
 
     const ppg = getStat(statMap, ['avgPoints', 'pointsPerGame', 'ppg']) ||
       (gamesPlayed > 0 ? points / gamesPlayed : 0);
-    const allowed = getStat(statMap, ['avgPointsAgainst', 'pointsAgainstPerGame', 'oppPointsPerGame']) ||
-      (gamesPlayed > 0 ? pointsAgainst / gamesPlayed : 0);
+    const allowed = pointsAllowedMap.get(team.abbreviation) ??
+      (getStat(statMap, ['avgPointsAgainst', 'pointsAgainstPerGame', 'oppPointsPerGame']) ||
+        (gamesPlayed > 0 ? pointsAgainst / gamesPlayed : 0));
 
     const fgPct = toPercent(getStat(statMap, ['fieldGoalPct', 'fgPct', 'fieldGoalPercentage']));
     const threePct = toPercent(getStat(statMap, ['threePointFieldGoalPct', 'threePointPct', '3ptPct']));
@@ -416,7 +422,9 @@ async function main() {
   console.log(`\nDone! Updated at ${new Date().toISOString()}`);
 }
 
-main().catch((err) => {
-  console.error('Fatal error:', err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('Fatal error:', err.message);
+    process.exit(1);
+  });
+}
