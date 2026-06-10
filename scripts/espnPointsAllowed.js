@@ -46,10 +46,19 @@ function parseStandings(data) {
     const abbr = e.team && e.team.abbreviation;
     if (!abbr) continue;
     const stats = e.stats || [];
-    let allowed = standStat(stats, ['avgPointsAgainst']);
+    // Direct per-game value (NBA standings have avgPointsAgainst).
+    let allowed = standStat(stats, ['avgPointsAgainst', 'pointsAgainstPerGame', 'avgPointsAllowed']);
     if (allowed === undefined) {
-      const pa = standStat(stats, ['pointsAgainst']);
-      const gp = standStat(stats, ['gamesPlayed']);
+      // Derive from the season total ÷ games (NFL standings carry the total
+      // pointsAgainst + W/L/T, but no per-game average or gamesPlayed).
+      const pa = standStat(stats, ['pointsAgainst', 'pointsAllowed']);
+      let gp = standStat(stats, ['gamesPlayed']);
+      if (gp === undefined) {
+        const w = standStat(stats, ['wins']) || 0;
+        const l = standStat(stats, ['losses']) || 0;
+        const t = standStat(stats, ['ties']) || 0;
+        gp = w + l + t || undefined;
+      }
       if (pa !== undefined && gp) allowed = pa / gp;
     }
     if (allowed !== undefined) map.set(abbr, Math.round(allowed * 10) / 10);
@@ -66,6 +75,7 @@ async function fetchPointsAllowed(leaguePath, season) {
   const urls = [
     `https://site.api.espn.com/apis/v2/sports/${leaguePath}/standings?season=${season}&type=2&level=3`,
     `https://site.web.api.espn.com/apis/v2/sports/${leaguePath}/standings?region=us&lang=en&season=${season}&seasontype=2&level=3`,
+    `https://site.api.espn.com/apis/site/v2/sports/${leaguePath}/standings?season=${season}`,
     `https://site.api.espn.com/apis/v2/sports/${leaguePath}/standings?season=${season}`,
   ];
   for (const url of urls) {
@@ -82,6 +92,14 @@ async function fetchPointsAllowed(leaguePath, season) {
       console.log(`  ESPN standings (${leaguePath}): points-allowed for ${map.size} teams`);
       return map;
     }
+    // Diagnostic: entries were returned but unparseable — surface the real field
+    // names so the alias list can be corrected without guessing.
+    const entries = collectStandingEntries(data);
+    const sample = entries.find((e) => (e.stats || []).length) || entries[0];
+    console.warn(
+      `  [standings] ${url}: ${entries.length} entries, ${map.size} parsed. ` +
+        `Sample stat names: ${(sample && (sample.stats || []).map((s) => s.name).join(', ')) || 'none'}`
+    );
   }
   console.warn(`  WARNING: ESPN standings (${leaguePath}) did not yield points-allowed`);
   return new Map();
