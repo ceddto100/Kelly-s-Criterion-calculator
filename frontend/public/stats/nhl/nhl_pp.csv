@@ -1,33 +1,33 @@
-team,abbreviation,pp
-Edmonton Oilers,EDM,30.6
-Dallas Stars,DAL,28.6
-Minnesota Wild,MIN,25.2
-Carolina Hurricanes,CAR,24.9
-New York Rangers,NYR,24.7
-Vegas Golden Knights,VGK,24.6
-Pittsburgh Penguins,PIT,24.1
-Ottawa Senators,OTT,24
-Boston Bruins,BOS,23.4
-Montreal Canadiens,MTL,23.1
-Nashville Predators,NSH,23.1
-Detroit Red Wings,DET,22.6
-New Jersey Devils,NJD,22
-Vancouver Canucks,VAN,21.8
-Toronto Maple Leafs,TOR,21.3
-San Jose Sharks,SJS,21.2
-Tampa Bay Lightning,TBL,20.7
-Florida Panthers,FLA,19.6
-Buffalo Sabres,BUF,19.5
-Seattle Kraken,SEA,19.5
-Columbus Blue Jackets,CBJ,18.9
-Anaheim Ducks,ANA,18.6
-Winnipeg Jets,WPG,18.5
-Washington Capitals,WSH,17.8
-St. Louis Blues,STL,17.6
-Colorado Avalanche,COL,17.1
-Los Angeles Kings,LAK,17
-Chicago Blackhawks,CHI,16.9
-New York Islanders,NYI,16.5
-Calgary Flames,CGY,16.2
-Philadelphia Flyers,PHI,15.7
-Utah Hockey Club,UTA,0
+"team","abbreviation","pp"
+"Edmonton Oilers","EDM",30.6
+"Dallas Stars","DAL",28.6
+"Minnesota Wild","MIN",25.2
+"Carolina Hurricanes","CAR",24.9
+"New York Rangers","NYR",24.7
+"Vegas Golden Knights","VGK",24.6
+"Pittsburgh Penguins","PIT",24.1
+"Ottawa Senators","OTT",24
+"Boston Bruins","BOS",23.4
+"Montreal Canadiens","MTL",23.1
+"Nashville Predators","NSH",23.1
+"Detroit Red Wings","DET",22.6
+"New Jersey Devils","NJD",22
+"Vancouver Canucks","VAN",21.8
+"Toronto Maple Leafs","TOR",21.3
+"San Jose Sharks","SJS",21.2
+"Tampa Bay Lightning","TBL",20.7
+"Utah Mammoth","UTAH",20
+"Florida Panthers","FLA",19.6
+"Buffalo Sabres","BUF",19.5
+"Seattle Kraken","SEA",19.5
+"Columbus Blue Jackets","CBJ",18.9
+"Anaheim Ducks","ANA",18.6
+"Winnipeg Jets","WPG",18.5
+"Washington Capitals","WSH",17.8
+"St. Louis Blues","STL",17.6
+"Colorado Avalanche","COL",17.1
+"Los Angeles Kings","LAK",17
+"Chicago Blackhawks","CHI",16.9
+"New York Islanders","NYI",16.5
+"Calgary Flames","CGY",16.2
+"Philadelphia Flyers","PHI",15.7

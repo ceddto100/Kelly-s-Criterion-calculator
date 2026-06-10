@@ -1,31 +1,31 @@
-team,abbreviation,def_rtg
-Atlanta Hawks,ATL,0
-Boston Celtics,BOS,0
-Brooklyn Nets,BKN,0
-Charlotte Hornets,CHA,0
-Chicago Bulls,CHI,0
-Cleveland Cavaliers,CLE,0
-Dallas Mavericks,DAL,0
-Denver Nuggets,DEN,0
-Detroit Pistons,DET,0
-Golden State Warriors,GS,0
-Houston Rockets,HOU,0
-Indiana Pacers,IND,0
-LA Clippers,LAC,0
-Los Angeles Lakers,LAL,0
-Memphis Grizzlies,MEM,0
-Miami Heat,MIA,0
-Milwaukee Bucks,MIL,0
-Minnesota Timberwolves,MIN,0
-New Orleans Pelicans,NO,0
-New York Knicks,NY,0
-Oklahoma City Thunder,OKC,0
-Orlando Magic,ORL,0
-Philadelphia 76ers,PHI,0
-Phoenix Suns,PHX,0
-Portland Trail Blazers,POR,0
-Sacramento Kings,SAC,0
-San Antonio Spurs,SA,0
-Toronto Raptors,TOR,0
-Utah Jazz,UTAH,0
-Washington Wizards,WSH,0
+"team","abbreviation","def_rtg"
+"Oklahoma City Thunder","OKC",104.8
+"Orlando Magic","ORL",107
+"Houston Rockets","HOU",108.1
+"LA Clippers","LAC",108.5
+"Boston Celtics","BOS",109
+"Golden State Warriors","GS",109.1
+"Minnesota Timberwolves","MIN",109.5
+"Cleveland Cavaliers","CLE",109.8
+"Memphis Grizzlies","MEM",110.1
+"Detroit Pistons","DET",110.9
+"Milwaukee Bucks","MIL",111.4
+"Miami Heat","MIA",111.8
+"Los Angeles Lakers","LAL",112.1
+"Portland Trail Blazers","POR",112.1
+"New York Knicks","NY",112.5
+"Toronto Raptors","TOR",112.5
+"Indiana Pacers","IND",112.6
+"Atlanta Hawks","ATL",113.4
+"Brooklyn Nets","BKN",113.4
+"Chicago Bulls","CHI",113.4
+"Dallas Mavericks","DAL",113.5
+"Charlotte Hornets","CHA",113.8
+"Denver Nuggets","DEN",114.3
+"Sacramento Kings","SAC",114.6
+"San Antonio Spurs","SA",114.6
+"Philadelphia 76ers","PHI",115.9
+"Washington Wizards","WSH",116.3
+"New Orleans Pelicans","NO",117.2
+"Phoenix Suns","PHX",117.3
+"Utah Jazz","UTAH",118
