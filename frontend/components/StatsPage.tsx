@@ -374,6 +374,7 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                         key={index}
                         style={{
                           ...styles.th,
+                          ...(index === 0 ? styles.teamColumn : styles.dataColumn),
                           cursor: 'pointer',
                         }}
                         onClick={() => handleSort(header)}
@@ -421,7 +422,7 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                             key={colIndex}
                             style={{
                               ...styles.td,
-                              ...(colIndex === 0 ? styles.teamNameCell : {}),
+                              ...(colIndex === 0 ? styles.teamNameCell : styles.dataCell),
                               ...(cellStyle || {}),
                             }}
                           >
@@ -634,9 +635,10 @@ const styles: { [key: string]: React.CSSProperties } = {
   table: {
     width: '100%',
     borderCollapse: 'collapse',
+    tableLayout: 'fixed',
   },
   th: {
-    padding: '16px',
+    padding: '12px 8px',
     textAlign: 'left',
     fontSize: '13px',
     fontWeight: '700',
@@ -649,6 +651,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     transition: 'background 0.2s ease',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   thContent: {
     display: 'flex',
@@ -660,19 +665,34 @@ const styles: { [key: string]: React.CSSProperties } = {
     opacity: 0.8,
   },
   rankColumn: {
-    width: '60px',
+    width: '36px',
+    textAlign: 'center',
+  },
+  teamColumn: {
+    width: 'auto',
+  },
+  dataColumn: {
+    width: '70px',
     textAlign: 'center',
   },
   td: {
-    padding: '14px 16px',
+    padding: '12px 8px',
     fontSize: '14px',
     color: 'rgba(255, 255, 255, 0.9)',
     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
     transition: 'all 0.2s ease',
+    overflow: 'hidden',
   },
   teamNameCell: {
     fontWeight: '600',
     color: 'white',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+  },
+  dataCell: {
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
   },
   rankCell: {
     textAlign: 'center',
