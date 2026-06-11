@@ -1172,6 +1172,8 @@ function ProbabilityEstimator({
   const [freeCalculationsLeft, setFreeCalculationsLeft] = useState<number | null>(null);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
   const [isOverBet, setIsOverBet] = useState(true); // true = Over, false = Under
+  const [calcError, setCalcError] = useState<string | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
   const resultsRef = React.useRef<HTMLDivElement | null>(null);
   const modalRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -1250,14 +1252,22 @@ function ProbabilityEstimator({
       return;
     }
 
+    setCalcError(null);
+    setIsCalculating(true);
+
     try {
-      const accessResponse = await fetch(`${BACKEND_URL}/api/stripe/calculation-access`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      let accessResponse: Response;
+      try {
+        accessResponse = await fetch(`${BACKEND_URL}/api/stripe/calculation-access`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch {
+        throw new Error('Unable to reach the server. Check your connection and try again.');
+      }
 
       if (accessResponse.status === 401) {
         onLoginRequired();
@@ -1365,6 +1375,9 @@ function ProbabilityEstimator({
       console.error(e);
       setCalculatedProb(null);
       setExpectedDiff(null);
+      setCalcError(e instanceof Error ? e.message : 'Something went wrong calculating the probability.');
+    } finally {
+      setIsCalculating(false);
     }
   };
 
@@ -1825,8 +1838,8 @@ function ProbabilityEstimator({
       )}
 
       <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
-        <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid} style={{flex:'1'}}>
-          Calculate Probability
+        <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid || isCalculating} style={{flex:'1'}}>
+          {isCalculating ? 'Calculating…' : 'Calculate Probability'}
         </button>
         {activeSport !== CONSTANTS.SPORTS.HOCKEY && (
           <button
@@ -1839,6 +1852,10 @@ function ProbabilityEstimator({
           </button>
         )}
       </div>
+
+      {calcError && (
+        <div className="error-message" role="alert">⚠ {calcError}</div>
+      )}
 
       {calculatedProb !== null && (
         <div ref={resultsRef} className="results" role="status" aria-live="polite">
