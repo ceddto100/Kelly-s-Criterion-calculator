@@ -24,6 +24,31 @@ import os
 import sys
 import json
 import datetime
+import requests
+
+# FanGraphs (Cloudflare) returns 403 for the default "python-requests/x.y"
+# User-Agent that pybaseball sends, which is what causes every CI run to fail
+# with "Received status code 403" even though the same URL works in a browser.
+# Patch requests.get globally (pybaseball calls it as `requests.get(...)`, so
+# this attribute swap is picked up by its html_table_processor) to send a
+# normal browser User-Agent instead.
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+_orig_requests_get = requests.get
+
+
+def _get_with_browser_headers(url, *args, **kwargs):
+    headers = {**_BROWSER_HEADERS, **(kwargs.pop("headers", None) or {})}
+    return _orig_requests_get(url, *args, headers=headers, **kwargs)
+
+
+requests.get = _get_with_browser_headers
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "mlb")
 
