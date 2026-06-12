@@ -44,3 +44,7 @@ frontend/android/app/google-services.json
 # Gradle
 .gradle/
 frontend/android/.gradle/
+
+# Python bytecode
+__pycache__/
+*.pyc
