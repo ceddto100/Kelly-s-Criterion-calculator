@@ -7,7 +7,8 @@ the backend can read them at runtime:
 
     backend/data/mlb/team_offense.csv   -> team, abbreviation, wrc_plus, woba
     backend/data/mlb/pitchers.csv       -> name, team, fip, xfip, siera
-    backend/data/mlb/last_updated.json  -> { updatedAt, season, teams, pitchers }
+    backend/data/mlb/bullpen.csv        -> team, abbreviation, fip, era, whip
+    backend/data/mlb/last_updated.json  -> { updatedAt, season, teams, pitchers, bullpens }
 
 Why: the MLB projection engine (frontend/utils/mlbProjection.ts) weights wRC+
 (45%) and wOBA (30%) for offense and SIERA (35%) / xFIP (25%) / FIP (25%) for
@@ -92,18 +93,54 @@ def fetch_team_offense(season):
 
 
 def fetch_pitchers(season):
-    """Returns list of [name, fg_team, fip, xfip, siera] for every pitcher."""
+    """
+    Returns (pitcher_rows, bullpen_rows) from one FanGraphs pull:
+      pitcher_rows: [name, fg_team, fip, xfip, siera] for every pitcher
+      bullpen_rows: [full_name, fg_abbr, fip, era, whip] per team, an
+                    innings-weighted aggregate over relievers (GS == 0).
+    Traded pitchers show Team "- - -" on FanGraphs and are skipped in the
+    bullpen aggregate (their relief innings can't be attributed to one team).
+    """
     from pybaseball import pitching_stats
     # qual=0 -> no innings minimum, so probable starters early in the year are included.
     df = pitching_stats(season, qual=0)
     rows = []
+    bp = {}  # fg code -> {stat: [weighted_sum, ip_outs_sum]}
     for _, r in df.iterrows():
         name = clean(r.get("Name", ""))
-        if not name:
+        team = clean(r.get("Team", ""))
+        if name:
+            rows.append([name, team, fmt(r.get("FIP"), 2),
+                         fmt(r.get("xFIP"), 2), fmt(r.get("SIERA"), 2)])
+
+        if team not in FG_TEAM_TO_FULL:
             continue
-        rows.append([name, clean(r.get("Team", "")), fmt(r.get("FIP"), 2),
-                     fmt(r.get("xFIP"), 2), fmt(r.get("SIERA"), 2)])
-    return rows
+        try:
+            gs = float(r.get("GS") or 0)
+            ip = float(r.get("IP") or 0)
+        except (TypeError, ValueError):
+            continue
+        if gs > 0 or ip <= 0:
+            continue
+        # FanGraphs IP uses baseball notation (60.1 = 60 1/3); weight by outs.
+        outs = int(ip) * 3 + round((ip % 1) * 10)
+        agg = bp.setdefault(team, {"fip": [0.0, 0], "era": [0.0, 0], "whip": [0.0, 0]})
+        for stat, col in (("fip", "FIP"), ("era", "ERA"), ("whip", "WHIP")):
+            try:
+                v = float(r.get(col))
+            except (TypeError, ValueError):
+                continue
+            agg[stat][0] += v * outs
+            agg[stat][1] += outs
+
+    bullpen_rows = []
+    for code, agg in sorted(bp.items()):
+        def w(stat):
+            total, outs = agg[stat]
+            return total / outs if outs > 0 else None
+        bullpen_rows.append([FG_TEAM_TO_FULL[code], code,
+                             fmt(w("fip"), 2), fmt(w("era"), 2), fmt(w("whip"), 2)])
+    return rows, bullpen_rows
 
 
 def main():
@@ -112,7 +149,7 @@ def main():
     print(f"=== Betgistics MLB Advanced Stats Update (FanGraphs / pybaseball) ===")
     print(f"Season: {season}  |  UTC: {datetime.datetime.utcnow().isoformat()}Z\n")
 
-    team_rows, pitcher_rows = None, None
+    team_rows, pitcher_rows, bullpen_rows = None, None, None
 
     try:
         team_rows = fetch_team_offense(season)
@@ -123,10 +160,13 @@ def main():
         print(f"team offense fetch FAILED (keeping previous file): {e}")
 
     try:
-        pitcher_rows = fetch_pitchers(season)
+        pitcher_rows, bullpen_rows = fetch_pitchers(season)
         write_csv(os.path.join(OUT_DIR, "pitchers.csv"),
                   ["name", "team", "fip", "xfip", "siera"], pitcher_rows)
         print(f"Wrote pitchers.csv ({len(pitcher_rows)} pitchers)")
+        write_csv(os.path.join(OUT_DIR, "bullpen.csv"),
+                  ["team", "abbreviation", "fip", "era", "whip"], bullpen_rows)
+        print(f"Wrote bullpen.csv ({len(bullpen_rows)} teams)")
     except Exception as e:  # noqa: BLE001
         print(f"pitcher fetch FAILED (keeping previous file): {e}")
 
@@ -146,6 +186,8 @@ def main():
         manifest["teams"] = len(team_rows)
     if pitcher_rows is not None:
         manifest["pitchers"] = len(pitcher_rows)
+    if bullpen_rows is not None:
+        manifest["bullpens"] = len(bullpen_rows)
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
         f.write("\n")

@@ -410,8 +410,9 @@ export default function DailyGamesView({
 
       <p style={styles.disclaimer}>
         Model projections only — a possible edge from formula output, not a guaranteed result.
-        MLB uses box-score inputs (probable starter + team offense); confidence is intentionally
-        modest and most games will read “No Bet.”
+        MLB blends StatsAPI box scores, FanGraphs advanced stats (wRC+/FIP/SIERA/bullpen),
+        ballpark, game-time weather and lineup status; anything unavailable lowers confidence
+        and “No Bet” stays a smart outcome.
       </p>
     </div>
   );

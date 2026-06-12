@@ -12,13 +12,18 @@
 // the frontend's MLBProjectionInput (see frontend/utils/mlbProjection.ts), so the
 // browser can feed each straight into projectMLBGame() with no reshaping.
 //
-// Intentionally partial: StatsAPI carries no FIP/xFIP/SIERA/wRC+/bullpen/park/
-// weather, so those fields are left unset and the engine's data-completeness
-// logic keeps MLB confidence modest. Games with no ESPN total stay no-bet.
+// Enrichment layers on top of the StatsAPI/ESPN base:
+//   - FanGraphs nightly files (mlbAdvanced.js): wRC+/wOBA, starter FIP/xFIP/
+//     SIERA, team bullpen FIP/ERA/WHIP.
+//   - Same-day fetches (mlbEnrichment.js): park factor, game-time weather
+//     (Open-Meteo), bullpen relief innings last 1/3 days, lineup confirmation.
+// Each layer is best-effort — anything unavailable is simply left unset and
+// the engine's data-completeness logic lowers confidence accordingly.
 // =============================================================================
 
 const axios = require('axios');
-const { getTeamOffense, getStarter } = require('./mlbAdvanced');
+const { getTeamOffense, getStarter, getBullpen } = require('./mlbAdvanced');
+const { buildGameEnvironment, fetchReliefUsage } = require('./mlbEnrichment');
 
 const STATSAPI_BASE = 'https://statsapi.mlb.com/api/v1';
 const ESPN_MLB_SCOREBOARD =
@@ -59,11 +64,21 @@ function parseScheduleResponse(data) {
         probablePitcherId: side.probablePitcher?.id,
         probablePitcherName: side.probablePitcher?.fullName,
       });
+      // Lineups appear in the hydrated schedule once posted (~1-2h pregame); a
+      // full 9 means confirmed. Earlier in the day this is honestly `false`.
+      const lineupConfirmed = (players) =>
+        Array.isArray(players) && players.length >= 9;
+      const coords = g?.venue?.location?.defaultCoordinates;
       games.push({
         gamePk: g.gamePk,
         gameDate: g.gameDate || '',
         abstractState: g?.status?.abstractGameState || '',
         venueName: g?.venue?.name,
+        latitude: toNum(coords?.latitude),
+        longitude: toNum(coords?.longitude),
+        roofType: g?.venue?.fieldInfo?.roofType,
+        homeLineupConfirmed: lineupConfirmed(g?.lineups?.homePlayers),
+        awayLineupConfirmed: lineupConfirmed(g?.lineups?.awayPlayers),
         home: team(homeT),
         away: team(awayT),
       });
@@ -117,11 +132,14 @@ function lookupBookTotal(game, totals) {
 
 // --- assemble an MLBProjectionInput (matches the frontend type) --------------
 
-function buildProjectionInput(game, offense, starters, bookTotal) {
-  const team = (g, off, sp) => {
+function buildProjectionInput(game, offense, starters, bookTotal, extras = {}) {
+  const { reliefUsage, environment } = extras;
+  const team = (g, off, sp, lineupConfirmed) => {
     // FanGraphs enrichment (no-ops to {} when the data files aren't present).
     const adv = getTeamOffense(g.name);
     const spAdv = getStarter(g.probablePitcherName, g.name);
+    const bp = getBullpen(g.name);
+    const usage = reliefUsage?.get?.(g.teamId);
     return {
       name: g.name,
       offense: {
@@ -137,21 +155,30 @@ function buildProjectionInput(game, offense, starters, bookTotal) {
         siera: spAdv.siera,
         confirmed: g.probablePitcherId !== undefined,
       },
-      bullpen: {},
+      bullpen: {
+        fip: bp.fip,
+        era: bp.era,
+        whip: bp.whip,
+        inningsLast1d: usage?.inningsLast1d,
+        inningsLast3d: usage?.inningsLast3d,
+      },
+      lineup: lineupConfirmed === undefined ? undefined : { confirmed: lineupConfirmed },
     };
   };
-  return {
-    home: team(game.home, offense.home, starters.home),
-    away: team(game.away, offense.away, starters.away),
+  const input = {
+    home: team(game.home, offense.home, starters.home, game.homeLineupConfirmed),
+    away: team(game.away, offense.away, starters.away, game.awayLineupConfirmed),
     line: bookTotal !== undefined ? { total: bookTotal } : {},
   };
+  if (environment) input.environment = environment;
+  return input;
 }
 
 // --- fetchers ----------------------------------------------------------------
 
 async function fetchSchedule() {
   const data = await getJson(
-    `${STATSAPI_BASE}/schedule?sportId=1&hydrate=probablePitcher,venue`
+    `${STATSAPI_BASE}/schedule?sportId=1&hydrate=probablePitcher,venue(location,fieldInfo),lineups`
   );
   return parseScheduleResponse(data);
 }
@@ -194,7 +221,11 @@ async function fetchTotals() {
  */
 async function buildDailyMLBInputs() {
   const season = new Date().getUTCFullYear();
-  const [schedule, totals] = await Promise.all([fetchSchedule(), fetchTotals()]);
+  const [schedule, totals, reliefUsage] = await Promise.all([
+    fetchSchedule(),
+    fetchTotals(),
+    fetchReliefUsage().catch(() => new Map()),
+  ]);
   const upcoming = schedule.filter((g) => g.abstractState === 'Preview');
 
   const offenseCache = new Map();
@@ -211,20 +242,22 @@ async function buildDailyMLBInputs() {
       getOffense(game.home.teamId),
       getOffense(game.away.teamId),
     ]);
-    const [homeSp, awaySp] = await Promise.all([
+    const [homeSp, awaySp, environment] = await Promise.all([
       game.home.probablePitcherId
         ? fetchPitcherStats(game.home.probablePitcherId, season)
         : Promise.resolve(null),
       game.away.probablePitcherId
         ? fetchPitcherStats(game.away.probablePitcherId, season)
         : Promise.resolve(null),
+      buildGameEnvironment(game).catch(() => undefined),
     ]);
     const bookTotal = lookupBookTotal(game, totals);
     const input = buildProjectionInput(
       game,
       { home: homeOff, away: awayOff },
       { home: homeSp, away: awaySp },
-      bookTotal
+      bookTotal,
+      { reliefUsage, environment }
     );
     games.push({
       gamePk: game.gamePk,

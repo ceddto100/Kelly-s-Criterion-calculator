@@ -6,6 +6,7 @@
 //
 //   getTeamOffense(teamName)        -> { wrcPlus, woba }   (or {} if unknown)
 //   getStarter(pitcherName, team)   -> { fip, xfip, siera } (or {} if unknown)
+//   getBullpen(teamName)            -> { fip, era, whip }  (or {} if unknown)
 //
 // Fault-tolerant by design: if the files are missing (e.g. the updater hasn't
 // run yet, or the backend is deployed without them) every lookup returns {},
@@ -18,6 +19,7 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, '..', 'data', 'mlb');
 const TEAM_FILE = path.join(DATA_DIR, 'team_offense.csv');
 const PITCHER_FILE = path.join(DATA_DIR, 'pitchers.csv');
+const BULLPEN_FILE = path.join(DATA_DIR, 'bullpen.csv');
 
 function normalize(s) {
   return (s || '')
@@ -52,7 +54,10 @@ function parseCsv(text) {
   });
 }
 
-const cache = { teamMtime: -1, pitcherMtime: -1, teams: null, pitchers: null };
+const cache = {
+  teamMtime: -1, pitcherMtime: -1, bullpenMtime: -1,
+  teams: null, pitchers: null, bullpens: null,
+};
 
 function mtime(file) {
   try { return fs.statSync(file).mtimeMs; } catch { return 0; }
@@ -94,9 +99,32 @@ function loadPitchers() {
   return cache.pitchers;
 }
 
+function loadBullpens() {
+  const m = mtime(BULLPEN_FILE);
+  if (cache.bullpens && m === cache.bullpenMtime) return cache.bullpens;
+  const byKey = new Map(); // normalized full-name / abbr -> entry
+  const byNick = new Map(); // nickname -> entry
+  try {
+    for (const r of parseCsv(fs.readFileSync(BULLPEN_FILE, 'utf8'))) {
+      const entry = { fip: toNum(r.fip), era: toNum(r.era), whip: toNum(r.whip) };
+      if (r.team) { byKey.set(normalize(r.team), entry); byNick.set(nickname(r.team), entry); }
+      if (r.abbreviation) byKey.set(normalize(r.abbreviation), entry);
+    }
+  } catch { /* file absent -> no enrichment */ }
+  cache.bullpens = { byKey, byNick };
+  cache.bullpenMtime = m;
+  return cache.bullpens;
+}
+
 function getTeamOffense(teamName) {
   if (!teamName) return {};
   const { byKey, byNick } = loadTeams();
+  return byKey.get(normalize(teamName)) || byNick.get(nickname(teamName)) || {};
+}
+
+function getBullpen(teamName) {
+  if (!teamName) return {};
+  const { byKey, byNick } = loadBullpens();
   return byKey.get(normalize(teamName)) || byNick.get(nickname(teamName)) || {};
 }
 
@@ -111,4 +139,4 @@ function getStarter(pitcherName, teamName) {
   return match || list[0];
 }
 
-module.exports = { getTeamOffense, getStarter };
+module.exports = { getTeamOffense, getStarter, getBullpen };

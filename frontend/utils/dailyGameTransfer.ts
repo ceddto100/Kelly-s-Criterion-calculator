@@ -388,9 +388,10 @@ function assertFound(home: unknown, away: unknown, game: GenericGameLike): void 
 
 /**
  * Flatten an MLB daily game's projection input into the MLBEstimator's flat
- * field state. Carries every metric the live feed provides (book total, OPS,
- * runs/game, starter ERA + confirmed) so the estimator reproduces the card's
- * projection and the user can refine it.
+ * field state. Carries every metric the live feed provides — book total,
+ * offense (wRC+/wOBA/OPS/R-G), starter (SIERA/xFIP/FIP/ERA + confirmed),
+ * bullpen (quality + recent usage), ballpark, weather and lineup — so the
+ * estimator reproduces the card's projection and the user can refine it.
  */
 export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
   const input = game.input;
@@ -411,6 +412,8 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
 
   set('homeWrc', str(home?.offense?.wrcPlus));
   set('awayWrc', str(away?.offense?.wrcPlus));
+  set('homeWoba', str(home?.offense?.woba, 3));
+  set('awayWoba', str(away?.offense?.woba, 3));
   set('homeOps', str(home?.offense?.ops, 3));
   set('awayOps', str(away?.offense?.ops, 3));
   set('homeRecentRpg', str(home?.offense?.recentRunsPerGame ?? home?.offense?.runsPerGame, 2));
@@ -422,8 +425,35 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
   set('awaySierra', str(away?.starter?.siera, 2));
   set('homeFip', str(home?.starter?.fip, 2));
   set('awayFip', str(away?.starter?.fip, 2));
+  set('homeXfip', str(home?.starter?.xfip, 2));
+  set('awayXfip', str(away?.starter?.xfip, 2));
   set('homeStarterConfirmed', yesNo(home?.starter?.confirmed));
   set('awayStarterConfirmed', yesNo(away?.starter?.confirmed));
+
+  set('homeBpFip', str(home?.bullpen?.fip, 2));
+  set('awayBpFip', str(away?.bullpen?.fip, 2));
+  set('homeBpEra', str(home?.bullpen?.era, 2));
+  set('awayBpEra', str(away?.bullpen?.era, 2));
+  set('homeBpWhip', str(home?.bullpen?.whip, 2));
+  set('awayBpWhip', str(away?.bullpen?.whip, 2));
+  set('homeBpIp1', str(home?.bullpen?.inningsLast1d, 1));
+  set('awayBpIp1', str(away?.bullpen?.inningsLast1d, 1));
+  set('homeBpIp3', str(home?.bullpen?.inningsLast3d, 1));
+  set('awayBpIp3', str(away?.bullpen?.inningsLast3d, 1));
+  set('homeCloser', yesNo(home?.bullpen?.closerAvailable));
+  set('awayCloser', yesNo(away?.bullpen?.closerAvailable));
+
+  set('homeLineupConfirmed', yesNo(home?.lineup?.confirmed));
+  set('awayLineupConfirmed', yesNo(away?.lineup?.confirmed));
+  set('homeStarsOut', str(home?.lineup?.starsOut));
+  set('awayStarsOut', str(away?.lineup?.starsOut));
+
+  const env = input.environment;
+  set('parkFactor', str(env?.parkFactor));
+  set('temperatureF', str(env?.temperatureF, 0));
+  set('windSpeedMph', str(env?.windSpeedMph, 0));
+  if (env?.windDirection) fields.windDirection = env.windDirection;
+  set('roofClosed', yesNo(env?.roofClosed));
 
   return fields;
 }
