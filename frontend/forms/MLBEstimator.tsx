@@ -44,17 +44,21 @@ function buildInput(f: FieldState): MLBProjectionInput {
       name: f.homeName?.trim() || "Home",
       offense: {
         wrcPlus: num(f.homeWrc),
+        woba: num(f.homeWoba),
         ops: num(f.homeOps),
         recentRunsPerGame: num(f.homeRecentRpg),
       },
       starter: {
         siera: num(f.homeSierra),
+        xfip: num(f.homeXfip),
         fip: num(f.homeFip),
         era: num(f.homeEra),
         confirmed: yesField(f.homeStarterConfirmed),
       },
       bullpen: {
         fip: num(f.homeBpFip),
+        era: num(f.homeBpEra),
+        whip: num(f.homeBpWhip),
         inningsLast1d: num(f.homeBpIp1),
         inningsLast3d: num(f.homeBpIp3),
         closerAvailable: yesField(f.homeCloser),
@@ -69,17 +73,21 @@ function buildInput(f: FieldState): MLBProjectionInput {
       name: f.awayName?.trim() || "Away",
       offense: {
         wrcPlus: num(f.awayWrc),
+        woba: num(f.awayWoba),
         ops: num(f.awayOps),
         recentRunsPerGame: num(f.awayRecentRpg),
       },
       starter: {
         siera: num(f.awaySierra),
+        xfip: num(f.awayXfip),
         fip: num(f.awayFip),
         era: num(f.awayEra),
         confirmed: yesField(f.awayStarterConfirmed),
       },
       bullpen: {
         fip: num(f.awayBpFip),
+        era: num(f.awayBpEra),
+        whip: num(f.awayBpWhip),
         inningsLast1d: num(f.awayBpIp1),
         inningsLast3d: num(f.awayBpIp3),
         closerAvailable: yesField(f.awayCloser),
@@ -120,18 +128,26 @@ const EXAMPLE: FieldState = {
   awayMoneyline: "140",
   homeWrc: "112",
   awayWrc: "94",
+  homeWoba: "0.330",
+  awayWoba: "0.305",
   homeOps: "0.760",
   awayOps: "0.700",
   homeRecentRpg: "5.1",
   awayRecentRpg: "3.9",
   homeSierra: "3.40",
+  homeXfip: "3.50",
   homeFip: "3.55",
   awaySierra: "4.70",
+  awayXfip: "4.75",
   awayFip: "4.85",
   homeStarterConfirmed: "yes",
   awayStarterConfirmed: "yes",
   homeBpFip: "3.70",
   awayBpFip: "4.40",
+  homeBpEra: "3.80",
+  awayBpEra: "4.55",
+  homeBpWhip: "1.22",
+  awayBpWhip: "1.38",
   homeBpIp1: "1.0",
   awayBpIp1: "3.5",
   homeCloser: "yes",
@@ -215,6 +231,10 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
         <input className="input-field" type="number" name="homeWrc" value={f.homeWrc || ""} onChange={onChange} placeholder="105" />
         <input className="input-field" type="number" name="awayWrc" value={f.awayWrc || ""} onChange={onChange} placeholder="98" />
 
+        <span>wOBA (optional)</span>
+        <input className="input-field" type="number" step="0.001" name="homeWoba" value={f.homeWoba || ""} onChange={onChange} placeholder="0.320" />
+        <input className="input-field" type="number" step="0.001" name="awayWoba" value={f.awayWoba || ""} onChange={onChange} placeholder="0.310" />
+
         <span>OPS (optional)</span>
         <input className="input-field" type="number" step="0.001" name="homeOps" value={f.homeOps || ""} onChange={onChange} placeholder="0.740" />
         <input className="input-field" type="number" step="0.001" name="awayOps" value={f.awayOps || ""} onChange={onChange} placeholder="0.710" />
@@ -233,6 +253,10 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
         <span>SIERA</span>
         <input className="input-field" type="number" step="0.01" name="homeSierra" value={f.homeSierra || ""} onChange={onChange} placeholder="3.80" />
         <input className="input-field" type="number" step="0.01" name="awaySierra" value={f.awaySierra || ""} onChange={onChange} placeholder="4.20" />
+
+        <span>xFIP</span>
+        <input className="input-field" type="number" step="0.01" name="homeXfip" value={f.homeXfip || ""} onChange={onChange} placeholder="3.85" />
+        <input className="input-field" type="number" step="0.01" name="awayXfip" value={f.awayXfip || ""} onChange={onChange} placeholder="4.25" />
 
         <span>FIP</span>
         <input className="input-field" type="number" step="0.01" name="homeFip" value={f.homeFip || ""} onChange={onChange} placeholder="3.90" />
@@ -267,6 +291,14 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
             <span>Bullpen FIP</span>
             <input className="input-field" type="number" step="0.01" name="homeBpFip" value={f.homeBpFip || ""} onChange={onChange} placeholder="3.95" />
             <input className="input-field" type="number" step="0.01" name="awayBpFip" value={f.awayBpFip || ""} onChange={onChange} placeholder="4.10" />
+
+            <span>Bullpen ERA</span>
+            <input className="input-field" type="number" step="0.01" name="homeBpEra" value={f.homeBpEra || ""} onChange={onChange} placeholder="4.00" />
+            <input className="input-field" type="number" step="0.01" name="awayBpEra" value={f.awayBpEra || ""} onChange={onChange} placeholder="4.20" />
+
+            <span>Bullpen WHIP</span>
+            <input className="input-field" type="number" step="0.01" name="homeBpWhip" value={f.homeBpWhip || ""} onChange={onChange} placeholder="1.30" />
+            <input className="input-field" type="number" step="0.01" name="awayBpWhip" value={f.awayBpWhip || ""} onChange={onChange} placeholder="1.35" />
 
             <span>Relief IP last 1 day</span>
             <input className="input-field" type="number" step="0.1" name="homeBpIp1" value={f.homeBpIp1 || ""} onChange={onChange} placeholder="1.0" />

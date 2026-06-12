@@ -247,14 +247,60 @@ Sport coverage in the daily pipeline:
   team name. With a book line in hand the engine computes a real over/under edge
   and can lean a side — the no-line "always no-bet" floor is gone.
 
-  Still deliberately partial: StatsAPI does **not** expose the FanGraphs metrics
-  the engine prefers (FIP/xFIP/SIERA/wRC+/wOBA), bullpen splits, park factors, or
-  weather, so those inputs stay unset and the engine's data-completeness logic
-  keeps confidence modest. Games where ESPN has no posted total fall back to
-  no-bet. Every analyzed game is recorded for backtesting; MLB is still analysis
-  + backtesting only, never auto-logged as a wager. The remaining upgrade path
-  that raises MLB *confidence* (not just enables a lean) is a FanGraphs-style
-  metrics source. Parsers are pure and unit-tested against fixtures; the live
-  fetch wrappers are runtime-verified (the build sandbox blocks egress). For
-  richer manual projections, `estimate_mlb_projection` still accepts the full
-  input set (bullpen, park, weather, lineup).
+  The **mcp-server cron path** is still deliberately partial: StatsAPI does
+  **not** expose the FanGraphs metrics the engine prefers (FIP/xFIP/SIERA/
+  wRC+/wOBA), bullpen splits, park factors, or weather, so those inputs stay
+  unset there and the engine's data-completeness logic keeps confidence modest.
+  Games where ESPN has no posted total fall back to no-bet. Every analyzed game
+  is recorded for backtesting; MLB is still analysis + backtesting only, never
+  auto-logged as a wager. Parsers are pure and unit-tested against fixtures;
+  the live fetch wrappers are runtime-verified (the build sandbox blocks
+  egress). For richer manual projections, `estimate_mlb_projection` still
+  accepts the full input set (bullpen, park, weather, lineup).
+
+### MLB full-input pipeline (backend `/api/mlb/daily` → Today's Games)
+
+The **backend** path that powers the app's "Today's Games" MLB cards now feeds
+the engine its complete input set, in two layers:
+
+- **Nightly (FanGraphs via pybaseball, `scripts/updateMLBAdvanced.py`, run by
+  the existing `update_stats.yml` cron):** team wRC+/wOBA
+  (`team_offense.csv`), per-pitcher FIP/xFIP/SIERA (`pitchers.csv`), and team
+  **bullpen FIP/ERA/WHIP** (`bullpen.csv`, an innings-weighted aggregate over
+  relievers, i.e. pitchers with zero starts; traded "- - -" pitchers are
+  skipped). `backend/scrapers/mlbAdvanced.js` merges these at request time.
+- **Same-day (`backend/scrapers/mlbEnrichment.js`, fetched when
+  `/api/mlb/daily` is requested, because these change too fast for a cron):**
+  - **Park factor** — static venue table (approximate multi-year run factors,
+    100 = neutral; refresh yearly), keyed by the StatsAPI venue name.
+  - **Weather** — Open-Meteo forecast (free, no key) at the venue's
+    coordinates (from the schedule's `venue(location)` hydration) for the hour
+    nearest first pitch: temperature, wind speed, and wind out/in/crosswind
+    classified against an approximate home-plate→center-field bearing per
+    park. Fixed domes (`fieldInfo.roofType === 'Dome'`) skip weather and set
+    `roofClosed`; retractable roofs keep the forecast but flag
+    `weatherReliable: false`.
+  - **Bullpen recent usage** — relief innings per team over the last 1 and 3
+    days, summed from StatsAPI boxscores (every pitcher after the starter
+    counts as relief); feeds the engine's fatigue penalty. Past days are
+    cached in-process once fully Final.
+  - **Lineup confirmation** — the schedule's `lineups` hydration; a posted
+    lineup of 9+ marks `lineup.confirmed`. Lineups post ~1-2h before first
+    pitch, so earlier in the day this is honestly `false` and the engine
+    trims data completeness — that is correct, not a bug.
+
+  Everything is best-effort: any missing file or failed fetch leaves the input
+  unset and the engine lowers confidence — exactly the previous behavior.
+  Closer availability, stars-out and platoon edge remain manual-only inputs
+  (no reliable free feed); enter them in the estimator before running the
+  projection. Pure helpers (innings parsing, wind classification, boxscore
+  relief parsing, forecast-hour picking, park lookups) are unit-tested in
+  `backend/test/mlbEnrichment.test.js` (`npm test` in `backend/`).
+
+  When a Today's Games MLB card is tapped, `mlbInputToFields()`
+  (`frontend/utils/dailyGameTransfer.ts`) now carries **every** field into the
+  MLB estimator — offense (wRC+/wOBA/OPS/R-G), starter (SIERA/xFIP/FIP/ERA +
+  confirmed), bullpen (FIP/ERA/WHIP + 1d/3d usage), park, weather, roof and
+  lineup status — so the estimator reproduces the card's projection exactly
+  and the user can refine from there. The estimator form gained matching
+  wOBA, xFIP, bullpen ERA and bullpen WHIP fields.
