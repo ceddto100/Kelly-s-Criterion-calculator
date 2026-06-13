@@ -209,6 +209,8 @@ html {
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
   scroll-behavior: smooth;
+  /* Stop the scroll chain from triggering rubber-band glitches on mobile */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -250,19 +252,14 @@ body::before {
     color-mix(in srgb, var(--background-secondary) 80%, #0f172a) 75%,
     var(--background-color) 100%
   );
-  background-size: 400% 400%;
-  animation: subtleGradientFlow 60s ease infinite;
+  background-size: cover;
+  background-position: 50% 50%;
   opacity: 1;
   z-index: -2;
-  will-change: transform, opacity;
+  /* Static layer (no animation) isolated on its own compositor layer so it
+     is not re-rasterized while scrolling backdrop-filter panels. */
+  transform: translateZ(0);
   pointer-events: none;
-}
-
-@keyframes subtleGradientFlow {
-  0%, 100% { background-position: 0% 50%; }
-  25% { background-position: 50% 25%; }
-  50% { background-position: 100% 50%; }
-  75% { background-position: 50% 75%; }
 }
 
 /* Glowing blob 1 - Electric Blue (noticeable) */
@@ -276,16 +273,9 @@ body::after {
   bottom: -250px;
   right: -250px;
   z-index: -1;
-  animation: blobFloat1 30s ease-in-out infinite;
   opacity: 0.7;
-  will-change: transform, opacity;
+  transform: translateZ(0);
   pointer-events: none;
-}
-
-@keyframes blobFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, -30px) scale(1.05); }
-  66% { transform: translate(-15px, 15px) scale(0.98); }
 }
 
 #root {
@@ -325,15 +315,9 @@ body.mobile-scroll-lock {
   top: -200px;
   left: -200px;
   z-index: -1;
-  animation: blobFloat2 35s ease-in-out infinite reverse;
   opacity: 0.65;
-  will-change: transform, opacity;
+  transform: translateZ(0);
   pointer-events: none;
-}
-
-@keyframes blobFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-25px, 25px) scale(1.06); }
 }
 
 /* Glowing blob 3 - Cyan (noticeable) */
@@ -347,15 +331,22 @@ body.mobile-scroll-lock {
   top: 50%;
   right: -220px;
   z-index: -1;
-  animation: blobFloat3 40s ease-in-out infinite;
   opacity: 0.6;
-  will-change: transform, opacity;
+  transform: translateY(-50%) translateZ(0);
   pointer-events: none;
 }
 
-@keyframes blobFloat3 {
-  0%, 100% { transform: translateY(-50%) scale(1); }
-  50% { transform: translateY(calc(-50% + 40px)) scale(1.08); }
+/* ==================== MOBILE PERFORMANCE ==================== */
+/* The biggest scroll cost is re-compositing many backdrop-filter glass
+   panels over large blurred layers. On phones we lighten the blur radii so
+   scrolling stays smooth without changing the overall look. */
+@media (max-width: 640px) {
+  :root { --glass-blur: blur(10px); }
+  body::after,
+  #root::before,
+  #root::after {
+    filter: blur(90px);
+  }
 }
 
 /* ==================== GLASS PANELS ==================== */
