@@ -136,7 +136,8 @@ router.get('/', asyncHandler(async (req, res) => {
   // Build filter
   const filter = { userId: getUserId(req) };
 
-  if (sport && ['football', 'basketball'].includes(sport)) {
+  const validSports = ['nfl', 'cfb', 'nba', 'wnba', 'cbb', 'mlb', 'football', 'basketball', 'hockey', 'baseball'];
+  if (sport && validSports.includes(sport)) {
     filter['matchup.sport'] = sport;
   }
 
