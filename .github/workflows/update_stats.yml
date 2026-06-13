@@ -57,17 +57,15 @@ jobs:
         continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
 
-      # MLB advanced stats (wRC+/wOBA/FIP/xFIP/SIERA) from FanGraphs via
-      # pybaseball, written to backend/data/mlb/ for the backend to merge into
-      # /api/mlb/daily. Best-effort: failure never blocks the NBA/NFL/NHL update,
-      # it just leaves MLB on OPS/ERA (today's behavior).
+      # MLB advanced stats (wRC+/wOBA/FIP/xFIP/SIERA) from FanGraphs' JSON
+      # leaders API, written to backend/data/mlb/ for the backend to merge into
+      # /api/mlb/daily. Uses only the Python standard library (urllib), so no
+      # extra install step is needed. Best-effort: failure never blocks the
+      # NBA/NFL/NHL update, it just leaves MLB on OPS/ERA (the fallback behavior).
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install pybaseball
-        run: pip install --quiet pybaseball
 
       - name: Update MLB advanced stats
         id: mlb_advanced
