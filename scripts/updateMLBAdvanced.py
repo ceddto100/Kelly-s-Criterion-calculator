@@ -2,8 +2,8 @@
 """
 scripts/updateMLBAdvanced.py
 ============================
-Fetches MLB advanced stats from FanGraphs (via pybaseball) and writes them where
-the backend can read them at runtime:
+Fetches MLB advanced stats from FanGraphs and writes them where the backend
+can read them at runtime:
 
     backend/data/mlb/team_offense.csv   -> team, abbreviation, wrc_plus, woba
     backend/data/mlb/pitchers.csv       -> name, team, fip, xfip, siera
@@ -16,41 +16,45 @@ starters — but MLB StatsAPI only exposes OPS, runs/game and ERA. Without these
 the engine runs on its lowest-weight inputs and stays low-confidence. The backend
 (backend/scrapers/mlbAdvanced.js) merges these files into /api/mlb/daily.
 
+Data source: FanGraphs' modern JSON leaders API
+(https://www.fangraphs.com/api/leaders/major-league/data), the same endpoint the
+live site's leaderboards call. This replaces the old pybaseball scrape of
+`leaders-legacy.aspx`, which FanGraphs retired — that page now returns HTTP 403
+from cloud/CI IPs no matter what User-Agent is sent, which is why every CI run
+failed. We hit the JSON API directly with stdlib urllib (no third-party deps) so
+there is nothing fragile to keep patched.
+
 Best-effort by design: each source is fetched independently and a failure leaves
-the previous file in place, so a flaky FanGraphs scrape never breaks the live MLB
-slate — it just falls back to OPS/ERA, which is today's behavior.
+the previous file in place, so a flaky FanGraphs response never breaks the live
+MLB slate — it just falls back to OPS/ERA, which is the pre-existing behavior.
 """
 import os
+import re
 import sys
 import json
+import time
 import datetime
-import requests
+import urllib.error
+import urllib.request
+from urllib.parse import urlencode
 
-# FanGraphs (Cloudflare) returns 403 for the default "python-requests/x.y"
-# User-Agent that pybaseball sends, which is what causes every CI run to fail
-# with "Received status code 403" even though the same URL works in a browser.
-# Patch requests.get globally (pybaseball calls it as `requests.get(...)`, so
-# this attribute swap is picked up by its html_table_processor) to send a
-# normal browser User-Agent instead.
-_BROWSER_HEADERS = {
+OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "mlb")
+
+FG_API_URL = "https://www.fangraphs.com/api/leaders/major-league/data"
+
+# A normal browser request profile. The JSON API is far more permissive than the
+# retired HTML page, but we still send a realistic UA + Referer so we look like
+# the site's own XHR rather than a bare script.
+_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.fangraphs.com/leaders/major-league",
+    "Connection": "keep-alive",
 }
-_orig_requests_get = requests.get
-
-
-def _get_with_browser_headers(url, *args, **kwargs):
-    headers = {**_BROWSER_HEADERS, **(kwargs.pop("headers", None) or {})}
-    return _orig_requests_get(url, *args, headers=headers, **kwargs)
-
-
-requests.get = _get_with_browser_headers
-
-OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "mlb")
 
 # FanGraphs team code -> StatsAPI-style full team name (used for matching in the
 # backend against MLB StatsAPI's team names). Alternates included for safety.
@@ -72,27 +76,47 @@ FG_TEAM_TO_FULL = {
 
 
 def season_year():
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     # MLB regular season ~ late Mar to early Oct; before March, use prior year.
     return now.year if now.month >= 3 else now.year - 1
+
+
+def now_iso():
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
 
 def clean(text):
     return str(text).replace(",", " ").strip()
 
 
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def strip_html(text):
+    """FanGraphs occasionally returns a player/team name as an <a> anchor."""
+    return _TAG_RE.sub("", str(text)).strip()
+
+
+def pick(row, *keys, default=None):
+    """First non-empty value among the candidate keys (API field names vary)."""
+    for k in keys:
+        if k in row:
+            v = row[k]
+            if v is not None and v != "":
+                return v
+    return default
+
+
 def fmt(value, decimals):
+    if value is None or value == "":
+        return ""
     try:
-        import pandas as pd  # local import so the module loads even if pandas is missing
-        if value is None or (hasattr(pd, "isna") and pd.isna(value)):
-            return ""
-    except Exception:
-        if value is None:
-            return ""
-    try:
-        return f"{float(value):.{decimals}f}"
+        f = float(value)
     except (TypeError, ValueError):
         return ""
+    if f != f:  # NaN
+        return ""
+    return f"{f:.{decimals}f}"
 
 
 def write_csv(path, header, rows):
@@ -102,18 +126,53 @@ def write_csv(path, header, rows):
             f.write(",".join("" if v is None else str(v) for v in row) + "\n")
 
 
+def fetch_json(params):
+    """GET the FanGraphs leaders API and return the list of leader rows."""
+    url = FG_API_URL + "?" + urlencode(params)
+    last_error = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers=_HEADERS)
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw = resp.read().decode("utf-8", "replace")
+            payload = json.loads(raw)
+            if isinstance(payload, dict):
+                # The leaders API wraps rows in "data"; tolerate alternates.
+                for key in ("data", "leaders", "rows"):
+                    if isinstance(payload.get(key), list):
+                        return payload[key]
+                return []
+            if isinstance(payload, list):
+                return payload
+            return []
+        except urllib.error.HTTPError as e:
+            last_error = f"HTTP {e.code} {e.reason}"
+        except (urllib.error.URLError, ValueError, TimeoutError) as e:
+            last_error = str(e)
+        time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"FanGraphs API request failed ({last_error}) for {url}")
+
+
 def fetch_team_offense(season):
     """Returns list of [full_name, fg_abbr, wrc_plus, woba]."""
-    from pybaseball import team_batting
-    df = team_batting(season)
+    data = fetch_json({
+        "age": "", "pos": "all", "stats": "bat", "lg": "all", "qual": "0",
+        "type": "8", "season": season, "season1": season, "startdate": "",
+        "enddate": "", "month": "0", "hand": "", "team": "0,ts",
+        "pageitems": "2000000000", "pagenum": "1", "ind": "0", "rost": "0",
+        "players": "0", "postseason": "", "sortdir": "default", "sortstat": "WAR",
+    })
     rows = []
-    for _, r in df.iterrows():
-        code = str(r.get("Team", "")).strip()
-        full = FG_TEAM_TO_FULL.get(code)
+    for r in data:
+        abbr = str(pick(r, "TeamNameAbb", "TeamAbb", "Team", default="")).strip()
+        full = FG_TEAM_TO_FULL.get(abbr) or strip_html(pick(r, "TeamName", "Team", default=""))
         if not full:
-            print(f"  [team] unmapped FanGraphs code '{code}', skipping")
+            print(f"  [team] unmapped FanGraphs row (abbr='{abbr}'), skipping")
             continue
-        rows.append([full, code, fmt(r.get("wRC+"), 0), fmt(r.get("wOBA"), 3)])
+        rows.append([clean(full), abbr,
+                     fmt(pick(r, "wRC+", "wRCplus"), 0), fmt(pick(r, "wOBA"), 3)])
+    if not rows:
+        raise RuntimeError("team offense returned 0 rows")
     return rows
 
 
@@ -126,23 +185,27 @@ def fetch_pitchers(season):
     Traded pitchers show Team "- - -" on FanGraphs and are skipped in the
     bullpen aggregate (their relief innings can't be attributed to one team).
     """
-    from pybaseball import pitching_stats
-    # qual=0 -> no innings minimum, so probable starters early in the year are included.
-    df = pitching_stats(season, qual=0)
+    data = fetch_json({
+        "age": "", "pos": "all", "stats": "pit", "lg": "all", "qual": "0",
+        "type": "8", "season": season, "season1": season, "startdate": "",
+        "enddate": "", "month": "0", "hand": "", "team": "0",
+        "pageitems": "2000000000", "pagenum": "1", "ind": "0", "rost": "0",
+        "players": "0", "postseason": "", "sortdir": "default", "sortstat": "WAR",
+    })
     rows = []
     bp = {}  # fg code -> {stat: [weighted_sum, ip_outs_sum]}
-    for _, r in df.iterrows():
-        name = clean(r.get("Name", ""))
-        team = clean(r.get("Team", ""))
+    for r in data:
+        name = clean(strip_html(pick(r, "PlayerName", "Name", default="")))
+        team = str(pick(r, "TeamNameAbb", "TeamAbb", "Team", default="")).strip()
         if name:
-            rows.append([name, team, fmt(r.get("FIP"), 2),
-                         fmt(r.get("xFIP"), 2), fmt(r.get("SIERA"), 2)])
+            rows.append([name, team, fmt(pick(r, "FIP"), 2),
+                         fmt(pick(r, "xFIP"), 2), fmt(pick(r, "SIERA"), 2)])
 
         if team not in FG_TEAM_TO_FULL:
             continue
         try:
-            gs = float(r.get("GS") or 0)
-            ip = float(r.get("IP") or 0)
+            gs = float(pick(r, "GS", default=0) or 0)
+            ip = float(pick(r, "IP", default=0) or 0)
         except (TypeError, ValueError):
             continue
         if gs > 0 or ip <= 0:
@@ -152,11 +215,14 @@ def fetch_pitchers(season):
         agg = bp.setdefault(team, {"fip": [0.0, 0], "era": [0.0, 0], "whip": [0.0, 0]})
         for stat, col in (("fip", "FIP"), ("era", "ERA"), ("whip", "WHIP")):
             try:
-                v = float(r.get(col))
+                v = float(pick(r, col))
             except (TypeError, ValueError):
                 continue
             agg[stat][0] += v * outs
             agg[stat][1] += outs
+
+    if not rows:
+        raise RuntimeError("pitching returned 0 rows")
 
     bullpen_rows = []
     for code, agg in sorted(bp.items()):
@@ -171,8 +237,8 @@ def fetch_pitchers(season):
 def main():
     season = season_year()
     os.makedirs(OUT_DIR, exist_ok=True)
-    print(f"=== Betgistics MLB Advanced Stats Update (FanGraphs / pybaseball) ===")
-    print(f"Season: {season}  |  UTC: {datetime.datetime.utcnow().isoformat()}Z\n")
+    print("=== Betgistics MLB Advanced Stats Update (FanGraphs JSON API) ===")
+    print(f"Season: {season}  |  UTC: {now_iso()}\n")
 
     team_rows, pitcher_rows, bullpen_rows = None, None, None
 
@@ -203,7 +269,7 @@ def main():
             manifest = json.load(f)
     except Exception:
         pass
-    now = datetime.datetime.utcnow().isoformat() + "Z"
+    now = now_iso()
     if team_rows is not None or pitcher_rows is not None:
         manifest["updatedAt"] = now
         manifest["season"] = season
