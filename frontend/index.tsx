@@ -2030,8 +2030,12 @@ function KellyCalculator({
   const [bankroll, setBankroll] = useState(DEFAULT_BANKROLL);
   const [savedBankroll, setSavedBankroll] = useState(DEFAULT_BANKROLL); // Track saved value
   const [isSavingBankroll, setIsSavingBankroll] = useState(false);
-  const [odds, setOdds] = useState('-110');
-  const [fraction, setFraction] = useState('1');
+  const [odds, setOdds] = useState(() => {
+    try { return localStorage.getItem('kelly-odds') ?? '-110'; } catch { return '-110'; }
+  });
+  const [fraction, setFraction] = useState(() => {
+    try { return localStorage.getItem('kelly-fraction') ?? '1'; } catch { return '1'; }
+  });
   const [explanation, setExplanation] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -2057,6 +2061,18 @@ function KellyCalculator({
 
     return () => clearTimeout(handle);
   }, [bankroll]);
+
+  // Persist odds and Kelly fraction so they survive an app resume / reload
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      try {
+        localStorage.setItem('kelly-odds', odds);
+        localStorage.setItem('kelly-fraction', fraction);
+      } catch {}
+    }, 500);
+
+    return () => clearTimeout(handle);
+  }, [odds, fraction]);
 
   const validation = useMemo(() => {
     const numBankroll = parseFloat(bankroll);
@@ -2458,8 +2474,18 @@ function KellyCalculator({
 }
 /* ================================== App =================================== */
 function App() {
-  const [activeTab, setActiveTab] = useState(CONSTANTS.TABS.KELLY);
-  const [probability, setProbability] = useState('60');
+  // Restore the last-viewed tab so resuming the app (mobile WebViews and
+  // browser tabs reload on resume) lands the user back where they were.
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('betgistics-active-tab');
+      if (saved && Object.values(CONSTANTS.TABS).includes(saved as any)) return saved;
+    } catch {}
+    return CONSTANTS.TABS.KELLY;
+  });
+  const [probability, setProbability] = useState(() => {
+    try { return localStorage.getItem('kelly-probability') ?? '60'; } catch { return '60'; }
+  });
 
   const [theme, setTheme] = useState<ThemeKey>('midnight');
 
@@ -2529,6 +2555,19 @@ function App() {
     root.setAttribute('data-theme', theme);
     localStorage.setItem('betgistics-theme', theme);
   }, [theme]);
+
+  // Persist the active tab and win-probability so they survive an app
+  // resume / reload without forcing the user to start over.
+  useEffect(() => {
+    try { localStorage.setItem('betgistics-active-tab', activeTab); } catch {}
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      try { localStorage.setItem('kelly-probability', probability); } catch {}
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [probability]);
 
   // NEW: State for bet logging data flow
   const [currentMatchup, setCurrentMatchup] = useState<MatchupData | null>(null);
