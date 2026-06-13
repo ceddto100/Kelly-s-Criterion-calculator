@@ -3046,6 +3046,7 @@ function App() {
               <BetHistory
                 isAuthenticated={!!authUser}
                 onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+                onLoginRequired={handleLoginRequired}
               />
             </div>
           )}

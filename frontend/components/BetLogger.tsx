@@ -2,7 +2,7 @@
  * BetLogger.tsx - Component for logging bets and viewing bet history
  * Integrates with the Kelly Calculator workflow
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -391,13 +391,359 @@ export function LogBetButton({
   );
 }
 
+// ==================== Manual Log Bet Component ====================
+// Compute the bookmaker's implied win probability (%) from American odds
+const impliedProbabilityFromOdds = (odds: number): number => {
+  if (!odds) return 0;
+  if (odds > 0) {
+    return (100 / (odds + 100)) * 100;
+  }
+  return (Math.abs(odds) / (Math.abs(odds) + 100)) * 100;
+};
+
+interface ManualLogBetButtonProps {
+  isAuthenticated: boolean;
+  onLoginRequired?: () => void;
+  onBetLogged?: () => void;
+}
+
+export function ManualLogBetButton({
+  isAuthenticated,
+  onLoginRequired,
+  onBetLogged
+}: ManualLogBetButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [sport, setSport] = useState<'football' | 'basketball'>('football');
+  const [teamA, setTeamA] = useState('');
+  const [teamB, setTeamB] = useState('');
+  const [venue, setVenue] = useState<'home' | 'away' | 'neutral'>('neutral');
+  const [americanOdds, setAmericanOdds] = useState('');
+  const [actualWager, setActualWager] = useState('');
+  const [pointSpread, setPointSpread] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Lock body scroll when modal is open (mobile-safe lock/unlock)
+  useEffect(() => {
+    const scrollY = window.scrollY;
+
+    if (isOpen) {
+      document.body.classList.add('mobile-scroll-lock');
+      document.body.style.top = `-${scrollY}px`;
+    } else {
+      const top = document.body.style.top;
+      document.body.classList.remove('mobile-scroll-lock');
+      document.body.style.top = '';
+      if (top) {
+        window.scrollTo(0, Math.abs(parseInt(top, 10)) || 0);
+      }
+    }
+
+    return () => {
+      document.body.classList.remove('mobile-scroll-lock');
+      document.body.style.top = '';
+    };
+  }, [isOpen]);
+
+  const resetForm = () => {
+    setSport('football');
+    setTeamA('');
+    setTeamB('');
+    setVenue('neutral');
+    setAmericanOdds('');
+    setActualWager('');
+    setPointSpread('');
+    setNotes('');
+    setError(null);
+  };
+
+  const handleLogBet = async () => {
+    if (!isAuthenticated) {
+      onLoginRequired?.();
+      return;
+    }
+
+    // Validate the fields the user entered manually
+    if (!teamA.trim() || !teamB.trim()) {
+      setError('Please enter both team names.');
+      return;
+    }
+    const odds = parseInt(americanOdds, 10);
+    if (!odds || Number.isNaN(odds)) {
+      setError('Please enter valid American odds (e.g. -110 or +150).');
+      return;
+    }
+    const wager = parseFloat(actualWager);
+    if (Number.isNaN(wager) || wager < 0) {
+      setError('Please enter a valid wager amount.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    // Pull the user's current bankroll so Kelly stats are meaningful.
+    // Falls back to 0 if unavailable (manual bets don't require it).
+    let bankroll = 0;
+    try {
+      const bankrollRes = await fetch(`${BACKEND_URL}/auth/bankroll`, { credentials: 'include' });
+      if (bankrollRes.ok) {
+        const bankrollData = await bankrollRes.json();
+        if (bankrollData.bankroll !== undefined && bankrollData.bankroll !== null) {
+          bankroll = parseFloat(bankrollData.bankroll) || 0;
+        }
+      }
+    } catch {
+      // Ignore — bankroll is best-effort for manually logged bets
+    }
+
+    const impliedProbability = impliedProbabilityFromOdds(odds);
+
+    const betData: BetLogData = {
+      matchup: {
+        sport,
+        teamA: { name: teamA.trim(), stats: {} },
+        teamB: { name: teamB.trim(), stats: {} },
+        venue
+      },
+      estimation: {
+        pointSpread: parseFloat(pointSpread) || 0,
+        // No model probability for a manual bet — use the odds-implied value
+        calculatedProbability: impliedProbability,
+        impliedProbability,
+        edge: 0
+      },
+      kelly: {
+        bankroll,
+        americanOdds: odds,
+        kellyFraction: 1,
+        recommendedStake: wager,
+        stakePercentage: bankroll > 0 ? (wager / bankroll) * 100 : 0
+      },
+      actualWager: wager,
+      notes: notes || undefined,
+      tags: ['manual']
+    };
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/bets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(betData)
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to log bet');
+      }
+
+      setSuccess(true);
+      onBetLogged?.();
+
+      setTimeout(() => {
+        setIsOpen(false);
+        setSuccess(false);
+        resetForm();
+        document.body.classList.remove('mobile-scroll-lock');
+        document.body.style.top = '';
+      }, 1200);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const modalContent = isOpen && (
+    <div className="log-bet-modal" onClick={(e) => {
+      if (e.target === e.currentTarget) setIsOpen(false);
+    }}>
+      <div className="log-bet-content">
+        <div className="modal-header">
+          <h3>Log a Bet Manually</h3>
+          <button
+            className="modal-close-btn"
+            onClick={() => setIsOpen(false)}
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p className="manual-log-hint">
+          Enter a bet directly — no calculator required. Win probability is
+          estimated from the odds you enter.
+        </p>
+
+        {/* Sport */}
+        <div className="input-group">
+          <label htmlFor="manualSport">Sport</label>
+          <select
+            id="manualSport"
+            className="input-field"
+            value={sport}
+            onChange={(e) => setSport(e.target.value as 'football' | 'basketball')}
+          >
+            <option value="football">🏈 Football</option>
+            <option value="basketball">🏀 Basketball</option>
+          </select>
+        </div>
+
+        {/* Teams */}
+        <div className="input-group">
+          <label htmlFor="manualTeamA">Your Pick (Team)</label>
+          <input
+            id="manualTeamA"
+            type="text"
+            className="input-field"
+            value={teamA}
+            onChange={(e) => setTeamA(e.target.value)}
+            placeholder="e.g. Kansas City Chiefs"
+          />
+        </div>
+        <div className="input-group">
+          <label htmlFor="manualTeamB">Opponent (Team)</label>
+          <input
+            id="manualTeamB"
+            type="text"
+            className="input-field"
+            value={teamB}
+            onChange={(e) => setTeamB(e.target.value)}
+            placeholder="e.g. Buffalo Bills"
+          />
+        </div>
+
+        {/* Venue */}
+        <div className="input-group">
+          <label htmlFor="manualVenue">Venue (for your pick)</label>
+          <select
+            id="manualVenue"
+            className="input-field"
+            value={venue}
+            onChange={(e) => setVenue(e.target.value as 'home' | 'away' | 'neutral')}
+          >
+            <option value="home">🏠 Home</option>
+            <option value="away">✈️ Away</option>
+            <option value="neutral">⚖️ Neutral</option>
+          </select>
+        </div>
+
+        {/* Odds + Wager */}
+        <div className="input-group">
+          <label htmlFor="manualOdds">American Odds</label>
+          <input
+            id="manualOdds"
+            type="number"
+            className="input-field"
+            value={americanOdds}
+            onChange={(e) => setAmericanOdds(e.target.value)}
+            placeholder="e.g. -110 or +150"
+            step="1"
+          />
+        </div>
+        <div className="input-group">
+          <label htmlFor="manualWager">Wager Amount</label>
+          <input
+            id="manualWager"
+            type="number"
+            className="input-field"
+            value={actualWager}
+            onChange={(e) => setActualWager(e.target.value)}
+            placeholder="e.g. 50.00"
+            min="0"
+            step="0.01"
+          />
+        </div>
+
+        {/* Optional spread */}
+        <div className="input-group">
+          <label htmlFor="manualSpread">Point Spread (optional)</label>
+          <input
+            id="manualSpread"
+            type="number"
+            className="input-field"
+            value={pointSpread}
+            onChange={(e) => setPointSpread(e.target.value)}
+            placeholder="e.g. -3.5"
+            step="0.5"
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="input-group">
+          <label htmlFor="manualNotes">Notes (optional)</label>
+          <textarea
+            id="manualNotes"
+            className="input-field"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any additional notes about this bet..."
+            rows={2}
+          />
+        </div>
+
+        {/* Error/Success Messages */}
+        {error && <div className="bet-error">{error}</div>}
+        {success && <div className="bet-success">✓ Bet logged successfully!</div>}
+
+        {/* Actions */}
+        <div className="log-bet-actions">
+          <button
+            className="btn-secondary"
+            onClick={() => setIsOpen(false)}
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={handleLogBet}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="loading-spinner"></span>
+                Logging...
+              </>
+            ) : (
+              'Log Bet'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <button
+        className="manual-log-bet-btn"
+        onClick={() => {
+          if (!isAuthenticated) {
+            onLoginRequired?.();
+          } else {
+            setIsOpen(true);
+          }
+        }}
+      >
+        ➕ Log a Bet Manually
+      </button>
+      {modalContent && ReactDOM.createPortal(modalContent, document.body)}
+    </>
+  );
+}
+
 // ==================== Bet History Component ====================
 interface BetHistoryProps {
   isAuthenticated: boolean;
   onBankrollUpdate?: () => void;
+  onLoginRequired?: () => void;
 }
 
-export function BetHistory({ isAuthenticated, onBankrollUpdate }: BetHistoryProps) {
+export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired }: BetHistoryProps) {
   const [bets, setBets] = useState<SavedBet[]>([]);
   const [stats, setStats] = useState<BetStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -407,35 +753,35 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate }: BetHistoryProp
   const [updatingBet, setUpdatingBet] = useState<string | null>(null);
 
   // Fetch bets and stats
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!isAuthenticated) return;
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [betsRes, statsRes] = await Promise.all([
-          fetch(`${BACKEND_URL}/api/bets?limit=50`, { credentials: 'include' }),
-          fetch(`${BACKEND_URL}/api/bets/stats`, { credentials: 'include' })
-        ]);
+    setIsLoading(true);
+    try {
+      const [betsRes, statsRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/bets?limit=50`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/bets/stats`, { credentials: 'include' })
+      ]);
 
-        if (betsRes.ok) {
-          const betsData = await betsRes.json();
-          setBets(betsData.bets);
-        }
-
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData);
-        }
-      } catch (err) {
-        console.error('Failed to fetch bet data:', err);
-      } finally {
-        setIsLoading(false);
+      if (betsRes.ok) {
+        const betsData = await betsRes.json();
+        setBets(betsData.bets);
       }
-    };
 
-    fetchData();
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bet data:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Filter bets
   const filteredBets = useMemo(() => {
@@ -543,6 +889,18 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate }: BetHistoryProp
 
   return (
     <div className="bet-history-container">
+      {/* Manually log a bet without going through the calculator */}
+      <div className="manual-log-bar">
+        <ManualLogBetButton
+          isAuthenticated={isAuthenticated}
+          onLoginRequired={onLoginRequired}
+          onBetLogged={() => {
+            fetchData();
+            onBankrollUpdate?.();
+          }}
+        />
+      </div>
+
       {/* Stats Dashboard */}
       {stats && (
         <div className="stats-dashboard">
@@ -779,6 +1137,54 @@ export const BetLoggerStyles = `
     box-shadow:
       0 12px 32px rgba(16, 185, 129, .5),
       0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+  }
+
+  /* Manual Log Bet Button + Bar */
+  .manual-log-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+  }
+  .manual-log-bet-btn {
+    background: var(--accent-gradient);
+    color: #fff;
+    border: none;
+    padding: .75rem 1.25rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: .95rem;
+    transition: .25s ease;
+    box-shadow:
+      0 6px 18px rgba(59, 130, 246, .35),
+      0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .manual-log-bet-btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 10px 24px rgba(59, 130, 246, .45),
+      0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+  }
+  @media (max-width: 640px) {
+    .manual-log-bar {
+      justify-content: stretch;
+    }
+    .manual-log-bet-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+  /* Hint text inside the manual log modal */
+  .manual-log-hint {
+    margin: 0 0 1.5rem;
+    font-size: .9rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   /* Log Bet Modal - Glass Overlay */
