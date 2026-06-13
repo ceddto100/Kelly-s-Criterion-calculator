@@ -7,10 +7,39 @@ import ReactDOM from 'react-dom';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
+// Supported sports/leagues. League codes are the canonical values; the
+// generic football/basketball/hockey/baseball values are kept for
+// backward compatibility with bets logged via the calculator workflow.
+export type SportKey =
+  | 'nfl' | 'cfb' | 'nba' | 'wnba' | 'cbb' | 'mlb'
+  | 'football' | 'basketball' | 'hockey' | 'baseball';
+
+// Options shown in the manual logger / filter dropdowns
+export const SPORT_OPTIONS: { value: SportKey; label: string; icon: string }[] = [
+  { value: 'nfl', label: 'NFL', icon: '🏈' },
+  { value: 'cfb', label: 'College Football', icon: '🏈' },
+  { value: 'nba', label: 'NBA', icon: '🏀' },
+  { value: 'wnba', label: 'WNBA', icon: '🏀' },
+  { value: 'cbb', label: 'College Basketball', icon: '🏀' },
+  { value: 'mlb', label: 'MLB', icon: '⚾' },
+];
+
+// Full metadata map including legacy generic values
+const SPORT_META: Record<string, { label: string; icon: string }> = {
+  ...Object.fromEntries(SPORT_OPTIONS.map(o => [o.value, { label: o.label, icon: o.icon }])),
+  football: { label: 'Football', icon: '🏈' },
+  basketball: { label: 'Basketball', icon: '🏀' },
+  hockey: { label: 'Hockey', icon: '🏒' },
+  baseball: { label: 'Baseball', icon: '⚾' },
+};
+
+export const getSportMeta = (sport: string) =>
+  SPORT_META[sport] || { label: sport, icon: '🎯' };
+
 // Types
 interface BetLogData {
   matchup: {
-    sport: 'football' | 'basketball';
+    sport: SportKey;
     teamA: {
       name: string;
       abbreviation?: string;
@@ -71,7 +100,7 @@ interface BetStats {
 
 interface LogBetButtonProps {
   // Data from the calculator workflow
-  sport: 'football' | 'basketball';
+  sport: SportKey;
   teamA: { name: string; abbreviation?: string; stats: Record<string, number> };
   teamB: { name: string; abbreviation?: string; stats: Record<string, number> };
   venue: 'home' | 'away' | 'neutral';
@@ -272,7 +301,7 @@ export function LogBetButton({
 
           <div className="summary-row">
             <span className="summary-label">Sport:</span>
-            <span className="summary-value">{sport === 'football' ? '🏈 Football' : '🏀 Basketball'}</span>
+            <span className="summary-value">{getSportMeta(sport).icon} {getSportMeta(sport).label}</span>
           </div>
           <div className="summary-row">
             <span className="summary-label">Venue:</span>
@@ -413,7 +442,7 @@ export function ManualLogBetButton({
   onBetLogged
 }: ManualLogBetButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [sport, setSport] = useState<'football' | 'basketball'>('football');
+  const [sport, setSport] = useState<SportKey>('nfl');
   const [teamA, setTeamA] = useState('');
   const [teamB, setTeamB] = useState('');
   const [venue, setVenue] = useState<'home' | 'away' | 'neutral'>('neutral');
@@ -448,7 +477,7 @@ export function ManualLogBetButton({
   }, [isOpen]);
 
   const resetForm = () => {
-    setSport('football');
+    setSport('nfl');
     setTeamA('');
     setTeamB('');
     setVenue('neutral');
@@ -585,10 +614,13 @@ export function ManualLogBetButton({
             id="manualSport"
             className="input-field"
             value={sport}
-            onChange={(e) => setSport(e.target.value as 'football' | 'basketball')}
+            onChange={(e) => setSport(e.target.value as SportKey)}
           >
-            <option value="football">🏈 Football</option>
-            <option value="basketball">🏀 Basketball</option>
+            {SPORT_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>
+                {opt.icon} {opt.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -748,7 +780,7 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
   const [stats, setStats] = useState<BetStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'settled'>('all');
-  const [sportFilter, setSportFilter] = useState<'all' | 'football' | 'basketball'>('all');
+  const [sportFilter, setSportFilter] = useState<'all' | SportKey>('all');
   const [expandedBet, setExpandedBet] = useState<string | null>(null);
   const [updatingBet, setUpdatingBet] = useState<string | null>(null);
 
@@ -954,8 +986,11 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
           <label>Sport:</label>
           <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value as any)}>
             <option value="all">All Sports</option>
-            <option value="football">Football</option>
-            <option value="basketball">Basketball</option>
+            {SPORT_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
         <a
@@ -988,8 +1023,8 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
             >
               <div className="bet-card-header">
                 <div className="bet-matchup">
-                  <span className="sport-icon">
-                    {bet.matchup.sport === 'football' ? '🏈' : '🏀'}
+                  <span className="sport-icon" title={getSportMeta(bet.matchup.sport).label}>
+                    {getSportMeta(bet.matchup.sport).icon}
                   </span>
                   <div className="teams-container">
                     <div className="your-pick-label">

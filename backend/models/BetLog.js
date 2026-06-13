@@ -13,7 +13,7 @@ const betLogSchema = new mongoose.Schema({
   matchup: {
     sport: {
       type: String,
-      enum: ['football', 'basketball'],
+      enum: ['nfl', 'cfb', 'nba', 'wnba', 'cbb', 'mlb', 'football', 'basketball', 'hockey', 'baseball'],
       required: true
     },
     teamA: {
