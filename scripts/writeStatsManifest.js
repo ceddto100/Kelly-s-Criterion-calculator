@@ -56,6 +56,14 @@ function main() {
   manifest.mlb = 'live';
   if (anyChanged || !manifest.updatedAt) manifest.updatedAt = now;
 
+  // Record that the updater actually RAN this time, regardless of whether any
+  // source data changed. The freshness watchdog (checkStatsFreshness.js) keys
+  // off this so it flags a genuinely stalled/disabled workflow without false-
+  // alarming during the offseason, when stats legitimately don't change for
+  // days. Because this field changes every run, the manifest is always part of
+  // the commit, keeping the heartbeat current.
+  manifest.lastCheckedAt = now;
+
   fs.mkdirSync(STATS_ROOT, { recursive: true });
   fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
   console.log(`Wrote ${MANIFEST}`);

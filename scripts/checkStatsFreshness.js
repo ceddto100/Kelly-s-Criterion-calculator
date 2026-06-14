@@ -32,27 +32,38 @@ function main() {
     process.exit(1);
   }
 
+  // Per-sport content-change times are informational only: in the offseason a
+  // sport's CSVs legitimately don't change for days, so they are NOT a health
+  // signal on their own.
   const sports = manifest.sports || {};
-  const stale = [];
   for (const key of ['NBA', 'NFL', 'NHL']) {
     const ts = sports[key];
-    const age = ts ? ageHours(ts) : Infinity;
-    const label = ts ? `${age.toFixed(1)}h old` : 'never updated';
-    const flag = age > THRESHOLD_HOURS ? 'STALE' : 'ok';
-    console.log(`${key.padEnd(4)} ${label.padEnd(16)} [${flag}]`);
-    if (age > THRESHOLD_HOURS) stale.push(key);
+    const label = ts ? `${ageHours(ts).toFixed(1)}h since last change` : 'never updated';
+    console.log(`${key.padEnd(4)} ${label}`);
   }
 
-  if (stale.length) {
-    console.error(`\n❌ Stale stats (> ${THRESHOLD_HOURS}h): ${stale.join(', ')}`);
+  // The real health signal: did the "Update Sports Stats" workflow actually RUN
+  // recently? writeStatsManifest.js stamps lastCheckedAt every run regardless of
+  // whether data changed, so this catches a stalled/disabled updater without
+  // false-alarming when stats are simply static (offseason).
+  const heartbeat = manifest.lastCheckedAt || manifest.updatedAt;
+  const heartbeatAge = heartbeat ? ageHours(heartbeat) : Infinity;
+  console.log(
+    `\nUpdater last ran: ${heartbeat ? `${heartbeatAge.toFixed(1)}h ago` : 'unknown'} ` +
+      `(threshold ${THRESHOLD_HOURS}h)`,
+  );
+
+  if (heartbeatAge > THRESHOLD_HOURS) {
     console.error(
-      'The "Update Sports Stats" workflow may be disabled or failing. ' +
-        'Open the Actions tab and re-enable / re-run it.',
+      `\n❌ The "Update Sports Stats" workflow has not run in over ${THRESHOLD_HOURS}h.`,
+    );
+    console.error(
+      'It may be disabled or failing. Open the Actions tab and re-enable / re-run it.',
     );
     process.exit(1);
   }
 
-  console.log(`\n✅ All sports refreshed within ${THRESHOLD_HOURS}h.`);
+  console.log(`\n✅ Updater ran within ${THRESHOLD_HOURS}h.`);
 }
 
 main();
