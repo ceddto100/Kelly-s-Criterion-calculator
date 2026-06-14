@@ -71,11 +71,11 @@
 
   "developer_information": {
     "developer_name": "Betgistics Team",
-    "developer_contact_email": "support@betgistics.app",
-    "privacy_contact_email": "privacy@betgistics.app",
-    "legal_contact_email": "legal@betgistics.app",
-    "support_url": "https://betgistics.app/support",
-    "website_url": "https://betgistics.app"
+    "developer_contact_email": "support@betgistics.com",
+    "privacy_contact_email": "privacy@betgistics.com",
+    "legal_contact_email": "legal@betgistics.com",
+    "support_url": "https://betgistics.com/support",
+    "website_url": "https://betgistics.com/"
   },
 
   "policy_urls": {
