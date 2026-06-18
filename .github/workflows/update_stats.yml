@@ -60,8 +60,9 @@ jobs:
       # MLB advanced stats (wRC+/wOBA/FIP/xFIP/SIERA) from FanGraphs' JSON
       # leaders API, written to backend/data/mlb/ for the backend to merge into
       # /api/mlb/daily. Uses only the Python standard library (urllib), so no
-      # extra install step is needed. Best-effort: failure never blocks the
-      # NBA/NFL/NHL update, it just leaves MLB on OPS/ERA (the fallback behavior).
+      # extra install step is needed. FanGraphs may still reject cloud/CI
+      # runners, so this remains best-effort to keep successful NBA/NFL/NHL
+      # updates from failing the whole action.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -70,6 +71,11 @@ jobs:
       - name: Update MLB advanced stats
         id: mlb_advanced
         continue-on-error: true
+        # FanGraphs blocks many cloud/CI IPs unless the request includes a valid
+        # browser session cookie. Add a repo secret named FANGRAPHS_COOKIE with
+        # the Cookie header value from a logged-in FanGraphs browser session.
+        env:
+          FANGRAPHS_COOKIE: ${{ secrets.FANGRAPHS_COOKIE }}
         run: python scripts/updateMLBAdvanced.py
 
       # Record when each sport's CSVs were actually refreshed (only advances a
@@ -83,7 +89,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add frontend/public/stats stats backend/data 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Update NBA/NFL/NHL stats (automated) - $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git diff --staged --quiet || git commit -m "Update sports stats (automated) - $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
 
       - name: Report status
