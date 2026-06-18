@@ -56,6 +56,15 @@ _HEADERS = {
     "Connection": "keep-alive",
 }
 
+# FanGraphs currently protects the leaderboard/API endpoints with bot checks that
+# commonly reject cloud-hosted runners (including GitHub Actions) with 403s.  A
+# browser session cookie from a FanGraphs account lets the scheduled updater make
+# the same JSON request as the logged-in web app.  Keep this optional so local
+# development and already-allowed networks continue to work without secrets.
+_COOKIE = os.environ.get("FANGRAPHS_COOKIE") or os.environ.get("FG_COOKIE")
+if _COOKIE:
+    _HEADERS["Cookie"] = _COOKIE
+
 # FanGraphs team code -> StatsAPI-style full team name (used for matching in the
 # backend against MLB StatsAPI's team names). Alternates included for safety.
 FG_TEAM_TO_FULL = {
