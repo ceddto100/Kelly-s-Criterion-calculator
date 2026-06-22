@@ -21,10 +21,10 @@ Data source: FanGraphs' modern JSON leaders API
 live site's leaderboards call. This replaces the old pybaseball scrape of
 `leaders-legacy.aspx`, which FanGraphs retired — that page now returns HTTP 403
 from cloud/CI IPs no matter what User-Agent is sent, which is why every CI run
-failed. We hit the JSON API with cloudscraper so Cloudflare challenge cookies
-can be negotiated when FanGraphs serves an anti-bot page. The updater keeps one
-browser-like HTTP session for all FanGraphs calls so any validation cookies set
-by the site can be reused on subsequent API requests.
+failed. We first hit the JSON API with cloudscraper so Cloudflare challenge
+cookies can be negotiated when FanGraphs serves an anti-bot page. If that still
+fails, we fall back to Playwright/Chromium so JavaScript-based checks can run in
+a real browser context before the API request is retried.
 
 Best-effort by design: each source is fetched independently and a failure leaves
 the previous file in place, so a flaky FanGraphs response never breaks the live
@@ -39,6 +39,7 @@ import datetime
 from urllib.parse import urlencode
 
 import cloudscraper
+from playwright.sync_api import sync_playwright
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "mlb")
 
@@ -174,6 +175,61 @@ def write_csv(path, header, rows):
             f.write(",".join("" if v is None else str(v) for v in row) + "\n")
 
 
+def parse_payload(payload):
+    """Return the leaders rows from a FanGraphs JSON payload."""
+    if isinstance(payload, dict):
+        # The leaders API wraps rows in "data"; tolerate alternates.
+        for key in ("data", "leaders", "rows"):
+            if isinstance(payload.get(key), list):
+                return payload[key]
+        return []
+    if isinstance(payload, list):
+        return payload
+    return []
+
+
+def fetch_json_with_playwright(url):
+    """Use Chromium to clear JS checks, then request the API in that context."""
+    browser_headers = {k: v for k, v in _HEADERS.items() if k.lower() != "cookie"}
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent=_HEADERS["User-Agent"],
+            extra_http_headers=browser_headers,
+            locale="en-US",
+            viewport={"width": 1366, "height": 768},
+        )
+        try:
+            if _COOKIE:
+                context.add_cookies([
+                    {
+                        "name": part.split("=", 1)[0].strip(),
+                        "value": part.split("=", 1)[1].strip(),
+                        "domain": ".fangraphs.com",
+                        "path": "/",
+                    }
+                    for part in _COOKIE.split(";")
+                    if "=" in part
+                ])
+            page = context.new_page()
+            page.goto(
+                "https://www.fangraphs.com/leaders/major-league",
+                wait_until="domcontentloaded",
+                timeout=60000,
+            )
+            response = context.request.get(
+                url,
+                headers={"Accept": "application/json, text/plain, */*"},
+                timeout=60000,
+            )
+            if not response.ok:
+                raise RuntimeError(f"Playwright HTTP {response.status}")
+            return parse_payload(json.loads(response.text()))
+        finally:
+            context.close()
+            browser.close()
+
+
 def fetch_json(params):
     """GET the FanGraphs leaders API and return the list of leader rows."""
     warm_fangraphs_session()
@@ -183,20 +239,20 @@ def fetch_json(params):
         try:
             resp = _SCRAPER.get(url, timeout=60)
             resp.raise_for_status()
-            payload = resp.json()
-            if isinstance(payload, dict):
-                # The leaders API wraps rows in "data"; tolerate alternates.
-                for key in ("data", "leaders", "rows"):
-                    if isinstance(payload.get(key), list):
-                        return payload[key]
-                return []
-            if isinstance(payload, list):
-                return payload
-            return []
+            return parse_payload(resp.json())
         except Exception as e:  # noqa: BLE001 - best effort retries
             last_error = str(e)
+            print(f"  [cloudscraper] attempt {attempt + 1} failed: {last_error}")
         time.sleep(2 * (attempt + 1))
-    raise RuntimeError(f"FanGraphs API request failed ({last_error}) for {url}")
+
+    print("  [playwright] falling back to Chromium browser fetch")
+    try:
+        return fetch_json_with_playwright(url)
+    except Exception as e:  # noqa: BLE001 - preserve best-effort caller behavior
+        raise RuntimeError(
+            f"FanGraphs API request failed (cloudscraper: {last_error}; "
+            f"playwright: {e}) for {url}"
+        ) from e
 
 
 def fetch_team_offense(season):
