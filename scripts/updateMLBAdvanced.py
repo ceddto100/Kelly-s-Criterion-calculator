@@ -24,7 +24,9 @@ from cloud/CI IPs no matter what User-Agent is sent, which is why every CI run
 failed. We first hit the JSON API with cloudscraper so Cloudflare challenge
 cookies can be negotiated when FanGraphs serves an anti-bot page. If that still
 fails, we fall back to Playwright/Chromium so JavaScript-based checks can run in
-a real browser context before the API request is retried.
+a real browser context before the API request is retried. If the runner IP is
+blocked outright, set FANGRAPHS_PROXY/FG_PROXY to route both clients through an
+allowed network; otherwise the updater exits successfully and keeps prior data.
 
 Best-effort by design: each source is fetched independently and a failure leaves
 the previous file in place, so a flaky FanGraphs response never breaks the live
@@ -32,7 +34,6 @@ MLB slate — it just falls back to OPS/ERA, which is the pre-existing behavior.
 """
 import os
 import re
-import sys
 import json
 import time
 import datetime
@@ -73,6 +74,8 @@ _COOKIE = os.environ.get("FANGRAPHS_COOKIE") or os.environ.get("FG_COOKIE")
 if _COOKIE:
     _HEADERS["Cookie"] = _COOKIE
 
+_PROXY = os.environ.get("FANGRAPHS_PROXY") or os.environ.get("FG_PROXY")
+
 _SCRAPER = cloudscraper.create_scraper(
     browser={
         "browser": "chrome",
@@ -81,6 +84,8 @@ _SCRAPER = cloudscraper.create_scraper(
     }
 )
 _SCRAPER.headers.update(_HEADERS)
+if _PROXY:
+    _SCRAPER.proxies.update({"http": _PROXY, "https": _PROXY})
 _SESSION_WARMED = False
 
 
@@ -192,7 +197,10 @@ def fetch_json_with_playwright(url):
     """Use Chromium to clear JS checks, then request the API in that context."""
     browser_headers = {k: v for k, v in _HEADERS.items() if k.lower() != "cookie"}
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        launch_options = {"headless": True}
+        if _PROXY:
+            launch_options["proxy"] = {"server": _PROXY}
+        browser = pw.chromium.launch(**launch_options)
         context = browser.new_context(
             user_agent=_HEADERS["User-Agent"],
             extra_http_headers=browser_headers,
@@ -388,7 +396,9 @@ def main():
 
     if team_rows is None and pitcher_rows is None:
         print("\nBoth FanGraphs fetches failed — no files updated.")
-        sys.exit(1)
+        print("Set FANGRAPHS_PROXY/FG_PROXY if FanGraphs is blocking the runner IP.")
+        print("Done with stale/no FanGraphs refresh; downstream MLB fallback remains active.")
+        return
     print("\nDone.")
 
 

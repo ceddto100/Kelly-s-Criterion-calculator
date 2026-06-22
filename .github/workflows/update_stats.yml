@@ -60,7 +60,8 @@ jobs:
       # MLB advanced stats (wRC+/wOBA/FIP/xFIP/SIERA) from FanGraphs' JSON
       # leaders API, written to backend/data/mlb/ for the backend to merge into
       # /api/mlb/daily. Uses cloudscraper first, then Playwright/Chromium for
-      # JavaScript Cloudflare challenge pages. Best-effort (continue-on-error)
+      # JavaScript Cloudflare challenge pages. A FANGRAPHS_PROXY secret can
+      # route around full runner-IP blocks. Best-effort (continue-on-error)
       # like the
       # other sports: FanGraphs blanket-blocks cloud/CI IPs with a 403, and that
       # external block must never take down the NBA/NFL/NHL pipeline or the
@@ -86,12 +87,13 @@ jobs:
         # silently stalled the NBA/NFL/NHL updater and tripped the Check Stats
         # Freshness watchdog. To restore live MLB advanced data, add a repo
         # secret named FANGRAPHS_COOKIE with the Cookie header value from a
-        # logged-in FanGraphs browser session; until then MLB gracefully falls
-        # back to OPS/ERA (its long-standing default). The step still reports a
-        # red X in the run summary so the failure stays visible.
+        # logged-in FanGraphs browser session, and optionally FANGRAPHS_PROXY
+        # when GitHub-hosted runner IPs are fully blocked. Until then MLB
+        # gracefully falls back to OPS/ERA (its long-standing default).
         continue-on-error: true
         env:
           FANGRAPHS_COOKIE: ${{ secrets.FANGRAPHS_COOKIE }}
+          FANGRAPHS_PROXY: ${{ secrets.FANGRAPHS_PROXY }}
         run: python scripts/updateMLBAdvanced.py
 
       # Record when each sport's CSVs were actually refreshed (only advances a
