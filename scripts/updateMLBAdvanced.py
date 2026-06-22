@@ -21,8 +21,12 @@ Data source: FanGraphs' modern JSON leaders API
 live site's leaderboards call. This replaces the old pybaseball scrape of
 `leaders-legacy.aspx`, which FanGraphs retired — that page now returns HTTP 403
 from cloud/CI IPs no matter what User-Agent is sent, which is why every CI run
-failed. We hit the JSON API directly with stdlib urllib (no third-party deps) so
-there is nothing fragile to keep patched.
+failed. We first hit the JSON API with cloudscraper so Cloudflare challenge
+cookies can be negotiated when FanGraphs serves an anti-bot page. If that still
+fails, we fall back to Playwright/Chromium so JavaScript-based checks can run in
+a real browser context before the API request is retried. If the runner IP is
+blocked outright, set FANGRAPHS_PROXY/FG_PROXY to route both clients through an
+allowed network; otherwise the updater exits successfully and keeps prior data.
 
 Best-effort by design: each source is fetched independently and a failure leaves
 the previous file in place, so a flaky FanGraphs response never breaks the live
@@ -30,13 +34,13 @@ MLB slate — it just falls back to OPS/ERA, which is the pre-existing behavior.
 """
 import os
 import re
-import sys
 import json
 import time
 import datetime
-import urllib.error
-import urllib.request
 from urllib.parse import urlencode
+
+import cloudscraper
+from playwright.sync_api import sync_playwright
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "mlb")
 
@@ -53,6 +57,11 @@ _HEADERS = {
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.fangraphs.com/leaders/major-league",
+    "Origin": "https://www.fangraphs.com",
+    "DNT": "1",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
     "Connection": "keep-alive",
 }
 
@@ -64,6 +73,42 @@ _HEADERS = {
 _COOKIE = os.environ.get("FANGRAPHS_COOKIE") or os.environ.get("FG_COOKIE")
 if _COOKIE:
     _HEADERS["Cookie"] = _COOKIE
+
+_PROXY = os.environ.get("FANGRAPHS_PROXY") or os.environ.get("FG_PROXY")
+
+_SCRAPER = cloudscraper.create_scraper(
+    browser={
+        "browser": "chrome",
+        "platform": "windows",
+        "desktop": True,
+    }
+)
+_SCRAPER.headers.update(_HEADERS)
+if _PROXY:
+    _SCRAPER.proxies.update({"http": _PROXY, "https": _PROXY})
+_SESSION_WARMED = False
+
+
+def warm_fangraphs_session():
+    """Prime the cloudscraper session with any cookies FanGraphs sets."""
+    global _SESSION_WARMED
+    if _SESSION_WARMED:
+        return
+    _SESSION_WARMED = True
+    try:
+        _SCRAPER.get(
+            "https://www.fangraphs.com/leaders/major-league",
+            headers={
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;"
+                    "q=0.9,*/*;q=0.8"
+                ),
+            },
+            timeout=30,
+        )
+    except Exception as e:  # noqa: BLE001
+        # API requests can still work without the initial page warmup.
+        print(f"  [session] FanGraphs warmup skipped: {e}")
 
 # FanGraphs team code -> StatsAPI-style full team name (used for matching in the
 # backend against MLB StatsAPI's team names). Alternates included for safety.
@@ -135,31 +180,87 @@ def write_csv(path, header, rows):
             f.write(",".join("" if v is None else str(v) for v in row) + "\n")
 
 
+def parse_payload(payload):
+    """Return the leaders rows from a FanGraphs JSON payload."""
+    if isinstance(payload, dict):
+        # The leaders API wraps rows in "data"; tolerate alternates.
+        for key in ("data", "leaders", "rows"):
+            if isinstance(payload.get(key), list):
+                return payload[key]
+        return []
+    if isinstance(payload, list):
+        return payload
+    return []
+
+
+def fetch_json_with_playwright(url):
+    """Use Chromium to clear JS checks, then request the API in that context."""
+    browser_headers = {k: v for k, v in _HEADERS.items() if k.lower() != "cookie"}
+    with sync_playwright() as pw:
+        launch_options = {"headless": True}
+        if _PROXY:
+            launch_options["proxy"] = {"server": _PROXY}
+        browser = pw.chromium.launch(**launch_options)
+        context = browser.new_context(
+            user_agent=_HEADERS["User-Agent"],
+            extra_http_headers=browser_headers,
+            locale="en-US",
+            viewport={"width": 1366, "height": 768},
+        )
+        try:
+            if _COOKIE:
+                context.add_cookies([
+                    {
+                        "name": part.split("=", 1)[0].strip(),
+                        "value": part.split("=", 1)[1].strip(),
+                        "domain": ".fangraphs.com",
+                        "path": "/",
+                    }
+                    for part in _COOKIE.split(";")
+                    if "=" in part
+                ])
+            page = context.new_page()
+            page.goto(
+                "https://www.fangraphs.com/leaders/major-league",
+                wait_until="domcontentloaded",
+                timeout=60000,
+            )
+            response = context.request.get(
+                url,
+                headers={"Accept": "application/json, text/plain, */*"},
+                timeout=60000,
+            )
+            if not response.ok:
+                raise RuntimeError(f"Playwright HTTP {response.status}")
+            return parse_payload(json.loads(response.text()))
+        finally:
+            context.close()
+            browser.close()
+
+
 def fetch_json(params):
     """GET the FanGraphs leaders API and return the list of leader rows."""
+    warm_fangraphs_session()
     url = FG_API_URL + "?" + urlencode(params)
     last_error = None
     for attempt in range(3):
         try:
-            req = urllib.request.Request(url, headers=_HEADERS)
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                raw = resp.read().decode("utf-8", "replace")
-            payload = json.loads(raw)
-            if isinstance(payload, dict):
-                # The leaders API wraps rows in "data"; tolerate alternates.
-                for key in ("data", "leaders", "rows"):
-                    if isinstance(payload.get(key), list):
-                        return payload[key]
-                return []
-            if isinstance(payload, list):
-                return payload
-            return []
-        except urllib.error.HTTPError as e:
-            last_error = f"HTTP {e.code} {e.reason}"
-        except (urllib.error.URLError, ValueError, TimeoutError) as e:
+            resp = _SCRAPER.get(url, timeout=60)
+            resp.raise_for_status()
+            return parse_payload(resp.json())
+        except Exception as e:  # noqa: BLE001 - best effort retries
             last_error = str(e)
+            print(f"  [cloudscraper] attempt {attempt + 1} failed: {last_error}")
         time.sleep(2 * (attempt + 1))
-    raise RuntimeError(f"FanGraphs API request failed ({last_error}) for {url}")
+
+    print("  [playwright] falling back to Chromium browser fetch")
+    try:
+        return fetch_json_with_playwright(url)
+    except Exception as e:  # noqa: BLE001 - preserve best-effort caller behavior
+        raise RuntimeError(
+            f"FanGraphs API request failed (cloudscraper: {last_error}; "
+            f"playwright: {e}) for {url}"
+        ) from e
 
 
 def fetch_team_offense(season):
@@ -295,7 +396,9 @@ def main():
 
     if team_rows is None and pitcher_rows is None:
         print("\nBoth FanGraphs fetches failed — no files updated.")
-        sys.exit(1)
+        print("Set FANGRAPHS_PROXY/FG_PROXY if FanGraphs is blocking the runner IP.")
+        print("Done with stale/no FanGraphs refresh; downstream MLB fallback remains active.")
+        return
     print("\nDone.")
 
 
