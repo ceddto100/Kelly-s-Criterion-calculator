@@ -21,8 +21,10 @@ Data source: FanGraphs' modern JSON leaders API
 live site's leaderboards call. This replaces the old pybaseball scrape of
 `leaders-legacy.aspx`, which FanGraphs retired — that page now returns HTTP 403
 from cloud/CI IPs no matter what User-Agent is sent, which is why every CI run
-failed. We hit the JSON API directly with stdlib urllib (no third-party deps) so
-there is nothing fragile to keep patched.
+failed. We hit the JSON API with cloudscraper so Cloudflare challenge cookies
+can be negotiated when FanGraphs serves an anti-bot page. The updater keeps one
+browser-like HTTP session for all FanGraphs calls so any validation cookies set
+by the site can be reused on subsequent API requests.
 
 Best-effort by design: each source is fetched independently and a failure leaves
 the previous file in place, so a flaky FanGraphs response never breaks the live
@@ -34,9 +36,9 @@ import sys
 import json
 import time
 import datetime
-import urllib.error
-import urllib.request
 from urllib.parse import urlencode
+
+import cloudscraper
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "backend", "data", "mlb")
 
@@ -53,6 +55,11 @@ _HEADERS = {
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.fangraphs.com/leaders/major-league",
+    "Origin": "https://www.fangraphs.com",
+    "DNT": "1",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
     "Connection": "keep-alive",
 }
 
@@ -64,6 +71,38 @@ _HEADERS = {
 _COOKIE = os.environ.get("FANGRAPHS_COOKIE") or os.environ.get("FG_COOKIE")
 if _COOKIE:
     _HEADERS["Cookie"] = _COOKIE
+
+_SCRAPER = cloudscraper.create_scraper(
+    browser={
+        "browser": "chrome",
+        "platform": "windows",
+        "desktop": True,
+    }
+)
+_SCRAPER.headers.update(_HEADERS)
+_SESSION_WARMED = False
+
+
+def warm_fangraphs_session():
+    """Prime the cloudscraper session with any cookies FanGraphs sets."""
+    global _SESSION_WARMED
+    if _SESSION_WARMED:
+        return
+    _SESSION_WARMED = True
+    try:
+        _SCRAPER.get(
+            "https://www.fangraphs.com/leaders/major-league",
+            headers={
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;"
+                    "q=0.9,*/*;q=0.8"
+                ),
+            },
+            timeout=30,
+        )
+    except Exception as e:  # noqa: BLE001
+        # API requests can still work without the initial page warmup.
+        print(f"  [session] FanGraphs warmup skipped: {e}")
 
 # FanGraphs team code -> StatsAPI-style full team name (used for matching in the
 # backend against MLB StatsAPI's team names). Alternates included for safety.
@@ -137,14 +176,14 @@ def write_csv(path, header, rows):
 
 def fetch_json(params):
     """GET the FanGraphs leaders API and return the list of leader rows."""
+    warm_fangraphs_session()
     url = FG_API_URL + "?" + urlencode(params)
     last_error = None
     for attempt in range(3):
         try:
-            req = urllib.request.Request(url, headers=_HEADERS)
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                raw = resp.read().decode("utf-8", "replace")
-            payload = json.loads(raw)
+            resp = _SCRAPER.get(url, timeout=60)
+            resp.raise_for_status()
+            payload = resp.json()
             if isinstance(payload, dict):
                 # The leaders API wraps rows in "data"; tolerate alternates.
                 for key in ("data", "leaders", "rows"):
@@ -154,9 +193,7 @@ def fetch_json(params):
             if isinstance(payload, list):
                 return payload
             return []
-        except urllib.error.HTTPError as e:
-            last_error = f"HTTP {e.code} {e.reason}"
-        except (urllib.error.URLError, ValueError, TimeoutError) as e:
+        except Exception as e:  # noqa: BLE001 - best effort retries
             last_error = str(e)
         time.sleep(2 * (attempt + 1))
     raise RuntimeError(f"FanGraphs API request failed ({last_error}) for {url}")
