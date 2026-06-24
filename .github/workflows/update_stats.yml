@@ -57,6 +57,17 @@ jobs:
         continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
 
+      # MLB advanced stats baseline: team wOBA from Baseball Savant + starter/
+      # bullpen FIP computed from MLB StatsAPI's raw counting stats. Neither
+      # source is the FanGraphs domain that blocks cloud/CI IPs, so this step
+      # should succeed even when the FanGraphs step below can't. Runs FIRST so
+      # the FanGraphs step (richer: adds wRC+/xFIP/SIERA) only overwrites these
+      # files on success, never regressing them on a FanGraphs failure.
+      - name: Update MLB stats baseline (Baseball Savant + StatsAPI FIP)
+        id: mlb_baseline
+        continue-on-error: true
+        run: NODE_PATH=backend/node_modules node scripts/updateMLBStatcast.js
+
       # MLB advanced stats (wRC+/wOBA/FIP/xFIP/SIERA) from FanGraphs' JSON
       # leaders API, written to backend/data/mlb/ for the backend to merge into
       # /api/mlb/daily. Uses cloudscraper first, then Playwright/Chromium for
@@ -66,7 +77,8 @@ jobs:
       # other sports: FanGraphs blanket-blocks cloud/CI IPs with a 403, and that
       # external block must never take down the NBA/NFL/NHL pipeline or the
       # freshness heartbeat. The MLB outcome is surfaced in the run summary
-      # below, and the updater keeps the previous MLB files on failure.
+      # below, and the updater keeps the previous MLB files (i.e. the baseline
+      # from the step above) on failure.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -119,7 +131,8 @@ jobs:
           echo "| NBA | ${{ steps.nba.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| NFL | ${{ steps.nfl.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| NHL | ${{ steps.nhl.outcome }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| MLB (FanGraphs) | ${{ steps.mlb_advanced.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MLB (Savant/StatsAPI baseline) | ${{ steps.mlb_baseline.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MLB (FanGraphs enrichment) | ${{ steps.mlb_advanced.outcome }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if all NBA/NFL/NHL updates failed
         if: |
