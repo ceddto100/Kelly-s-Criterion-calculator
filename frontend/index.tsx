@@ -38,8 +38,8 @@ import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogge
 import { AudioOrbStyles } from './components/AudioOrb';
 import { SwipeableAudioOrbs } from './components/SwipeableAudioOrbs';
 
-/* === Bottom Navigation and New Pages === */
-import { BottomNavigation } from './components/BottomNavigation';
+/* === Navigation (desktop sidebar + mobile bottom nav) and New Pages === */
+import { SidebarNav, MobileNav, findDestination } from './components/AppNavigation';
 import { AccountSettings } from './components/AccountSettings';
 import { PromoPage } from './components/PromoPage';
 import { StatsPage } from './components/StatsPage';
@@ -48,6 +48,7 @@ import StatsFreshness from './components/StatsFreshness';
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
 import { evaluateDecision } from './utils/decision';
+import { calculateNHLProjection } from './utils/nhlProjection';
 import type { DailyGameSelection, MLBFieldState } from './utils/dailyGameTransfer';
 
 /* === Backend URL configuration === */
@@ -100,102 +101,23 @@ const THEME_OPTIONS = [
 
 type ThemeKey = typeof THEME_OPTIONS[number]['key'];
 
-/* =========================== Inline theme tweaks - GLASSMORPHISM =========================== */
+/* ================= Component-scoped styles (shell styles live in index.css) ================= */
 const GlobalStyle = () => (
   <style>{`
-    /* Additional glassmorphism styles for components not in main CSS */
-    /* NOTE: .site-bg / .bg-overlay / .blob are owned by index.css (the
-       stadium watermark + ambient glow layers). They were previously
-       redefined here, and because this injected <style> lands later in the
-       DOM than the <head> stylesheet it silently overrode the real design
-       AND re-introduced a scroll-repaint glitch. Keep only scroll behavior
-       here; let index.css drive the actual background. */
-    .site-bg {
-      -webkit-overflow-scrolling: touch;
+    /* Active tab content region */
+    .active-tab-content {
+      scroll-margin-top: calc(var(--topbar-h) + 0.5rem);
+      display: grid;
+      gap: 1rem;
     }
 
-    .page-wrap {
-      position: relative;
-      z-index: 1;
-      padding:
-        max(3rem, env(safe-area-inset-top, 3rem))
-        max(1rem, env(safe-area-inset-right, 1rem))
-        max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
-        max(1rem, env(safe-area-inset-left, 1rem));
-      max-width: 1100px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    @media (max-width: 480px) {
-      .page-wrap {
-        padding:
-          max(2rem, env(safe-area-inset-top, 2rem))
-          max(0.75rem, env(safe-area-inset-right, 0.75rem))
-          max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
-          max(0.75rem, env(safe-area-inset-left, 0.75rem));
-      }
-    }
-    @media (max-width: 360px) {
-      .page-wrap {
-        padding:
-          max(1.5rem, env(safe-area-inset-top, 1.5rem))
-          max(0.5rem, env(safe-area-inset-right, 0.5rem))
-          max(120px, calc(120px + env(safe-area-inset-bottom, 0px)))
-          max(0.5rem, env(safe-area-inset-left, 0.5rem));
-      }
-    }
-
-    /* Panel Overrides for Glass Effect */
-    .panel {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 1.5rem;
-      box-shadow:
-        0 24px 48px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-      margin: 0 auto 1rem;
-      max-width: 900px;
-    }
-
-    .panel-strong {
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    .info-panel {
-      max-width: 1100px;
-    }
-
-    /* Footer Glass Panel */
-    .footer {
-      color: rgba(255, 255, 255, 0.7);
-      text-align: center;
-      padding: 2rem 1rem calc(80px + env(safe-area-inset-bottom, 0px));
-      font-size: 0.95rem;
-      display: flex;
-      justify-content: center;
-      position: relative;
-      z-index: 2;
-    }
-
-    .footer-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 1rem 1.5rem;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      max-width: 820px;
-      width: 100%;
-    }
-
-    /* Documentation Toggle */
+    /* Documentation drop-down */
     .doc-toggle {
       background: transparent;
       border: none;
       color: var(--text-secondary);
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.95rem;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -204,12 +126,12 @@ const GlobalStyle = () => (
       width: 100%;
       padding: 0.5rem 0.75rem;
       border-radius: 12px;
-      transition: 0.3s ease;
+      transition: 0.2s ease;
     }
 
     .doc-toggle:hover {
       color: var(--text-primary);
-      background: var(--surface-1);
+      background: var(--surface-raised);
     }
 
     .doc-toggle:focus-visible {
@@ -228,12 +150,10 @@ const GlobalStyle = () => (
     .doc-hint {
       margin: 0.5rem 0 0;
       color: var(--text-muted);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     .doc-panel-wrapper {
-      max-width: 1100px;
-      margin: 0 auto 1rem;
       transition: all 0.25s ease;
       overflow: hidden;
     }
@@ -246,7 +166,7 @@ const GlobalStyle = () => (
     }
 
     .doc-panel-wrapper.open {
-      max-height: 1200px;
+      max-height: 1600px;
       opacity: 1;
       transform: translateY(0);
     }
@@ -259,590 +179,53 @@ const GlobalStyle = () => (
       position: absolute;
       top: 1rem;
       right: 1rem;
-      background: var(--surface-1);
+      background: var(--surface-raised);
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
       border-radius: 10px;
-      padding: 0.5rem 0.8rem;
+      padding: 0.4rem 0.75rem;
       cursor: pointer;
       font-weight: 700;
-      transition: 0.25s ease;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
+      transition: 0.2s ease;
     }
-
-    /* Mobile-first tab styling to mirror the compact layout */
-    .tabs {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-      margin: 1rem auto 1.25rem;
-      flex-wrap: wrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    @media (min-width: 768px) {
-      .tabs {
-        flex-wrap: nowrap;
-        overflow-x: visible;
-      }
-    }
-
-    .tab {
-      background: var(--surface-1);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-subtle);
-      padding: 0.6rem 1rem;
-      border-radius: 0.75rem;
-      cursor: pointer;
-      transition: 0.25s ease;
-      font-weight: 600;
-    }
-
-    .tab:hover {
-      background: var(--surface-2);
-      color: var(--text-primary);
-    }
-
-    .tab.active {
-      color: var(--text-primary);
-      background: var(--button-primary);
-      border-color: transparent;
-      box-shadow: var(--button-glow);
-    }
-
-    /* Main top tab row (Kelly / Estimator / Walters / etc.) */
-    .app-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.5rem;
-      overflow: visible;
-      padding: 0.3rem;
-      border-radius: 16px;
-      justify-items: stretch;
-      align-items: stretch;
-    }
-
-    .app-tabs .tab {
-      width: 100%;
-      min-width: 0;
-      min-height: 88px;
-      aspect-ratio: 1 / 1;
-      white-space: normal;
-      text-wrap: balance;
-      padding: 0.6rem;
-      border-radius: 12px;
-      line-height: 1.2;
-      font-size: 0.98rem;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Row 2 with two side-by-side buttons */
-    .app-tabs .tab:nth-child(4) {
-      grid-column: 1 / 2;
-    }
-
-    .app-tabs .tab:nth-child(5) {
-      grid-column: 2 / 3;
-    }
-
-    @media (max-width: 420px) {
-      .app-tabs .tab {
-        min-height: 80px;
-        font-size: 0.9rem;
-        padding: 0.5rem;
-      }
-    }
-
 
     .doc-close:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 1);
-    }
-
-    /* Brand Logo Circle */
-    .brand-logo-container {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      z-index: 100;
-    }
-
-    .brand-logo {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      border: 2px solid color-mix(in srgb, var(--accent-electric) 45%, transparent);
-      box-shadow: 0 4px 12px rgba(var(--accent-electric-rgb), 0.3);
-      object-fit: cover;
-      display: block;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      transform: translate3d(0, 0, 0);
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      contain: layout paint;
-    }
-
-    .brand-logo:hover {
-      transform: translate3d(0, 0, 0) scale(1.05);
-      box-shadow: 0 6px 16px rgba(var(--accent-electric-rgb), 0.4);
-    }
-
-    /* Auth Container Glass */
-    .auth-container {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      z-index: 100;
-    }
-
-    .auth-btn {
-      background: var(--button-primary);
-      color: #fff;
-      border: none;
-      padding: 0.75rem 1.25rem;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.25s ease;
-      box-shadow:
-        0 6px 20px rgba(var(--accent-electric-rgb), 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-      font-size: 0.95rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      text-decoration: none;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .auth-btn:hover {
-      transform: translateY(-2px);
-      box-shadow:
-        0 8px 24px rgba(var(--accent-electric-rgb), 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
-    }
-
-    .user-info {
-      background: var(--surface-2);
-      border: 1px solid var(--border-subtle);
-      border-radius: 14px;
-      padding: 0.75rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 2px solid color-mix(in srgb, var(--accent-electric) 45%, transparent);
-    }
-
-    .user-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-    }
-
-    .user-name {
-      color: var(--text-primary);
-      font-weight: 600;
-      font-size: 0.9rem;
-      line-height: 1.2;
-    }
-
-    .user-email {
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      line-height: 1.2;
-    }
-
-    .logout-btn {
-      background: color-mix(in srgb, var(--danger-color) 16%, transparent);
-      border: 1px solid color-mix(in srgb, var(--danger-color) 45%, transparent);
-      color: color-mix(in srgb, var(--danger-color) 70%, #fff 30%);
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.25s ease;
-      font-size: 0.85rem;
-      margin-left: 0.5rem;
-      text-decoration: none;
-    }
-
-    .logout-btn:hover {
-      background: color-mix(in srgb, var(--danger-color) 28%, transparent);
-    }
-
-    /* Chat & Sports Matchup Glass Panels */
-    .sports-matchup-container {
-      display: flex;
-      flex-direction: column;
-      height: 600px;
-      max-height: 70vh;
-    }
-
-    .quick-examples {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      align-items: center;
-      padding: 0.75rem;
-      background: var(--surface-2);
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .example-btn {
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-secondary);
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-weight: 600;
-      transition: 0.2s ease;
-    }
-
-    .example-btn:hover {
-      background: var(--surface-2);
-      transform: translateY(-1px);
+      background: var(--surface-strong);
       color: var(--text-primary);
     }
 
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      background: var(--surface-2);
-      border-radius: 16px;
-      border: 1px solid var(--border-subtle);
-      margin-bottom: 1rem;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .chat-messages::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .chat-messages::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 4px;
-    }
-
-    .chat-messages::-webkit-scrollbar-thumb {
-      background: rgba(59, 130, 246, 0.4);
-      border-radius: 4px;
-    }
-
-    .chat-messages::-webkit-scrollbar-thumb:hover {
-      background: rgba(59, 130, 246, 0.6);
-    }
-
-    .chat-message {
-      margin-bottom: 1.25rem;
-      padding: 0.75rem 1rem;
-      border-radius: 14px;
-      animation: fadeInScale 0.3s ease-out;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .chat-message.user {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      margin-left: 2rem;
-    }
-
-    .chat-message.assistant {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      margin-right: 2rem;
-    }
-
-    .message-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      font-size: 0.8rem;
-    }
-
-    .message-role {
-      font-weight: 700;
-      color: var(--accent-cyan);
-    }
-
-    .message-time {
-      color: var(--text-muted);
-      font-size: 0.75rem;
-    }
-
-    .message-content {
-      color: var(--text-primary);
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    .chat-input-form {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .chat-input {
-      flex: 1;
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      outline: none;
-      transition: all 0.25s ease;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-    }
-
-    .chat-input:focus {
-      border-color: var(--control-focus);
-      box-shadow: 0 0 0 1px var(--control-focus);
-    }
-
-    .chat-input:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .chat-submit-btn {
-      background: var(--button-primary);
-      color: #fff;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 1.2rem;
-      transition: 0.2s ease;
-      box-shadow: 0 6px 18px rgba(var(--accent-electric-rgb), 0.35);
-      min-width: 60px;
-    }
-
-    .chat-submit-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(var(--accent-electric-rgb), 0.45);
-    }
-
-    .chat-submit-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .clear-chat-btn {
-      background: color-mix(in srgb, var(--danger-color) 16%, transparent);
-      border: 1px solid color-mix(in srgb, var(--danger-color) 45%, transparent);
-      color: color-mix(in srgb, var(--danger-color) 70%, #fff 30%);
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.2s ease;
-    }
-
-    .clear-chat-btn:hover {
-      background: color-mix(in srgb, var(--danger-color) 28%, transparent);
-    }
-
-    /* Team Name Label for forms */
-    .team-name-label {
-      position: absolute;
-      top: 0.35rem;
-      left: 0.75rem;
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: var(--accent-cyan);
-      pointer-events: none;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      opacity: 0.8;
-      line-height: 1;
-    }
-
-    /* Responsive Overrides */
-    @media (max-width: 640px) {
-      .brand-logo-container {
-        position: relative;
-        left: auto;
-        right: auto;
-        top: auto;
-        margin: 0 auto 1rem;
-        display: flex;
-        justify-content: center;
-      }
-
-      .brand-logo {
-        width: 56px;
-        height: 56px;
-      }
-
-      .auth-container {
-        position: relative;
-        left: auto;
-        right: auto;
-        top: auto;
-        margin: 0 auto 1rem;
-        display: flex;
-        justify-content: center;
-      }
-
-      .user-info {
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      .user-details {
-        text-align: center;
-      }
-
-      .sports-matchup-container {
-        height: 500px;
-      }
-
-      .chat-message.user {
-        margin-left: 0.5rem;
-      }
-
-      .chat-message.assistant {
-        margin-right: 0.5rem;
-      }
-    }
-
-    @media (min-width: 768px) {
-      .page-wrap {
-        padding: 3.5rem 1.5rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 1.5rem;
-      }
-
-      .panel {
-        padding: 2rem;
-      }
-
-      .chat-message.user {
-        margin-left: 3rem;
-      }
-
-      .chat-message.assistant {
-        margin-right: 3rem;
-      }
-
-      .sports-matchup-container {
-        height: 650px;
-        max-height: 75vh;
-      }
-    }
-
-    @media (min-width: 1024px) {
-      .page-wrap {
-        padding: 4rem 2rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 2rem;
-      }
-
-      .panel {
-        padding: 2.5rem;
-        max-width: 1000px;
-      }
-
-      .chat-message.user {
-        margin-left: 4rem;
-      }
-
-      .chat-message.assistant {
-        margin-right: 4rem;
-      }
-
-      .chat-message {
-        padding: 1rem 1.25rem;
-      }
-
-      .message-content {
-        font-size: 1.05rem;
-        line-height: 1.7;
-      }
-
-      .sports-matchup-container {
-        height: 700px;
-        max-height: 80vh;
-      }
-    }
-
-    @media (min-width: 1440px) {
-      .page-wrap {
-        padding: 4.5rem 2.5rem max(120px, calc(120px + env(safe-area-inset-bottom, 0px))) 2.5rem;
-      }
-
-      .panel {
-        max-width: 1100px;
-      }
-
-      .sports-matchup-container {
-        height: 750px;
-      }
-    }
-
-    /* NEW: Include Bet Logger Styles */
-    ${BetLoggerStyles}
-
-    /* Audio Orb Styles */
-    ${AudioOrbStyles()}
-
-    /* Demo Popover Button & Popover */
+    /* Demo popover button & popover */
     .demo-btn {
       padding: 10px 14px;
       border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-raised);
       color: var(--text-primary);
       cursor: pointer;
       font-weight: 600;
       font-size: 0.9rem;
-      transition: 0.25s ease;
+      transition: 0.2s ease;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
 
     .demo-btn:hover {
-      background: rgba(255, 255, 255, 0.10);
+      background: var(--surface-strong);
       transform: translateY(-1px);
     }
 
-    /* Popover */
     .demo-popover {
       position: absolute;
       margin-top: 10px;
       width: min(420px, calc(100vw - 24px));
       border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(10, 12, 18, 0.92);
-      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.55);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-card);
+      box-shadow: var(--shadow-pop);
       padding: 10px;
       display: none;
       z-index: 9999;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
     }
 
     .demo-popover.is-open {
@@ -867,8 +250,8 @@ const GlobalStyle = () => (
       width: 32px;
       height: 32px;
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-raised);
       color: var(--text-primary);
       cursor: pointer;
       font-size: 18px;
@@ -879,7 +262,7 @@ const GlobalStyle = () => (
     }
 
     .demo-popover__close:hover {
-      background: rgba(255, 255, 255, 0.14);
+      background: var(--surface-strong);
     }
 
     .demo-popover__video {
@@ -896,11 +279,11 @@ const GlobalStyle = () => (
       border: 0;
     }
 
-    @media (max-width: 640px) {
-      .demo-popover {
-        width: calc(100vw - 32px);
-      }
-    }
+    /* Bet Logger styles */
+    ${BetLoggerStyles}
+
+    /* Audio Orb styles */
+    ${AudioOrbStyles()}
   `}</style>
 );
 
@@ -950,20 +333,30 @@ function coverProbabilityFromMargin(predictedMargin: number, spread: number, sig
 }
 
 /* ========================== Sport-specific margin math ===================== */
+// Keep in sync with mcp-server/src/config/sportsConfig.ts (single source of
+// truth for weights) and mcp-server/src/utils/calculations.ts.
 function predictedMarginFootball(stats: any, isHome: boolean | null = null): number {
+  // Net scoring gap is the strongest single predictor of margin. The 0.5
+  // weight passes it through with ~50% regression toward the mean (season
+  // averages overstate true team differences).
   const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
   const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.4;
+  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.5;
 
+  // ~15 net yards ≈ 1 point (empirical NFL yards-per-point), discounted to a
+  // 0.25 weight because yardage is already partially reflected in scoring.
   const teamAYardDiff = parseFloat(stats.teamOffYards) - parseFloat(stats.teamDefYards);
   const teamBYardDiff = parseFloat(stats.opponentOffYards) - parseFloat(stats.opponentDefYards);
-  const yardDiffComponent = ((teamAYardDiff - teamBYardDiff) / 25) * 0.25;
+  const yardDiffComponent = ((teamAYardDiff - teamBYardDiff) / 15) * 0.25;
 
+  // Season turnover differential is a TOTAL (not per-game) and turnover luck
+  // regresses hard: 4 pts per turnover * 0.5 regression * 0.06 = 0.12 pts per
+  // unit, i.e. a turnover's value spread across a 17-game season.
   let teamTO = parseFloat(stats.teamTurnoverDiff) || 0;
   let oppTO = parseFloat(stats.opponentTurnoverDiff) || 0;
   teamTO = Math.max(-10, Math.min(10, teamTO));
   oppTO = Math.max(-10, Math.min(10, oppTO));
-  const turnoverComponent = (teamTO - oppTO) * 4 * 0.5 * 0.2;
+  const turnoverComponent = (teamTO - oppTO) * 4 * 0.5 * 0.06;
 
   const homeFieldAdvantage = isHome === null ? 0 : (isHome ? 2.5 : -2.5);
 
@@ -971,22 +364,27 @@ function predictedMarginFootball(stats: any, isHome: boolean | null = null): num
 }
 
 function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
-  // 7 marquee weighted components (100% total weight):
-  // PPG (15%), points allowed (15%), FG% (25%), rebounds (17%), turnovers (13%), 3PT% (8%), 3PT rate (7%)
-  // Pace remains a tempo multiplier (not a weighted skill edge component).
+  // Two-tier model:
+  //   Primary — net scoring margin: PPG edge (0.4) + points-allowed edge (0.4).
+  //   Together these pass the net-rating gap through at 0.4x; with the
+  //   correlated skill components below, the effective pass-through is
+  //   ~0.55–0.65x (season net rating regressed toward the mean). The old
+  //   0.15/0.15 scoring weights systematically underestimated favorites.
+  //   Secondary — corroborating skill edges (partially embedded in scoring):
+  //   FG% (0.15), rebounds (0.10), turnovers (0.08), 3P% (0.06), 3P rate (0.05).
   const teamAPointsFor = parseFloat(stats.teamPointsFor) || 0;
   const teamBPointsFor = parseFloat(stats.opponentPointsFor) || 0;
-  const ppgComponent = (teamAPointsFor - teamBPointsFor) * 0.15;
+  const ppgComponent = (teamAPointsFor - teamBPointsFor) * 0.4;
 
   const teamAPointsAllowed = parseFloat(stats.teamPointsAgainst) || 0;
   const teamBPointsAllowed = parseFloat(stats.opponentPointsAgainst) || 0;
   // Lower points allowed is better, so invert the differential.
-  const pointsAllowedComponent = (teamBPointsAllowed - teamAPointsAllowed) * 0.15;
+  const pointsAllowedComponent = (teamBPointsAllowed - teamAPointsAllowed) * 0.4;
 
   // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
   const teamAFg = parseFloat(stats.teamFgPct) || 0;
   const teamBFg = parseFloat(stats.opponentFgPct) || 0;
-  const fgDiffComponent = (teamAFg - teamBFg) * 2.0 * 0.25;
+  const fgDiffComponent = (teamAFg - teamBFg) * 2.0 * 0.15;
 
   // 3-point shooting split into accuracy + volume components.
   let threePointPctComponent = 0;
@@ -995,47 +393,46 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null): n
   const teamB3PPct = parseFloat(stats.opponent3PPct) || 0;
   if (teamA3PPct > 0 || teamB3PPct > 0) {
     const pctDiff = (teamA3PPct - teamB3PPct) * 1.0;
-    threePointPctComponent = pctDiff * 0.08;
+    threePointPctComponent = pctDiff * 0.06;
 
     const teamA3PRate = parseFloat(stats.team3PRate) || 0;
     const teamB3PRate = parseFloat(stats.opponent3PRate) || 0;
     const rateDiff = (teamA3PRate - teamB3PRate) * 15;
-    threePointRateComponent = rateDiff * 0.07;
+    threePointRateComponent = rateDiff * 0.05;
   }
 
   const teamAReb = parseFloat(stats.teamReboundMargin) || 0;
   const teamBReb = parseFloat(stats.opponentReboundMargin) || 0;
-  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.17;
+  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.10;
 
   // Turnovers: positive margin = team forces more TOs than it commits (good)
   const teamATov = parseFloat(stats.teamTurnoverMargin) || 0;
   const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
-  const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.13;
+  const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.08;
 
-  let margin =
-    ppgComponent +
-    pointsAllowedComponent +
+  const scoringComponents = ppgComponent + pointsAllowedComponent;
+  let skillComponents =
     fgDiffComponent +
     reboundComponent +
     turnoverComponent +
     threePointPctComponent +
     threePointRateComponent;
 
-  // Pace multiplier applied BEFORE home court (pace should scale stats-based margin only,
-  // not the home court advantage which is a fixed constant)
+  // Pace multiplier: per-possession skill edges compound with more
+  // possessions, so scale them by expected tempo vs the league average (~100).
+  // PPG-based components already embed each team's own pace — scaling them
+  // too would double-count tempo, so they stay unscaled.
   const teamAPace = parseFloat(stats.teamPace) || 0;
   const teamBPace = parseFloat(stats.opponentPace) || 0;
   if (teamAPace > 0 && teamBPace > 0) {
     const expectedPace = (teamAPace + teamBPace) / 2;
-    const paceFactor = expectedPace / 100; // 100 = league average possessions
-    margin *= paceFactor;
+    skillComponents *= expectedPace / 100;
   }
 
-  // Home court added AFTER pace so it remains a fixed 1.5-point advantage
-  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 1.5 : -1.5);
-  margin += homeCourtAdvantage;
+  // Fixed home-court constant added last (modern NBA HCA runs ~2.2–2.8 pts).
+  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 2.5 : -2.5);
 
-  return margin;
+  return scoringComponents + skillComponents + homeCourtAdvantage;
 }
 
 /* ================================= Utilities ============================== */
@@ -1294,68 +691,39 @@ function ProbabilityEstimator({
       }
 
       if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
-        // NHL Over/Under calculation using complete 4-step algorithm
+        // NHL Over/Under via the shared projection engine (utils/nhlProjection),
+        // which mirrors the backend model: home-ice advantage, graduated pace
+        // and special-teams adjustments (no binary cliffs), an overtime boost,
+        // and an overdispersion-adjusted standard deviation. This replaces an
+        // older inline copy that used hard thresholds and pure-Poisson sigma.
         const line = parseFloat(totalGoalsLine);
         if (Number.isNaN(line)) throw new Error('Invalid total goals line');
 
-        // Parse all hockey stats (14 total: 7 per team)
-        // Core stats
-        const H_xGF = parseFloat(hockeyStats.homeXgf60) || 0;
-        const H_xGA = parseFloat(hockeyStats.homeXga60) || 0;
-        const A_xGF = parseFloat(hockeyStats.awayXgf60) || 0;
-        const A_xGA = parseFloat(hockeyStats.awayXga60) || 0;
-        const H_GSAx = parseFloat(hockeyStats.homeGsax60) || 0;
-        const A_GSAx = parseFloat(hockeyStats.awayGsax60) || 0;
-        const H_HDCF = parseFloat(hockeyStats.homeHdcf60) || 0;
-        const A_HDCF = parseFloat(hockeyStats.awayHdcf60) || 0;
-        // Special teams stats
-        const H_PP = parseFloat(hockeyStats.homePP) || 0;
-        const H_PK = parseFloat(hockeyStats.homePK) || 0;
-        const H_TimesShorthanded = parseFloat(hockeyStats.homeTimesShorthanded) || 0;
-        const A_PP = parseFloat(hockeyStats.awayPP) || 0;
-        const A_PK = parseFloat(hockeyStats.awayPK) || 0;
-        const A_TimesShorthanded = parseFloat(hockeyStats.awayTimesShorthanded) || 0;
+        const projection = calculateNHLProjection({
+          home: {
+            xGF60: parseFloat(hockeyStats.homeXgf60) || 0,
+            xGA60: parseFloat(hockeyStats.homeXga60) || 0,
+            GSAx60: parseFloat(hockeyStats.homeGsax60) || 0,
+            HDCF60: parseFloat(hockeyStats.homeHdcf60) || 0,
+            PP: parseFloat(hockeyStats.homePP) || 0,
+            PK: parseFloat(hockeyStats.homePK) || 0,
+            timesShorthandedPerGame: parseFloat(hockeyStats.homeTimesShorthanded) || 0,
+          },
+          away: {
+            xGF60: parseFloat(hockeyStats.awayXgf60) || 0,
+            xGA60: parseFloat(hockeyStats.awayXga60) || 0,
+            GSAx60: parseFloat(hockeyStats.awayGsax60) || 0,
+            HDCF60: parseFloat(hockeyStats.awayHdcf60) || 0,
+            PP: parseFloat(hockeyStats.awayPP) || 0,
+            PK: parseFloat(hockeyStats.awayPK) || 0,
+            timesShorthandedPerGame: parseFloat(hockeyStats.awayTimesShorthanded) || 0,
+          },
+        }, line);
 
-        // Step 1: Calculate Projected Home Goals
-        // Home_Score = ((Home_xGF + Away_xGA) / 2) - Away_Goalie_GSAx
-        const projectedHomeGoals = (H_xGF + A_xGA) / 2 - A_GSAx;
-
-        // Step 2: Calculate Projected Away Goals
-        // Away_Score = ((Away_xGF + Home_xGA) / 2) - Home_Goalie_GSAx
-        const projectedAwayGoals = (A_xGF + H_xGA) / 2 - H_GSAx;
-
-        // Step 3: Pace Adjustment based on combined HDCF
-        const HDC_sum = H_HDCF + A_HDCF;
-        const paceAdjustment = HDC_sum > 25 ? 0.25 : 0;
-
-        // Step 4: Special Teams Mismatch Adjustment
-        // Home Advantage: IF (Home_PP + (100 - Away_PK)) * Away_Times_Shorthanded > 150
-        // Away Advantage: IF (Away_PP + (100 - Home_PK)) * Home_Times_Shorthanded > 150
-        let specialTeamsAdjustment = 0;
-        const homeSpecialTeamsScore = (H_PP + (100 - A_PK)) * A_TimesShorthanded;
-        if (homeSpecialTeamsScore > 150) {
-          specialTeamsAdjustment += 0.35;
-        }
-        const awaySpecialTeamsScore = (A_PP + (100 - H_PK)) * H_TimesShorthanded;
-        if (awaySpecialTeamsScore > 150) {
-          specialTeamsAdjustment += 0.35;
-        }
-
-        // Step 5: Final Total
-        const projectedTotal = Math.max(0, projectedHomeGoals + projectedAwayGoals + paceAdjustment + specialTeamsAdjustment);
-
-        // Calculate over probability using normal CDF
-        // Standard deviation based on sqrt of projected total (Poisson-like variance)
-        const sigma = Math.sqrt(projectedTotal);
-        const z = (projectedTotal - line) / sigma;
-        // CDF gives probability of going OVER when projected > line
-        const overProb = normCdf(z) * 100;
-
-        // Calculate final probability based on user's Over/Under selection
-        const finalProb = isOverBet ? overProb : (100 - overProb);
+        const finalProb = isOverBet ? projection.overProbability : projection.underProbability;
 
         setCalculatedProb(finalProb);
-        setExpectedDiff(projectedTotal);
+        setExpectedDiff(projection.projectedTotal);
       } else {
         // Football/Basketball spread calculation
         const spread = parseFloat(pointSpread);
@@ -1728,7 +1096,7 @@ function ProbabilityEstimator({
               Venue
               <span className="tooltip">
                 <span className="help-icon">?</span>
-                <span className="tooltiptext">Home field advantage is worth ~2.5 pts (NFL) or ~3 pts (NBA)</span>
+                <span className="tooltiptext">Home advantage is worth ~2.5 pts (NFL and NBA)</span>
               </span>
             </label>
             <select
@@ -2245,7 +1613,9 @@ function KellyCalculator({
   const canLogBet = hasValue && matchupData && estimationData;
 
   return (
-    <div className="panel">
+    <div className="tool-layout">
+      <div className="panel">
+      <h2 className="panel-title">Bet inputs</h2>
       <div className="input-group">
         <label htmlFor="bankroll">
           Bankroll
@@ -2358,6 +1728,10 @@ function KellyCalculator({
         </select>
       </div>
 
+      </div>
+
+      <div className="tool-aside">
+      <div className="panel">
       {hasValue ? (
         <div className="results">
           <p>Recommended Stake</p>
@@ -2469,6 +1843,8 @@ function KellyCalculator({
           ))}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
@@ -2888,316 +2264,254 @@ function App() {
 
   const currentSEO = getSEOForTab();
 
+  // Page title/subtitle for the shell (topbar on desktop, page header on mobile)
+  const activeDestination = findDestination(activeTab);
+  const pageTitle = activeDestination?.label ?? 'Betgistics';
+  const pageDescription = activeDestination?.description ?? '';
+
   return (
     <>
       {/* Dynamic SEO meta tags based on active tab */}
       <SEO {...currentSEO} />
 
-      <div className="site-bg">
-        <div className="bg-overlay" />
-        <div className="blob blob-a" />
-        <div className="blob blob-b" />
+      <div className="app-shell">
+        {/* Desktop: fixed sidebar navigation */}
+        <SidebarNav
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          footer={
+            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem' }}>
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                Privacy
+              </a>
+              <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                Terms
+              </a>
+            </div>
+          }
+        />
 
-        <div className="page-wrap">
-          <header className="panel app-shell-header">
-            <div className="brand-block">
+        <div className="app-main">
+          <header className="topbar">
+            {/* Mobile: brand; desktop: current page title (brand lives in sidebar) */}
+            <div className="topbar-brand">
               <img
                 src="/betgistics.png"
-                alt="Betgistics Logo"
-                className="brand-logo"
-                title="Betgistics - Point Spread Betting Analytics"
+                alt="Betgistics logo"
+                className="topbar-logo"
                 loading="eager"
                 fetchpriority="high"
-                width="64"
-                height="64"
+                width="34"
+                height="34"
               />
-              <div>
-                <p className="eyebrow">Smart betting workspace</p>
-                <h1 className="title title--compact">Betgistics Command Center</h1>
-                <p className="hero-copy">Compare team data, model probabilities, and size bets in one focused workflow.</p>
-              </div>
+              <span className="topbar-name">Betgistics</span>
             </div>
-
-            <div className="auth-shell">
-              {authLoading ? (
-                <div style={{color: 'var(--text-muted)', fontSize: '.9rem'}}>Loading...</div>
-              ) : authUser ? (
-                <div className="user-info">
+            <div className="topbar-page-title">
+              <h1>{pageTitle}</h1>
+              {pageDescription && <p>{pageDescription}</p>}
+            </div>
+            <div className="topbar-spacer" />
+            <div className="topbar-auth">
+              {authLoading ? null : authUser ? (
+                <div className="auth-chip">
                   {authUser.avatar && <img src={authUser.avatar} alt={authUser.name} className="user-avatar" />}
-                  <div className="user-details">
-                    <div className="user-name">{authUser.name}</div>
-                    <div className="user-email">{authUser.email}</div>
-                  </div>
-                  <a href={`${BACKEND_URL}/auth/logout`} className="logout-btn">Logout</a>
+                  <span className="user-name">{authUser.name}</span>
+                  <a href={`${BACKEND_URL}/auth/logout`} className="logout-btn">Log out</a>
                 </div>
               ) : (
-                <div className="signin-card">
-                  <a href={`${BACKEND_URL}/auth/google`} className="auth-btn">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                      <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
-                      <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                      <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
-                    </svg>
-                    Sign in with Google
-                  </a>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: '300px' }}>
-                    By signing in, you agree to our{' '}
-                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                      Privacy Policy
-                    </a>
-                    {' '}and{' '}
-                    <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                      Terms of Service
-                    </a>
-                  </p>
-                </div>
+                <a href={`${BACKEND_URL}/auth/google`} className="auth-btn">
+                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#fff"/>
+                    <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#fff" opacity="0.85"/>
+                    <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#fff" opacity="0.7"/>
+                    <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#fff" opacity="0.55"/>
+                  </svg>
+                  Sign in
+                </a>
               )}
             </div>
           </header>
 
-          <section className="panel workflow-panel">
-            <div>
-              <p className="eyebrow">Workflow</p>
-              <h2 style={{ margin: 0 }}>From matchup → probability → stake sizing</h2>
-              <p className="hero-copy" style={{ marginTop: '0.6rem' }}>Use the tabs below like a pipeline. Each tool is purpose-built and connected.</p>
+          <main className="content">
+            {/* Mobile page header (desktop shows the title in the topbar) */}
+            <div className="page-header">
+              <h1>{pageTitle}</h1>
+              {pageDescription && <p>{pageDescription}</p>}
             </div>
-            <SwipeableAudioOrbs
-              orbs={[
-                {
-                  audioSrc: '/intro.mp3',
-                  label: 'Introduction',
-                  icon: '🎙️',
-                },
-                {
-                  audioSrc: '/mission_statement.mp3',
-                  label: 'Mission Statement',
-                  icon: '🎯',
-                },
-                {
-                  audioSrc: '/quick_guide.mp3',
-                  label: 'Quick Start Guide',
-                  icon: '🎧',
-                },
-                {
-                  audioSrc: '/math_stats.mp3',
-                  label: 'Magnify Stats',
-                  icon: '🔍',
-                },
-              ]}
-            />
-          </section>
 
-          <div className="panel tab-command-center" style={{maxWidth:1100}}>
-            <div className="tabs app-tabs" role="tablist">
-              {[
-                { key: CONSTANTS.TABS.KELLY, icon: '📈', label: 'Kelly Criterion', blurb: 'Size your stake with bankroll discipline' },
-                { key: CONSTANTS.TABS.ESTIMATOR, icon: '🎯', label: 'Probability Estimator', blurb: 'Turn team stats into cover probability' },
-                { key: CONSTANTS.TABS.WALTERS, icon: '🛡️', label: 'Walters Protocol', blurb: 'Advanced edge + line value checks' },
-                { key: CONSTANTS.TABS.DAILY_GAMES, icon: '⚾', label: "Today's Games", blurb: 'Live MLB/NBA/NFL/NHL slate with projections' },
-                { key: CONSTANTS.TABS.SPORTS_MATCHUP, icon: '🏈', label: 'Sports Matchups', blurb: 'Load and compare NBA/NFL/NHL team data' },
-                { key: CONSTANTS.TABS.BET_HISTORY, icon: '📋', label: 'Bet History', blurb: 'Track bets and bankroll trend over time' },
-              ].map(tab => (
-                <button
-                  key={tab.key}
-                  className={`tab tab-card ${activeTab === tab.key ? 'active' : ''}`}
-                  onClick={() => handleTabChange(tab.key)}
-                  aria-selected={activeTab === tab.key}
-                  role="tab"
-                >
-                  <span className="tab-icon" aria-hidden="true">{tab.icon}</span>
-                  <span className="tab-title">{tab.label}</span>
-                  <small className="tab-blurb">{tab.blurb}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
-          {activeTab === CONSTANTS.TABS.KELLY && (
-            <KellyCalculator
-              probability={probability}
-              setProbability={setProbability}
-              isAuthenticated={!!authUser}
-              matchupData={currentMatchup}
-              estimationData={currentEstimation}
-              onLoginRequired={handleLoginRequired}
-              bankrollRefreshTrigger={bankrollRefreshTrigger}
-            />
-          )}
-          {activeTab === CONSTANTS.TABS.ESTIMATOR && (
-            <ProbabilityEstimator
-              setProbability={setProbability}
-              setActiveTab={setActiveTab}
-              activeSport={activeSport}
-              setActiveSport={setActiveSport}
-              footballStats={footballStats}
-              setFootballStats={setFootballStats}
-              basketballStats={basketballStats}
-              setBasketballStats={setBasketballStats}
-              hockeyStats={hockeyStats}
-              setHockeyStats={setHockeyStats}
-              pointSpread={pointSpread}
-              setPointSpread={setPointSpread}
-              totalGoalsLine={totalGoalsLine}
-              setTotalGoalsLine={setTotalGoalsLine}
-              calculatedProb={calculatedProb}
-              setCalculatedProb={setCalculatedProb}
-              expectedDiff={expectedDiff}
-              setExpectedDiff={setExpectedDiff}
-              isTeamAHome={isTeamAHome}
-              setIsTeamAHome={setIsTeamAHome}
-              isAuthenticated={!!authUser}
-              onLoginRequired={handleLoginRequired}
-              // NEW: Pass setters for bet logging
-              setCurrentMatchup={setCurrentMatchup}
-              setCurrentEstimation={setCurrentEstimation}
-              // Pre-fill for the MLB estimator from a tapped Today's Games card
-              mlbInitialFields={mlbPrefill}
-            />
-          )}
-          {activeTab === CONSTANTS.TABS.WALTERS && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading Walters Protocol...</div>}>
-                <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
-              </Suspense>
-            </div>
-          )}
-          {activeTab === CONSTANTS.TABS.DAILY_GAMES && (
-            <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading today's games...</div>}>
-              <DailyGamesView onSelectGame={handleDailyGameSelect} />
-            </Suspense>
-          )}
-          {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
-            <div className="panel">
-              <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
-                <ConsolidatedSportsMatchup
-                  onTransferToNBAEstimator={handleTransferToEstimator}
-                  onTransferToNFLEstimator={handleNFLTransferToEstimator}
-                  onTransferToNHLEstimator={handleNHLTransferToEstimator}
+            <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
+              {activeTab === CONSTANTS.TABS.KELLY && (
+                <KellyCalculator
+                  probability={probability}
+                  setProbability={setProbability}
+                  isAuthenticated={!!authUser}
+                  matchupData={currentMatchup}
+                  estimationData={currentEstimation}
+                  onLoginRequired={handleLoginRequired}
+                  bankrollRefreshTrigger={bankrollRefreshTrigger}
                 />
-              </Suspense>
-            </div>
-          )}
-          {/* NEW: Bet History Tab */}
-          {activeTab === CONSTANTS.TABS.BET_HISTORY && (
-            <div className="panel">
-              <BetHistory
-                isAuthenticated={!!authUser}
-                onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
-                onLoginRequired={handleLoginRequired}
-              />
-            </div>
-          )}
+              )}
+              {activeTab === CONSTANTS.TABS.ESTIMATOR && (
+                <ProbabilityEstimator
+                  setProbability={setProbability}
+                  setActiveTab={setActiveTab}
+                  activeSport={activeSport}
+                  setActiveSport={setActiveSport}
+                  footballStats={footballStats}
+                  setFootballStats={setFootballStats}
+                  basketballStats={basketballStats}
+                  setBasketballStats={setBasketballStats}
+                  hockeyStats={hockeyStats}
+                  setHockeyStats={setHockeyStats}
+                  pointSpread={pointSpread}
+                  setPointSpread={setPointSpread}
+                  totalGoalsLine={totalGoalsLine}
+                  setTotalGoalsLine={setTotalGoalsLine}
+                  calculatedProb={calculatedProb}
+                  setCalculatedProb={setCalculatedProb}
+                  expectedDiff={expectedDiff}
+                  setExpectedDiff={setExpectedDiff}
+                  isTeamAHome={isTeamAHome}
+                  setIsTeamAHome={setIsTeamAHome}
+                  isAuthenticated={!!authUser}
+                  onLoginRequired={handleLoginRequired}
+                  setCurrentMatchup={setCurrentMatchup}
+                  setCurrentEstimation={setCurrentEstimation}
+                  mlbInitialFields={mlbPrefill}
+                />
+              )}
+              {activeTab === CONSTANTS.TABS.WALTERS && (
+                <div className="panel">
+                  <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading Walters Protocol...</div>}>
+                    <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
+                  </Suspense>
+                </div>
+              )}
+              {activeTab === CONSTANTS.TABS.DAILY_GAMES && (
+                <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading today's games...</div>}>
+                  <DailyGamesView onSelectGame={handleDailyGameSelect} />
+                </Suspense>
+              )}
+              {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
+                <div className="panel">
+                  <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
+                    <ConsolidatedSportsMatchup
+                      onTransferToNBAEstimator={handleTransferToEstimator}
+                      onTransferToNFLEstimator={handleNFLTransferToEstimator}
+                      onTransferToNHLEstimator={handleNHLTransferToEstimator}
+                    />
+                  </Suspense>
+                </div>
+              )}
+              {activeTab === CONSTANTS.TABS.BET_HISTORY && (
+                <div className="panel">
+                  <BetHistory
+                    isAuthenticated={!!authUser}
+                    onBankrollUpdate={() => setBankrollRefreshTrigger(prev => prev + 1)}
+                    onLoginRequired={handleLoginRequired}
+                  />
+                </div>
+              )}
+              {activeTab === CONSTANTS.TABS.STATS && (
+                <StatsPage />
+              )}
+              {activeTab === CONSTANTS.TABS.ACCOUNT && (
+                <AccountSettings
+                  user={authUser}
+                  onLogout={handleLogout}
+                  onLogin={handleGoogleLogin}
+                  theme={theme}
+                  themeOptions={THEME_OPTIONS}
+                  onThemeChange={(value) => setTheme(value as ThemeKey)}
+                />
+              )}
+              {activeTab === CONSTANTS.TABS.PROMO && (
+                <PromoPage user={authUser} />
+              )}
+            </section>
 
-          {/* Stats Page Tab */}
-          {activeTab === CONSTANTS.TABS.STATS && (
-            <StatsPage />
-          )}
-
-          {/* Account Settings Tab */}
-          {activeTab === CONSTANTS.TABS.ACCOUNT && (
-            <AccountSettings
-              user={authUser}
-              onLogout={handleLogout}
-              onLogin={handleGoogleLogin}
-              theme={theme}
-              themeOptions={THEME_OPTIONS}
-              onThemeChange={(value) => setTheme(value as ThemeKey)}
-            />
-          )}
-
-          {/* Promo Page Tab */}
-          {activeTab === CONSTANTS.TABS.PROMO && (
-            <PromoPage user={authUser} />
-          )}
-          </section>
-
-          <div
-            className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
-            id="app-documentation"
-            aria-hidden={!isDocOpen}
-          >
-            <div className="panel info-panel doc-panel">
-              <button className="doc-close" type="button" onClick={() => setIsDocOpen(false)} aria-label="Close documentation">
-                Close
-              </button>
-              <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
+            {/* Collapsible guide: workflow docs + audio walkthroughs */}
+            <div
+              className={`doc-panel-wrapper ${isDocOpen ? 'open' : 'closed'}`}
+              id="app-documentation"
+              aria-hidden={!isDocOpen}
+            >
+              <div className="panel doc-panel">
+                <button className="doc-close" type="button" onClick={() => setIsDocOpen(false)} aria-label="Close documentation">
+                  Close
+                </button>
+                <h2 style={{marginTop:0, marginBottom:'0.5rem'}}>How this app works</h2>
                 <p style={{color:'var(--text-muted)', marginTop:0}}>
                   Follow these steps to move from matchup stats to a fully logged bet:
                 </p>
-                
+
                 <ol style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
                   <li>
-                    Start in the <strong>Sports Matchups</strong> tab to load team stats and compare both sides of the game. Toggle between NBA, NFL, and NHL.
+                    Start in <strong>Sports Matchups</strong> (or tap a game in <strong>Today's Games</strong>) to load team stats for both sides.
                   </li>
                   <li>
-                    Move to the <strong>Probability Estimator</strong>, enter your point spread, select whether your team is home or away, and hit <strong>Calculate Probability</strong> to generate your fair win probability.
+                    Move to the <strong>Probability Estimator</strong>, enter the line, choose home/away, and hit <strong>Calculate Probability</strong>.
                   </li>
                   <li>
-                    Switch to the <strong>Kelly Criterion</strong>, enter your bankroll and odds, then paste in the win probability to calculate your optimal bet size.
+                    Switch to the <strong>Kelly Calculator</strong>, enter your bankroll and odds, and get your optimal bet size.
                   </li>
                   <li>
-                    Finally, use <strong>Log Bet</strong> to save the wager and track your results over time.
+                    Use <strong>Log Bet</strong> to save the wager and track results in <strong>Bet History</strong>.
                   </li>
                 </ol>
-                
-                <h3 style={{marginBottom:'0.35rem'}}>Feature guide</h3>
-                <ul style={{paddingLeft:'1.25rem', lineHeight:1.6, color:'var(--text-muted)'}}>
-                  <li><strong>Kelly Criterion</strong>: Calculates your optimal stake based on bankroll, odds, and your win probability.</li>
-                  <li><strong>Probability Estimator</strong>: Converts matchup stats and point spreads into a projected win probability and expected margin.</li>
-                  <li><strong>Sports Matchups</strong>: Pulls NBA, NFL, or NHL team performance data and pre-fills stats for the estimator.</li>
-                  <li><strong>📊 Bet History</strong>: Stores your logged bets and tracks performance (sign-in required).</li>
-                </ul>
+
+                <h3 style={{margin:'1rem 0 0.35rem'}}>Audio walkthroughs</h3>
+                <SwipeableAudioOrbs
+                  orbs={[
+                    { audioSrc: '/intro.mp3', label: 'Introduction', icon: '🎙️' },
+                    { audioSrc: '/mission_statement.mp3', label: 'Mission Statement', icon: '🎯' },
+                    { audioSrc: '/quick_guide.mp3', label: 'Quick Start Guide', icon: '🎧' },
+                    { audioSrc: '/math_stats.mp3', label: 'Magnify Stats', icon: '🔍' },
+                  ]}
+                />
+              </div>
             </div>
-          </div>
+
+            <footer className="footer">
+              <div className="footer-card">
+                <button
+                  type="button"
+                  className="doc-toggle"
+                  onClick={() => setIsDocOpen((open) => !open)}
+                  aria-expanded={isDocOpen}
+                  aria-controls="app-documentation"
+                >
+                  <span>{isDocOpen ? 'Hide guide & audio walkthroughs' : 'Show guide & audio walkthroughs'}</span>
+                  <span className={`doc-chevron ${isDocOpen ? 'open' : ''}`} aria-hidden>▾</span>
+                </button>
+
+                <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                  <button id="demoPopoverBtn" className="demo-btn" type="button">
+                    🎬 Watch Demo
+                  </button>
+                </div>
+
+                <div style={{ marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: '1px solid var(--border-subtle)' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                    <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ marginRight: '1.5rem' }}>
+                      Privacy Policy
+                    </a>
+                    <a href="/terms.html" target="_blank" rel="noopener noreferrer">
+                      Terms of Service
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </footer>
+          </main>
         </div>
 
-        <footer className="footer">
-          <div className="footer-card">
-            <button
-              type="button"
-              className="doc-toggle"
-              onClick={() => setIsDocOpen((open) => !open)}
-              aria-expanded={isDocOpen}
-              aria-controls="app-documentation"
-            >
-              <span>{isDocOpen ? 'Hide documentation & workflow guide' : 'Show documentation & workflow guide'}</span>
-              <span className={`doc-chevron ${isDocOpen ? 'open' : ''}`} aria-hidden>▾</span>
-            </button>
-            <p className="doc-hint">
-              {isDocOpen
-                ? 'Click to tuck the instructions away once you are comfortable with the flow.'
-                : 'Open the drop-up to review the workflow and feature explanations.'}
-            </p>
-
-            {/* Watch Demo Button */}
-            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-              <button id="demoPopoverBtn" className="demo-btn" type="button">
-                🎬 Watch Demo
-              </button>
-            </div>
-
-            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.5rem 0' }}>
-                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none', marginRight: '1.5rem' }}>
-                  Privacy Policy
-                </a>
-                <a href="/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>
-                  Terms of Service
-                </a>
-              </p>
-            </div>
-          </div>
-        </footer>
-
-        {/* Demo Popover (place right after footer) */}
+        {/* Demo Popover */}
         <div id="demoPopover" className="demo-popover" role="dialog" aria-hidden="true" aria-label="Demo video popover">
           <div className="demo-popover__header">
             <span className="demo-popover__title">Demo</span>
             <button id="demoPopoverClose" className="demo-popover__close" type="button" aria-label="Close">✕</button>
           </div>
-
           <div className="demo-popover__video">
             <iframe
               id="demoPopoverIframe"
@@ -3209,17 +2523,8 @@ function App() {
           </div>
         </div>
 
-        {/* Bottom Navigation Bar */}
-        <BottomNavigation
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          TABS={{
-            BET_HISTORY: CONSTANTS.TABS.BET_HISTORY,
-            STATS: CONSTANTS.TABS.STATS,
-            ACCOUNT: CONSTANTS.TABS.ACCOUNT,
-            PROMO: CONSTANTS.TABS.PROMO,
-          }}
-        />
+        {/* Mobile: fixed bottom navigation with More sheet */}
+        <MobileNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
     </>
   );

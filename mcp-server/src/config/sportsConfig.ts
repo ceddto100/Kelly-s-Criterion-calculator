@@ -25,14 +25,25 @@ export const FOOTBALL_CONFIG = {
     decayRate: 0.9,
     /** Max points a starting-QB edge can swing the projection (clamp bound). */
     qbValue: 7.0,
+    /**
+     * Recalibrated 2026-07: net scoring is the strongest single predictor of
+     * margin, so it carries the majority weight (0.5 ≈ full signal with ~50%
+     * regression toward the mean for season averages). Yardage and turnovers
+     * are partially embedded in net scoring already, so they enter as smaller
+     * corroborating signals rather than co-equal components.
+     */
     weights: {
-      points: 0.4, // net points differential
-      yards: 0.25, // net yards differential (per 25 yards)
-      turnovers: 0.2, // turnover differential
+      points: 0.5, // net points differential (primary signal)
+      yards: 0.25, // net yards differential (per yardsPerPoint yards)
+      // Season turnover differential is a TOTAL, not per-game, and turnover
+      // luck regresses hard. Effective value per unit of season TO diff:
+      // pointsPerTurnover(4) * turnoverRegression(0.5) * 0.06 = 0.12 pts,
+      // which matches ~4 pts per turnover spread over a 17-game season.
+      turnovers: 0.06,
     },
     /** Scaling constants inside each component. */
     scaling: {
-      yardsPerPoint: 25, // 25 net yards ≈ 1 scaled unit
+      yardsPerPoint: 15, // ~15 net yards ≈ 1 point (empirical NFL yards-per-point)
       pointsPerTurnover: 4, // empirical value of a turnover
       turnoverRegression: 0.5, // regress raw turnover diff toward the mean
       turnoverClamp: 10, // clamp extreme season turnover diffs
@@ -44,12 +55,14 @@ export const FOOTBALL_CONFIG = {
     decayRate: 0.85,
     qbValue: 9.0, // QBs swing college games more
     weights: {
-      points: 0.4,
+      points: 0.5,
       yards: 0.25,
-      turnovers: 0.2,
+      // Shorter ~12-game season → each unit of season TO diff is worth more
+      // per game than in the NFL: 4 * 0.5 * 0.08 = 0.16 pts per unit.
+      turnovers: 0.08,
     },
     scaling: {
-      yardsPerPoint: 25,
+      yardsPerPoint: 15,
       pointsPerTurnover: 4,
       turnoverRegression: 0.5,
       turnoverClamp: 10,
@@ -64,25 +77,28 @@ export const FOOTBALL_CONFIG = {
 export const BASKETBALL_CONFIG = {
   NBA: {
     sigma: 12.0,
-    homeCourtAdvantage: 1.5,
+    // Modern NBA home-court advantage runs ~2.2–2.8 points; 1.5 undersold it.
+    homeCourtAdvantage: 2.5,
     decayRate: 0.85, // 85% season, 15% recent when recent inputs given
     leagueAvgPace: 100,
     /**
-     * Component weights (sum to 1.0). NOTE on correlation: scoring output
-     * (PPG-for / points-allowed) and shooting efficiency (FG%) are positively
-     * correlated — a team that shoots well tends to score more. They are kept as
-     * separate inputs deliberately (volume vs efficiency carry distinct signal),
-     * but this is the place to retune them once backtesting data exists. The
-     * `ppgFor` + `pointsAllowed` pair together act as a net-scoring margin.
+     * Recalibrated 2026-07. The ppgFor + pointsAllowed pair together form the
+     * net-scoring margin, the strongest predictor of future margin — at 0.4
+     * each the pair passes through the net-rating gap at 0.4x, and the
+     * correlated skill components (shooting, rebounding, turnovers) bring the
+     * total effective pass-through to roughly 0.55–0.65x, i.e. season net
+     * rating regressed toward the mean. The old 0.15/0.15 scoring weights
+     * meant a +9 net-rating gap produced barely a 1.3-point edge, which
+     * systematically underestimated favorites.
      */
     weights: {
-      ppgFor: 0.15, // offensive output edge
-      pointsAllowed: 0.15, // defensive (points allowed) edge
-      fgPct: 0.25,
-      rebounds: 0.17,
-      turnovers: 0.13,
-      threePct: 0.08,
-      threeRate: 0.07,
+      ppgFor: 0.4, // offensive output edge (primary, with pointsAllowed)
+      pointsAllowed: 0.4, // defensive (points allowed) edge (primary)
+      fgPct: 0.15,
+      rebounds: 0.1,
+      turnovers: 0.08,
+      threePct: 0.06,
+      threeRate: 0.05,
     },
     scaling: {
       fgPctPointsMultiplier: 2.0, // each 1% FG diff ≈ 2 pts
@@ -101,13 +117,13 @@ export const BASKETBALL_CONFIG = {
     // college margins by ~32%. League-specific pace corrects that.
     leagueAvgPace: 68,
     weights: {
-      ppgFor: 0.15,
-      pointsAllowed: 0.15,
-      fgPct: 0.25,
-      rebounds: 0.17,
-      turnovers: 0.13,
-      threePct: 0.08,
-      threeRate: 0.07,
+      ppgFor: 0.4,
+      pointsAllowed: 0.4,
+      fgPct: 0.15,
+      rebounds: 0.1,
+      turnovers: 0.08,
+      threePct: 0.06,
+      threeRate: 0.05,
     },
     scaling: {
       fgPctPointsMultiplier: 2.0,
