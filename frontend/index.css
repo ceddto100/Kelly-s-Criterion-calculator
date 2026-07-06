@@ -134,19 +134,29 @@
 }
 
 /* ==================== SEMANTIC TOKENS ==================== */
-/* Derived from the brand palette so every theme inherits them. */
+/* Derived from the brand palette so every theme inherits them.
+   Surfaces and borders are tinted with the theme's own accents so each
+   palette keeps the original brand character — violet-forward cards with
+   cyan/violet glowing edges on the default theme, and the equivalent tint
+   on every other theme (gold, crimson, gamma, deep-sea, matrix). This is
+   the original color scheme re-applied on top of the cleaner layout. */
 :root {
   /* Surfaces (opaque — no scroll-hostile backdrop blur) */
   --surface-0: var(--background-color);
-  --surface-card: color-mix(in srgb, var(--background-color) 86%, #ffffff 14%);
-  --surface-raised: color-mix(in srgb, var(--background-color) 80%, #ffffff 20%);
-  --surface-sunken: color-mix(in srgb, var(--background-color) 55%, #000000 45%);
+  --surface-card: color-mix(in srgb, var(--background-color) 84%, var(--accent-violet) 16%);
+  --surface-raised: color-mix(in srgb, var(--background-color) 78%, var(--accent-violet) 22%);
+  --surface-sunken: color-mix(in srgb, var(--background-color) 62%, #000000 38%);
 
-  --border-subtle: color-mix(in srgb, #ffffff 12%, transparent);
-  --border-strong: color-mix(in srgb, var(--accent-electric) 40%, rgba(255, 255, 255, 0.2));
+  /* Accent-tinted brand borders (the original glowing-edge look) */
+  --border-subtle: color-mix(in srgb, var(--accent-violet) 26%, rgba(255, 255, 255, 0.14));
+  --border-strong: color-mix(in srgb, var(--accent-electric) 55%, rgba(255, 255, 255, 0.22));
   --control-focus: var(--accent-electric);
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.55);
+  /* Card shadow carries a soft accent glow so panels read as brand-lit */
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 10px 30px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(var(--accent-violet-rgb), 0.12);
+  --shadow-pop: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(var(--accent-violet-rgb), 0.16);
   --shadow-strong: var(--shadow-pop);
 
   /* Compat aliases used by feature components */
@@ -220,7 +230,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Quiet ambient background: soft accent washes, cheap to composite. */
+/* Ambient brand background: the three signature accent glows (violet /
+   electric / cyan) from the original, rendered as static radial washes so
+   they cost nothing on scroll (no blurred blob layers to re-raster). */
 body::before {
   content: '';
   position: fixed;
@@ -228,9 +240,10 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(900px 520px at 85% -10%, rgba(var(--accent-violet-rgb), 0.14), transparent 60%),
-    radial-gradient(760px 480px at -10% 30%, rgba(var(--accent-electric-rgb), 0.10), transparent 60%),
-    linear-gradient(180deg, var(--background-color), color-mix(in srgb, var(--background-color) 82%, var(--background-secondary) 18%));
+    radial-gradient(820px 560px at 84% -8%, rgba(var(--accent-violet-rgb), 0.22), transparent 58%),
+    radial-gradient(720px 520px at -10% 26%, rgba(var(--accent-electric-rgb), 0.16), transparent 60%),
+    radial-gradient(680px 520px at 52% 116%, rgba(var(--accent-cyan-rgb), 0.14), transparent 60%),
+    linear-gradient(180deg, var(--background-color), color-mix(in srgb, var(--background-color) 80%, var(--background-secondary) 20%));
   transform: translateZ(0);
 }
 
@@ -1367,6 +1380,205 @@ textarea:focus {
 .footer a {
   color: var(--accent-cyan);
   text-decoration: none;
+}
+
+/* ==================== MEDIA PAGE ==================== */
+.media-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.media-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  text-align: center;
+  padding: 1.6rem 1rem;
+  border: 1.5px dashed color-mix(in srgb, var(--accent-electric) 45%, var(--border-subtle));
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.media-dropzone:hover,
+.media-dropzone:focus-visible {
+  border-color: var(--accent-electric);
+  background: color-mix(in srgb, var(--accent-electric) 8%, var(--surface-sunken));
+  outline: none;
+}
+
+.media-dropzone.is-drag {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--surface-sunken));
+  transform: scale(1.005);
+}
+
+.media-drop-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.media-drop-title {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.98rem;
+}
+
+.media-drop-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.media-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin: 1.4rem 0 0.7rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.media-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-electric) 22%, transparent);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.media-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+}
+
+.media-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.media-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.media-card-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-delete {
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--danger-color) 35%, transparent);
+  background: color-mix(in srgb, var(--danger-color) 10%, transparent);
+  color: color-mix(in srgb, var(--danger-color) 72%, #fff 28%);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.media-delete:hover {
+  background: color-mix(in srgb, var(--danger-color) 20%, transparent);
+}
+
+.media-desc {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  margin: 0 0 0.6rem;
+}
+
+.media-audio {
+  width: 100%;
+  height: 40px;
+}
+
+.media-video {
+  width: 100%;
+  max-height: 340px;
+  border-radius: var(--radius-sm);
+  background: #000;
+  display: block;
+}
+
+.media-video-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #000;
+}
+
+.media-embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.media-meta {
+  margin-top: 0.5rem;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.media-loading {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  padding: 0.75rem 0;
+}
+
+.media-privacy-note {
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+@media (min-width: 720px) {
+  .media-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* ==================== VISIBILITY UTILITIES ==================== */

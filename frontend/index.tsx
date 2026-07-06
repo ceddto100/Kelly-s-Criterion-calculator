@@ -30,6 +30,7 @@ const DecisionPanel = lazy(() => import("./components/DecisionPanel"));
 const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 const DailyGamesView = lazy(() => import("./components/DailyGamesView"));
+const MediaPage = lazy(() => import("./components/MediaPage"));
 
 /* === NEW: Import Bet Logger components (eager for now, used in Kelly calc) === */
 import { LogBetButton, BetHistory, BetLoggerStyles } from './components/BetLogger';
@@ -297,6 +298,7 @@ const CONSTANTS = {
     SPORTS_MATCHUP: 'sports_matchup',  // Consolidated NBA/NFL/NHL matchup
     BET_HISTORY: 'bet_history',  // Bet tracking
     STATS: 'stats',  // NBA/NFL/NHL statistics
+    MEDIA: 'media',  // Audio/video library + user uploads
     ACCOUNT: 'account',  // Account settings
     PROMO: 'promo'  // Promotional links
   },
@@ -2253,6 +2255,8 @@ function App() {
         return SEO_CONFIG.bet_history;
       case CONSTANTS.TABS.STATS:
         return SEO_CONFIG.stats;
+      case CONSTANTS.TABS.MEDIA:
+        return SEO_CONFIG.media;
       case CONSTANTS.TABS.ACCOUNT:
         return SEO_CONFIG.account;
       case CONSTANTS.TABS.PROMO:
@@ -2414,6 +2418,11 @@ function App() {
               )}
               {activeTab === CONSTANTS.TABS.STATS && (
                 <StatsPage />
+              )}
+              {activeTab === CONSTANTS.TABS.MEDIA && (
+                <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading media…</div>}>
+                  <MediaPage />
+                </Suspense>
               )}
               {activeTab === CONSTANTS.TABS.ACCOUNT && (
                 <AccountSettings

@@ -146,6 +146,19 @@ export const SEO_CONFIG = {
       url: 'https://betgistics.com/#stats',
     },
   },
+  media: {
+    title: 'Media Library',
+    description: 'Play the Betgistics audio guides and video walkthroughs, and upload your own audio or video clips to your personal media library.',
+    keywords: 'betgistics media, audio guide, video walkthrough, betting media library, upload audio, upload video',
+    canonical: 'https://betgistics.com/#media',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Media Library',
+      description: 'Betgistics audio guides, video walkthroughs, and a personal media uploader.',
+      url: 'https://betgistics.com/#media',
+    },
+  },
   account: {
     title: 'Account Settings',
     description: 'Manage your Betgistics account settings, customize themes, and personalize your betting calculator experience.',

@@ -51,6 +51,7 @@ const ICONS = {
   matchups: icon(<><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M16 3h3a2 2 0 0 1 2 2v3" /><path d="M8 21H5a2 2 0 0 1-2-2v-3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /><line x1="7" y1="12" x2="17" y2="12" /></>),
   bets: icon(<><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>),
   stats: icon(<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />),
+  media: icon(<><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></>),
   promos: icon(<><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></>),
   account: icon(<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
 };
@@ -76,6 +77,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'My account',
     items: [
       { key: 'bet_history', label: 'Bet History', shortLabel: 'Bets', description: 'Logged bets and bankroll trend', icon: ICONS.bets },
+      { key: 'media', label: 'Media', shortLabel: 'Media', description: 'Your audio & video library', icon: ICONS.media },
       { key: 'promo', label: 'Promos', shortLabel: 'Promos', description: 'Promotions and partner offers', icon: ICONS.promos },
       { key: 'account', label: 'Settings', shortLabel: 'Account', description: 'Profile, themes, and preferences', icon: ICONS.account },
     ],
@@ -90,7 +92,7 @@ export function findDestination(key: string): NavDestination | undefined {
 
 /* Mobile bottom bar: the four everyday destinations + "More". */
 const MOBILE_PRIMARY_KEYS = ['kelly', 'estimator', 'daily_games', 'bet_history'];
-const MOBILE_MORE_KEYS = ['walters', 'sports_matchup', 'stats', 'promo', 'account'];
+const MOBILE_MORE_KEYS = ['walters', 'sports_matchup', 'stats', 'media', 'promo', 'account'];
 
 interface NavProps {
   activeTab: string;
