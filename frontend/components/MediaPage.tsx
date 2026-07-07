@@ -26,7 +26,15 @@ import {
 } from '../utils/mediaStore';
 
 /* Inline video player for an uploaded file (resolves its Blob to an object URL). */
-function UploadedVideo({ item, onDelete }: { item: MediaMeta; onDelete: (id: string) => void }) {
+function UploadedVideo({
+  item,
+  onDelete,
+  canDelete,
+}: {
+  item: MediaMeta;
+  onDelete: (id: string) => void;
+  canDelete: boolean;
+}) {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,14 +58,16 @@ function UploadedVideo({ item, onDelete }: { item: MediaMeta; onDelete: (id: str
           <span aria-hidden="true">🎞️</span>
           <span className="media-card-name">{item.name}</span>
         </div>
-        <button
-          type="button"
-          className="media-delete"
-          aria-label={`Delete ${item.name}`}
-          onClick={() => onDelete(item.id)}
-        >
-          Remove
-        </button>
+        {canDelete && (
+          <button
+            type="button"
+            className="media-delete"
+            aria-label={`Delete ${item.name}`}
+            onClick={() => onDelete(item.id)}
+          >
+            Remove
+          </button>
+        )}
       </div>
       {!url ? (
         <div className="media-loading">Loading…</div>
@@ -99,7 +109,7 @@ function LibraryVideo({ item }: { item: LibraryItem }) {
   );
 }
 
-export function MediaPage() {
+export function MediaPage({ isAdmin = false }: { isAdmin?: boolean }) {
   const supported = isMediaSupported();
   const [uploads, setUploads] = useState<MediaMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,6 +219,8 @@ export function MediaPage() {
   );
 
   const hasUploads = uploads.length > 0;
+  // Uploads (and their delete controls) are an admin-only capability.
+  const showUploadsSection = isAdmin || hasUploads;
 
   return (
     <div className="panel">
@@ -216,14 +228,15 @@ export function MediaPage() {
         <div>
           <h2 className="panel-title" style={{ marginBottom: '0.25rem' }}>Media</h2>
           <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>
-            Your audio and video library. Tap an orb to play, use the arrows to switch tracks, or
-            upload your own clips.
+            {isAdmin
+              ? 'Your audio and video library. Tap an orb to play, use the arrows to switch tracks, or upload your own clips.'
+              : 'Tap an orb to play, and use the arrows to switch between tracks.'}
           </p>
         </div>
       </div>
 
-      {/* ---------- Upload zone ---------- */}
-      {supported ? (
+      {/* ---------- Upload zone (admin only) ---------- */}
+      {isAdmin && supported ? (
         <>
           <div
             className={`media-dropzone ${dragOver ? 'is-drag' : ''}`}
@@ -266,44 +279,48 @@ export function MediaPage() {
           </div>
           {error && <div className="error-message" style={{ marginTop: '0.75rem' }}>⚠ {error}</div>}
         </>
-      ) : (
+      ) : isAdmin ? (
         <div className="error-message">
           This browser can’t store uploads locally. You can still play the Betgistics library below.
         </div>
-      )}
+      ) : null}
 
-      {/* ---------- Your uploads ---------- */}
-      <div className="media-section-title">
-        Your Uploads
-        {hasUploads && <span className="media-count">{uploads.length}</span>}
-      </div>
-
-      {loading ? (
-        <div className="media-loading">Loading your media…</div>
-      ) : !hasUploads ? (
-        <div className="empty-state" style={{ padding: '1.5rem 1rem' }}>
-          <h3>No uploads yet</h3>
-          <p>Add an audio or video file above and it will appear here, ready to play.</p>
-        </div>
-      ) : (
+      {/* ---------- Your uploads (admin, or anyone who already has local files) ---------- */}
+      {showUploadsSection && (
         <>
-          {uploadAudioOrbs.length > 0 && (
+          <div className="media-section-title">
+            Your Uploads
+            {hasUploads && <span className="media-count">{uploads.length}</span>}
+          </div>
+
+          {loading ? (
+            <div className="media-loading">Loading your media…</div>
+          ) : !hasUploads ? (
+            <div className="empty-state" style={{ padding: '1.5rem 1rem' }}>
+              <h3>No uploads yet</h3>
+              <p>Add an audio or video file above and it will appear here, ready to play.</p>
+            </div>
+          ) : (
             <>
-              <div className="media-subhead">🎵 Audio</div>
-              <SwipeableAudioOrbs
-                orbs={uploadAudioOrbs}
-                onDelete={(i) => onDelete(readyAudioUploads[i].id)}
-              />
-            </>
-          )}
-          {videoUploads.length > 0 && (
-            <>
-              <div className="media-subhead">🎞️ Video</div>
-              <div className="media-grid">
-                {videoUploads.map((item) => (
-                  <UploadedVideo key={item.id} item={item} onDelete={onDelete} />
-                ))}
-              </div>
+              {uploadAudioOrbs.length > 0 && (
+                <>
+                  <div className="media-subhead">🎵 Audio</div>
+                  <SwipeableAudioOrbs
+                    orbs={uploadAudioOrbs}
+                    onDelete={isAdmin ? (i) => onDelete(readyAudioUploads[i].id) : undefined}
+                  />
+                </>
+              )}
+              {videoUploads.length > 0 && (
+                <>
+                  <div className="media-subhead">🎞️ Video</div>
+                  <div className="media-grid">
+                    {videoUploads.map((item) => (
+                      <UploadedVideo key={item.id} item={item} onDelete={onDelete} canDelete={isAdmin} />
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
         </>
@@ -329,10 +346,12 @@ export function MediaPage() {
         </>
       )}
 
-      <p className="media-privacy-note">
-        Uploaded files are stored privately in this browser on this device — they are not sent to a
-        server and are visible only to you.
-      </p>
+      {showUploadsSection && (
+        <p className="media-privacy-note">
+          Uploaded files are stored privately in this browser on this device — they are not sent to a
+          server and are visible only to you.
+        </p>
+      )}
     </div>
   );
 }

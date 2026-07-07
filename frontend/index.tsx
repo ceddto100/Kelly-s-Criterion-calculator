@@ -1882,6 +1882,10 @@ function App() {
 
   // Authentication state
   const [authUser, setAuthUser] = useState<{name: string; email: string; avatar: string} | null>(null);
+  // Admin gate (media uploads etc.). Authoritative value comes from the
+  // backend /auth/status; the email fallback keeps it correct if the frontend
+  // is ever deployed ahead of the backend.
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
   // Documentation visibility
@@ -1965,6 +1969,8 @@ function App() {
           const data = await response.json();
           if (data.authenticated && data.user) {
             setAuthUser(data.user);
+            const adminByEmail = (data.user.email || '').trim().toLowerCase() === 'cartercedrick35@gmail.com';
+            setIsAdmin(Boolean(data.isAdmin) || adminByEmail);
           }
         }
       } catch (error) {
@@ -2421,7 +2427,7 @@ function App() {
               )}
               {activeTab === CONSTANTS.TABS.MEDIA && (
                 <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading media…</div>}>
-                  <MediaPage />
+                  <MediaPage isAdmin={isAdmin} />
                 </Suspense>
               )}
               {activeTab === CONSTANTS.TABS.ACCOUNT && (
