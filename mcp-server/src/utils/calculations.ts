@@ -368,18 +368,20 @@ export function predictedMarginFootball(
 /**
  * Calculate predicted margin for basketball games
  *
- * Improved algorithm with 7 marquee weighted components (100% total):
- *   - Points per game edge (15%)
- *   - Points allowed edge (15%)
- *   - FG% differential (25%): Shooting efficiency with realistic scaling
- *   - Rebound margin (17%): Second-chance and transition opportunities
- *   - Turnover margin (13%): Ball security differential
- *   - 3P% differential (8%): Three-point accuracy edge
- *   - 3P rate differential (7%): Three-point volume edge
+ * Two-tier model (weights in sportsConfig):
+ *   Primary — net scoring margin:
+ *     - Points per game edge (0.4)
+ *     - Points allowed edge (0.4)
+ *     Together these pass the net-rating gap through at 0.4x; combined with
+ *     the correlated skill components below the effective pass-through is
+ *     ~0.55–0.65x (season net rating regressed toward the mean).
+ *   Secondary — corroborating skill edges (partially embedded in scoring):
+ *     - FG% differential (0.15), rebound margin (0.10), turnover margin
+ *       (0.08), 3P% differential (0.06), 3P rate differential (0.05)
  *
- * Also applies a pace multiplier when both teams' pace data is available,
- * scaling the margin for games expected to have more or fewer possessions
- * than the league average (~100 per game).
+ * When both teams' pace is available, only the per-possession skill
+ * components are scaled by expected tempo vs the league average — PPG-based
+ * components already embed each team's own pace.
  */
 export function predictedMarginBasketball(
   stats: BasketballStats,
@@ -426,23 +428,25 @@ export function predictedMarginBasketball(
       (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * scaling.turnoverPointValue * weights.turnovers;
   }
 
-  let margin =
-    ppgComponent +
-    pointsAllowedComponent +
+  const scoringComponents = ppgComponent + pointsAllowedComponent;
+  let skillComponents =
     fgComponent +
     reboundComponent +
     turnoverComponent +
     threePointPctComponent +
     threePointRateComponent;
 
-  // Pace multiplier: scale the margin for expected game tempo using the
-  // league-appropriate average (NBA ~100, CBB ~68 — see sportsConfig).
+  // Pace multiplier: per-possession skill edges compound with more
+  // possessions, so scale them by expected game tempo vs the league average
+  // (NBA ~100, CBB ~68 — see sportsConfig). PPG-based components already have
+  // each team's own pace baked in, so scaling them too would double-count
+  // tempo — they stay unscaled.
   if (stats.teamPace !== undefined && stats.opponentPace !== undefined) {
     const expectedPace = (stats.teamPace + stats.opponentPace) / 2;
-    margin *= expectedPace / leagueAvgPace;
+    skillComponents *= expectedPace / leagueAvgPace;
   }
 
-  return margin;
+  return scoringComponents + skillComponents;
 }
 
 /**

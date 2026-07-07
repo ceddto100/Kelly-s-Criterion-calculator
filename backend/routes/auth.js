@@ -3,6 +3,7 @@ const express = require('express');
 const passport = require('passport');
 const { User } = require('../config/database');
 const { ensureAuthenticated } = require('../middleware/auth');
+const { isAdminEmail } = require('../config/admin');
 const router = express.Router();
 
 /**
@@ -83,6 +84,7 @@ router.get('/status', (req, res) => {
   if (req.isAuthenticated()) {
     res.json({
       authenticated: true,
+      isAdmin: isAdminEmail(req.user.email),
       user: {
         name: req.user.name,
         email: req.user.email,
@@ -92,6 +94,7 @@ router.get('/status', (req, res) => {
   } else {
     res.json({
       authenticated: false,
+      isAdmin: false,
       user: null
     });
   }

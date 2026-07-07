@@ -162,11 +162,7 @@ button:active, a:active, [role="button"]:active, [role="tab"]:active {
     padding: 12px 16px;
   }
 
-  /* Better spacing for card-like elements */
-  .card, .panel, .section {
-    margin: 8px;
-    border-radius: 16px;
-  }
+  /* Card spacing/radius is owned by the design system in index.css */
 }
 
 /* Pull-to-refresh visual indicator area */
