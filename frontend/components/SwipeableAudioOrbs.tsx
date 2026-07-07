@@ -9,13 +9,26 @@ interface OrbData {
 
 interface SwipeableAudioOrbsProps {
   orbs: OrbData[];
+  /**
+   * Optional. When provided, a small "Remove this clip" control renders under
+   * the current orb (used by the Media page for user uploads). Existing
+   * read-only usages omit it and are unaffected.
+   */
+  onDelete?: (index: number) => void;
 }
 
-export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) => {
+export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs, onDelete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Keep the index in range when the orb list shrinks (e.g. after a delete).
+  useEffect(() => {
+    if (currentIndex > orbs.length - 1) {
+      setCurrentIndex(Math.max(0, orbs.length - 1));
+    }
+  }, [orbs.length, currentIndex]);
 
   // Minimum swipe distance (in px) to trigger a page change
   const minSwipeDistance = 50;
@@ -57,6 +70,10 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
     }
   };
 
+  if (orbs.length === 0) return null;
+
+  const safeIndex = Math.min(currentIndex, orbs.length - 1);
+
   return (
     <div style={styles.container}>
       <div
@@ -80,9 +97,10 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
         {/* Current Orb */}
         <div style={styles.orbContainer}>
           <AudioOrb
-            audioSrc={orbs[currentIndex].audioSrc}
-            label={orbs[currentIndex].label}
-            icon={orbs[currentIndex].icon}
+            key={orbs[safeIndex].audioSrc}
+            audioSrc={orbs[safeIndex].audioSrc}
+            label={orbs[safeIndex].label}
+            icon={orbs[safeIndex].icon}
           />
         </div>
 
@@ -96,6 +114,18 @@ export const SwipeableAudioOrbs: React.FC<SwipeableAudioOrbsProps> = ({ orbs }) 
           </button>
         )}
       </div>
+
+      {/* Optional remove control (uploads) */}
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(safeIndex)}
+          style={styles.removeBtn}
+          aria-label={`Remove ${orbs[safeIndex].label}`}
+        >
+          Remove this clip
+        </button>
+      )}
 
       {/* Dot Indicators */}
       <div style={styles.indicators}>
@@ -198,5 +228,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '0.85rem',
     margin: '0.5rem 0 0 0',
     textAlign: 'center',
+  },
+  removeBtn: {
+    background: 'color-mix(in srgb, var(--danger-color) 12%, transparent)',
+    border: '1px solid color-mix(in srgb, var(--danger-color) 38%, transparent)',
+    color: 'color-mix(in srgb, var(--danger-color) 72%, #fff 28%)',
+    fontSize: '0.78rem',
+    fontWeight: 600,
+    padding: '0.35rem 0.8rem',
+    borderRadius: '999px',
+    cursor: 'pointer',
   },
 };
