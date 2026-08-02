@@ -107,6 +107,33 @@ function writeCsv(file, header, rows) {
   console.log(`  wrote ${file} (${rows.length} rows)`);
 }
 
+/** Read a generated CSV so human/agent-supplied premium cells survive refreshes. */
+function readCsv(file) {
+  const target = path.join(OUT_DIR, file);
+  if (!fs.existsSync(target)) return [];
+  const parseLine = (line) => {
+    const cells = [];
+    let value = '';
+    let quoted = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      if (ch === '"' && quoted && line[i + 1] === '"') { value += '"'; i += 1; }
+      else if (ch === '"') quoted = !quoted;
+      else if (ch === ',' && !quoted) { cells.push(value); value = ''; }
+      else value += ch;
+    }
+    cells.push(value);
+    return cells;
+  };
+  const lines = fs.readFileSync(target, 'utf8').replace(/\r/g, '').trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = parseLine(lines[0]);
+  return lines.slice(1).filter(Boolean).map((line) => {
+    const values = parseLine(line);
+    return Object.fromEntries(headers.map((header, i) => [header, values[i] ?? '']));
+  });
+}
+
 const seasonYear = () => {
   const now = new Date();
   // Regular season runs late March -> early October; before March use last year.
@@ -502,6 +529,29 @@ async function main() {
   const sorted = [...teams.values()].sort((a, b) =>
     a.abbreviation.localeCompare(b.abbreviation),
   );
+  // wRC+, xFIP, SIERA, handedness and closer status come from the supervised
+  // stat-fetching workflow. Scheduled refreshes must update public data without
+  // erasing those still-valid cells.
+  let priorSeason;
+  try {
+    priorSeason = JSON.parse(fs.readFileSync(path.join(OUT_DIR, 'last_updated.json'), 'utf8')).season;
+  } catch {
+    priorSeason = undefined;
+  }
+  // Never carry last season's advanced rates into a new season.
+  const preserve = priorSeason === season;
+  const oldOffense = new Map(
+    (preserve ? readCsv('mlb_team_offense.csv') : []).map((r) => [normalize(r.abbreviation), r]),
+  );
+  const oldPitchers = new Map(
+    (preserve ? readCsv('mlb_starters.csv') : []).map((r) => [
+      `${normalize(r.abbreviation)}:${normalize(r.pitcher)}`,
+      r,
+    ]),
+  );
+  const oldBullpens = new Map(
+    (preserve ? readCsv('mlb_bullpen.csv') : []).map((r) => [normalize(r.abbreviation), r]),
+  );
 
   // --- parks (static factors + live venue/roof from StatsAPI) ---------------
   writeCsv(
@@ -526,10 +576,11 @@ async function main() {
     ['team', 'abbreviation', 'wrc_plus', 'woba', 'ops', 'runs_per_game', 'recent_runs_per_game'],
     sorted.map((t) => {
       const o = offense.get(t.id) || {};
+      const old = oldOffense.get(normalize(t.abbreviation)) || {};
       return [
         t.name,
         t.abbreviation,
-        '', // wrc_plus — FanGraphs only, filled by the stat-fetching agent
+        old.wrc_plus || '', // FanGraphs-only; preserve supervised value
         fmt(o.woba, 3),
         fmt(o.ops, 3),
         fmt(o.runsPerGame, 2),
@@ -540,6 +591,12 @@ async function main() {
 
   // --- pitchers + bullpen ---------------------------------------------------
   const { pitcherRows, bullpenRows } = await fetchPitchers(season, teams);
+  for (const row of pitcherRows) {
+    const old = oldPitchers.get(`${normalize(row[2])}:${normalize(row[0])}`) || {};
+    row[3] = old.throws || '';
+    row[6] = old.xfip || '';
+    row[7] = old.siera || '';
+  }
   writeCsv(
     'mlb_starters.csv',
     ['pitcher', 'team', 'abbreviation', 'throws', 'era', 'fip', 'xfip', 'siera'],
@@ -561,7 +618,7 @@ async function main() {
       fmt(b.whip, 2),
       fmt(usage.last1d.get(b.team.id) ?? 0, 1),
       fmt(usage.last3d.get(b.team.id) ?? 0, 1),
-      '', // closer_available — no reliable free feed; agent or user supplies it
+      oldBullpens.get(normalize(b.team.abbreviation))?.closer_available || '',
     ]),
   );
 

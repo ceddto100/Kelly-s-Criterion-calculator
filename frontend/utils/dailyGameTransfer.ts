@@ -73,6 +73,10 @@ export interface GenericGameLike {
 export interface MLBGameLike {
   homeTeam: string;
   awayTeam: string;
+  homeAbbr?: string;
+  awayAbbr?: string;
+  homeStarter?: string;
+  awayStarter?: string;
   bookTotal: number | null;
   input: MLBProjectionInput;
 }
@@ -408,6 +412,10 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
 
   set('homeName', home?.name || game.homeTeam || '');
   set('awayName', away?.name || game.awayTeam || '');
+  set('homeAbbr', game.homeAbbr || '');
+  set('awayAbbr', game.awayAbbr || '');
+  set('homeStarter', game.homeStarter || '');
+  set('awayStarter', game.awayStarter || '');
   set('bookTotal', str(total));
 
   set('homeWrc', str(home?.offense?.wrcPlus));

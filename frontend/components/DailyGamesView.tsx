@@ -283,6 +283,10 @@ export default function DailyGamesView({
       mlb: mlbInputToFields({
         homeTeam: game.slate.homeTeam,
         awayTeam: game.slate.awayTeam,
+        homeAbbr: game.slate.homeAbbr,
+        awayAbbr: game.slate.awayAbbr,
+        homeStarter: game.slate.homeStarter,
+        awayStarter: game.slate.awayStarter,
         bookTotal: game.slate.bookTotal ?? null,
         input: game.input,
       }),
