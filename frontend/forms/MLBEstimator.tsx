@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { projectMLBGame, type MLBProjectionInput, type WindDirection } from "../utils/mlbProjection";
 import ProjectionResultCard from "../components/ProjectionResultCard";
+import {
+  loadMLBStats,
+  findPitcherRow,
+  type MLBStats,
+  type MLBTeamRow,
+} from "../utils/mlbStatsLoader";
 
 /**
  * MLBEstimator
@@ -46,6 +52,7 @@ function buildInput(f: FieldState): MLBProjectionInput {
         wrcPlus: num(f.homeWrc),
         woba: num(f.homeWoba),
         ops: num(f.homeOps),
+        runsPerGame: num(f.homeRpg),
         recentRunsPerGame: num(f.homeRecentRpg),
       },
       starter: {
@@ -75,6 +82,7 @@ function buildInput(f: FieldState): MLBProjectionInput {
         wrcPlus: num(f.awayWrc),
         woba: num(f.awayWoba),
         ops: num(f.awayOps),
+        runsPerGame: num(f.awayRpg),
         recentRunsPerGame: num(f.awayRecentRpg),
       },
       starter: {
@@ -104,6 +112,7 @@ function buildInput(f: FieldState): MLBProjectionInput {
       windSpeedMph: num(f.windSpeedMph),
       windDirection: (f.windDirection as WindDirection) || undefined,
       roofClosed: yesField(f.roofClosed),
+      weatherReliable: yesField(f.weatherReliable),
     },
     line: {
       total: num(f.bookTotal),
@@ -113,11 +122,59 @@ function buildInput(f: FieldState): MLBProjectionInput {
   };
 }
 
-// At least one offense signal per team is required to project.
+// At least one offense signal per team is required to project. wOBA and season
+// R/G count too — the engine accepts them, so the gate must as well.
 function canProject(f: FieldState): boolean {
-  const homeOff = num(f.homeWrc) ?? num(f.homeOps) ?? num(f.homeRecentRpg);
-  const awayOff = num(f.awayWrc) ?? num(f.awayOps) ?? num(f.awayRecentRpg);
-  return homeOff !== undefined && awayOff !== undefined;
+  const offense = (side: "home" | "away") =>
+    num(f[`${side}Wrc`]) ??
+    num(f[`${side}Woba`]) ??
+    num(f[`${side}Ops`]) ??
+    num(f[`${side}Rpg`]) ??
+    num(f[`${side}RecentRpg`]);
+  return offense("home") !== undefined && offense("away") !== undefined;
+}
+
+/** Fill the form from a team's CSV row (offense + bullpen +, for home, park). */
+function fieldsFromTeamRow(row: MLBTeamRow, side: "home" | "away"): FieldState {
+  const s = (v: number | undefined, dp?: number) =>
+    v === undefined ? "" : dp === undefined ? String(v) : v.toFixed(dp);
+  const out: FieldState = {
+    [`${side}Name`]: row.team,
+    [`${side}Wrc`]: s(row.wrcPlus),
+    [`${side}Woba`]: s(row.woba, 3),
+    [`${side}Ops`]: s(row.ops, 3),
+    [`${side}Rpg`]: s(row.runsPerGame, 2),
+    [`${side}RecentRpg`]: s(row.recentRunsPerGame, 2),
+    [`${side}BpFip`]: s(row.bullpenFip, 2),
+    [`${side}BpEra`]: s(row.bullpenEra, 2),
+    [`${side}BpWhip`]: s(row.bullpenWhip, 2),
+    [`${side}BpIp1`]: s(row.inningsLast1d, 1),
+    [`${side}BpIp3`]: s(row.inningsLast3d, 1),
+  };
+  if (row.closerAvailable !== undefined) {
+    out[`${side}Closer`] = row.closerAvailable ? "yes" : "no";
+  }
+  // The ballpark is a property of the HOME team's venue.
+  if (side === "home") {
+    if (row.parkFactor !== undefined) out.parkFactor = String(row.parkFactor);
+    const domed = row.roofType === "Dome" || row.roofType === "Closed";
+    if (row.roofType) out.roofClosed = domed ? "yes" : "no";
+  }
+  return out;
+}
+
+/** Fill the starter fields from a pitcher's CSV row. */
+function fieldsFromPitcher(stats: MLBStats, name: string, side: "home" | "away", abbr?: string) {
+  const p = findPitcherRow(stats.pitchers, name, abbr);
+  const s = (v: number | undefined) => (v === undefined ? "" : v.toFixed(2));
+  if (!p) return { [`${side}StarterConfirmed`]: "" } as FieldState;
+  return {
+    [`${side}Era`]: s(p.era),
+    [`${side}Fip`]: s(p.fip),
+    [`${side}Xfip`]: s(p.xfip),
+    [`${side}Sierra`]: s(p.siera),
+    [`${side}StarterConfirmed`]: "yes",
+  } as FieldState;
 }
 
 const EXAMPLE: FieldState = {
@@ -132,6 +189,8 @@ const EXAMPLE: FieldState = {
   awayWoba: "0.305",
   homeOps: "0.760",
   awayOps: "0.700",
+  homeRpg: "4.90",
+  awayRpg: "4.10",
   homeRecentRpg: "5.1",
   awayRecentRpg: "3.9",
   homeSierra: "3.40",
@@ -170,6 +229,20 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [result, setResult] = useState<ReturnType<typeof projectMLBGame> | null>(null);
 
+  // Team/pitcher CSVs, loaded once and shared with Today's Games via the same
+  // cached loader. Failure is non-fatal: the form still works fully by hand.
+  const [stats, setStats] = useState<MLBStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadMLBStats()
+      .then((s) => alive && setStats(s))
+      .catch((e) => alive && setStatsError(e instanceof Error ? e.message : "unavailable"));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Re-seed + auto-run whenever a new pre-fill arrives (e.g. a Today's Games tap).
   useEffect(() => {
     if (!initialFields) return;
@@ -182,24 +255,116 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     set(e.target.name, e.target.value);
 
+  /** Picking a team autofills every stat that team's CSV rows provide. */
+  const pickTeam = (side: "home" | "away", abbreviation: string) => {
+    if (!stats) return;
+    const row = stats.teams.find((t) => t.abbreviation === abbreviation);
+    setF((prev) => {
+      if (!row) return { ...prev, [`${side}Name`]: "", [`${side}Abbr`]: "" };
+      return { ...prev, [`${side}Abbr`]: abbreviation, ...fieldsFromTeamRow(row, side) };
+    });
+    setResult(null);
+  };
+
+  /** Picking a probable starter autofills their ERA/FIP/xFIP/SIERA. */
+  const pickStarter = (side: "home" | "away", name: string) => {
+    setF((prev) => {
+      const next = { ...prev, [`${side}Starter`]: name };
+      if (!stats || !name) return next;
+      return { ...next, ...fieldsFromPitcher(stats, name, side, prev[`${side}Abbr`]) };
+    });
+    setResult(null);
+  };
+
+  // Only offer pitchers from the selected team, so the dropdown stays usable
+  // with ~770 pitchers loaded.
+  const pitchersFor = (side: "home" | "away") => {
+    const abbr = f[`${side}Abbr`];
+    if (!stats || !abbr) return [];
+    return stats.pitchers
+      .filter((p) => p.abbreviation === abbr)
+      .sort((a, b) => a.pitcher.localeCompare(b.pitcher));
+  };
+
   const canCalculate = useMemo(() => canProject(f), [f]);
 
   const handleCalculate = () => {
     setResult(projectMLBGame(buildInput(f)));
   };
 
+  const teamOptions = stats?.teams ?? [];
+
   return (
     <div className="mlb-estimator">
-      {/* Matchup + line */}
+      {/* Team pickers — autofill every stat from /stats/mlb/*.csv */}
+      <SectionLabel>Pick teams (autofills from the MLB stat CSVs)</SectionLabel>
       <div className="stats-grid" style={{ marginBottom: "1rem" }}>
         <h4 className="grid-header">Matchup</h4>
         <h4 className="grid-header">Home</h4>
         <h4 className="grid-header">Away</h4>
 
+        <span>Team</span>
+        <select
+          className="input-field"
+          value={f.homeAbbr || ""}
+          onChange={(e) => pickTeam("home", e.target.value)}
+          disabled={!stats}
+          aria-label="Home team"
+        >
+          <option value="">{stats ? "Select home team…" : "Loading teams…"}</option>
+          {teamOptions.map((t) => (
+            <option key={t.abbreviation} value={t.abbreviation}>{t.team}</option>
+          ))}
+        </select>
+        <select
+          className="input-field"
+          value={f.awayAbbr || ""}
+          onChange={(e) => pickTeam("away", e.target.value)}
+          disabled={!stats}
+          aria-label="Away team"
+        >
+          <option value="">{stats ? "Select away team…" : "Loading teams…"}</option>
+          {teamOptions.map((t) => (
+            <option key={t.abbreviation} value={t.abbreviation}>{t.team}</option>
+          ))}
+        </select>
+
+        <span>Starting pitcher</span>
+        <select
+          className="input-field"
+          value={f.homeStarter || ""}
+          onChange={(e) => pickStarter("home", e.target.value)}
+          disabled={!f.homeAbbr}
+          aria-label="Home starting pitcher"
+        >
+          <option value="">{f.homeAbbr ? "Select starter…" : "Pick a team first"}</option>
+          {pitchersFor("home").map((p) => (
+            <option key={p.pitcher} value={p.pitcher}>{p.pitcher}</option>
+          ))}
+        </select>
+        <select
+          className="input-field"
+          value={f.awayStarter || ""}
+          onChange={(e) => pickStarter("away", e.target.value)}
+          disabled={!f.awayAbbr}
+          aria-label="Away starting pitcher"
+        >
+          <option value="">{f.awayAbbr ? "Select starter…" : "Pick a team first"}</option>
+          {pitchersFor("away").map((p) => (
+            <option key={p.pitcher} value={p.pitcher}>{p.pitcher}</option>
+          ))}
+        </select>
+
         <span>Team name</span>
         <input className="input-field" name="homeName" value={f.homeName || ""} onChange={onChange} placeholder="Home" />
         <input className="input-field" name="awayName" value={f.awayName || ""} onChange={onChange} placeholder="Away" />
       </div>
+
+      {statsError && (
+        <p style={{ fontSize: "0.78rem", color: "#fda4af", marginTop: "-0.5rem" }}>
+          Couldn't load /stats/mlb CSVs ({statsError}) — enter stats manually below.
+        </p>
+      )}
 
       <div className="spread-input-section">
         <label className="spread-label">{f.bookTotal ? "✓" : "1"} Sportsbook Total (Over/Under)</label>
@@ -239,7 +404,11 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
         <input className="input-field" type="number" step="0.001" name="homeOps" value={f.homeOps || ""} onChange={onChange} placeholder="0.740" />
         <input className="input-field" type="number" step="0.001" name="awayOps" value={f.awayOps || ""} onChange={onChange} placeholder="0.710" />
 
-        <span>Recent R/G (last ~15)</span>
+        <span>Season R/G</span>
+        <input className="input-field" type="number" step="0.01" name="homeRpg" value={f.homeRpg || ""} onChange={onChange} placeholder="4.6" />
+        <input className="input-field" type="number" step="0.01" name="awayRpg" value={f.awayRpg || ""} onChange={onChange} placeholder="4.2" />
+
+        <span>Recent R/G (last ~3 wks)</span>
         <input className="input-field" type="number" step="0.1" name="homeRecentRpg" value={f.homeRecentRpg || ""} onChange={onChange} placeholder="4.8" />
         <input className="input-field" type="number" step="0.1" name="awayRecentRpg" value={f.awayRecentRpg || ""} onChange={onChange} placeholder="4.1" />
       </div>
@@ -343,6 +512,12 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
             <span>Roof closed / dome?</span>
             <YesNo name="roofClosed" value={f.roofClosed} onChange={onChange} />
             <span>&nbsp;</span>
+
+            <span>Forecast reliable?</span>
+            <YesNo name="weatherReliable" value={f.weatherReliable} onChange={onChange} />
+            <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", alignSelf: "center" }}>
+              No = retractable roof
+            </span>
           </div>
 
           <SectionLabel>Lineup</SectionLabel>
@@ -358,6 +533,10 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
             <span>Star hitters resting/out</span>
             <input className="input-field" type="number" name="homeStarsOut" value={f.homeStarsOut || ""} onChange={onChange} placeholder="0" />
             <input className="input-field" type="number" name="awayStarsOut" value={f.awayStarsOut || ""} onChange={onChange} placeholder="0" />
+
+            <span>Platoon (handedness) edge?</span>
+            <YesNo name="homePlatoon" value={f.homePlatoon} onChange={onChange} />
+            <YesNo name="awayPlatoon" value={f.awayPlatoon} onChange={onChange} />
           </div>
 
           <SectionLabel>Moneyline (optional — enables ML lean)</SectionLabel>
@@ -375,7 +554,7 @@ export default function MLBEstimator({ onUseInKelly, initialFields }: Props) {
 
       {!canCalculate && (
         <p style={{ textAlign: "center", fontSize: "0.8rem", color: "rgba(255,255,255,0.5)", marginTop: "1rem" }}>
-          Enter at least one offense stat (wRC+, OPS, or recent R/G) for each team to project.
+          Pick both teams above, or enter at least one offense stat (wRC+, wOBA, OPS or R/G) for each team.
         </p>
       )}
 

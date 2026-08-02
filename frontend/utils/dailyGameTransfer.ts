@@ -416,8 +416,15 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
   set('awayWoba', str(away?.offense?.woba, 3));
   set('homeOps', str(home?.offense?.ops, 3));
   set('awayOps', str(away?.offense?.ops, 3));
-  set('homeRecentRpg', str(home?.offense?.recentRunsPerGame ?? home?.offense?.runsPerGame, 2));
-  set('awayRecentRpg', str(away?.offense?.recentRunsPerGame ?? away?.offense?.runsPerGame, 2));
+  // Season R/G and recent R/G are DIFFERENT engine inputs: the first feeds the
+  // offense blend, the second feeds the capped recent-form multiplier. Folding
+  // season R/G into the recent field (the old behavior) silently re-labelled a
+  // season-long rate as "form" and left the offense blend's runsPerGame slot
+  // permanently empty.
+  set('homeRpg', str(home?.offense?.runsPerGame, 2));
+  set('awayRpg', str(away?.offense?.runsPerGame, 2));
+  set('homeRecentRpg', str(home?.offense?.recentRunsPerGame, 2));
+  set('awayRecentRpg', str(away?.offense?.recentRunsPerGame, 2));
 
   set('homeEra', str(home?.starter?.era, 2));
   set('awayEra', str(away?.starter?.era, 2));
@@ -447,6 +454,8 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
   set('awayLineupConfirmed', yesNo(away?.lineup?.confirmed));
   set('homeStarsOut', str(home?.lineup?.starsOut));
   set('awayStarsOut', str(away?.lineup?.starsOut));
+  set('homePlatoon', yesNo(home?.lineup?.platoonAdvantage));
+  set('awayPlatoon', yesNo(away?.lineup?.platoonAdvantage));
 
   const env = input.environment;
   set('parkFactor', str(env?.parkFactor));
@@ -454,6 +463,10 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
   set('windSpeedMph', str(env?.windSpeedMph, 0));
   if (env?.windDirection) fields.windDirection = env.windDirection;
   set('roofClosed', yesNo(env?.roofClosed));
+  set('weatherReliable', yesNo(env?.weatherReliable));
+
+  set('homeMoneyline', str(input.line?.homeMoneyline));
+  set('awayMoneyline', str(input.line?.awayMoneyline));
 
   return fields;
 }

@@ -5,10 +5,15 @@
  * StatsFreshness
  * ==============
  * Small inline badge showing how current the season-stat CSVs are (the data
- * that feeds the NBA/NFL/NHL projection equations). Reads the manifest written
- * by the stats updater (scripts/writeStatsManifest.js) at /stats/last_updated.json.
- * Turns amber/red when the data is stale so users — and you — can see at a glance
- * that the updater needs attention. MLB is fetched live, so it isn't shown here.
+ * that feeds the NBA/NFL/NHL/MLB projection equations). Reads the manifest
+ * written by the stats updater (scripts/writeStatsManifest.js) at
+ * /stats/last_updated.json. Turns amber when the data is stale so users — and
+ * you — can see at a glance that the updater needs attention.
+ *
+ * MLB is included now that it reads CSVs like every other sport, and it uses a
+ * tighter staleness bar: baseball plays daily and the slate file carries that
+ * day's starters, lines and weather, so a day-old MLB file is genuinely stale
+ * in a way a day-old NFL file is not.
  */
 import React, { useEffect, useState } from 'react';
 
@@ -18,9 +23,10 @@ interface Manifest {
   mlb?: string;
 }
 
-type SportKey = 'NBA' | 'NFL' | 'NHL';
+type SportKey = 'NBA' | 'NFL' | 'NHL' | 'MLB';
 
-const STALE_HOURS = 48;
+const STALE_HOURS: Record<SportKey, number> = { NBA: 48, NFL: 48, NHL: 48, MLB: 20 };
+const DEFAULT_STALE_HOURS = 48;
 
 function describe(iso?: string): { text: string; hours: number } {
   if (!iso) return { text: 'never', hours: Infinity };
@@ -60,7 +66,7 @@ export default function StatsFreshness({ sportKey }: { sportKey?: SportKey }) {
 
   const iso = sportKey ? manifest.sports?.[sportKey] : manifest.updatedAt;
   const { text, hours } = describe(iso);
-  const stale = hours > STALE_HOURS;
+  const stale = hours > (sportKey ? STALE_HOURS[sportKey] : DEFAULT_STALE_HOURS);
 
   return (
     <div style={{ ...styles.wrap, ...(stale ? styles.stale : {}) }} title="When the team season-stat data was last refreshed">

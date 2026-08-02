@@ -2,6 +2,32 @@
 """
 scripts/updateMLBAdvanced.py
 ============================
+
+    !!! SUPERSEDED — NOT ON ANY CODE PATH. Use scripts/updateMLBStats.js. !!!
+
+This script is no longer run by .github/workflows/update_stats.yml and nothing
+in the app reads its output any more.
+
+Why it was retired: FanGraphs returns HTTP 403 to every scripted request from a
+cloud/CI IP across the whole domain, so this step failed on literally every
+scheduled run. The cloudscraper -> Playwright -> proxy escalation below never
+solved it; it only made the failure slower. MLB silently degraded to OPS/ERA on
+every run, which is what made the model permanently low-confidence.
+
+The replacement, scripts/updateMLBStats.js, writes CSVs to
+frontend/public/stats/mlb/ using only sources that answer from CI (MLB StatsAPI,
+ESPN, Open-Meteo) and COMPUTES wOBA and FIP from StatsAPI counting stats instead
+of scraping them. The three genuinely FanGraphs-only columns (wRC+, xFIP, SIERA)
+are filled by the browser-driven agent in .claude/skills/mlb-stat-fetcher/,
+which can read pages a script cannot.
+
+Kept in the repo only as reference for the FanGraphs API parameter shapes.
+Safe to delete once you no longer need those.
+
+See docs/MLB_STATS_PIPELINE.md for the current pipeline.
+
+---- original docstring below ----
+
 Fetches MLB advanced stats from FanGraphs and writes them where the backend
 can read them at runtime:
 

@@ -6,12 +6,11 @@
  * ==================================
  * The first screen in this app that shows LIVE games instead of manual input.
  *
- * MLB: calls the backend GET /api/mlb/daily (which proxies MLB StatsAPI for
- * probable starters + season stats and ESPN for the over/under), then runs each
- * game through the existing, unit-tested projectMLBGame() engine right here in
- * the browser — same math as the manual MLB estimator. Each card shows the
- * projected total, the book line, the run edge, the lean, and a confidence
- * badge, plus the probable starters.
+ * MLB: reads `/stats/mlb/mlb_slate.csv` for today's matchups and joins each one
+ * to the team, bullpen, park and starter CSVs (`utils/mlbStatsLoader`), then
+ * runs it through the unit-tested projectMLBGame() engine right here in the
+ * browser — same math and same data as the manual MLB estimator. No backend
+ * call: MLB now works exactly like the NBA/NFL/NHL tabs, off static CSVs.
  *
  * NBA / NFL / NHL: calls GET /api/games/daily?sport=X to show today's slate with
  * the consensus line and live status/score. Full client-side projections for
@@ -19,11 +18,12 @@
  * the games + lines today and links the user to the matchup/estimator tabs.
  *
  * Honesty: MLB projections lean only when there is a book line AND the engine's
- * data-completeness clears its threshold. With only box-score data (no FIP/
- * wRC+/bullpen/park/weather) most games come back no-bet — by design.
+ * data-completeness clears its threshold. A blank cell in the CSV stays blank
+ * all the way through — the model never substitutes a guess for a missing stat,
+ * it just lowers confidence, and "no bet" stays a valid outcome.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { projectMLBGame, type MLBProjectionInput, type MLBProjectionResult } from '../utils/mlbProjection';
+import { projectMLBGame, type MLBProjectionResult } from '../utils/mlbProjection';
 import {
   buildGenericSelection,
   mlbInputToFields,
@@ -31,6 +31,7 @@ import {
   TeamsNotFoundError,
   type DailyGameSelection,
 } from '../utils/dailyGameTransfer';
+import { loadSlateGames, preloadMLBStats, type MLBSlateGame } from '../utils/mlbStatsLoader';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -44,18 +45,6 @@ const SPORTS: { key: SportKey; label: string; icon: string }[] = [
 ];
 
 // ---- shapes returned by the backend -----------------------------------------
-
-interface MLBDailyGame {
-  gamePk: number;
-  matchup: string;
-  homeTeam: string;
-  awayTeam: string;
-  venue?: string;
-  startTime: string;
-  probableStarters: { home: string | null; away: string | null };
-  bookTotal: number | null;
-  input: MLBProjectionInput;
-}
 
 interface GenericDailyGame {
   gameId: string;
@@ -99,9 +88,10 @@ function confColor(label: string): string {
 
 // ---- MLB projection card ----------------------------------------------------
 
-function MLBGameCard({ game, onSelect }: { game: MLBDailyGame; onSelect?: () => void }) {
+function MLBGameCard({ game, onSelect }: { game: MLBSlateGame; onSelect?: () => void }) {
   const result: MLBProjectionResult = projectMLBGame(game.input);
   const t = result.totals;
+  const s = game.slate;
   const leanColor = LEAN_COLORS[t.lean] || '#94a3b8';
   const leanText =
     t.lean === 'no-bet'
@@ -112,9 +102,9 @@ function MLBGameCard({ game, onSelect }: { game: MLBDailyGame; onSelect?: () => 
     <ClickableCard onSelect={onSelect}>
       <div style={styles.cardHeader}>
         <div>
-          <div style={styles.matchup}>{game.awayTeam} @ {game.homeTeam}</div>
+          <div style={styles.matchup}>{s.awayTeam} @ {s.homeTeam}</div>
           <div style={styles.subtle}>
-            {formatTime(game.startTime)}{game.venue ? ` · ${game.venue}` : ''}
+            {formatTime(s.gameTime)}{s.venue ? ` · ${s.venue}` : ''}
           </div>
         </div>
         <span style={{ ...styles.leanBadge, background: leanColor }}>{leanText}</span>
@@ -145,13 +135,19 @@ function MLBGameCard({ game, onSelect }: { game: MLBDailyGame; onSelect?: () => 
 
       <div style={styles.starterRow}>
         <span style={styles.subtle}>
-          SP: {game.awayTeam.split(' ').pop()} {game.probableStarters.away || 'TBD'} ·{' '}
-          {game.homeTeam.split(' ').pop()} {game.probableStarters.home || 'TBD'}
+          SP: {s.awayTeam.split(' ').pop()} {s.awayStarter || 'TBD'} ·{' '}
+          {s.homeTeam.split(' ').pop()} {s.homeStarter || 'TBD'}
         </span>
       </div>
 
       {t.bookTotal === null && (
         <div style={styles.note}>No book total posted yet — projection shown, no lean.</div>
+      )}
+
+      {game.missingTeams.length > 0 && (
+        <div style={styles.note}>
+          No CSV stats found for {game.missingTeams.join(' and ')} — projection is incomplete.
+        </div>
       )}
 
       {onSelect && <CardCTA label="Open in Probability Estimator" />}
@@ -268,20 +264,29 @@ export default function DailyGamesView({
   const [sport, setSport] = useState<SportKey>('MLB');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mlbGames, setMlbGames] = useState<MLBDailyGame[]>([]);
+  const [mlbGames, setMlbGames] = useState<MLBSlateGame[]>([]);
   const [genericGames, setGenericGames] = useState<GenericDailyGame[]>([]);
   const [busyGameId, setBusyGameId] = useState<string | null>(null);
   const [selectError, setSelectError] = useState<string | null>(null);
 
   // Warm the CSV cache for the active sport so the first card tap is instant.
   useEffect(() => {
-    if (sport !== 'MLB') preloadSportStats(sport);
+    if (sport === 'MLB') preloadMLBStats();
+    else preloadSportStats(sport);
   }, [sport]);
 
-  const handleMlbSelect = useCallback((game: MLBDailyGame) => {
+  const handleMlbSelect = useCallback((game: MLBSlateGame) => {
     if (!onSelectGame) return;
     setSelectError(null);
-    onSelectGame({ sport: 'MLB', mlb: mlbInputToFields(game) });
+    onSelectGame({
+      sport: 'MLB',
+      mlb: mlbInputToFields({
+        homeTeam: game.slate.homeTeam,
+        awayTeam: game.slate.awayTeam,
+        bookTotal: game.slate.bookTotal ?? null,
+        input: game.input,
+      }),
+    });
   }, [onSelectGame]);
 
   const handleGenericSelect = useCallback(async (game: GenericDailyGame) => {
@@ -309,10 +314,8 @@ export default function DailyGamesView({
     setError(null);
     try {
       if (s === 'MLB') {
-        const res = await fetch(`${BACKEND_URL}/api/mlb/daily`);
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        const data = await res.json();
-        setMlbGames(data.games || []);
+        // Straight from /stats/mlb/*.csv — no backend, same as NBA/NFL/NHL.
+        setMlbGames(await loadSlateGames());
       } else {
         const res = await fetch(`${BACKEND_URL}/api/games/daily?sport=${s}`);
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -374,11 +377,14 @@ export default function DailyGamesView({
         <>
           {sport === 'MLB' ? (
             mlbGames.length === 0 ? (
-              <div style={styles.empty}>No upcoming MLB games found for today.</div>
+              <div style={styles.empty}>
+                No MLB games in <code>/stats/mlb/mlb_slate.csv</code> for today. Run the stat
+                updater (or the stat-fetching agent) to refresh the slate.
+              </div>
             ) : (
               mlbGames.map((g) => (
                 <MLBGameCard
-                  key={g.gamePk}
+                  key={g.id}
                   game={g}
                   onSelect={onSelectGame ? () => handleMlbSelect(g) : undefined}
                 />
@@ -410,9 +416,10 @@ export default function DailyGamesView({
 
       <p style={styles.disclaimer}>
         Model projections only — a possible edge from formula output, not a guaranteed result.
-        MLB blends StatsAPI box scores, FanGraphs advanced stats (wRC+/FIP/SIERA/bullpen),
-        ballpark, game-time weather and lineup status; anything unavailable lowers confidence
-        and “No Bet” stays a smart outcome.
+        MLB reads the CSVs in <code>/stats/mlb/</code>: team offense (wRC+/wOBA/OPS/R-G), starter
+        (ERA/FIP/xFIP/SIERA), bullpen quality and recent usage, ballpark, game-time weather and
+        lineup status. Anything blank in the CSV stays blank — it lowers confidence rather than
+        being guessed, and “No Bet” stays a smart outcome.
       </p>
     </div>
   );

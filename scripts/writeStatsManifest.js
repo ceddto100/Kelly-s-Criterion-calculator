@@ -18,7 +18,9 @@ const path = require('path');
 
 const STATS_ROOT = path.join(__dirname, '..', 'frontend', 'public', 'stats');
 const MANIFEST = path.join(STATS_ROOT, 'last_updated.json');
-const SPORTS = { NBA: 'nba', NFL: 'nfl', NHL: 'nhl' };
+// MLB joined this list when it moved off the live /api/mlb/daily fetch onto
+// CSVs in frontend/public/stats/mlb/, like every other sport.
+const SPORTS = { NBA: 'nba', NFL: 'nfl', NHL: 'nhl', MLB: 'mlb' };
 
 function dirChanged(dir) {
   try {
@@ -52,8 +54,10 @@ function main() {
     }
   }
 
-  // MLB has no CSVs — it is fetched live from MLB StatsAPI on every request.
-  manifest.mlb = 'live';
+  // Legacy field: MLB used to be fetched live rather than from CSVs. Kept so an
+  // older deployed frontend reading `manifest.mlb` doesn't break; the real MLB
+  // timestamp now lives in manifest.sports.MLB alongside the other sports.
+  manifest.mlb = manifest.sports.MLB || 'live';
   if (anyChanged || !manifest.updatedAt) manifest.updatedAt = now;
 
   // Record that the updater actually RAN this time, regardless of whether any
