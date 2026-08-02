@@ -433,7 +433,19 @@ export function buildSlateGame(stats: MLBStats, slate: SlateRow, index: number):
 /** Today's full slate, each game joined to the stat CSVs and ready to project. */
 export async function loadSlateGames(): Promise<MLBSlateGame[]> {
   const stats = await loadMLBStats();
-  return stats.slate.map((row, i) => buildSlateGame(stats, row, i));
+  // The file is replaced by a scheduled updater, but deployments/CDNs can lag
+  // or an update can fail. Never present yesterday's rows as "Today's Games".
+  // Match the updater's definition of today (US Eastern), not the browser or
+  // server's local timezone.
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  return stats.slate
+    .filter((row) => row.gameDate === today)
+    .map((row, i) => buildSlateGame(stats, row, i));
 }
 
 /**
