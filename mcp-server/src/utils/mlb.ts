@@ -29,6 +29,9 @@
 
 import {
   MLB_LEAGUE,
+  MLB_HOME_FIELD,
+  MLB_CLAMPS,
+  MLB_COVERAGE,
   MLB_OFFENSE_WEIGHTS,
   MLB_PITCHING_SPLIT,
   MLB_STARTER_WEIGHTS,
@@ -118,9 +121,15 @@ export interface MLBLineInput {
   awayMoneyline?: number;
   /**
    * True if the total has moved sharply from open (sharp money signal). When
-   * true and our lean opposes the move, confidence is trimmed.
+   * true and our lean opposes the move, we demand a bigger edge.
    */
   totalMovedSharply?: boolean;
+  /**
+   * Which way the total moved: 'up' means the market bought the over, 'down'
+   * the under. Required for the "opposes the move" test to mean anything —
+   * without it we can only apply the blanket conservative rule.
+   */
+  totalMoveDirection?: 'up' | 'down';
 }
 
 export interface MLBProjectionInput {
@@ -158,6 +167,11 @@ export function normalizeStat(
   return 1 + (ratio - 1) * sensitivity;
 }
 
+/** True when a stat was actually supplied and is usable. */
+function present(value: number | undefined | null): value is number {
+  return value !== undefined && value !== null && isFinite(value);
+}
+
 /** Weighted blend over only the inputs that are present (non-null/finite). */
 function weightedBlend(
   entries: Array<{ value: number | undefined; weight: number }>,
@@ -168,13 +182,36 @@ function weightedBlend(
   let totalWeight = 0;
   for (const { value, weight } of entries) {
     totalWeight += weight;
-    if (value === undefined || value === null || !isFinite(value)) continue;
+    if (!present(value)) continue;
     weightSum += weight;
     valueSum += value * weight;
     usedWeight += weight;
   }
   if (weightSum === 0) return null;
   return { value: valueSum / weightSum, coverage: usedWeight / totalWeight };
+}
+
+/**
+ * Information-sufficiency coverage: score by how much the BEST available stat
+ * tells us, plus a small bonus for each corroborating stat. This replaces the
+ * old "fraction of blend weight present" measure, which punished a caller for
+ * supplying only the single best stat (see MLB_COVERAGE for the full rationale).
+ *
+ * @param tiers  candidate stats in descending order of informativeness
+ */
+function sufficiencyCoverage(
+  tiers: Array<{ value: number | undefined; score: number }>,
+  corroborationBonus: number,
+): number {
+  let best = 0;
+  let count = 0;
+  for (const { value, score } of tiers) {
+    if (!present(value)) continue;
+    count += 1;
+    if (score > best) best = score;
+  }
+  if (count === 0) return 0;
+  return clamp(best + (count - 1) * corroborationBonus, 0, 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,8 +263,20 @@ export function calculateOffenseScore(offense: MLBOffenseStats): MultiplierResul
   ];
   const blended = weightedBlend(candidates);
   if (!blended) return { multiplier: 1, coverage: 0 };
+  const coverage = sufficiencyCoverage(
+    [
+      { value: offense.wrcPlus, score: MLB_COVERAGE.offense.wrcPlus },
+      { value: offense.woba, score: MLB_COVERAGE.offense.woba },
+      { value: offense.ops, score: MLB_COVERAGE.offense.ops },
+      { value: offense.runsPerGame, score: MLB_COVERAGE.offense.runsPerGame },
+    ],
+    MLB_COVERAGE.offense.corroborationBonus,
+  );
   // Guard against extreme inputs producing unrealistic multipliers.
-  return { multiplier: clamp(blended.value, 0.7, 1.35), coverage: blended.coverage };
+  return {
+    multiplier: clamp(blended.value, MLB_CLAMPS.offenseMin, MLB_CLAMPS.offenseMax),
+    coverage,
+  };
 }
 
 /** Blend a pitcher's ERA estimators into a single runs-allowed-per-9 figure. */
@@ -241,8 +290,9 @@ function starterRunRate(starter: MLBStarterStats): { value: number; coverage: nu
 }
 
 function bullpenRunRate(bullpen: MLBBullpenStats): { value: number; coverage: number } | null {
-  // WHIP is on a different scale; convert to an approximate runs/9 before blend
-  // using the rough relationship runs/9 ~= (WHIP - 1.0) * 4 + leagueEra anchor.
+  // WHIP is on a different scale; convert to an approximate runs/9 before the
+  // blend. League WHIP sits near 1.30, and roughly 0.10 of WHIP is worth ~0.35
+  // of ERA, giving runs/9 ~= (WHIP - 1.30) * 3.5 + leagueEra.
   const whipAsEra =
     bullpen.whip !== undefined ? (bullpen.whip - 1.3) * 3.5 + MLB_LEAGUE.avgEra : undefined;
   return weightedBlend([
@@ -286,11 +336,19 @@ export function calculatePitchingMultiplier(
   const bp = bullpenRunRate(bullpen);
 
   const starterMultiplier = sp
-    ? clamp(normalizeStat(sp.value, MLB_LEAGUE.avgEra, 1), 0.72, 1.3)
+    ? clamp(
+        normalizeStat(sp.value, MLB_LEAGUE.avgEra, 1),
+        MLB_CLAMPS.starterMin,
+        MLB_CLAMPS.starterMax,
+      )
     : 1;
   const fatigue = bullpenFatiguePenalty(bullpen);
   const bullpenMultiplier = bp
-    ? clamp(normalizeStat(bp.value, MLB_LEAGUE.avgEra, 1) * fatigue, 0.75, 1.35)
+    ? clamp(
+        normalizeStat(bp.value, MLB_LEAGUE.avgEra, 1) * fatigue,
+        MLB_CLAMPS.bullpenMin,
+        MLB_CLAMPS.bullpenMax,
+      )
     : 1;
 
   // Shift more of the game onto the bullpen if the closer is unavailable.
@@ -302,8 +360,28 @@ export function calculatePitchingMultiplier(
 
   const multiplier = starterShare * starterMultiplier + bullpenShare * bullpenMultiplier;
 
-  // Coverage: average of the two units' data coverage.
-  const coverage = ((sp?.coverage ?? 0) + (bp?.coverage ?? 0)) / 2;
+  // Coverage: sufficiency-weighted, with the starter dominating because it owns
+  // ~61% of the innings. A known starter with an unknown bullpen is a far
+  // better-informed projection than the reverse.
+  const starterCoverage = sufficiencyCoverage(
+    [
+      { value: starter.siera, score: MLB_COVERAGE.starter.estimator },
+      { value: starter.xfip, score: MLB_COVERAGE.starter.estimator },
+      { value: starter.fip, score: MLB_COVERAGE.starter.estimator },
+      { value: starter.era, score: MLB_COVERAGE.starter.eraOnly },
+    ],
+    MLB_COVERAGE.starter.corroborationBonus,
+  );
+  const bullpenCoverage = sufficiencyCoverage(
+    [
+      { value: bullpen.fip, score: MLB_COVERAGE.bullpen.rate },
+      { value: bullpen.era, score: MLB_COVERAGE.bullpen.rate },
+      { value: bullpen.whip, score: MLB_COVERAGE.bullpen.whipOnly },
+    ],
+    MLB_COVERAGE.bullpen.corroborationBonus,
+  );
+  const spShare = MLB_COVERAGE.starterShareOfPitchingCoverage;
+  const coverage = clamp(spShare * starterCoverage + (1 - spShare) * bullpenCoverage, 0, 1);
 
   return { multiplier, coverage, starterMultiplier, bullpenMultiplier };
 }
@@ -370,17 +448,34 @@ export interface TeamRunBreakdown {
   weatherMultiplier: number;
   lineupMultiplier: number;
   recentFormMultiplier: number;
+  /** Home-field scoring edge: >1 for the home side, <1 for the away side. */
+  homeFieldMultiplier: number;
   dataCoverage: number; // 0-1
+}
+
+/**
+ * calculate_home_field_multiplier: the *scoring* half of home-field advantage.
+ * Split symmetrically (+half to the home side, -half to the away side) so the
+ * projected GAME TOTAL is unchanged and only the run margin moves — the league
+ * baseline already averages over home and away team-games, so shifting both
+ * sides in the same direction would double-count.
+ */
+export function calculateHomeFieldMultiplier(isHome: boolean): number {
+  const half = MLB_HOME_FIELD.runEdge / 2;
+  return isHome ? 1 + half : 1 - half;
 }
 
 /**
  * calculate_projected_team_runs: project the runs a batting team scores against
  * the opposing team's pitching, in the given environment.
+ *
+ * @param isHome whether the BATTING team is the home side (drives home-field).
  */
 export function calculateProjectedTeamRuns(
   batting: MLBTeamInput,
   fielding: MLBTeamInput,
   env: MLBGameEnvironment | undefined,
+  isHome = false,
 ): TeamRunBreakdown {
   const offense = calculateOffenseScore(batting.offense);
   const pitching = calculatePitchingMultiplier(fielding.starter, fielding.bullpen);
@@ -388,6 +483,7 @@ export function calculateProjectedTeamRuns(
   const weather = calculateWeatherMultiplier(env);
   const lineup = calculateLineupMultiplier(batting.lineup);
   const recentForm = calculateRecentFormMultiplier(batting.offense);
+  const homeField = calculateHomeFieldMultiplier(isHome);
 
   const projectedRuns =
     MLB_LEAGUE.avgRunsPerTeam *
@@ -396,11 +492,17 @@ export function calculateProjectedTeamRuns(
     park *
     weather *
     lineup *
-    recentForm;
+    recentForm *
+    homeField;
 
   // Data coverage drives confidence: offense + pitching are the load-bearing
   // inputs, so they dominate the coverage score.
-  const dataCoverage = clamp(0.6 * offense.coverage + 0.4 * pitching.coverage, 0, 1);
+  const offShare = MLB_COVERAGE.offenseShareOfTeamCoverage;
+  const dataCoverage = clamp(
+    offShare * offense.coverage + (1 - offShare) * pitching.coverage,
+    0,
+    1,
+  );
 
   return {
     team: batting.name,
@@ -411,6 +513,7 @@ export function calculateProjectedTeamRuns(
     weatherMultiplier: weather,
     lineupMultiplier: lineup,
     recentFormMultiplier: recentForm,
+    homeFieldMultiplier: homeField,
     dataCoverage,
   };
 }
@@ -464,9 +567,13 @@ export function determineTotalLean(edgeRuns: number, dataCompleteness: number): 
 /**
  * Convert a projected run margin (home - away) into a home win probability via a
  * logistic function whose scale is calibrated to MLB run distributions.
+ *
+ * @param homeLogitBonus structural home edge that does NOT show up in runs (the
+ *   last-at-bat advantage). Defaults to 0 so this stays a pure margin→prob
+ *   mapping; `projectMLBGame` passes MLB_DECISION.homeWinLogitBonus.
  */
-export function runMarginToWinProb(runMargin: number): number {
-  return 1 / (1 + Math.exp(-runMargin / MLB_DECISION.moneylineRunScale));
+export function runMarginToWinProb(runMargin: number, homeLogitBonus = 0): number {
+  return 1 / (1 + Math.exp(-(runMargin / MLB_DECISION.moneylineRunScale + homeLogitBonus)));
 }
 
 export interface MLBConfidenceInputs {
@@ -523,8 +630,13 @@ export function identifyStatDrivers(
   const drivers: StatDriver[] = [];
   const base = MLB_LEAGUE.avgRunsPerTeam;
 
-  const add = (factor: string, mult: number, runs: number, side: string) => {
-    const impact = (mult - 1) * base;
+  /**
+   * @param sides how many teams the multiplier moves. Park and weather apply to
+   *   BOTH offenses, so their effect on the game total is twice a single team's
+   *   — reporting them at 1x understated the two biggest environmental drivers.
+   */
+  const add = (factor: string, mult: number, side: string, sides = 1) => {
+    const impact = (mult - 1) * base * sides;
     if (Math.abs(impact) < 0.05) return;
     drivers.push({
       factor,
@@ -535,13 +647,18 @@ export function identifyStatDrivers(
     });
   };
 
-  add('Opposing pitching', home.pitchingMultiplier, home.projectedRuns, home.team);
-  add('Opposing pitching', away.pitchingMultiplier, away.projectedRuns, away.team);
-  add('Offense', home.offenseMultiplier, home.projectedRuns, home.team);
-  add('Offense', away.offenseMultiplier, away.projectedRuns, away.team);
-  // Park/weather apply to both teams equally; report once using the home side.
-  add('Ballpark', home.parkMultiplier, 0, 'Both teams');
-  add('Weather', home.weatherMultiplier, 0, 'Both teams');
+  add('Opposing pitching', home.pitchingMultiplier, home.team);
+  add('Opposing pitching', away.pitchingMultiplier, away.team);
+  add('Offense', home.offenseMultiplier, home.team);
+  add('Offense', away.offenseMultiplier, away.team);
+  // Park/weather apply to both teams equally; report once, counted for both.
+  add('Ballpark', home.parkMultiplier, 'Both teams', 2);
+  add('Weather', home.weatherMultiplier, 'Both teams', 2);
+  // Lineup and recent form move the projection too, so they belong here.
+  add('Lineup', home.lineupMultiplier, home.team);
+  add('Lineup', away.lineupMultiplier, away.team);
+  add('Recent form', home.recentFormMultiplier, home.team);
+  add('Recent form', away.recentFormMultiplier, away.team);
 
   return drivers.sort((a, b) => Math.abs(b.impactRuns) - Math.abs(a.impactRuns)).slice(0, 5);
 }
@@ -618,6 +735,8 @@ export interface MLBMoneylineResult {
 
 export interface MLBProjectionResult {
   matchup: string;
+  homeTeam: string;
+  awayTeam: string;
   homeBreakdown: TeamRunBreakdown;
   awayBreakdown: TeamRunBreakdown;
   dataCompleteness: number;
@@ -660,8 +779,8 @@ function categoryAgreement(home: TeamRunBreakdown, away: TeamRunBreakdown): numb
 export function projectMLBGame(input: MLBProjectionInput): MLBProjectionResult {
   const env = input.environment;
 
-  const homeBreakdown = calculateProjectedTeamRuns(input.home, input.away, env);
-  const awayBreakdown = calculateProjectedTeamRuns(input.away, input.home, env);
+  const homeBreakdown = calculateProjectedTeamRuns(input.home, input.away, env, true);
+  const awayBreakdown = calculateProjectedTeamRuns(input.away, input.home, env, false);
 
   const projectedTotal = homeBreakdown.projectedRuns + awayBreakdown.projectedRuns;
 
@@ -690,10 +809,17 @@ export function projectMLBGame(input: MLBProjectionInput): MLBProjectionResult {
   if (edgeRuns !== null) {
     totalsLean = determineTotalLean(edgeRuns, dataCompleteness);
     if (input.line?.totalMovedSharply && totalsLean !== 'no-bet') {
-      // If the line moved sharply against our lean, demand a bigger edge.
-      const movedToward = (input.line.total ?? 0) && edgeRuns;
-      if (Math.abs(edgeRuns) < MLB_DECISION.totalMinEdgeRuns * 1.5) totalsLean = 'no-bet';
-      void movedToward;
+      // A sharp move means the market just repriced on information we may not
+      // have. Only fight it with a materially bigger edge. If we're on the SAME
+      // side as the move, the market agrees with us and no extra bar applies.
+      const dir = input.line.totalMoveDirection;
+      const opposesMove =
+        dir === undefined || // direction unknown -> stay conservative
+        (dir === 'up' && totalsLean === 'under') ||
+        (dir === 'down' && totalsLean === 'over');
+      if (opposesMove && Math.abs(edgeRuns) < MLB_DECISION.totalMinEdgeRuns * 1.5) {
+        totalsLean = 'no-bet';
+      }
     }
   }
 
@@ -721,7 +847,7 @@ export function projectMLBGame(input: MLBProjectionInput): MLBProjectionResult {
 
   // ----- Moneyline -----
   const runMargin = homeBreakdown.projectedRuns - awayBreakdown.projectedRuns;
-  const homeWinProbability = runMarginToWinProb(runMargin);
+  const homeWinProbability = runMarginToWinProb(runMargin, MLB_DECISION.homeWinLogitBonus);
   const awayWinProbability = 1 - homeWinProbability;
 
   let fairHome: number | null = null;
@@ -768,6 +894,8 @@ export function projectMLBGame(input: MLBProjectionInput): MLBProjectionResult {
 
   return {
     matchup: `${input.away.name} @ ${input.home.name}`,
+    homeTeam: input.home.name,
+    awayTeam: input.away.name,
     homeBreakdown,
     awayBreakdown,
     dataCompleteness: round2(dataCompleteness),

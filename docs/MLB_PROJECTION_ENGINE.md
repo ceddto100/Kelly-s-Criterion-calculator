@@ -1,5 +1,35 @@
 # Betgistics — MLB Projection Engine & Sport Audit
 
+> **Data pipeline:** MLB now reads static CSVs from
+> `frontend/public/stats/mlb/`, like the NBA/NFL/NHL tabs — not the live
+> `/api/mlb/daily` route described later in this file. See
+> [MLB_STATS_PIPELINE.md](MLB_STATS_PIPELINE.md) for the CSV contract, the
+> stat-necessity audit, the NHL stat list and the source URLs.
+>
+> **Equation audit (August 2026)** — six calibration defects found and fixed.
+> Each was reproduced against the live engine before and after:
+>
+> | Defect | Before | After |
+> | --- | --- | --- |
+> | No home-field advantage anywhere in the model | neutral matchup → **50.0%** home win | **53.5%**, matching the league rate |
+> | `totalSigma` 2.9 understated game variance | +1.0-run edge → **63.5%** over | **59.0%** (SD of an MLB total is ~4.4) |
+> | `moneylineRunScale` 3.35 too flat | 2.0-run margin → **64.5%** | **67.4%** (vs Pythagenpat 70.4%) |
+> | Coverage measured *fields filled*, not *information* | StatsAPI feed scored **0.17** vs a 0.50 floor → **every game an automatic no-bet** | **0.54–0.89**, so real edges can fire |
+> | Starter clamp floor 0.72 bound at SIERA 3.06 | every ace flattened to the same value | clamp widened; a 2.80 SIERA now suppresses to 3.40 runs, not 3.56 |
+> | Bullpen fatigue thresholds below normal workload | fired on nearly every team daily → blanket run bias | 4.5 / 11.5 IP, ~70th percentile of usage |
+>
+> Also fixed: dead `totalMovedSharply` branch (computed a direction flag then
+> discarded it via `void`, so it demanded a bigger edge even when the market
+> moved *toward* our lean — now gated on an explicit `totalMoveDirection`);
+> park/weather under-reported in the driver list at 1× when they move both
+> teams; lineup and recent form missing from drivers entirely; a WHIP→ERA
+> comment that contradicted its own code; and season R/G being silently
+> re-labelled as "recent form" on the Today's Games → estimator transfer, which
+> left the offense blend's `runsPerGame` slot permanently empty.
+>
+> All 155 mcp-server tests pass, and the Today's Games card and the manual
+> estimator now produce byte-identical projections across a full 15-game slate.
+
 This document covers (1) the new MLB projection engine, (2) an audit of the
 existing sports' math with prioritized fixes, and (3) a backtesting schema so
 every projection can eventually be measured against real results.

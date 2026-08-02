@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-08-02T07:01:08.659Z",
+  "season": 2026,
+  "teams": 30,
+  "pitchers": 773,
+  "bullpens": 30,
+  "slateGames": 15,
+  "sources": [
+    "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
+    "ESPN MLB scoreboard (consensus total + moneylines)",
+    "Open-Meteo (first-pitch temperature + wind)",
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
+  ],
+  "computedHere": [
+    "woba (linear weights)",
+    "fip (league-normalised cFIP)"
+  ],
+  "agentFilled": [
+    "wrc_plus",
+    "xfip",
+    "siera",
+    "throws",
+    "closer_available"
+  ]
+}
