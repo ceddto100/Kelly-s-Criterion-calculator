@@ -1,60 +1,25 @@
 {
-  "updatedAt": "2026-08-03T00:52:01.445Z",
+  "updatedAt": "2026-08-03T02:32:07.295Z",
   "season": 2026,
   "teams": 30,
-  "pitchers": 774,
+  "pitchers": 775,
   "bullpens": 30,
-  "slateGames": 15,
+  "slateGames": 0,
   "sources": [
-    "MLB StatsAPI (schedule, teams/venues, team hitting, pitcher lines, player profiles, live game feeds)",
-    "ESPN game summaries / DraftKings PickCenter (totals and moneylines)",
-    "Open-Meteo (first-pitch temperature and wind)",
-    "Baseball Savant Statcast park factors",
-    "FanGraphs RosterResource closer depth chart plus official live game feeds"
+    "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
+    "ESPN MLB scoreboard (consensus total + moneylines)",
+    "Open-Meteo (first-pitch temperature + wind)",
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
   ],
   "computedHere": [
-    "woba (linear weights; preserved from the repository refresh)",
-    "fip (league-normalised cFIP; preserved from the repository refresh)"
+    "woba (linear weights)",
+    "fip (league-normalised cFIP)"
   ],
   "agentFilled": [
-    "throws",
-    "closer_available"
-  ],
-  "verifiedUpdatedColumns": {
-    "mlb_team_offense.csv": [
-      "team",
-      "ops",
-      "runs_per_game",
-      "recent_runs_per_game"
-    ],
-    "mlb_starters.csv": [
-      "team",
-      "abbreviation",
-      "throws",
-      "era"
-    ],
-    "mlb_bullpen.csv": [
-      "team",
-      "innings_last1d",
-      "innings_last3d",
-      "closer_available"
-    ],
-    "mlb_parks.csv": "all columns",
-    "mlb_slate.csv": "all columns"
-  },
-  "preservedColumns": [
     "wrc_plus",
-    "woba",
-    "pitcher fip",
     "xfip",
     "siera",
-    "bullpen_fip",
-    "bullpen_era",
-    "bullpen_whip"
-  ],
-  "notes": [
-    "FanGraphs same-day advanced leaderboards were still on a pregame snapshot; advanced columns were not overwritten with stale values.",
-    "Blank advanced cells remain blank rather than being estimated.",
-    "CSV text encoding was normalized to UTF-8 and detected mojibake in player names was repaired."
+    "throws",
+    "closer_available"
   ]
 }
