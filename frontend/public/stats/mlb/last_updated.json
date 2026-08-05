@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-08-05T02:11:06.952Z",
+  "updatedAt": "2026-08-05T14:02:29.578Z",
   "season": 2026,
   "teams": 30,
-  "pitchers": 777,
+  "pitchers": 779,
   "bullpens": 30,
-  "slateGames": 7,
+  "slateGames": 15,
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
     "ESPN MLB scoreboard (consensus total + moneylines)",
