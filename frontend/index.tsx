@@ -44,7 +44,6 @@ import { SidebarNav, MobileNav, findDestination } from './components/AppNavigati
 import { AccountSettings } from './components/AccountSettings';
 import { PromoPage } from './components/PromoPage';
 import { StatsPage } from './components/StatsPage';
-import StatsFreshness from './components/StatsFreshness';
 
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
@@ -1025,10 +1024,6 @@ function ProbabilityEstimator({
 
       {activeSport === CONSTANTS.SPORTS.MLB && (
         <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading...</div>}>
-          {/* MLB reads /stats/mlb/*.csv like the other sports, so the same
-              freshness badge applies — and matters more here, since the slate
-              file carries today's starters, lines and weather. */}
-          <StatsFreshness sportKey="MLB" />
           <MLBEstimator
             onUseInKelly={(p)=>{ setProbability(p.toFixed(2)); setActiveTab(CONSTANTS.TABS.KELLY); }}
             initialFields={mlbInitialFields}
@@ -1037,15 +1032,6 @@ function ProbabilityEstimator({
       )}
 
       {activeSport !== CONSTANTS.SPORTS.MLB && (<>
-      <StatsFreshness
-        sportKey={
-          activeSport === CONSTANTS.SPORTS.FOOTBALL
-            ? 'NFL'
-            : activeSport === CONSTANTS.SPORTS.BASKETBALL
-              ? 'NBA'
-              : 'NHL'
-        }
-      />
       <div className="progress-container">
         <div className={`progress-step ${progress.spread ? 'completed' : progress.stats === 0 ? 'active' : ''}`}>
           {progress.spread ? '✓' : '1'} {activeSport === CONSTANTS.SPORTS.HOCKEY ? 'Total Goals Line' : 'Point Spread'}
