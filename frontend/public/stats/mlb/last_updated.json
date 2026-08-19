@@ -1,18 +1,15 @@
 {
-  "updatedAt": "2026-08-18T19:15:48.000Z",
-  "statsApiRunAt": "2026-08-18T12:40:01.642Z",
+  "updatedAt": "2026-08-19T01:03:49.666Z",
   "season": 2026,
   "teams": 30,
   "pitchers": 805,
   "bullpens": 30,
-  "slateGames": 15,
+  "slateGames": 14,
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
     "ESPN MLB scoreboard (consensus total + moneylines)",
     "Open-Meteo (first-pitch temperature + wind)",
-    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)",
-    "FanGraphs team batting leaderboard, season 2026 (wrc_plus) — /leaders/major-league?stats=bat&team=0,ts&type=8",
-    "FanGraphs pitching leaderboard, season 2026 (xfip, siera) — /leaders/major-league?stats=pit&type=8"
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
   ],
   "computedHere": [
     "woba (linear weights)",
@@ -21,15 +18,8 @@
   "agentFilled": [
     "wrc_plus",
     "xfip",
-    "siera"
-  ],
-  "notes": [
-    "updatedAt reflects the FanGraphs backfill of wrc_plus/xfip/siera only. All StatsAPI-derived columns (woba, ops, runs_per_game, recent_runs_per_game, era, fip, bullpen, slate, weather, odds) are unchanged from the statsApiRunAt CI run; updateMLBStats.js was deliberately not re-run.",
-    "wrc_plus: filled for all 30 teams from the FanGraphs team-split batting leaderboard (season selector confirmed 2026). Displayed as integers, matching FanGraphs. No Baseball-Reference OPS+ substitute was used anywhere.",
-    "xfip/siera: filled for all 805 pitchers from the FanGraphs season-2026 pitching leaderboard (stats=pit, 806 rows). The all-pitcher view was used rather than the starters-only split (stats=sta, 337 rows) because mlb_starters.csv holds every pitcher and its era/fip are full-season overall figures — so overall xFIP/SIERA match the row semantics and cover every row, where the starter split would have covered ~337 and mixed a role split against overall ERA/FIP.",
-    "Pitcher matching: 711 rows matched on name + StatsAPI team abbreviation. The remaining 94 are in-season trades, which FanGraphs carries as a single combined '2 Tms'/'3 Tms' row; each was accepted only after its FanGraphs ERA matched the StatsAPI ERA exactly, which pins the identity. No row was filled on an unverified name match.",
-    "Sanity ranges: wrc_plus spans 88-112 (all inside 70-130). 72 pitchers have xfip and 54 have siera outside 1.50-7.00; every one is a small-sample arm (max 10.1 IP, median 3.0 IP, none above 20 IP), including position players who pitched an inning. These are the true published FanGraphs values, not misreads, so they were written as-is rather than blanked. All 28 named probable starters on today's 15-game slate are inside the band.",
-    "No column was left empty. The 'throws' column in mlb_starters.csv and 'closer_available' in mlb_bullpen.csv remain empty but were out of scope for this run and untouched.",
-    "FanGraphs was reachable. Its JSON API rejects bare scripted requests with a Cloudflare challenge; it answers once the leaderboard page is loaded first and the request carries that cookie jar plus the matching Referer. Chromium could not be used: it does not trust the session's egress-proxy CA and the fix for that is blocked in this environment. Baseball-Reference was reachable but not needed."
+    "siera",
+    "throws",
+    "closer_available"
   ]
 }
