@@ -226,6 +226,7 @@ export function normCdf(x: number): number {
 export function coverProbability(predictedMargin: number, spread: number, sigma: number): number {
   // Z = (predictedMargin + spread) / sigma
   // For favorite at -7: if predicted margin is 10, Z = (10 + (-7)) / sigma = 3/sigma
+  if (![predictedMargin, spread, sigma].every(Number.isFinite) || sigma <= 0) throw new Error('Invalid probability inputs');
   const z = (predictedMargin + spread) / sigma;
   const probability = normCdf(z) * 100;
   return Math.max(0.1, Math.min(99.9, probability));
@@ -299,6 +300,10 @@ export interface BasketballStats {
   teamAllowed: number;
   opponentPPG: number;
   opponentAllowed: number;
+  teamOffRtg?: number;
+  teamDefRtg?: number;
+  opponentOffRtg?: number;
+  opponentDefRtg?: number;
   teamFGPct?: number;       // Field goal percentage
   opponentFGPct?: number;
   teamReboundMargin?: number;
@@ -328,6 +333,12 @@ export function predictedMarginFootball(
   stats: FootballStats,
   league: FootballLeague = 'NFL'
 ): number {
+  for (const key of ['teamPPG', 'teamAllowed', 'opponentPPG', 'opponentAllowed'] as const) {
+    if (!Number.isFinite(stats[key]) || stats[key] < 0) throw new Error('Invalid scoring statistic: ' + key);
+  }
+  for (const [key, value] of Object.entries(stats)) {
+    if (value !== undefined && !Number.isFinite(value)) throw new Error('Invalid statistic: ' + key);
+  }
   const cfg = FOOTBALL_CONFIG[league];
   const { weights, scaling, decayRate, qbValue } = cfg;
 
@@ -341,9 +352,9 @@ export function predictedMarginFootball(
   const pointsComponent = (teamNetPoints - opponentNetPoints) * weights.points;
 
   let yardsComponent = 0;
-  if (stats.teamOffYards && stats.teamDefYards && stats.opponentOffYards && stats.opponentDefYards) {
-    const teamNetYards = stats.teamOffYards - stats.teamDefYards;
-    const opponentNetYards = stats.opponentOffYards - stats.opponentDefYards;
+  if ([stats.teamOffYards, stats.teamDefYards, stats.opponentOffYards, stats.opponentDefYards].every(v => v !== undefined && Number.isFinite(v))) {
+    const teamNetYards = stats.teamOffYards! - stats.teamDefYards!;
+    const opponentNetYards = stats.opponentOffYards! - stats.opponentDefYards!;
     yardsComponent = ((teamNetYards - opponentNetYards) / scaling.yardsPerPoint) * weights.yards;
   }
 
@@ -365,88 +376,38 @@ export function predictedMarginFootball(
   return pointsComponent + yardsComponent + turnoverComponent + qbComponent;
 }
 
-/**
- * Calculate predicted margin for basketball games
- *
- * Two-tier model (weights in sportsConfig):
- *   Primary — net scoring margin:
- *     - Points per game edge (0.4)
- *     - Points allowed edge (0.4)
- *     Together these pass the net-rating gap through at 0.4x; combined with
- *     the correlated skill components below the effective pass-through is
- *     ~0.55–0.65x (season net rating regressed toward the mean).
- *   Secondary — corroborating skill edges (partially embedded in scoring):
- *     - FG% differential (0.15), rebound margin (0.10), turnover margin
- *       (0.08), 3P% differential (0.06), 3P rate differential (0.05)
- *
- * When both teams' pace is available, only the per-possession skill
- * components are scaled by expected tempo vs the league average — PPG-based
- * components already embed each team's own pace.
- */
+/** Compare offense and defense at common pace. See docs/PREDICTION_MODEL.md. */
 export function predictedMarginBasketball(
   stats: BasketballStats,
   league: BasketballLeague = 'NBA'
 ): number {
+  for (const key of ['teamPPG', 'teamAllowed', 'opponentPPG', 'opponentAllowed'] as const) {
+    if (!Number.isFinite(stats[key]) || stats[key] < 0) throw new Error('Invalid scoring statistic: ' + key);
+  }
+  for (const [key, value] of Object.entries(stats)) {
+    if (value !== undefined && !Number.isFinite(value)) throw new Error('Invalid statistic: ' + key);
+  }
   const cfg = BASKETBALL_CONFIG[league];
-  const { weights, scaling, decayRate, leagueAvgPace } = cfg;
+  const { weights, decayRate, leagueAvgPace } = cfg;
 
   const teamPPG = blendRecent(stats.teamPPG, stats.teamRecentPPG, decayRate);
   const teamAllowed = blendRecent(stats.teamAllowed, stats.teamRecentAllowed, decayRate);
   const oppPPG = blendRecent(stats.opponentPPG, stats.opponentRecentPPG, decayRate);
   const oppAllowed = blendRecent(stats.opponentAllowed, stats.opponentRecentAllowed, decayRate);
 
-  const ppgComponent = (teamPPG - oppPPG) * weights.ppgFor;
-  // Lower points allowed is better, so invert the differential.
-  const pointsAllowedComponent = (oppAllowed - teamAllowed) * weights.pointsAllowed;
-
-  let fgComponent = 0;
-  if (stats.teamFGPct !== undefined && stats.opponentFGPct !== undefined) {
-    fgComponent = (stats.teamFGPct - stats.opponentFGPct) * scaling.fgPctPointsMultiplier * weights.fgPct;
-  }
-
-  let threePointPctComponent = 0;
-  let threePointRateComponent = 0;
-  if (stats.team3PPct !== undefined && stats.opponent3PPct !== undefined) {
-    const pctDiff = (stats.team3PPct - stats.opponent3PPct) * scaling.threePctMultiplier;
-    threePointPctComponent = pctDiff * weights.threePct;
-
-    if (stats.team3PRate !== undefined && stats.opponent3PRate !== undefined) {
-      const rateDiff = (stats.team3PRate - stats.opponent3PRate) * scaling.threeRateMultiplier;
-      threePointRateComponent = rateDiff * weights.threeRate;
-    }
-  }
-
-  let reboundComponent = 0;
-  if (stats.teamReboundMargin !== undefined && stats.opponentReboundMargin !== undefined) {
-    reboundComponent =
-      (stats.teamReboundMargin - stats.opponentReboundMargin) * scaling.reboundPointValue * weights.rebounds;
-  }
-
-  let turnoverComponent = 0;
-  if (stats.teamTurnoverMargin !== undefined && stats.opponentTurnoverMargin !== undefined) {
-    turnoverComponent =
-      (stats.teamTurnoverMargin - stats.opponentTurnoverMargin) * scaling.turnoverPointValue * weights.turnovers;
-  }
-
-  const scoringComponents = ppgComponent + pointsAllowedComponent;
-  let skillComponents =
-    fgComponent +
-    reboundComponent +
-    turnoverComponent +
-    threePointPctComponent +
-    threePointRateComponent;
-
-  // Pace multiplier: per-possession skill edges compound with more
-  // possessions, so scale them by expected game tempo vs the league average
-  // (NBA ~100, CBB ~68 — see sportsConfig). PPG-based components already have
-  // each team's own pace baked in, so scaling them too would double-count
-  // tempo — they stay unscaled.
-  if (stats.teamPace !== undefined && stats.opponentPace !== undefined) {
-    const expectedPace = (stats.teamPace + stats.opponentPace) / 2;
-    skillComponents *= expectedPace / leagueAvgPace;
-  }
-
-  return scoringComponents + skillComponents;
+  // Compare efficiencies at a common tempo. Do not add shooting/rebound/TO
+  // bonuses: those events already contribute to points per possession.
+  // 0.5 is an equal offense/defense matchup blend, not a fitted coefficient.
+  const validPace = (v: number | undefined) => v !== undefined && Number.isFinite(v) && v > 0;
+  const havePace = validPace(stats.teamPace) && validPace(stats.opponentPace);
+  const paceA = havePace ? stats.teamPace! : leagueAvgPace;
+  const paceB = havePace ? stats.opponentPace! : leagueAvgPace;
+  const pace = (paceA + paceB) / 2;
+  const ratings = [stats.teamOffRtg, stats.teamDefRtg, stats.opponentOffRtg, stats.opponentDefRtg];
+  const haveRatings = havePace && ratings.every(v => v !== undefined && Number.isFinite(v) && v > 0);
+  const netA = haveRatings ? stats.teamOffRtg! - stats.teamDefRtg! : (teamPPG - teamAllowed) * 100 / paceA;
+  const netB = haveRatings ? stats.opponentOffRtg! - stats.opponentDefRtg! : (oppPPG - oppAllowed) * 100 / paceB;
+  return (netA - netB) * weights.ppgFor * pace / 100;
 }
 
 /**

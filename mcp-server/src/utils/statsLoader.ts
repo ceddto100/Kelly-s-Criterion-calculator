@@ -452,7 +452,7 @@ function loadNHLStats(): Map<string, NHLTeamStats> {
     console.log(`[StatsLoader] Loaded ${xgfData.length} NHL teams`);
 
     const byAbbr = (rows: Record<string, string>[]) =>
-      new Map(rows.map(r => [r.abbreviation?.toUpperCase(), r]));
+      new Map(rows.map(r => [r.abbreviation?.toUpperCase() === 'UTAH' ? 'UTA' : r.abbreviation?.toUpperCase(), r]));
     const xgaMap = byAbbr(xgaData);
     const gsaxMap = byAbbr(gsaxData);
     const hdcfMap = byAbbr(hdcfData);

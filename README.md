@@ -1,4 +1,18 @@
-# Kelly's Criterion Calculator - MCP Server
+# Betgistics — CSV sports predictions
+
+The active desktop and mobile app lives in `frontend/`. Its prediction board and read-only MCP tools use the same math and the existing CSV snapshots in `frontend/public/stats/`.
+
+- [Model methodology, research, and validation limits](docs/PREDICTION_MODEL.md)
+- [Local startup, REST routes, and ChatGPT MCP connection](docs/MCP_CONNECTION.md)
+
+The default MCP tool set is `predict_game`, `get_sports_catalog`, `ask_sports`, and `explain_prediction_model`. Legacy tools below require `ENABLE_LEGACY_TOOLS=true`. Start the MCP service on port 3001, the account backend on 3000, and Vite on 5173. The redesigned predictions work directly from CSV without an AI key or database.
+
+Weights are research-informed structural assumptions, not empirically optimized coefficients. Historical pregame predictions and results are needed to measure accuracy; `scripts/evaluatePredictions.mjs` scores those exports after building the MCP server.
+
+---
+
+## Legacy reference
+
 
 A Model Context Protocol (MCP) server implementation of Kelly's Criterion betting calculator with ChatGPT integration and embedded components.
 

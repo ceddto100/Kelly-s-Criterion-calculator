@@ -122,8 +122,8 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
         const xgaMap = new Map(xgaData.map(d => [d.abbreviation, d.xga60]));
         const gsaxMap = new Map(gsaxData.map(d => [d.abbreviation, d.gsax60]));
         const hdcfMap = new Map(hdcfData.map(d => [d.abbreviation, d.hdcf60]));
-        const ppMap = new Map(ppData.map(d => [d.abbreviation, d.pp]));
-        const pkMap = new Map(pkData.map(d => [d.abbreviation, d.pk]));
+        const ppMap = new Map(ppData.map(d => [d.abbreviation === 'UTAH' ? 'UTA' : d.abbreviation, d.pp]));
+        const pkMap = new Map(pkData.map(d => [d.abbreviation === 'UTAH' ? 'UTA' : d.abbreviation, d.pk]));
         const tsMap = new Map(tsData.map(d => [d.abbreviation, d.times_shorthanded]));
 
         const teams = xgfData.map(team => ({
@@ -268,8 +268,8 @@ export default function NHLMatchup({ onTransferToEstimator }: NHLMatchupProps) {
       'canucks': 'VAN',
       'jets': 'WPG',
       'ducks': 'ANA',
-      'utah': 'UTAH',
-      'hockey club': 'UTAH',
+      'utah': 'UTA',
+      'hockey club': 'UTA',
     };
 
     const fuzzyKey = Object.keys(fuzzyMatches).find(k => normalizedQuery.includes(k));

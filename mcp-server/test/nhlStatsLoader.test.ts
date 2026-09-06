@@ -32,6 +32,6 @@ describe('NHL stats loader → hockey engine integration', () => {
     expect(projection.projectedTotal).toBeGreaterThan(4);
     expect(projection.projectedTotal).toBeLessThan(9);
     // Probabilities are complementary and bounded.
-    expect(projection.overProbability + projection.underProbability).toBeCloseTo(100, 1);
+    expect(projection.overProbability + projection.underProbability + projection.pushProbability).toBeCloseTo(100, 1);
   });
 });

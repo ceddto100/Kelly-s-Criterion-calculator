@@ -58,8 +58,9 @@ const ICONS = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'Betting tools',
+    label: 'Prediction center',
     items: [
+      { key: 'predictions', label: 'Prediction Board', shortLabel: 'Predict', description: 'Explore the matchup. Understand the outcome.', icon: ICONS.estimator },
       { key: 'kelly', label: 'Kelly Calculator', shortLabel: 'Kelly', description: 'Size your stake with bankroll discipline', icon: ICONS.kelly },
       { key: 'estimator', label: 'Probability Estimator', shortLabel: 'Estimate', description: 'Turn team stats into win probability', icon: ICONS.estimator },
       { key: 'walters', label: 'Walters Protocol', shortLabel: 'Walters', description: 'Power-rating edge and line value checks', icon: ICONS.walters },
@@ -91,8 +92,8 @@ export function findDestination(key: string): NavDestination | undefined {
 }
 
 /* Mobile bottom bar: the four everyday destinations + "More". */
-const MOBILE_PRIMARY_KEYS = ['kelly', 'estimator', 'daily_games', 'bet_history'];
-const MOBILE_MORE_KEYS = ['walters', 'sports_matchup', 'stats', 'media', 'promo', 'account'];
+const MOBILE_PRIMARY_KEYS = ['predictions', 'daily_games', 'sports_matchup', 'stats'];
+const MOBILE_MORE_KEYS = ['kelly', 'estimator', 'walters', 'bet_history', 'media', 'promo', 'account'];
 
 interface NavProps {
   activeTab: string;
@@ -111,7 +112,7 @@ export function SidebarNav({
         <img src="/betgistics.png" alt="Betgistics logo" width="40" height="40" />
         <div>
           <div className="sidebar-brand-name">Betgistics</div>
-          <span className="sidebar-brand-tag">Betting analytics workspace</span>
+          <span className="sidebar-brand-tag">THE GAME, IN PERSPECTIVE</span>
         </div>
       </div>
 

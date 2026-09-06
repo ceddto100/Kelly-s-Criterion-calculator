@@ -102,14 +102,10 @@ async function fetchMoneyPuckStats() {
   const rows = parseMoneyPuckCSV(csvText);
   console.log(`  Parsed ${rows.length} rows from MoneyPuck\n`);
 
-  // MoneyPuck has one row per team with situation='all' for 5v5/overall
-  // Filter to situation='all' for overall team stats
-  const teamRows = rows.filter((r) => r.situation === 'all' || r.situation === '5on5');
-
-  // Prefer 'all' situation, fallback to '5on5'
+  // The model expects all-situation rates. Never mix in 5v5-only data.
   const allSituation = rows.filter((r) => r.situation === 'all');
-  const fiveOnFive = rows.filter((r) => r.situation === '5on5');
-  const useRows = allSituation.length >= 20 ? allSituation : fiveOnFive;
+  if (allSituation.length < 20) throw new Error("All-situation NHL data unavailable; keeping the existing CSV snapshot");
+  const useRows = allSituation;
 
   // Log available columns for debugging (from first data row)
   if (useRows.length > 0) {

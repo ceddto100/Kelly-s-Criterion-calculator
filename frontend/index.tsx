@@ -5,6 +5,9 @@
  * UPDATED: With Bet Logging Integration + Performance Optimizations + SEO
 */
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { predictedMarginFootball as footballMargin, predictedMarginBasketball as basketballMargin, coverProbability } from '../mcp-server/src/utils/calculations';
+const PredictionHub = lazy(() => import('./components/PredictionHub'));
+import './prediction-design.css';
 import ReactDOM from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -290,6 +293,7 @@ const GlobalStyle = () => (
 /* =============================== App Constants ============================= */
 const CONSTANTS = {
   TABS: {
+    PREDICTIONS: 'predictions',
     KELLY: 'kelly',
     ESTIMATOR: 'estimator',
     WALTERS: 'walters',
@@ -327,113 +331,21 @@ function normCdf(x: number): number {
   return 0.5 * (1 + sign * y);
 }
 
-function coverProbabilityFromMargin(predictedMargin: number, spread: number, sigma: number): number {
-  const Z = (predictedMargin + spread) / sigma;
-  const p = normCdf(Z);
-  return Math.max(1, Math.min(99, p * 100));
-}
-
-/* ========================== Sport-specific margin math ===================== */
-// Keep in sync with mcp-server/src/config/sportsConfig.ts (single source of
-// truth for weights) and mcp-server/src/utils/calculations.ts.
-function predictedMarginFootball(stats: any, isHome: boolean | null = null): number {
-  // Net scoring gap is the strongest single predictor of margin. The 0.5
-  // weight passes it through with ~50% regression toward the mean (season
-  // averages overstate true team differences).
-  const teamAPointDiff = parseFloat(stats.teamPointsFor) - parseFloat(stats.teamPointsAgainst);
-  const teamBPointDiff = parseFloat(stats.opponentPointsFor) - parseFloat(stats.opponentPointsAgainst);
-  const pointDiffComponent = (teamAPointDiff - teamBPointDiff) * 0.5;
-
-  // ~15 net yards ≈ 1 point (empirical NFL yards-per-point), discounted to a
-  // 0.25 weight because yardage is already partially reflected in scoring.
-  const teamAYardDiff = parseFloat(stats.teamOffYards) - parseFloat(stats.teamDefYards);
-  const teamBYardDiff = parseFloat(stats.opponentOffYards) - parseFloat(stats.opponentDefYards);
-  const yardDiffComponent = ((teamAYardDiff - teamBYardDiff) / 15) * 0.25;
-
-  // Season turnover differential is a TOTAL (not per-game) and turnover luck
-  // regresses hard: 4 pts per turnover * 0.5 regression * 0.06 = 0.12 pts per
-  // unit, i.e. a turnover's value spread across a 17-game season.
-  let teamTO = parseFloat(stats.teamTurnoverDiff) || 0;
-  let oppTO = parseFloat(stats.opponentTurnoverDiff) || 0;
-  teamTO = Math.max(-10, Math.min(10, teamTO));
-  oppTO = Math.max(-10, Math.min(10, oppTO));
-  const turnoverComponent = (teamTO - oppTO) * 4 * 0.5 * 0.06;
-
-  const homeFieldAdvantage = isHome === null ? 0 : (isHome ? 2.5 : -2.5);
-
-  return pointDiffComponent + yardDiffComponent + turnoverComponent + homeFieldAdvantage;
-}
-
-function predictedMarginBasketball(stats: any, isHome: boolean | null = null): number {
-  // Two-tier model:
-  //   Primary — net scoring margin: PPG edge (0.4) + points-allowed edge (0.4).
-  //   Together these pass the net-rating gap through at 0.4x; with the
-  //   correlated skill components below, the effective pass-through is
-  //   ~0.55–0.65x (season net rating regressed toward the mean). The old
-  //   0.15/0.15 scoring weights systematically underestimated favorites.
-  //   Secondary — corroborating skill edges (partially embedded in scoring):
-  //   FG% (0.15), rebounds (0.10), turnovers (0.08), 3P% (0.06), 3P rate (0.05).
-  const teamAPointsFor = parseFloat(stats.teamPointsFor) || 0;
-  const teamBPointsFor = parseFloat(stats.opponentPointsFor) || 0;
-  const ppgComponent = (teamAPointsFor - teamBPointsFor) * 0.4;
-
-  const teamAPointsAllowed = parseFloat(stats.teamPointsAgainst) || 0;
-  const teamBPointsAllowed = parseFloat(stats.opponentPointsAgainst) || 0;
-  // Lower points allowed is better, so invert the differential.
-  const pointsAllowedComponent = (teamBPointsAllowed - teamAPointsAllowed) * 0.4;
-
-  // FG% with realistic scaling: 1% FG diff ≈ 2 points per game
-  const teamAFg = parseFloat(stats.teamFgPct) || 0;
-  const teamBFg = parseFloat(stats.opponentFgPct) || 0;
-  const fgDiffComponent = (teamAFg - teamBFg) * 2.0 * 0.15;
-
-  // 3-point shooting split into accuracy + volume components.
-  let threePointPctComponent = 0;
-  let threePointRateComponent = 0;
-  const teamA3PPct = parseFloat(stats.team3PPct) || 0;
-  const teamB3PPct = parseFloat(stats.opponent3PPct) || 0;
-  if (teamA3PPct > 0 || teamB3PPct > 0) {
-    const pctDiff = (teamA3PPct - teamB3PPct) * 1.0;
-    threePointPctComponent = pctDiff * 0.06;
-
-    const teamA3PRate = parseFloat(stats.team3PRate) || 0;
-    const teamB3PRate = parseFloat(stats.opponent3PRate) || 0;
-    const rateDiff = (teamA3PRate - teamB3PRate) * 15;
-    threePointRateComponent = rateDiff * 0.05;
+const coverProbabilityFromMargin = coverProbability;
+function statsForModel(stats: any) {
+  const out: any = {};
+  const aliases: Record<string,string> = {teamPointsFor:'teamPPG',opponentPointsFor:'opponentPPG',teamPointsAgainst:'teamAllowed',opponentPointsAgainst:'opponentAllowed',teamFgPct:'teamFGPct',opponentFgPct:'opponentFGPct'};
+  for (const [key,value] of Object.entries(stats)) {
+    if (key.endsWith('Name') || value === '' || value === undefined) continue;
+    out[aliases[key] || key] = Number(value);
   }
-
-  const teamAReb = parseFloat(stats.teamReboundMargin) || 0;
-  const teamBReb = parseFloat(stats.opponentReboundMargin) || 0;
-  const reboundComponent = (teamAReb - teamBReb) * 0.5 * 0.10;
-
-  // Turnovers: positive margin = team forces more TOs than it commits (good)
-  const teamATov = parseFloat(stats.teamTurnoverMargin) || 0;
-  const teamBTov = parseFloat(stats.opponentTurnoverMargin) || 0;
-  const turnoverComponent = (teamATov - teamBTov) * 1.0 * 0.08;
-
-  const scoringComponents = ppgComponent + pointsAllowedComponent;
-  let skillComponents =
-    fgDiffComponent +
-    reboundComponent +
-    turnoverComponent +
-    threePointPctComponent +
-    threePointRateComponent;
-
-  // Pace multiplier: per-possession skill edges compound with more
-  // possessions, so scale them by expected tempo vs the league average (~100).
-  // PPG-based components already embed each team's own pace — scaling them
-  // too would double-count tempo, so they stay unscaled.
-  const teamAPace = parseFloat(stats.teamPace) || 0;
-  const teamBPace = parseFloat(stats.opponentPace) || 0;
-  if (teamAPace > 0 && teamBPace > 0) {
-    const expectedPace = (teamAPace + teamBPace) / 2;
-    skillComponents *= expectedPace / 100;
-  }
-
-  // Fixed home-court constant added last (modern NBA HCA runs ~2.2–2.8 pts).
-  const homeCourtAdvantage = isHome === null ? 0 : (isHome ? 2.5 : -2.5);
-
-  return scoringComponents + skillComponents + homeCourtAdvantage;
+  return out;
+}
+function predictedMarginFootball(stats: any, isHome: boolean | null = null) {
+  return footballMargin(statsForModel(stats)) + (isHome === null ? 0 : isHome ? 2.5 : -2.5);
+}
+function predictedMarginBasketball(stats: any, isHome: boolean | null = null) {
+  return basketballMargin(statsForModel(stats)) + (isHome === null ? 0 : isHome ? 2.5 : -2.5);
 }
 
 /* ================================= Utilities ============================== */
@@ -461,6 +373,7 @@ export const initialBasketballState = {
   teamFgPct: '', opponentFgPct: '',
   teamReboundMargin: '', opponentReboundMargin: '',
   teamTurnoverMargin: '', opponentTurnoverMargin: '',
+  teamOffRtg: '', teamDefRtg: '', opponentOffRtg: '', opponentDefRtg: '',
   teamPace: '', opponentPace: '',
   team3PRate: '', opponent3PRate: '',
   team3PPct: '', opponent3PPct: '',
@@ -978,6 +891,10 @@ function ProbabilityEstimator({
         opponentReboundMargin: basketballStats.teamReboundMargin,
         teamTurnoverMargin: basketballStats.opponentTurnoverMargin,
         opponentTurnoverMargin: basketballStats.teamTurnoverMargin,
+        teamOffRtg: basketballStats.opponentOffRtg,
+        teamDefRtg: basketballStats.opponentDefRtg,
+        opponentOffRtg: basketballStats.teamOffRtg,
+        opponentDefRtg: basketballStats.teamDefRtg,
         teamPace: basketballStats.opponentPace,
         opponentPace: basketballStats.teamPace,
         team3PRate: basketballStats.opponent3PRate,
@@ -1119,7 +1036,7 @@ function ProbabilityEstimator({
           <BasketballEstimator
             stats={basketballStats}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setBasketballStats({ ...basketballStats, [e.target.name]: e.target.value })}
+              setBasketballStats({ ...basketballStats, teamOffRtg:'',teamDefRtg:'',opponentOffRtg:'',opponentDefRtg:'', [e.target.name]: e.target.value })}
           />
         ) : (
           <HockeyEstimator
@@ -1849,7 +1766,7 @@ function App() {
       const saved = localStorage.getItem('betgistics-active-tab');
       if (saved && Object.values(CONSTANTS.TABS).includes(saved as any)) return saved;
     } catch {}
-    return CONSTANTS.TABS.KELLY;
+    return CONSTANTS.TABS.PREDICTIONS;
   });
   const [probability, setProbability] = useState(() => {
     try { return localStorage.getItem('kelly-probability') ?? '60'; } catch { return '60'; }
@@ -2130,10 +2047,14 @@ function App() {
       opponentReboundMargin: matchupData.teamB.rebound_margin?.toFixed(1) || '',
       teamTurnoverMargin: matchupData.teamA.turnover_margin?.toFixed(1) || '',
       opponentTurnoverMargin: matchupData.teamB.turnover_margin?.toFixed(1) || '',
+      teamOffRtg: matchupData.teamA.off_rtg?.toFixed(1) || '',
+      teamDefRtg: matchupData.teamA.def_rtg?.toFixed(1) || '',
+      opponentOffRtg: matchupData.teamB.off_rtg?.toFixed(1) || '',
+      opponentDefRtg: matchupData.teamB.def_rtg?.toFixed(1) || '',
       teamPace: matchupData.teamA.pace?.toFixed(1) || '',
       opponentPace: matchupData.teamB.pace?.toFixed(1) || '',
-      team3PRate: matchupData.teamA.three_rate?.toFixed(1) || '',
-      opponent3PRate: matchupData.teamB.three_rate?.toFixed(1) || '',
+      team3PRate: matchupData.teamA.three_rate?.toFixed(3) || '',
+      opponent3PRate: matchupData.teamB.three_rate?.toFixed(3) || '',
       team3PPct: matchupData.teamA.three_pct?.toFixed(1) || '',
       opponent3PPct: matchupData.teamB.three_pct?.toFixed(1) || '',
       teamAName: getTeamAbbreviation(matchupData.teamA.team || ''),
@@ -2239,6 +2160,8 @@ function App() {
   // Get SEO config based on active tab
   const getSEOForTab = () => {
     switch (activeTab) {
+      case CONSTANTS.TABS.PREDICTIONS:
+        return {title:"Sports Prediction Board",description:"Explore NBA, NFL, MLB and NHL outcomes with transparent, CSV-backed sports models.",canonical:"https://betgistics.com/#predictions"};
       case CONSTANTS.TABS.KELLY:
         return SEO_CONFIG.kelly;
       case CONSTANTS.TABS.ESTIMATOR:
@@ -2300,7 +2223,7 @@ function App() {
                 alt="Betgistics logo"
                 className="topbar-logo"
                 loading="eager"
-                fetchpriority="high"
+                fetchPriority="high"
                 width="34"
                 height="34"
               />
@@ -2339,7 +2262,8 @@ function App() {
               {pageDescription && <p>{pageDescription}</p>}
             </div>
 
-            <section ref={activeTabContentRef} className="active-tab-content" aria-live="polite">
+            <section ref={activeTabContentRef} className="active-tab-content">
+              {activeTab === CONSTANTS.TABS.PREDICTIONS && <Suspense fallback={<p role="status">Loading predictions…</p>}><PredictionHub /></Suspense>}
               {activeTab === CONSTANTS.TABS.KELLY && (
                 <KellyCalculator
                   probability={probability}
@@ -2520,7 +2444,7 @@ function App() {
           <div className="demo-popover__video">
             <iframe
               id="demoPopoverIframe"
-              src=""
+              src={undefined}
               title="Demo video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen>

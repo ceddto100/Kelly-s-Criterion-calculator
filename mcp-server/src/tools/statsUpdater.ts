@@ -736,8 +736,8 @@ async function fetchMoneyPuckStats(): Promise<Record<string, NHLRecord> | null> 
 
   const rows = parseMoneyPuckCSV(csvText);
   const allRows = rows.filter((r) => r.situation === 'all');
-  const fiveOnFive = rows.filter((r) => r.situation === '5on5');
-  const useRows = allRows.length >= 20 ? allRows : fiveOnFive;
+  if (allRows.length < 20) throw new Error("All-situation NHL data unavailable; keeping the existing CSV snapshot");
+  const useRows = allRows;
   if (useRows.length < 20) return null;
 
   const teamStats: Record<string, NHLRecord> = {};

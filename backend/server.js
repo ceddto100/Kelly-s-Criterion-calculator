@@ -634,6 +634,20 @@ app.get('/api/sports/health', asyncHandler(async (req, res) => {
 // ==================== ERROR HANDLING ====================
 
 // 404 handler - must be after all routes
+// CSV prediction API. The MCP process owns validation and calculations.
+app.use('/api/predictions', async (req,res) => {
+  const target = process.env.MCP_SERVER_URL || 'http://127.0.0.1:3001';
+  try {
+    const upstream = await fetch(target.replace(/\/$/,'') + req.originalUrl, {
+      method:req.method,
+      headers:{'Content-Type':'application/json'},
+      body:['GET','HEAD'].includes(req.method)?undefined:JSON.stringify(req.body),
+      signal:AbortSignal.timeout(10000),
+    });
+    res.status(upstream.status).type('application/json').send(await upstream.text());
+  } catch {res.status(503).json({error:'Prediction service is unavailable'});}
+});
+
 app.use(notFoundHandler);
 
 // Global error handler - must be last

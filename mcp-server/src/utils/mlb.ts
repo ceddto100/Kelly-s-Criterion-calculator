@@ -261,7 +261,8 @@ export function calculateOffenseScore(offense: MLBOffenseStats): MultiplierResul
       weight: MLB_OFFENSE_WEIGHTS.runsPerGame,
     },
   ];
-  const blended = weightedBlend(candidates);
+  const anchor = candidates.find(candidate => candidate.value !== undefined && Number.isFinite(candidate.value));
+  const blended = anchor ? {value: anchor.value!} : null;
   if (!blended) return { multiplier: 1, coverage: 0 };
   const coverage = sufficiencyCoverage(
     [

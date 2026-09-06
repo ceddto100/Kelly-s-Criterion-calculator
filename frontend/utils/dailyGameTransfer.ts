@@ -241,8 +241,8 @@ async function loadNhlTeams(): Promise<NHLTeamRow[]> {
     const xgaMap = new Map(xga.map((d) => [d.abbreviation, d.xga60]));
     const gsaxMap = new Map(gsax.map((d) => [d.abbreviation, d.gsax60]));
     const hdcfMap = new Map(hdcf.map((d) => [d.abbreviation, d.hdcf60]));
-    const ppMap = new Map(pp.map((d) => [d.abbreviation, d.pp]));
-    const pkMap = new Map(pk.map((d) => [d.abbreviation, d.pk]));
+    const ppMap = new Map(pp.map((d) => [d.abbreviation === 'UTAH' ? 'UTA' : d.abbreviation, d.pp]));
+    const pkMap = new Map(pk.map((d) => [d.abbreviation === 'UTAH' ? 'UTA' : d.abbreviation, d.pk]));
     const tsMap = new Map(ts.map((d) => [d.abbreviation, d.times_shorthanded]));
     return xgf.map((t) => ({
       team: t.team as string,
