@@ -1,0 +1,336 @@
+# Betgistics — MLB Projection Engine & Sport Audit
+
+> **Data pipeline:** MLB now reads static CSVs from
+> `frontend/public/stats/mlb/`, like the NBA/NFL/NHL tabs — not the live
+> `/api/mlb/daily` route described later in this file. See
+> [MLB_STATS_PIPELINE.md](MLB_STATS_PIPELINE.md) for the CSV contract, the
+> stat-necessity audit, the NHL stat list and the source URLs.
+>
+> **Equation audit (August 2026)** — six calibration defects found and fixed.
+> Each was reproduced against the live engine before and after:
+>
+> | Defect | Before | After |
+> | --- | --- | --- |
+> | No home-field advantage anywhere in the model | neutral matchup → **50.0%** home win | **53.5%**, matching the league rate |
+> | `totalSigma` 2.9 understated game variance | +1.0-run edge → **63.5%** over | **59.0%** (SD of an MLB total is ~4.4) |
+> | `moneylineRunScale` 3.35 too flat | 2.0-run margin → **64.5%** | **67.4%** (vs Pythagenpat 70.4%) |
+> | Coverage measured *fields filled*, not *information* | StatsAPI feed scored **0.17** vs a 0.50 floor → **every game an automatic no-bet** | **0.54–0.89**, so real edges can fire |
+> | Starter clamp floor 0.72 bound at SIERA 3.06 | every ace flattened to the same value | clamp widened; a 2.80 SIERA now suppresses to 3.40 runs, not 3.56 |
+> | Bullpen fatigue thresholds below normal workload | fired on nearly every team daily → blanket run bias | 4.5 / 11.5 IP, ~70th percentile of usage |
+>
+> Also fixed: dead `totalMovedSharply` branch (computed a direction flag then
+> discarded it via `void`, so it demanded a bigger edge even when the market
+> moved *toward* our lean — now gated on an explicit `totalMoveDirection`);
+> park/weather under-reported in the driver list at 1× when they move both
+> teams; lineup and recent form missing from drivers entirely; a WHIP→ERA
+> comment that contradicted its own code; and season R/G being silently
+> re-labelled as "recent form" on the Today's Games → estimator transfer, which
+> left the offense blend's `runsPerGame` slot permanently empty.
+>
+> All 155 mcp-server tests pass, and the Today's Games card and the manual
+> estimator now produce byte-identical projections across a full 15-game slate.
+
+This document covers (1) the new MLB projection engine, (2) an audit of the
+existing sports' math with prioritized fixes, and (3) a backtesting schema so
+every projection can eventually be measured against real results.
+
+Betgistics is a **stat-based projection platform**, not an AI guessing app. The
+math engine owns the projection; AI is only for explaining results. Nothing here
+promises guaranteed wins — outputs are *model projections*, *possible edges*, and
+*leans*, always paired with *risk factors* and *bankroll discipline*.
+
+---
+
+## 1. MLB Projection Engine
+
+MLB is built from the ground up rather than copied from NBA/NFL/NHL, because
+baseball scoring is driven by starting pitching, bullpen quality/fatigue,
+ballpark, weather, and lineup/handedness — factors the other models don't have.
+
+**Source of truth:** `mcp-server/src/utils/mlb.ts` (+ `config/mlbConfig.ts`)
+**Frontend mirror:** `frontend/utils/mlbProjection.ts` (kept in sync; mirrors the
+existing `nhlProjection.ts` pattern)
+**MCP tool:** `estimate_mlb_projection` (`mcp-server/src/tools/mlbProjection.ts`)
+**UI:** MLB tab → `frontend/forms/MLBEstimator.tsx` → `components/ProjectionResultCard.tsx`
+**Tests:** `mcp-server/test/mlb.test.ts` (28 unit tests)
+
+### Model
+
+Runs are modeled **multiplicatively** around a league baseline. Each driver
+produces a multiplier centered on 1.0 (>1 = more runs, <1 = fewer). Neutral
+inputs reproduce the league average, which makes every result auditable:
+
+```
+projectedRuns(batting vs opposing pitching) =
+    LEAGUE_AVG_RUNS (4.3)
+  × offenseMultiplier        // wRC+/wOBA/OPS/RPG blend
+  × pitchingMultiplier       // SP (FIP/xFIP/SIERA) + bullpen, innings-weighted
+  × parkMultiplier           // run park factor / 100
+  × weatherMultiplier        // temp + wind direction/speed (capped)
+  × lineupMultiplier         // stars out, platoon edge
+  × recentFormMultiplier     // capped + regressed to avoid small samples
+
+projectedTotal = projectedHomeRuns + projectedAwayRuns
+```
+
+Modular functions (all pure, all tested): `normalizeStat`,
+`calculateOffenseScore`, `calculatePitchingMultiplier`,
+`calculateParkMultiplier`, `calculateWeatherMultiplier`,
+`calculateLineupMultiplier`, `calculateRecentFormMultiplier`,
+`calculateProjectedTeamRuns`, `calculateTotalEdge`, `determineTotalLean`,
+`runMarginToWinProb`, `calculateConfidenceScore`, `identifyStatDrivers`,
+`identifyRiskFactors`, `projectMLBGame`.
+
+### Key stat decisions
+
+- **Offense:** wRC+ is the core anchor (park/league adjusted). wOBA/OPS/RPG are
+  optional fills. Raw RPG is intentionally low-weighted (noisy, context-heavy).
+  Excluded as core to avoid duplication: ISO, K%, BB%, OBP, SLG — they're already
+  captured by wRC+/wOBA and would double-count.
+- **Starting pitching:** SIERA/xFIP/FIP preferred; ERA kept at a small 15% weight
+  as a sanity anchor only. We never rely on ERA alone.
+- **Bullpen:** FIP/ERA/WHIP blend, plus a **fatigue penalty** from 1-day/3-day
+  relief usage and a share-shift when the closer is unavailable. MLB overs/unders
+  are often decided late, so the bullpen is weighted by the innings it actually
+  throws (~39% of the game, more when fatigued).
+- **Environment:** park run factor + weather (warm air & wind-out raise runs;
+  cold & wind-in lower them; closed roof neutralizes). Effects are small and
+  capped to avoid runaway projections.
+- **Lineup:** stars resting downgrades offense; platoon edge is a small bump.
+  An **unconfirmed** lineup does *not* move the mean — it lowers confidence.
+
+### Markets
+
+- **Totals (over/under):** primary. Edge = projected total − book total (runs).
+- **Moneyline:** projected run margin → win probability (logistic), de-vigged vs
+  the book to produce a fair-probability edge.
+- Run line and team totals are intentionally left as future extensions; the
+  per-team run breakdown already provides the inputs they need.
+
+### Confidence & no-bet (discipline)
+
+Confidence is **not** just edge size. It blends:
+
+- **edge strength** (how far projection is from the line),
+- **agreement** between independent categories (offense/pitching/park/weather),
+- **data quality** (input coverage + starter/lineup confirmation + weather
+  reliability), which also acts as a hard **ceiling** — thin data can never be
+  highly confident.
+
+No-bet is returned (and treated as a smart result, not a failure) when:
+
+- the projected edge is below threshold (totals: 0.5 runs; ML: 4% prob),
+- data completeness is below 50%,
+- starters/lineups are unconfirmed enough to undercut the projection,
+- the line moved sharply and our edge isn't large enough to fight it.
+
+### Tuning
+
+Every constant lives in `config/mlbConfig.ts` (backend) / `MLB_CONFIG`
+(frontend). No magic numbers in the math. Adjust there and re-run tests.
+
+---
+
+## 2. Audit of existing sports (prioritized fixes)
+
+Current math: `mcp-server/src/utils/calculations.ts` (mirrored in `index.tsx`).
+
+All sport weights/constants are now centralized in `config/sportsConfig.ts`
+(football/basketball) so the formulas can be tuned and backtested without
+editing math — the spec's "weights in a config file" requirement. `calculations.ts`
+reads from there; the old `*_CONSTANTS` exports remain as thin compatibility
+wrappers.
+
+### NFL/CFB (`predictedMarginFootball` + `estimateFootballProbability`)
+- Weights points 40% / yards 25% / turnovers 20% — directionally sound, now in config.
+- **FIXED — unused constants wired in:** `decayRate` now drives an optional
+  recent-form blend (effective = decay·season + (1−decay)·recent), applied only
+  when recent rates are supplied so default behavior is unchanged. `qbValue` now
+  caps an optional `qbEdge` input (reflect a backup/injured starter), clamped to
+  ±qbValue so it can never dominate the projection.
+- **DONE — confidence/edge/no-bet:** added via the shared decision layer.
+
+### NBA/CBB (`predictedMarginBasketball`)
+- 7 weighted components + pace multiplier — the strongest existing model, now in config.
+- **FIXED — CBB pace bug:** the model reused the NBA's ~100-possession baseline
+  for college, which wrongly compressed CBB margins by ~32%. CBB now uses ~68.
+- **Correlation note:** PPG-for, points-allowed and FG% are positively correlated
+  (efficiency shows up in all three). They're kept separate (volume vs efficiency
+  carry distinct signal) but the weights are now in one place to retune against
+  backtest data. Recent-form blend added (decay 0.85) like football.
+- **DONE — confidence/edge/no-bet:** added via the shared decision layer.
+
+### NHL (`calculateNHLProjection`)
+- Most mature: graduated pace & special-teams scaling, overdispersion-adjusted
+  variance, OT boost, home-ice. Good.
+- **DONE — confidence/edge/no-bet:** added via the shared decision layer.
+
+### Cross-cutting recommendation — DONE
+The MLB decision discipline is now extracted into a shared module so NFL/NBA/NHL
+emit the same disciplined output (edge vs line, lean/no-bet, confidence, risks).
+
+**Source:** `mcp-server/src/utils/decision.ts` (+ `config/decisionConfig.ts`)
+**Tests:** `mcp-server/test/decision.test.ts` (14 unit tests)
+
+Every spread/total tool (`estimate_football_probability`,
+`estimate_basketball_probability`, `estimate_hockey_probability`) now returns,
+**in addition to** its existing fields (kept for backward compatibility):
+
+```
+decision: {
+  fairImpliedPct,    // vig-free implied probability of the chosen side
+  edgePct,           // model probability − fair implied (percentage points)
+  recommendation,    // 'bet' | 'pass' | 'no-bet'
+  confidence,        // 0-100, blends edge + decisiveness + data quality
+  confidenceLabel,   // low | medium | high
+  summary            // plain-language, non-hype explanation
+}
+dataCompleteness,    // 0-1, drives the confidence ceiling
+riskFactors[],       // structural uncertainties (injuries/rest/lines not modeled)
+disclaimer           // never promises a guaranteed result
+```
+
+How it works (sport-agnostic):
+- The model's probability for a side (cover% for spreads, over/under% for totals)
+  is compared against the **vig-free implied probability** of that side, computed
+  by de-vigging the two-way price (defaults to the standard −110/−110 line when
+  odds aren't supplied; callers may pass `spreadOdds`/`betOdds` + the opposite
+  side to use the real market price).
+- **No-bet** fires when data completeness is below 50% or the edge is under the
+  threshold (default 3%). **Pass** fires when the model actively disfavors the
+  side. Otherwise **bet** (a *possible edge*, never a guarantee).
+- **Confidence** blends edge size, how decisively the model leaves a coin flip,
+  and data quality — with data quality as a hard ceiling so a big edge on thin
+  inputs can't read as high confidence (same philosophy as MLB).
+
+All thresholds live in `config/decisionConfig.ts` for tuning/backtesting.
+
+---
+
+## 3. Backtesting storage — IMPLEMENTED
+
+Every projection is now storable so formulas can be scored against reality.
+
+**Model:** `mcp-server/src/models/Projection.ts` (Mongoose)
+**Tools:** `mcp-server/src/tools/projectionLog.ts`
+**Tests:** `mcp-server/test/projectionGrading.test.ts` (16 grading tests)
+
+Stored record (one row per projection, unique per game+market+model):
+
+```
+gameDate, sport, league, homeTeam, awayTeam,
+market,                 // total | spread | moneyline
+bookLine, bookOdds,
+projectedValue,         // projected total / margin / win prob
+edge, lean, confidence,
+modelVersion,           // which engine/config produced it
+statsSnapshot,          // JSON of the EXACT inputs used at projection time
+result,                 // pending | win | loss | push (filled post-game)
+finalHomeScore, finalAwayScore,
+closingLine,            // for CLV analysis
+settledAt
+```
+
+Three MCP tools:
+- **`record_projection`** — store a projection + its stat snapshot (idempotent
+  per game+market+model, so re-running a slate updates rather than duplicates).
+- **`settle_projection`** — after the game, grade the stored projection against
+  the final score. Grading is a pure, unit-tested function (`gradeProjection`)
+  covering totals (over/under vs line), moneyline (home/away), and spread (home
+  perspective). `no-bet`/`pass` settle as push (no action).
+- **`get_backtest_summary`** — aggregate hit rate, average edge, average
+  confidence, and **hit rate bucketed by confidence band** — the key
+  calibration check: do higher-confidence projections actually win more often?
+  Filterable by sport/league/market/modelVersion.
+
+Storing the **stats snapshot + modelVersion at projection time** is what makes
+backtesting honest: we can replay the stored inputs, recompute under new weights
+(in `sportsConfig.ts` / `mlbConfig.ts`), and score against outcomes without
+leaking future data — then compare model versions head-to-head.
+
+### Auto-population via the daily pipeline
+`run_daily_calculations` (`tools/dailyCalc.ts`) calls `record_projection` for
+**every analyzed game** (not just value bets), tagged `modelVersion: 'daily-v1'`,
+with the full stat snapshot. It runs on the existing 9:00 AM UTC cron, so the
+backtest log fills itself daily. Toggle with the `recordProjections` option
+(default true). After games finish, call `settle_projection` with the final
+score to grade each one, then `get_backtest_summary` to track calibration.
+
+Sport coverage in the daily pipeline:
+- **NBA / NFL** — moneyline market. The decision layer turns each home win
+  probability into a `home`/`no-bet` lean; value bets are also Kelly-sized and
+  logged as wagers.
+- **NHL** — totals (over/under) market, via a new NHL stats loader
+  (`getNHLTeamStats`) that reads the seven `nhl_*.csv` files and feeds them
+  straight into the hockey engine. The over/under line comes from ESPN's odds
+  feed (`overUnder`); when present the model leans over/under/no-bet, when absent
+  it still records the projected total as a no-bet. NHL is analysis +
+  backtesting only — it is not auto-logged as a wager (the bet-logging flow is
+  spread/moneyline-shaped). Team-name lookup handles ESPN's abbreviations
+  (TB/NJ/SJ/LA) mapping to the CSV forms (TBL/NJD/SJS/LAK).
+- **MLB** — totals market, via **MLB StatsAPI** (stats) **+ ESPN** (the line),
+  both free/no-auth (`utils/mlbDataService.ts`). From StatsAPI: today's schedule
+  + **real probable starters** (with a genuine confirmed flag), starter season
+  ERA/WHIP, and team season OPS + runs/game. From ESPN's MLB scoreboard: the
+  consensus **over/under total** (`competition.odds[0].overUnder`, the same field
+  the NBA/NFL/NHL pipeline uses), matched to each StatsAPI game by normalized
+  team name. With a book line in hand the engine computes a real over/under edge
+  and can lean a side — the no-line "always no-bet" floor is gone.
+
+  The **mcp-server cron path** is still deliberately partial: StatsAPI does
+  **not** expose the FanGraphs metrics the engine prefers (FIP/xFIP/SIERA/
+  wRC+/wOBA), bullpen splits, park factors, or weather, so those inputs stay
+  unset there and the engine's data-completeness logic keeps confidence modest.
+  Games where ESPN has no posted total fall back to no-bet. Every analyzed game
+  is recorded for backtesting; MLB is still analysis + backtesting only, never
+  auto-logged as a wager. Parsers are pure and unit-tested against fixtures;
+  the live fetch wrappers are runtime-verified (the build sandbox blocks
+  egress). For richer manual projections, `estimate_mlb_projection` still
+  accepts the full input set (bullpen, park, weather, lineup).
+
+### MLB full-input pipeline (backend `/api/mlb/daily` → Today's Games)
+
+The **backend** path that powers the app's "Today's Games" MLB cards now feeds
+the engine its complete input set, in two layers:
+
+- **Nightly (FanGraphs via pybaseball, `scripts/updateMLBAdvanced.py`, run by
+  the existing `update_stats.yml` cron):** team wRC+/wOBA
+  (`team_offense.csv`), per-pitcher FIP/xFIP/SIERA (`pitchers.csv`), and team
+  **bullpen FIP/ERA/WHIP** (`bullpen.csv`, an innings-weighted aggregate over
+  relievers, i.e. pitchers with zero starts; traded "- - -" pitchers are
+  skipped). `backend/scrapers/mlbAdvanced.js` merges these at request time.
+- **Same-day (`backend/scrapers/mlbEnrichment.js`, fetched when
+  `/api/mlb/daily` is requested, because these change too fast for a cron):**
+  - **Park factor** — static venue table (approximate multi-year run factors,
+    100 = neutral; refresh yearly), keyed by the StatsAPI venue name.
+  - **Weather** — Open-Meteo forecast (free, no key) at the venue's
+    coordinates (from the schedule's `venue(location)` hydration) for the hour
+    nearest first pitch: temperature, wind speed, and wind out/in/crosswind
+    classified against an approximate home-plate→center-field bearing per
+    park. Fixed domes (`fieldInfo.roofType === 'Dome'`) skip weather and set
+    `roofClosed`; retractable roofs keep the forecast but flag
+    `weatherReliable: false`.
+  - **Bullpen recent usage** — relief innings per team over the last 1 and 3
+    days, summed from StatsAPI boxscores (every pitcher after the starter
+    counts as relief); feeds the engine's fatigue penalty. Past days are
+    cached in-process once fully Final.
+  - **Lineup confirmation** — the schedule's `lineups` hydration; a posted
+    lineup of 9+ marks `lineup.confirmed`. Lineups post ~1-2h before first
+    pitch, so earlier in the day this is honestly `false` and the engine
+    trims data completeness — that is correct, not a bug.
+
+  Everything is best-effort: any missing file or failed fetch leaves the input
+  unset and the engine lowers confidence — exactly the previous behavior.
+  Closer availability, stars-out and platoon edge remain manual-only inputs
+  (no reliable free feed); enter them in the estimator before running the
+  projection. Pure helpers (innings parsing, wind classification, boxscore
+  relief parsing, forecast-hour picking, park lookups) are unit-tested in
+  `backend/test/mlbEnrichment.test.js` (`npm test` in `backend/`).
+
+  When a Today's Games MLB card is tapped, `mlbInputToFields()`
+  (`frontend/utils/dailyGameTransfer.ts`) now carries **every** field into the
+  MLB estimator — offense (wRC+/wOBA/OPS/R-G), starter (SIERA/xFIP/FIP/ERA +
+  confirmed), bullpen (FIP/ERA/WHIP + 1d/3d usage), park, weather, roof and
+  lineup status — so the estimator reproduces the card's projection exactly
+  and the user can refine from there. The estimator form gained matching
+  wOBA, xFIP, bullpen ERA and bullpen WHIP fields.

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Football stadium field">
+  <defs>
+    <!-- Grass receding into the distance -->
+    <linearGradient id="grass" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#0c3b1f"/>
+      <stop offset="55%" stop-color="#0a2e19"/>
+      <stop offset="100%" stop-color="#06160d"/>
+    </linearGradient>
+    <!-- Horizon stadium glow -->
+    <radialGradient id="horizon" cx="50%" cy="27%" r="55%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.55"/>
+      <stop offset="40%" stop-color="#818cf8" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Vignette to keep edges dark -->
+    <radialGradient id="vignette" cx="50%" cy="62%" r="75%">
+      <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.75"/>
+    </radialGradient>
+    <clipPath id="fieldClip">
+      <polygon points="0,1920 1080,1920 700,520 380,520"/>
+    </clipPath>
+  </defs>
+
+  <!-- Distant stadium glow behind the field -->
+  <rect x="0" y="0" width="1080" height="1920" fill="url(#horizon)"/>
+
+  <!-- The pitch (perspective trapezoid) -->
+  <g clip-path="url(#fieldClip)">
+    <polygon points="0,1920 1080,1920 700,520 380,520" fill="url(#grass)"/>
+
+    <!-- End zone band near the camera -->
+    <polygon points="0,1920 1080,1920 931.8,1374 148.2,1374" fill="#0e4d28" fill-opacity="0.45"/>
+
+    <!-- Yard lines (compressed toward the horizon for depth) -->
+    <g stroke="#ffffff" stroke-opacity="0.55" stroke-width="4">
+      <line x1="22.8"  y1="1836" x2="1057.2" y2="1836"/>
+      <line x1="60.8"  y1="1696" x2="1019.2" y2="1696"/>
+      <line x1="102.6" y1="1542" x2="977.4"  y2="1542"/>
+      <line x1="148.2" y1="1374" x2="931.8"  y2="1374"/>
+      <line x1="197.6" y1="1192" x2="882.4"  y2="1192"/>
+      <line x1="250.8" y1="996"  x2="829.2"  y2="996"/>
+      <line x1="300.2" y1="814"  x2="779.8"  y2="814"/>
+      <line x1="338.2" y1="674"  x2="741.8"  y2="674"/>
+      <line x1="364.8" y1="576"  x2="715.2"  y2="576"/>
+    </g>
+
+    <!-- Sidelines + 50 yard center line -->
+    <g stroke="#ffffff" stroke-opacity="0.7" stroke-width="5">
+      <line x1="0"   y1="1920" x2="380" y2="520"/>
+      <line x1="1080" y1="1920" x2="700" y2="520"/>
+      <line x1="540" y1="1920" x2="540" y2="520" stroke-opacity="0.28" stroke-dasharray="14 26"/>
+    </g>
+
+    <!-- Hash marks down the center for texture -->
+    <g stroke="#ffffff" stroke-opacity="0.30" stroke-width="3">
+      <line x1="430" y1="1836" x2="650" y2="1836"/>
+      <line x1="452" y1="1696" x2="628" y2="1696"/>
+      <line x1="470" y1="1542" x2="610" y2="1542"/>
+      <line x1="486" y1="1374" x2="594" y2="1374"/>
+    </g>
+  </g>
+
+  <!-- Keep the framing dark so it reads as a watermark -->
+  <rect x="0" y="0" width="1080" height="1920" fill="url(#vignette)"/>
+</svg>

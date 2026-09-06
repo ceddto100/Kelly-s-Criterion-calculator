@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Betgistics Android App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.7;
+            color: #333;
+            background: #fff;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #1a1a1a; }
+        h2 { font-size: 1.5rem; margin-top: 2.5rem; border-bottom: 2px solid #0066cc; padding-bottom: 0.5rem; color: #1a1a1a; }
+        h3 { font-size: 1.2rem; margin-top: 1.5rem; color: #222; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        table th, table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        table th { background: #f5f5f5; font-weight: bold; }
+        .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+        ul, ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+        li { margin-bottom: 0.4rem; }
+        a { color: #0066cc; }
+        a:hover { text-decoration: underline; }
+        .highlight { background: #f0f7ff; border-left: 4px solid #0066cc; padding: 12px 16px; margin: 1rem 0; }
+        .footer-note { text-align: center; color: #666; font-size: 0.85rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <h1>Privacy Policy</h1>
+    <div class="meta">
+        <strong>Betgistics</strong><br>
+        <strong>Effective Date:</strong> February 13, 2026<br>
+        <strong>Last Updated:</strong> February 13, 2026<br>
+        <strong>Version:</strong> 1.0.0<br>
+        <strong>Platform:</strong> Android (Google Play Store)
+    </div>
+
+    <h2>1. Introduction</h2>
+    <p>This Privacy Policy explains how Betgistics ("the App," "we," "us," or "our") collects, uses, stores, shares, and protects your personal information when you use our Android mobile application and associated services hosted at <strong>betgistics.com</strong>.</p>
+    <p>By downloading, installing, or using Betgistics, you agree to the practices described in this Privacy Policy. If you do not agree with this policy, please do not use the App.</p>
+    <p>This policy applies to all users of the Betgistics Android application available on the Google Play Store.</p>
+
+    <h2>2. Information We Collect</h2>
+
+    <h3>2.1 Information Collected Through Google Sign-In</h3>
+    <p>When you authenticate using Google OAuth 2.0, we receive and store the following information from your Google account:</p>
+    <table>
+        <tr>
+            <th>Data Type</th>
+            <th>Source</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>Full name</td>
+            <td>Google account profile</td>
+            <td>Account identification and display</td>
+        </tr>
+        <tr>
+            <td>Email address</td>
+            <td>Google account profile</td>
+            <td>Account identification, communication, and login</td>
+        </tr>
+        <tr>
+            <td>Profile picture (avatar)</td>
+            <td>Google account profile</td>
+            <td>User interface personalization</td>
+        </tr>
+    </table>
+    <p>We access only the basic profile scopes required for authentication. We do <strong>not</strong> request access to your Google contacts, calendar, files, or any other Google services beyond your basic profile information.</p>
+
+    <h3>2.2 Information You Provide Directly</h3>
+    <p>Through your use of the App, you may provide the following information:</p>
+    <table>
+        <tr>
+            <th>Data Type</th>
+            <th>Purpose</th>
+            <th>Storage</th>
+        </tr>
+        <tr>
+            <td>Bet history and bet logs</td>
+            <td>Track your betting activity and calculate Kelly Criterion recommendations</td>
+            <td>MongoDB database</td>
+        </tr>
+        <tr>
+            <td>Bankroll data</td>
+            <td>Manage your bankroll and generate optimal bet sizing</td>
+            <td>MongoDB database</td>
+        </tr>
+        <tr>
+            <td>Matchup and analysis queries</td>
+            <td>Generate AI-powered matchup analysis</td>
+            <td>Processed in real time; not permanently stored</td>
+        </tr>
+        <tr>
+            <td>Payment information</td>
+            <td>Process subscription or purchase transactions</td>
+            <td>Handled entirely by Stripe; we do not store card details</td>
+        </tr>
+    </table>
+
+    <h3>2.3 Information We Do NOT Collect</h3>
+    <div class="highlight">
+        <p>Betgistics does <strong>not</strong> collect, access, or store any of the following:</p>
+        <ul>
+            <li>Precise or approximate device location / GPS data</li>
+            <li>Contacts or address book information</li>
+            <li>Phone number, call logs, or SMS/MMS messages</li>
+            <li>Device microphone or camera data</li>
+            <li>Files or documents on your device</li>
+            <li>Health, fitness, or biometric data</li>
+            <li>Advertising identifiers for ad targeting</li>
+        </ul>
+    </div>
+
+    <h3>2.4 Automatically Collected Information</h3>
+    <p>We may automatically collect limited technical information to maintain and improve the App:</p>
+    <ul>
+        <li><strong>Device type and operating system version</strong> -- for compatibility and debugging purposes</li>
+        <li><strong>App version</strong> -- to ensure you have the latest features and security updates</li>
+        <li><strong>Crash reports and error logs</strong> -- to identify and resolve technical issues</li>
+    </ul>
+    <p>This technical data is collected in aggregate form and is not linked to your personal identity.</p>
+
+    <h2>3. How We Use Your Information</h2>
+    <p>We use the information we collect for the following purposes:</p>
+    <ol>
+        <li><strong>Account Management:</strong> Create, authenticate, and maintain your user account via Google OAuth</li>
+        <li><strong>Core Functionality:</strong> Store and display your bet logs, bankroll data, and Kelly Criterion calculations</li>
+        <li><strong>AI Analysis:</strong> Process your matchup queries through Google Gemini AI to provide analytical insights</li>
+        <li><strong>Payment Processing:</strong> Facilitate transactions through Stripe for premium features or subscriptions</li>
+        <li><strong>Service Improvement:</strong> Diagnose technical issues and improve App performance and reliability</li>
+        <li><strong>Communication:</strong> Send service-related notices such as security alerts, account notifications, or policy updates</li>
+    </ol>
+
+    <p>We do <strong>NOT</strong> use your data for:</p>
+    <ul>
+        <li>Targeted advertising or behavioral profiling</li>
+        <li>Sale or rental to third parties</li>
+        <li>Marketing by unrelated third parties</li>
+        <li>Automated decision-making that produces legal effects</li>
+    </ul>
+
+    <h2>4. Third-Party Services</h2>
+    <p>Betgistics integrates with the following third-party services. Each service receives only the minimum data necessary to perform its function:</p>
+
+    <h3>4.1 Google OAuth 2.0 (Authentication)</h3>
+    <ul>
+        <li><strong>Data shared:</strong> Authentication tokens exchanged during the sign-in flow</li>
+        <li><strong>Purpose:</strong> Securely authenticate your identity without requiring a separate password</li>
+        <li><strong>Privacy Policy:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+    </ul>
+
+    <h3>4.2 Google Gemini AI (Matchup Analysis)</h3>
+    <ul>
+        <li><strong>Data shared:</strong> Matchup query details, betting odds, and related context you provide for analysis</li>
+        <li><strong>Purpose:</strong> Generate AI-powered analytical insights for sports matchups</li>
+        <li><strong>Data handling:</strong> Query data is sent to Google Gemini API in real time for processing. We do not send personally identifiable information (such as your name or email) to the Gemini API.</li>
+        <li><strong>Privacy Policy:</strong> <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+        <li><strong>AI Terms:</strong> <a href="https://ai.google.dev/terms" target="_blank" rel="noopener">Google Generative AI Terms of Service</a></li>
+    </ul>
+
+    <h3>4.3 Stripe (Payment Processing)</h3>
+    <ul>
+        <li><strong>Data shared:</strong> Email address and payment details you enter during checkout</li>
+        <li><strong>Purpose:</strong> Securely process payments for premium features or subscriptions</li>
+        <li><strong>Data handling:</strong> All payment card information is collected and processed directly by Stripe. We do <strong>not</strong> receive, store, or have access to your full credit card number, CVV, or other sensitive payment credentials. We receive only a transaction confirmation and a tokenized reference.</li>
+        <li><strong>Privacy Policy:</strong> <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a></li>
+    </ul>
+
+    <h3>4.4 MongoDB (Data Storage)</h3>
+    <ul>
+        <li><strong>Data stored:</strong> Account profile data, bet history, and bankroll data</li>
+        <li><strong>Purpose:</strong> Persistent storage of your account and betting data</li>
+        <li><strong>Data handling:</strong> Data is stored on secure, access-controlled MongoDB servers. Database access is restricted to authorized backend services only.</li>
+    </ul>
+
+    <h2>5. Data Retention</h2>
+
+    <h3>5.1 Account and Betting Data</h3>
+    <p>We retain your account profile, bet logs, and bankroll data for as long as your account remains active. This data is necessary to provide the core functionality of the App.</p>
+
+    <h3>5.2 AI Query Data</h3>
+    <p>Matchup analysis queries sent to Google Gemini AI are processed in real time and are <strong>not</strong> permanently stored by Betgistics after the response is delivered. Google may retain data according to their own data retention policies.</p>
+
+    <h3>5.3 Payment Data</h3>
+    <p>Transaction records (excluding full card details) are retained as required for accounting, tax compliance, and dispute resolution, typically for a period of up to 7 years in accordance with applicable financial regulations.</p>
+
+    <h3>5.4 Technical Logs</h3>
+    <p>Crash reports and error logs are retained for up to 90 days and are then automatically purged.</p>
+
+    <h3>5.5 After Account Deletion</h3>
+    <p>Upon account deletion (see Section 6), we will delete or anonymize your personal data within 30 days, except where retention is required by law or for legitimate business purposes such as fraud prevention or financial record-keeping.</p>
+
+    <h2>6. Your Rights and Choices</h2>
+
+    <h3>6.1 Access Your Data</h3>
+    <p>You may request a copy of the personal data we hold about you at any time.</p>
+
+    <h3>6.2 Correct Your Data</h3>
+    <p>You may request correction of any inaccurate or incomplete personal data.</p>
+
+    <h3>6.3 Delete Your Data</h3>
+    <p>You may request deletion of your account and all associated personal data. To delete your account and data:</p>
+    <ul>
+        <li>Use the account deletion option within the App settings, or</li>
+        <li>Send an email to <strong>privacy@betgistics.com</strong> with the subject line "Account Deletion Request"</li>
+    </ul>
+    <p>We will process your deletion request within 30 days. Some data may be retained as described in Section 5.5.</p>
+
+    <h3>6.4 Export Your Data</h3>
+    <p>You may request a portable copy of your data in a commonly used, machine-readable format (e.g., JSON or CSV).</p>
+
+    <h3>6.5 Withdraw Consent</h3>
+    <p>Where processing is based on your consent, you may withdraw that consent at any time. Withdrawal of consent does not affect the lawfulness of processing carried out prior to withdrawal.</p>
+
+    <h3>6.6 How to Exercise Your Rights</h3>
+    <p>To exercise any of the above rights, contact us at:</p>
+    <p><strong>Email:</strong> privacy@betgistics.com<br>
+    <strong>Subject:</strong> Privacy Rights Request</p>
+    <p>We will verify your identity and respond to your request within 30 days. If we need additional time, we will notify you of the reason and the expected timeframe.</p>
+
+    <h2>7. GDPR Compliance (European Economic Area Users)</h2>
+    <p>If you are located in the European Economic Area (EEA), the United Kingdom, or Switzerland, you have additional rights under the General Data Protection Regulation (GDPR):</p>
+
+    <h3>7.1 Legal Basis for Processing</h3>
+    <p>We process your personal data under the following legal bases:</p>
+    <table>
+        <tr>
+            <th>Processing Activity</th>
+            <th>Legal Basis</th>
+        </tr>
+        <tr>
+            <td>Account creation and authentication</td>
+            <td>Performance of a contract (providing the service you requested)</td>
+        </tr>
+        <tr>
+            <td>Storing bet logs and bankroll data</td>
+            <td>Performance of a contract</td>
+        </tr>
+        <tr>
+            <td>AI matchup analysis</td>
+            <td>Consent (you initiate each query)</td>
+        </tr>
+        <tr>
+            <td>Payment processing</td>
+            <td>Performance of a contract</td>
+        </tr>
+        <tr>
+            <td>Crash reporting and diagnostics</td>
+            <td>Legitimate interest (maintaining service reliability)</td>
+        </tr>
+        <tr>
+            <td>Service-related communications</td>
+            <td>Legitimate interest (keeping you informed about your account)</td>
+        </tr>
+    </table>
+
+    <h3>7.2 Your GDPR Rights</h3>
+    <p>In addition to the rights listed in Section 6, EEA users have the right to:</p>
+    <ul>
+        <li><strong>Restrict processing:</strong> Request that we limit how we use your data in certain circumstances</li>
+        <li><strong>Object to processing:</strong> Object to processing based on legitimate interest</li>
+        <li><strong>Data portability:</strong> Receive your personal data in a structured, commonly used, machine-readable format</li>
+        <li><strong>Lodge a complaint:</strong> File a complaint with your local Data Protection Authority (DPA) if you believe your rights have been violated</li>
+    </ul>
+
+    <h3>7.3 International Data Transfers</h3>
+    <p>Your data may be transferred to and processed in the United States or other countries where our service providers operate. When we transfer data outside the EEA, we ensure appropriate safeguards are in place, including Standard Contractual Clauses (SCCs) approved by the European Commission or reliance on the service provider's adequacy frameworks.</p>
+
+    <h2>8. CCPA Compliance (California Residents)</h2>
+    <p>If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA) and the California Privacy Rights Act (CPRA):</p>
+
+    <h3>8.1 Your CCPA Rights</h3>
+    <ul>
+        <li><strong>Right to Know:</strong> You may request disclosure of the categories and specific pieces of personal information we have collected about you, the sources of that information, the business purposes for collection, and the categories of third parties with whom we share it.</li>
+        <li><strong>Right to Delete:</strong> You may request deletion of your personal information, subject to certain legal exceptions.</li>
+        <li><strong>Right to Correct:</strong> You may request correction of inaccurate personal information.</li>
+        <li><strong>Right to Opt-Out of Sale/Sharing:</strong> We do <strong>not</strong> sell or share your personal information as defined by the CCPA/CPRA. Therefore, no opt-out mechanism is required.</li>
+        <li><strong>Right to Non-Discrimination:</strong> We will not discriminate against you for exercising any of your CCPA rights.</li>
+    </ul>
+
+    <h3>8.2 Categories of Personal Information Collected</h3>
+    <table>
+        <tr>
+            <th>CCPA Category</th>
+            <th>Examples</th>
+            <th>Collected?</th>
+        </tr>
+        <tr>
+            <td>Identifiers</td>
+            <td>Name, email address</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Commercial information</td>
+            <td>Transaction records, betting history</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Internet or network activity</td>
+            <td>App usage, crash logs</td>
+            <td>Yes (limited)</td>
+        </tr>
+        <tr>
+            <td>Geolocation data</td>
+            <td>Precise or approximate location</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Audio, visual, or similar</td>
+            <td>Profile avatar from Google</td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td>Professional or employment info</td>
+            <td>Job title, employer</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Education information</td>
+            <td>School, degree</td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td>Sensitive personal information</td>
+            <td>SSN, financial account numbers</td>
+            <td>No</td>
+        </tr>
+    </table>
+
+    <h3>8.3 How to Submit a CCPA Request</h3>
+    <p>California residents may submit requests by emailing <strong>privacy@betgistics.com</strong> with the subject line "CCPA Request." We will verify your identity before processing your request and respond within 45 days.</p>
+
+    <h2>9. Data Security</h2>
+    <p>We implement industry-standard technical and organizational measures to protect your personal information, including:</p>
+    <ul>
+        <li><strong>Encryption in transit:</strong> All data transmitted between the App, our backend servers, and third-party services uses TLS/HTTPS encryption</li>
+        <li><strong>Encryption at rest:</strong> Sensitive data stored in our database is encrypted at rest</li>
+        <li><strong>Access controls:</strong> Database and server access is restricted to authorized personnel and services only</li>
+        <li><strong>Authentication security:</strong> Google OAuth 2.0 eliminates the need to store passwords, reducing credential-related risks</li>
+        <li><strong>Payment security:</strong> All payment data is handled by Stripe, a PCI DSS Level 1 certified payment processor</li>
+        <li><strong>Input validation:</strong> All user inputs are validated and sanitized to prevent injection attacks</li>
+        <li><strong>Regular updates:</strong> We apply security patches and updates to our infrastructure on a regular basis</li>
+    </ul>
+    <p>While we employ robust security measures, no method of electronic transmission or storage is completely secure. We cannot guarantee absolute security of your data.</p>
+
+    <h2>10. Children's Privacy</h2>
+    <p><strong>Betgistics is not intended for use by anyone under the age of 18.</strong></p>
+    <p>We do not knowingly collect personal information from children under the age of 13 (or the applicable age of digital consent in your jurisdiction). If you are a parent or guardian and believe that your child has provided us with personal information, please contact us immediately at <strong>privacy@betgistics.com</strong>. If we become aware that we have collected personal information from a child under the applicable age, we will take steps to delete that information promptly.</p>
+    <p>Given the nature of this App (sports betting analysis and bankroll management), users must be of legal gambling age in their jurisdiction to use this service.</p>
+
+    <h2>11. Changes to This Privacy Policy</h2>
+    <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors. When we make material changes, we will:</p>
+    <ul>
+        <li>Update the "Last Updated" date at the top of this policy</li>
+        <li>Post a notice within the App</li>
+        <li>Send an email notification for significant changes, where required by law</li>
+    </ul>
+    <p>We encourage you to review this policy periodically. Your continued use of the App after any changes constitutes your acceptance of the updated Privacy Policy.</p>
+
+    <h2>12. Contact Us</h2>
+    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:</p>
+    <p>
+        <strong>Email:</strong> privacy@betgistics.com<br>
+        <strong>Website:</strong> <a href="https://betgistics.com" target="_blank" rel="noopener">https://betgistics.com</a><br>
+        <strong>Subject:</strong> Privacy Inquiry
+    </p>
+    <p>For data protection inquiries from the EEA, you may also contact your local Data Protection Authority.</p>
+
+    <h2>13. Google Play Store Required Disclosures</h2>
+    <p>In compliance with Google Play Store policies, we provide the following summary of our data practices:</p>
+
+    <h3>13.1 Data Collection Summary</h3>
+    <table>
+        <tr>
+            <th>Data Type</th>
+            <th>Collected</th>
+            <th>Shared</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>Name</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>Account management</td>
+        </tr>
+        <tr>
+            <td>Email address</td>
+            <td>Yes</td>
+            <td>With Stripe (for payments)</td>
+            <td>Account management, payment processing</td>
+        </tr>
+        <tr>
+            <td>Profile picture</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>App personalization</td>
+        </tr>
+        <tr>
+            <td>Bet history</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>App functionality</td>
+        </tr>
+        <tr>
+            <td>Bankroll data</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>App functionality</td>
+        </tr>
+        <tr>
+            <td>Payment info</td>
+            <td>Collected by Stripe</td>
+            <td>Processed by Stripe</td>
+            <td>Payment processing</td>
+        </tr>
+        <tr>
+            <td>Crash logs</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>App stability and diagnostics</td>
+        </tr>
+        <tr>
+            <td>Location</td>
+            <td>No</td>
+            <td>No</td>
+            <td>N/A</td>
+        </tr>
+        <tr>
+            <td>Contacts</td>
+            <td>No</td>
+            <td>No</td>
+            <td>N/A</td>
+        </tr>
+        <tr>
+            <td>Phone / SMS / Call logs</td>
+            <td>No</td>
+            <td>No</td>
+            <td>N/A</td>
+        </tr>
+    </table>
+
+    <h3>13.2 Data Deletion</h3>
+    <p>Users may request deletion of their account and associated data at any time through the App settings or by contacting <strong>privacy@betgistics.com</strong>. Deletion requests are processed within 30 days.</p>
+
+    <h3>13.3 Data Security</h3>
+    <p>All data is transmitted over secure, encrypted connections (HTTPS/TLS). Data at rest is stored on access-controlled, encrypted servers. Payment information is processed by Stripe, a PCI DSS Level 1 certified provider.</p>
+
+    <div class="footer-note">
+        <p>This Privacy Policy is provided in good faith and is intended to be compliant with applicable laws, including GDPR, CCPA/CPRA, and Google Play Store Developer Program Policies.</p>
+        <p>&copy; 2026 Betgistics. All rights reserved.</p>
+    </div>
+
+</body>
+</html>

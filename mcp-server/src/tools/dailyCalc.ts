@@ -1,0 +1,762 @@
+/**
+ * Daily Calculations Tool
+ *
+ * Orchestrates the full daily betting analysis pipeline:
+ *   1. Fetch today's games from ESPN (NBA + NFL)
+ *   2. Look up team stats from CSV files
+ *   3. Calculate win probability for each game
+ *   4. Calculate Kelly Criterion optimal stake
+ *   5. Log positive-edge bets to MongoDB under the admin account
+ *   6. Return a daily summary report
+ *
+ * This runs automatically via a node-cron job at 9:00 AM UTC every day,
+ * and can also be triggered manually via the MCP tool or HTTP endpoint.
+ *
+ * TOOL: run_daily_calculations
+ * Triggers the daily game analysis pipeline and returns a summary of results.
+ */
+
+import { z } from 'zod';
+import { getTodaysGames, DailyGame } from './gamesOfDay.js';
+import { handleFootballProbability } from './probability.js';
+import { handleBasketballProbability } from './probability.js';
+import { handleHockeyProbability } from './hockeyProbability.js';
+import { handleKellyCalculation } from './kelly.js';
+import { handleLogBet } from './betLogging.js';
+import { getNBATeamStats, getNFLTeamStats, getNHLTeamStats, clearStatsCache } from '../utils/statsLoader.js';
+import { isDatabaseConnected, ensureDatabaseConnection } from '../config/database.js';
+import { User } from '../models/User.js';
+import { handleRecordProjection } from './projectionLog.js';
+import { evaluateDecision } from '../utils/decision.js';
+import { projectMLBGame } from '../utils/mlb.js';
+import {
+  fetchMLBSchedule,
+  fetchMLBTotals,
+  fetchMLBGameInputs,
+  type TeamSeasonOffense,
+} from '../utils/mlbDataService.js';
+
+// ============================================================================
+// CONFIG
+// ============================================================================
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'cartercedrick35@gmail.com';
+const DEFAULT_BANKROLL = parseFloat(process.env.DEFAULT_CALC_BANKROLL || '1000');
+const DEFAULT_KELLY_FRACTION = 0.5;
+const DEFAULT_AMERICAN_ODDS = -110;
+
+// Implied probability from -110 odds: 110 / (110 + 100) = 52.38%
+const IMPLIED_PROB_AT_MINUS_110 = 52.38;
+
+// Version tag stored with every recorded projection so backtests can compare
+// model iterations head-to-head. Bump when the formulas/config change materially.
+const MODEL_VERSION = 'daily-v1';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface GameCalcResult {
+  game: string;           // "Home Team vs Away Team (SPORT)"
+  sport: 'NBA' | 'NFL' | 'NHL' | 'MLB';
+  homeTeam: string;
+  awayTeam: string;
+  probability: number;    // Calculated probability that home team covers
+  impliedProbability: number;
+  edge: number;           // probability - impliedProbability
+  hasValue: boolean;
+  kellyFraction: number;
+  recommendedStake: number;
+  stakePercentage: number;
+  betLogged: boolean;
+  betId?: string;
+  projectionRecorded?: boolean;  // Whether a backtesting projection was stored
+  skipped?: string;       // Reason if skipped (no stats, no value, etc.)
+  error?: string;
+}
+
+export interface DailyCalcSummary {
+  success: boolean;
+  date: string;
+  gamesAnalyzed: number;
+  gamesSkipped: number;
+  betsLogged: number;
+  projectionsRecorded: number;
+  highValueBets: GameCalcResult[];
+  allResults: GameCalcResult[];
+  errors: string[];
+  userId?: string;
+}
+
+export interface DailyCalcOptions {
+  bankroll?: number;
+  kellyFraction?: number;
+  americanOdds?: number;
+  logBets?: boolean;
+  /**
+   * Record every analyzed game as a backtesting projection (moneyline market,
+   * home perspective) with its stat snapshot. Independent of logBets: bets are
+   * only the value plays, projections capture the model's opinion on every game.
+   * Defaults to true.
+   */
+  recordProjections?: boolean;
+  sport?: 'NBA' | 'NFL' | 'NHL' | 'MLB' | 'ALL';
+}
+
+// ============================================================================
+// ADMIN USER LOOKUP
+// ============================================================================
+
+async function getAdminUserId(): Promise<string | null> {
+  try {
+    await ensureDatabaseConnection();
+    const user = await User.findOne({ email: ADMIN_EMAIL });
+    if (!user) {
+      console.warn(`[DailyCalc] Admin user not found for email: ${ADMIN_EMAIL}`);
+      return null;
+    }
+    return user.identifier;
+  } catch (err) {
+    console.error('[DailyCalc] Failed to find admin user:', err);
+    return null;
+  }
+}
+
+// ============================================================================
+// NHL GAME CALCULATION (totals / over-under market)
+// ============================================================================
+
+/**
+ * Project an NHL game's total goals using the hockey engine, then record it as a
+ * backtesting projection on the totals market. NHL bets are NOT auto-logged as
+ * wagers (the daily bet-logging flow is spread/moneyline-shaped); NHL is
+ * analysis + backtesting only. Requires an ESPN over/under line to lean — when
+ * the line is missing we still record the projected total with a no-bet lean so
+ * the model's opinion is captured.
+ */
+async function calcNHLGame(
+  game: DailyGame,
+  recordProjections: boolean
+): Promise<GameCalcResult> {
+  const label = `${game.homeTeam} vs ${game.awayTeam} (NHL)`;
+  const baseResult: GameCalcResult = {
+    game: label,
+    sport: 'NHL',
+    homeTeam: game.homeTeam,
+    awayTeam: game.awayTeam,
+    probability: 0,
+    impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+    edge: 0,
+    hasValue: false,
+    kellyFraction: 0,
+    recommendedStake: 0,
+    stakePercentage: 0,
+    betLogged: false,
+  };
+
+  const homeStats = getNHLTeamStats(game.homeTeam) || getNHLTeamStats(game.homeAbbr);
+  const awayStats = getNHLTeamStats(game.awayTeam) || getNHLTeamStats(game.awayAbbr);
+  if (!homeStats) {
+    return { ...baseResult, skipped: `No NHL stats for home team: ${game.homeTeam} (${game.homeAbbr})` };
+  }
+  if (!awayStats) {
+    return { ...baseResult, skipped: `No NHL stats for away team: ${game.awayTeam} (${game.awayAbbr})` };
+  }
+
+  // The hockey tool needs a line; default to a typical NHL total when ESPN has
+  // none so we can still produce a projected total to record.
+  const line = game.overUnder ?? 6.0;
+
+  let projectedTotal = 0;
+  let overProbability = 0;
+  try {
+    const probResult = await handleHockeyProbability({
+      homeTeam: { name: game.homeTeam, ...homeStats },
+      awayTeam: { name: game.awayTeam, ...awayStats },
+      line,
+      betType: 'over',
+    });
+    if (probResult.success) {
+      projectedTotal = probResult.projection.projectedTotal;
+      overProbability = probResult.result.overProbability;
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return { ...baseResult, error: `NHL projection failed: ${errMsg}` };
+  }
+
+  if (projectedTotal === 0) {
+    return { ...baseResult, skipped: 'NHL projection returned 0' };
+  }
+
+  // Lean over/under via the shared decision layer against the (de-vigged) total.
+  const overSide = overProbability >= 50;
+  const sideProb = overSide ? overProbability : 100 - overProbability;
+  const decision = evaluateDecision({
+    modelProbabilityPct: sideProb,
+    sideOdds: -110,
+    otherSideOdds: -110,
+    dataCompleteness: 1,
+  });
+  // Only lean when ESPN actually gave us a market line; otherwise no-bet.
+  const lean =
+    game.overUnder !== undefined && decision.recommendation === 'bet'
+      ? (overSide ? 'over' : 'under')
+      : 'no-bet';
+
+  let projectionRecorded = false;
+  if (recordProjections) {
+    try {
+      await handleRecordProjection({
+        gameDate: new Date().toISOString().split('T')[0],
+        sport: 'hockey',
+        league: 'NHL',
+        homeTeam: game.homeTeam,
+        awayTeam: game.awayTeam,
+        market: 'total',
+        bookLine: game.overUnder ?? null,
+        bookOdds: -110,
+        projectedValue: projectedTotal,
+        edge: game.overUnder !== undefined ? decision.edgePct : null,
+        lean,
+        confidence: lean === 'no-bet' ? Math.min(decision.confidence, 44) : decision.confidence,
+        modelVersion: MODEL_VERSION,
+        statsSnapshot: { home: homeStats, away: awayStats, line, overProbability },
+      });
+      projectionRecorded = true;
+    } catch (err) {
+      console.warn(`[DailyCalc] NHL projection recording failed for ${label}:`, err);
+    }
+  }
+
+  return {
+    ...baseResult,
+    probability: sideProb,
+    edge: game.overUnder !== undefined ? decision.edgePct : 0,
+    hasValue: lean !== 'no-bet',
+    projectionRecorded,
+  };
+}
+
+// ============================================================================
+// SINGLE GAME CALCULATION
+// ============================================================================
+
+async function calcGame(
+  game: DailyGame,
+  bankroll: number,
+  kellyFraction: number,
+  americanOdds: number,
+  userId: string | null,
+  logBets: boolean,
+  recordProjections: boolean
+): Promise<GameCalcResult> {
+  const label = `${game.homeTeam} vs ${game.awayTeam} (${game.sport})`;
+
+  const baseResult: GameCalcResult = {
+    game: label,
+    sport: game.sport,
+    homeTeam: game.homeTeam,
+    awayTeam: game.awayTeam,
+    probability: 0,
+    impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+    edge: 0,
+    hasValue: false,
+    kellyFraction,
+    recommendedStake: 0,
+    stakePercentage: 0,
+    betLogged: false,
+  };
+
+  // NHL uses a totals (over/under) model, not a spread/moneyline one, so it has
+  // its own path. NBA/NFL continue through the shared spread/moneyline flow below.
+  if (game.sport === 'NHL') {
+    return calcNHLGame(game, recordProjections);
+  }
+
+  // 1. Load team stats
+  type TeamStats = ReturnType<typeof getNBATeamStats> | ReturnType<typeof getNFLTeamStats> | null;
+  let homeStats: TeamStats = null;
+  let awayStats: TeamStats = null;
+
+  if (game.sport === 'NBA') {
+    homeStats = getNBATeamStats(game.homeTeam) || getNBATeamStats(game.homeAbbr);
+    awayStats = getNBATeamStats(game.awayTeam) || getNBATeamStats(game.awayAbbr);
+  } else {
+    homeStats = getNFLTeamStats(game.homeTeam) || getNFLTeamStats(game.homeAbbr);
+    awayStats = getNFLTeamStats(game.awayTeam) || getNFLTeamStats(game.awayAbbr);
+  }
+
+  if (!homeStats) {
+    return { ...baseResult, skipped: `No stats found for home team: ${game.homeTeam} (${game.homeAbbr})` };
+  }
+  if (!awayStats) {
+    return { ...baseResult, skipped: `No stats found for away team: ${game.awayTeam} (${game.awayAbbr})` };
+  }
+
+  // 2. Calculate probability
+  let probability = 0;
+  let predictedMargin = 0;
+
+  try {
+    if (game.sport === 'NBA') {
+      const nbaHome = homeStats as ReturnType<typeof getNBATeamStats>;
+      const nbaAway = awayStats as ReturnType<typeof getNBATeamStats>;
+
+      const probResult = await handleBasketballProbability({
+        teamA: {
+          name: game.homeTeam,
+          ppg: nbaHome!.ppg,
+          pointsAllowed: nbaHome!.pointsAllowed,
+          fgPct: nbaHome!.fgPct,
+          reboundMargin: nbaHome!.reboundMargin,
+          turnoverMargin: nbaHome!.turnoverMargin,
+          pace: nbaHome!.pace,
+          threePRate: nbaHome!.threeRate,
+          threePPct: nbaHome!.threePct,
+        },
+        teamB: {
+          name: game.awayTeam,
+          ppg: nbaAway!.ppg,
+          pointsAllowed: nbaAway!.pointsAllowed,
+          fgPct: nbaAway!.fgPct,
+          reboundMargin: nbaAway!.reboundMargin,
+          turnoverMargin: nbaAway!.turnoverMargin,
+          pace: nbaAway!.pace,
+          threePRate: nbaAway!.threeRate,
+          threePPct: nbaAway!.threePct,
+        },
+        spread: 0,        // pick'em — we're calculating overall win probability
+        venue: 'home',    // home team has home advantage
+        league: 'NBA',
+      });
+
+      if (probResult.success) {
+        probability = probResult.result.probability;
+        predictedMargin = probResult.result.predictedMargin;
+      }
+    } else {
+      // NFL
+      const nflHome = homeStats as ReturnType<typeof getNFLTeamStats>;
+      const nflAway = awayStats as ReturnType<typeof getNFLTeamStats>;
+
+      const probResult = await handleFootballProbability({
+        teamA: {
+          name: game.homeTeam,
+          ppg: nflHome!.ppg,
+          pointsAllowed: nflHome!.pointsAllowed,
+          offensiveYards: nflHome!.offensiveYards,
+          defensiveYards: nflHome!.defensiveYards,
+          turnoverDiff: nflHome!.turnoverDiff,
+        },
+        teamB: {
+          name: game.awayTeam,
+          ppg: nflAway!.ppg,
+          pointsAllowed: nflAway!.pointsAllowed,
+          offensiveYards: nflAway!.offensiveYards,
+          defensiveYards: nflAway!.defensiveYards,
+          turnoverDiff: nflAway!.turnoverDiff,
+        },
+        spread: 0,
+        venue: 'home',
+        league: 'NFL',
+      });
+
+      if (probResult.success) {
+        probability = probResult.result.probability;
+        predictedMargin = probResult.result.predictedMargin;
+      }
+    }
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return { ...baseResult, error: `Probability calculation failed: ${errMsg}` };
+  }
+
+  if (probability === 0) {
+    return { ...baseResult, skipped: 'Probability calculation returned 0' };
+  }
+
+  // 3. Calculate Kelly
+  const edge = probability - IMPLIED_PROB_AT_MINUS_110;
+  const hasValue = edge > 0;
+
+  let recommendedStake = 0;
+  let stakePercentage = 0;
+
+  try {
+    const kellyResult = await handleKellyCalculation({
+      bankroll,
+      probability,
+      americanOdds,
+      fraction: kellyFraction,
+    });
+
+    if (kellyResult.success) {
+      recommendedStake = kellyResult.result.recommendedStake;
+      stakePercentage = kellyResult.result.stakePercentage;
+    }
+  } catch (err) {
+    // Non-fatal: Kelly calc failed but we still have the probability
+    console.warn(`[DailyCalc] Kelly calc failed for ${label}:`, err);
+  }
+
+  // 4. Log the bet if it has value and logging is enabled
+  let betLogged = false;
+  let betId: string | undefined;
+
+  if (hasValue && logBets && userId) {
+    try {
+      const sportLabel = game.sport === 'NBA' ? 'basketball' : 'football';
+      const logResult = await handleLogBet({
+        userId,
+        sport: sportLabel as 'basketball' | 'football',
+        teamA: {
+          name: game.homeTeam,
+          abbreviation: game.homeAbbr,
+        },
+        teamB: {
+          name: game.awayTeam,
+          abbreviation: game.awayAbbr,
+        },
+        venue: 'home' as const,
+        pointSpread: 0,
+        calculatedProbability: probability,
+        expectedMargin: predictedMargin,
+        impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+        edge,
+        bankroll,
+        americanOdds,
+        kellyFraction: kellyFraction >= 0.75 ? 1 : kellyFraction >= 0.4 ? 0.5 : 0.25,
+        recommendedStake,
+        stakePercentage,
+        notes: `Auto-logged by daily cron job on ${new Date().toISOString().split('T')[0]}`,
+        tags: ['auto', 'daily-cron', game.sport.toLowerCase()],
+      });
+
+      if (logResult.success) {
+        betLogged = true;
+        betId = logResult.betId;
+      }
+    } catch (err) {
+      console.warn(`[DailyCalc] Bet logging failed for ${label}:`, err);
+    }
+  }
+
+  // 5. Record a backtesting projection for EVERY analyzed game (not just value
+  //    bets). The decision layer turns the home win probability into a
+  //    home/away/no-bet lean so the stored record matches how the model would
+  //    advise. The stat snapshot is exactly what fed the projection.
+  let projectionRecorded = false;
+  if (recordProjections) {
+    try {
+      const decision = evaluateDecision({
+        modelProbabilityPct: probability,
+        sideOdds: americanOdds,
+        otherSideOdds: americanOdds,
+        dataCompleteness: 1, // daily-calc stats are complete by construction
+      });
+      const lean = decision.recommendation === 'bet' ? 'home' : 'no-bet';
+
+      await handleRecordProjection({
+        gameDate: new Date().toISOString().split('T')[0],
+        sport: game.sport === 'NBA' ? 'basketball' : 'football',
+        league: game.sport,
+        homeTeam: game.homeTeam,
+        awayTeam: game.awayTeam,
+        market: 'moneyline',
+        bookLine: null,
+        bookOdds: americanOdds,
+        projectedValue: probability,
+        edge: decision.edgePct,
+        lean,
+        confidence: decision.confidence,
+        modelVersion: MODEL_VERSION,
+        statsSnapshot: {
+          home: homeStats,
+          away: awayStats,
+          predictedMargin,
+          venue: 'home',
+        },
+      });
+      projectionRecorded = true;
+    } catch (err) {
+      console.warn(`[DailyCalc] Projection recording failed for ${label}:`, err);
+    }
+  }
+
+  return {
+    game: label,
+    sport: game.sport,
+    homeTeam: game.homeTeam,
+    awayTeam: game.awayTeam,
+    probability,
+    impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+    edge,
+    hasValue,
+    kellyFraction,
+    recommendedStake,
+    stakePercentage,
+    betLogged,
+    betId,
+    projectionRecorded,
+  };
+}
+
+// ============================================================================
+// MLB DAILY CALCULATION (totals, via MLB StatsAPI)
+// ============================================================================
+
+/**
+ * Project today's MLB games from MLB StatsAPI and record them as totals
+ * projections for backtesting. Mutates the shared summary in place (counts
+ * analyzed games and projections recorded; surfaces per-source errors).
+ *
+ * Deliberately conservative: with only ERA + team OPS/RPG available, the engine
+ * produces low-data-completeness projections that usually settle to no-bet. We
+ * record them anyway so the backtest log can later show whether even this thin
+ * signal carries any edge.
+ */
+async function runMLBDailyCalc(
+  summary: DailyCalcSummary,
+  recordProjections: boolean
+): Promise<void> {
+  const season = new Date().getUTCFullYear();
+  let games;
+  let totals;
+  try {
+    // Schedule + probable starters from StatsAPI; book totals from ESPN.
+    [games, totals] = await Promise.all([fetchMLBSchedule(), fetchMLBTotals()]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    summary.errors.push(`MLB: failed to fetch schedule: ${msg}`);
+    return;
+  }
+
+  // Only project games that haven't started yet.
+  const upcoming = games.filter((g) => g.abstractState === 'Preview');
+  console.log(
+    `[DailyCalc] MLB: ${upcoming.length} upcoming games today, ${totals.size / 2 | 0} with book totals`
+  );
+
+  const offenseCache = new Map<number, TeamSeasonOffense>();
+
+  for (const game of upcoming) {
+    const label = `${game.away.name} @ ${game.home.name} (MLB)`;
+    try {
+      const input = await fetchMLBGameInputs(game, season, offenseCache, totals);
+      const result = projectMLBGame(input);
+      summary.gamesAnalyzed++;
+
+      if (result.totals.lean !== 'no-bet') {
+        summary.highValueBets.push({
+          game: label,
+          sport: 'MLB',
+          homeTeam: game.home.name,
+          awayTeam: game.away.name,
+          probability:
+            result.totals.lean === 'under'
+              ? result.totals.underProbability
+              : result.totals.overProbability,
+          impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+          edge: result.totals.edgeRuns ?? 0,
+          hasValue: true,
+          kellyFraction: 0,
+          recommendedStake: 0,
+          stakePercentage: 0,
+          betLogged: false,
+        });
+      }
+
+      if (recordProjections) {
+        await handleRecordProjection({
+          gameDate: new Date().toISOString().split('T')[0],
+          sport: 'baseball',
+          league: 'MLB',
+          homeTeam: game.home.name,
+          awayTeam: game.away.name,
+          market: 'total',
+          bookLine: result.totals.bookTotal,
+          projectedValue: result.totals.projectedTotal,
+          edge: result.totals.edgeRuns,
+          lean: result.totals.lean,
+          confidence: result.totals.confidence,
+          modelVersion: MODEL_VERSION,
+          statsSnapshot: {
+            input,
+            dataCompleteness: result.dataCompleteness,
+            riskFactors: result.riskFactors,
+          },
+        });
+        summary.projectionsRecorded++;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      summary.errors.push(`MLB ${label}: ${msg}`);
+    }
+  }
+}
+
+// ============================================================================
+// MAIN DAILY CALC FUNCTION
+// ============================================================================
+
+export async function runDailyCalculations(options: DailyCalcOptions = {}): Promise<DailyCalcSummary> {
+  const {
+    bankroll = DEFAULT_BANKROLL,
+    kellyFraction = DEFAULT_KELLY_FRACTION,
+    americanOdds = DEFAULT_AMERICAN_ODDS,
+    logBets = true,
+    recordProjections = true,
+    sport = 'ALL',
+  } = options;
+
+  const today = new Date().toISOString().split('T')[0];
+  console.log(`[DailyCalc] Starting daily calculations for ${today}`);
+  console.log(`[DailyCalc] Settings: bankroll=$${bankroll}, kelly=${kellyFraction}, odds=${americanOdds}, logBets=${logBets}`);
+
+  const summary: DailyCalcSummary = {
+    success: false,
+    date: today,
+    gamesAnalyzed: 0,
+    gamesSkipped: 0,
+    betsLogged: 0,
+    projectionsRecorded: 0,
+    highValueBets: [],
+    allResults: [],
+    errors: [],
+  };
+
+  // Get admin user ID for logging
+  let userId: string | null = null;
+  if (logBets) {
+    userId = await getAdminUserId();
+    if (userId) {
+      summary.userId = userId;
+      console.log(`[DailyCalc] Logging bets under admin user`);
+    } else {
+      console.warn('[DailyCalc] Admin user not found — bets will not be logged');
+    }
+  }
+
+  // Refresh stats cache before calculations
+  clearStatsCache();
+
+  // MLB uses MLB StatsAPI (probable starters + ERA + team OPS/RPG), not ESPN, so
+  // it runs through its own pipeline. It is intentionally limited: StatsAPI does
+  // not expose FIP/xFIP/SIERA/wRC+/bullpen/park/weather, so MLB projections rely
+  // on partial data and the engine's confidence/no-bet logic will (correctly)
+  // decline most games. MLB is analysis + backtesting only — never auto-logged
+  // as a wager. Runs when sport is MLB or ALL.
+  if (sport === 'MLB' || sport === 'ALL') {
+    await runMLBDailyCalc(summary, recordProjections);
+    // When the caller asked only for MLB, we're done.
+    if (sport === 'MLB') {
+      summary.success = true;
+      return summary;
+    }
+  }
+
+  // Fetch today's games (NHL is included under ALL; ESPN feeds NBA/NFL/NHL).
+  const fetchSport = sport === 'ALL' ? 'ALL' : sport;
+  let games: DailyGame[] = [];
+
+  try {
+    games = await getTodaysGames(fetchSport as 'NBA' | 'NFL' | 'NHL' | 'ALL');
+    // Filter to only scheduled or in_progress games (skip final/postponed)
+    games = games.filter((g) => g.status === 'scheduled' || g.status === 'in_progress');
+    console.log(`[DailyCalc] Found ${games.length} active games today`);
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    summary.errors.push(`Failed to fetch games: ${errMsg}`);
+    return summary;
+  }
+
+  if (games.length === 0) {
+    console.log('[DailyCalc] No games scheduled today');
+    summary.success = true;
+    return summary;
+  }
+
+  // Process each game sequentially to avoid rate limits
+  for (const game of games) {
+    console.log(`[DailyCalc] Processing: ${game.awayTeam} @ ${game.homeTeam} (${game.sport})`);
+
+    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, logBets, recordProjections);
+    summary.allResults.push(result);
+
+    if (result.skipped) {
+      summary.gamesSkipped++;
+      console.log(`[DailyCalc]   Skipped: ${result.skipped}`);
+    } else if (result.error) {
+      summary.errors.push(`${result.game}: ${result.error}`);
+      summary.gamesSkipped++;
+    } else {
+      summary.gamesAnalyzed++;
+      if (result.projectionRecorded) summary.projectionsRecorded++;
+      if (result.hasValue) {
+        summary.highValueBets.push(result);
+        if (result.betLogged) summary.betsLogged++;
+        console.log(`[DailyCalc]   Value bet: prob=${result.probability.toFixed(1)}%, edge=${result.edge.toFixed(1)}%, stake=$${result.recommendedStake.toFixed(2)}`);
+      } else {
+        console.log(`[DailyCalc]   No value: prob=${result.probability.toFixed(1)}% (need >52.4%)`);
+      }
+    }
+  }
+
+  summary.success = true;
+  console.log(`[DailyCalc] Done. ${summary.gamesAnalyzed} analyzed, ${summary.highValueBets.length} value bets, ${summary.betsLogged} logged, ${summary.projectionsRecorded} projections recorded`);
+
+  return summary;
+}
+
+// ============================================================================
+// MCP TOOL
+// ============================================================================
+
+export const runDailyCalcToolDefinition = {
+  name: 'run_daily_calculations',
+  description: 'Run the daily betting analysis pipeline: fetch today\'s NBA, NFL and NHL games from ESPN plus MLB games from MLB StatsAPI, project each one (NBA/NFL moneyline win probability, NHL & MLB over/under totals), apply Kelly Criterion to NBA/NFL value bets, log positive-edge bets, and record every analyzed game as a backtesting projection. MLB uses partial data (probable starter ERA + team OPS/RPG; no FIP/bullpen/park/weather) so its projections are low-confidence and usually no-bet by design. Returns a summary of analyzed games, value bets, and projections recorded.',
+};
+
+export const runDailyCalcInputSchema = z.object({
+  bankroll: z
+    .number()
+    .positive()
+    .optional()
+    .describe(`Bankroll in USD. Defaults to ${DEFAULT_BANKROLL}.`),
+  kellyFraction: z
+    .number()
+    .min(0.1)
+    .max(1)
+    .optional()
+    .describe('Kelly multiplier (0.1–1). Defaults to 0.5 (half Kelly).'),
+  americanOdds: z
+    .number()
+    .optional()
+    .describe('Default American odds if not available from ESPN. Defaults to -110.'),
+  logBets: z
+    .boolean()
+    .optional()
+    .describe('Whether to log positive-edge bets to MongoDB. Defaults to true.'),
+  recordProjections: z
+    .boolean()
+    .optional()
+    .describe('Whether to record every analyzed game as a backtesting projection. Defaults to true.'),
+  sport: z
+    .enum(['NBA', 'NFL', 'NHL', 'MLB', 'ALL'])
+    .optional()
+    .describe('Which sport to analyze. NBA/NFL produce moneyline projections, NHL produces totals projections; MLB is not yet automated. Defaults to ALL.'),
+});
+
+export async function handleRunDailyCalc(
+  params: z.infer<typeof runDailyCalcInputSchema>
+): Promise<DailyCalcSummary> {
+  return runDailyCalculations({
+    bankroll: params.bankroll,
+    kellyFraction: params.kellyFraction,
+    americanOdds: params.americanOdds,
+    logBets: params.logBets !== false,
+    recordProjections: params.recordProjections !== false,
+    sport: (params.sport || 'ALL') as 'NBA' | 'NFL' | 'NHL' | 'MLB' | 'ALL',
+  });
+}

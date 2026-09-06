@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "initialUserText": { "type": "string" },
+    "initialBankroll": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+    "initialOdds": { "oneOf": [{ "type": "string" }, { "type": "number" }] },
+    "defaultKelly": { "type": "number", "enum": [0.25, 0.5, 1.0] },
+    "defaultLogBet": { "type": "boolean" },
+    "initialUserId": { "type": "string" }
+  },
+  "required": [
+    "initialUserText",
+    "initialBankroll",
+    "initialOdds",
+    "defaultKelly",
+    "defaultLogBet",
+    "initialUserId"
+  ]
+}

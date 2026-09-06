@@ -1,0 +1,469 @@
+/**
+ * Statistical Probability Estimation Tools (Walters Protocol)
+ *
+ * This module implements the Walters Protocol, a sophisticated statistical methodology for estimating the probability
+ * that a team will cover a given point spread based on team performance statistics. Named after legendary sports bettor
+ * Billy Walters, this approach uses weighted analysis of multiple statistical factors combined with normal distribution
+ * modeling to generate objective probability estimates. Unlike subjective handicapping or gut-feel betting, the Walters
+ * Protocol provides data-driven probability calculations that can be fed into the Kelly Criterion for optimal bet sizing.
+ * The module provides separate tools for football and basketball, each calibrated with sport-specific weights, home
+ * field/court advantages, and standard deviation values that reflect the statistical realities of each sport.
+ *
+ * TOOL: estimate_football_probability
+ * Calculates the probability that a football team will cover the spread using a weighted statistical model that analyzes
+ * points differential (40% weight), yards differential (25% weight), and turnover differential (20% weight). The tool
+ * requires team statistics for both teams including points per game scored, points per game allowed, and optionally
+ * offensive yards per game, defensive yards allowed per game, and turnover differential (positive indicates more takeaways).
+ * The tool supports both NFL and college football (CFB) with different calibration constants - NFL uses a 2.5-point home
+ * field advantage and 13.5-point standard deviation, while CFB uses a 3.0-point advantage and 16.0-point standard deviation
+ * to account for greater variance in college games. The venue parameter (home/away/neutral) automatically applies the
+ * appropriate home field advantage adjustment when Team A is playing at home or penalizes them when playing away. The
+ * calculation first estimates the expected margin of victory by comparing offensive and defensive efficiency metrics,
+ * applies home field adjustment, then uses normal distribution (z-score) to determine the probability of covering the
+ * given spread. For example, if Team A is expected to win by 7 points and the spread is -3.5, the model calculates the
+ * probability they'll win by more than 3.5 points. The response includes the cover probability percentage, predicted
+ * margin of victory, the sigma (standard deviation) used, applied home field advantage, and a human-readable interpretation
+ * categorizing the bet quality (strong cover, favorable, coin flip, unfavorable, or poor value).
+ *
+ * TOOL: estimate_basketball_probability
+ * Calculates the probability that a basketball team will cover the spread using a weighted statistical model optimized
+ * for basketball's unique characteristics. The model analyzes seven marquee weighted inputs: points per game (15%), points allowed (15%), field goal percentage
+ * differential (25%), rebound margin (17%), turnover margin (13%), 3PT% differential (8%), and 3PT rate differential
+ * (7%). Pace is applied as a tempo multiplier after weighted components. The tool requires team statistics for both teams
+ * including points per game scored, points allowed, and optionally field goal percentage (e.g., 45.5 for 45.5%), rebound
+ * margin per game, turnover margin per game (positive means fewer turnovers than opponent), pace, 3PT%, and 3PT rate.
+ * Like the football tool, it supports both professional (NBA) and college (CBB) basketball with different calibrations -
+ * NBA uses a 1.5-point home court advantage and 12.0-point standard deviation, while CBB uses a 3.5-point advantage and
+ * 10.5-point standard deviation, reflecting the slightly lower variance in college basketball due to shorter shot clocks
+ * and different game dynamics. The venue parameter (home/away/neutral) applies the appropriate home court advantage or
+ * disadvantage. The calculation methodology mirrors the football tool: calculate expected margin using weighted statistical
+ * differentials, apply venue adjustment, then use normal distribution to determine cover probability. The response format
+ * is identical to the football tool, providing probability, predicted margin, sigma, home court advantage applied, and an
+ * interpretation of bet quality. Both probability tools form the statistical foundation for value betting, allowing users
+ * to compare their calculated probabilities against bookmaker implied probabilities to identify positive expected value
+ * opportunities that warrant Kelly Criterion bet sizing.
+ */
+
+import { z } from 'zod';
+import {
+  estimateFootballProbability,
+  estimateBasketballProbability,
+  NFL_CONSTANTS,
+  NBA_CONSTANTS,
+  CFB_CONSTANTS,
+  CBB_CONSTANTS,
+  FootballStats,
+  BasketballStats,
+  ProbabilityResult
+} from '../utils/calculations.js';
+import {
+  evaluateDecision,
+  dataCompletenessFrom,
+  type DecisionResult
+} from '../utils/decision.js';
+
+// ============================================================================
+// INPUT SCHEMAS
+// ============================================================================
+
+const venueSchema = z.enum(['home', 'away', 'neutral']).default('neutral');
+
+export const footballProbabilityInputSchema = z.object({
+  teamA: z.object({
+    name: z.string().describe('Team A name (the team you are betting on)'),
+    ppg: z.number().describe('Points per game scored'),
+    pointsAllowed: z.number().describe('Points per game allowed'),
+    offensiveYards: z.number().optional().describe('Offensive yards per game'),
+    defensiveYards: z.number().optional().describe('Defensive yards allowed per game'),
+    turnoverDiff: z.number().optional().describe('Turnover differential (positive = more takeaways)')
+  }).describe('Statistics for Team A (the team being bet on)'),
+
+  teamB: z.object({
+    name: z.string().describe('Team B name (the opponent)'),
+    ppg: z.number().describe('Points per game scored'),
+    pointsAllowed: z.number().describe('Points per game allowed'),
+    offensiveYards: z.number().optional().describe('Offensive yards per game'),
+    defensiveYards: z.number().optional().describe('Defensive yards allowed per game'),
+    turnoverDiff: z.number().optional().describe('Turnover differential')
+  }).describe('Statistics for Team B (the opponent)'),
+
+  spread: z.number().describe('Point spread from Team A perspective. Negative if Team A is favored (e.g., -7 means Team A favored by 7). Positive if Team A is underdog (e.g., +3.5).'),
+
+  spreadOdds: z.number().optional().describe('American odds for Team A to cover this spread (default -110). Used to compute edge vs the fair line.'),
+  oppSpreadOdds: z.number().optional().describe('American odds for the opposite side of the spread (default -110). Used to de-vig.'),
+
+  venue: venueSchema.describe('Where Team A is playing: home, away, or neutral site'),
+
+  league: z.enum(['NFL', 'CFB']).default('NFL').describe('League: NFL (professional) or CFB (college football)')
+});
+
+export const basketballProbabilityInputSchema = z.object({
+  teamA: z.object({
+    name: z.string().describe('Team A name (the team you are betting on)'),
+    ppg: z.number().describe('Points per game scored'),
+    pointsAllowed: z.number().describe('Points per game allowed'),
+    fgPct: z.number().optional().describe('Field goal percentage (e.g., 45.5 for 45.5%)'),
+    reboundMargin: z.number().optional().describe('Rebound margin per game'),
+    turnoverMargin: z.number().optional().describe('Turnover margin per game (positive = team forces more TOs than it commits)'),
+    pace: z.number().optional().describe('Possessions per game (league average ~100)'),
+    threePRate: z.number().optional().describe('3-point attempt rate as decimal (3PA / FGA, e.g., 0.40 for 40%)'),
+    threePPct: z.number().optional().describe('3-point percentage (e.g., 36.5 for 36.5%)')
+  }).describe('Statistics for Team A (the team being bet on)'),
+
+  teamB: z.object({
+    name: z.string().describe('Team B name (the opponent)'),
+    ppg: z.number().describe('Points per game scored'),
+    pointsAllowed: z.number().describe('Points per game allowed'),
+    fgPct: z.number().optional().describe('Field goal percentage'),
+    reboundMargin: z.number().optional().describe('Rebound margin per game'),
+    turnoverMargin: z.number().optional().describe('Turnover margin per game (positive = team forces more TOs than it commits)'),
+    pace: z.number().optional().describe('Possessions per game (league average ~100)'),
+    threePRate: z.number().optional().describe('3-point attempt rate as decimal (3PA / FGA, e.g., 0.40 for 40%)'),
+    threePPct: z.number().optional().describe('3-point percentage (e.g., 36.5 for 36.5%)')
+  }).describe('Statistics for Team B (the opponent)'),
+
+  spread: z.number().describe('Point spread from Team A perspective. Negative if Team A is favored, positive if underdog.'),
+
+  spreadOdds: z.number().optional().describe('American odds for Team A to cover this spread (default -110). Used to compute edge vs the fair line.'),
+  oppSpreadOdds: z.number().optional().describe('American odds for the opposite side of the spread (default -110). Used to de-vig.'),
+
+  venue: venueSchema.describe('Where Team A is playing: home, away, or neutral site'),
+
+  league: z.enum(['NBA', 'CBB']).default('NBA').describe('League: NBA (professional) or CBB (college basketball)')
+});
+
+export type FootballProbabilityInput = z.infer<typeof footballProbabilityInputSchema>;
+export type BasketballProbabilityInput = z.infer<typeof basketballProbabilityInputSchema>;
+
+// ============================================================================
+// TOOL DEFINITIONS
+// ============================================================================
+
+export const footballProbabilityToolDefinition = {
+  name: 'estimate_football_probability',
+  description: `Calculate football cover probability using team stats, spread, venue, and league to return win chance and predicted margin.`,
+
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      teamA: {
+        type: 'object',
+        description: 'Statistics for Team A (the team being bet on)',
+        properties: {
+          name: { type: 'string', description: 'Team A name' },
+          ppg: { type: 'number', description: 'Points per game scored' },
+          pointsAllowed: { type: 'number', description: 'Points per game allowed' },
+          offensiveYards: { type: 'number', description: 'Offensive yards per game' },
+          defensiveYards: { type: 'number', description: 'Defensive yards allowed per game' },
+          turnoverDiff: { type: 'number', description: 'Turnover differential' }
+        },
+        required: ['name', 'ppg', 'pointsAllowed']
+      },
+      teamB: {
+        type: 'object',
+        description: 'Statistics for Team B (the opponent)',
+        properties: {
+          name: { type: 'string', description: 'Team B name' },
+          ppg: { type: 'number', description: 'Points per game scored' },
+          pointsAllowed: { type: 'number', description: 'Points per game allowed' },
+          offensiveYards: { type: 'number', description: 'Offensive yards per game' },
+          defensiveYards: { type: 'number', description: 'Defensive yards allowed per game' },
+          turnoverDiff: { type: 'number', description: 'Turnover differential' }
+        },
+        required: ['name', 'ppg', 'pointsAllowed']
+      },
+      spread: {
+        type: 'number',
+        description: 'Point spread from Team A perspective. Negative if favored (-7), positive if underdog (+3.5).'
+      },
+      venue: {
+        type: 'string',
+        enum: ['home', 'away', 'neutral'],
+        description: 'Where Team A is playing',
+        default: 'neutral'
+      },
+      league: {
+        type: 'string',
+        enum: ['NFL', 'CFB'],
+        description: 'League: NFL or CFB (college)',
+        default: 'NFL'
+      }
+    },
+    required: ['teamA', 'teamB', 'spread']
+  }
+};
+
+export const basketballProbabilityToolDefinition = {
+  name: 'estimate_basketball_probability',
+  description: `Calculate basketball cover probability using team stats (PPG, FG%, rebounds, turnovers, pace, 3PT shooting), spread, venue, and league. Returns win chance, predicted margin, and bet quality interpretation.`,
+
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      teamA: {
+        type: 'object',
+        description: 'Statistics for Team A (the team being bet on)',
+        properties: {
+          name: { type: 'string', description: 'Team A name' },
+          ppg: { type: 'number', description: 'Points per game scored' },
+          pointsAllowed: { type: 'number', description: 'Points per game allowed' },
+          fgPct: { type: 'number', description: 'Field goal percentage (e.g., 47.5)' },
+          reboundMargin: { type: 'number', description: 'Rebound margin per game' },
+          turnoverMargin: { type: 'number', description: 'Turnover margin per game (positive = forces more TOs than commits)' },
+          pace: { type: 'number', description: 'Possessions per game (league avg ~100)' },
+          threePRate: { type: 'number', description: '3-point attempt rate as decimal (3PA/FGA, e.g., 0.40)' },
+          threePPct: { type: 'number', description: '3-point percentage (e.g., 36.5)' }
+        },
+        required: ['name', 'ppg', 'pointsAllowed']
+      },
+      teamB: {
+        type: 'object',
+        description: 'Statistics for Team B (the opponent)',
+        properties: {
+          name: { type: 'string', description: 'Team B name' },
+          ppg: { type: 'number', description: 'Points per game scored' },
+          pointsAllowed: { type: 'number', description: 'Points per game allowed' },
+          fgPct: { type: 'number', description: 'Field goal percentage' },
+          reboundMargin: { type: 'number', description: 'Rebound margin per game' },
+          turnoverMargin: { type: 'number', description: 'Turnover margin per game (positive = forces more TOs than commits)' },
+          pace: { type: 'number', description: 'Possessions per game (league avg ~100)' },
+          threePRate: { type: 'number', description: '3-point attempt rate as decimal (3PA/FGA, e.g., 0.40)' },
+          threePPct: { type: 'number', description: '3-point percentage (e.g., 36.5)' }
+        },
+        required: ['name', 'ppg', 'pointsAllowed']
+      },
+      spread: {
+        type: 'number',
+        description: 'Point spread from Team A perspective. Negative if favored, positive if underdog.'
+      },
+      venue: {
+        type: 'string',
+        enum: ['home', 'away', 'neutral'],
+        description: 'Where Team A is playing',
+        default: 'neutral'
+      },
+      league: {
+        type: 'string',
+        enum: ['NBA', 'CBB'],
+        description: 'League: NBA or CBB (college)',
+        default: 'NBA'
+      }
+    },
+    required: ['teamA', 'teamB', 'spread']
+  }
+};
+
+// ============================================================================
+// HANDLERS
+// ============================================================================
+
+export async function handleFootballProbability(input: unknown): Promise<ProbabilityOutput> {
+  const parsed = footballProbabilityInputSchema.parse(input);
+
+  const stats: FootballStats = {
+    teamPPG: parsed.teamA.ppg,
+    teamAllowed: parsed.teamA.pointsAllowed,
+    opponentPPG: parsed.teamB.ppg,
+    opponentAllowed: parsed.teamB.pointsAllowed,
+    teamOffYards: parsed.teamA.offensiveYards,
+    teamDefYards: parsed.teamA.defensiveYards,
+    opponentOffYards: parsed.teamB.offensiveYards,
+    opponentDefYards: parsed.teamB.defensiveYards,
+    teamTurnoverDiff: parsed.teamA.turnoverDiff,
+    opponentTurnoverDiff: parsed.teamB.turnoverDiff
+  };
+
+  const result = estimateFootballProbability(
+    stats,
+    parsed.spread,
+    parsed.venue,
+    parsed.league === 'NFL'
+  );
+
+  const constants = parsed.league === 'NFL' ? NFL_CONSTANTS : CFB_CONSTANTS;
+
+  // Data completeness from the optional inputs the football model can use
+  // (yards + turnovers for each team = 4 optional signals).
+  const optionalPresent = [
+    parsed.teamA.offensiveYards,
+    parsed.teamA.turnoverDiff,
+    parsed.teamB.offensiveYards,
+    parsed.teamB.turnoverDiff
+  ].filter((v) => v !== undefined).length;
+  const dataCompleteness = dataCompletenessFrom(optionalPresent, 4);
+
+  const decision = evaluateDecision({
+    modelProbabilityPct: result.probability,
+    sideOdds: parsed.spreadOdds,
+    otherSideOdds: parsed.oppSpreadOdds,
+    dataCompleteness
+  });
+
+  const riskFactors = buildSpreadRiskFactors(dataCompleteness, parsed.venue, result.probability);
+
+  return {
+    success: true,
+    sport: 'football',
+    league: parsed.league,
+    matchup: {
+      teamA: parsed.teamA.name,
+      teamB: parsed.teamB.name,
+      spread: parsed.spread,
+      venue: parsed.venue
+    },
+    result: {
+      probability: result.probability,
+      predictedMargin: result.predictedMargin,
+      sigma: result.sigma,
+      homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeFieldAdvantage : 0
+    },
+    decision,
+    dataCompleteness: Math.round(dataCompleteness * 100) / 100,
+    riskFactors,
+    interpretation: getInterpretation(result.probability, parsed.teamA.name, parsed.spread),
+    disclaimer: PROJECTION_DISCLAIMER
+  };
+}
+
+export async function handleBasketballProbability(input: unknown): Promise<ProbabilityOutput> {
+  const parsed = basketballProbabilityInputSchema.parse(input);
+
+  const stats: BasketballStats = {
+    teamPPG: parsed.teamA.ppg,
+    teamAllowed: parsed.teamA.pointsAllowed,
+    opponentPPG: parsed.teamB.ppg,
+    opponentAllowed: parsed.teamB.pointsAllowed,
+    teamFGPct: parsed.teamA.fgPct,
+    opponentFGPct: parsed.teamB.fgPct,
+    teamReboundMargin: parsed.teamA.reboundMargin,
+    opponentReboundMargin: parsed.teamB.reboundMargin,
+    teamTurnoverMargin: parsed.teamA.turnoverMargin,
+    opponentTurnoverMargin: parsed.teamB.turnoverMargin,
+    teamPace: parsed.teamA.pace,
+    opponentPace: parsed.teamB.pace,
+    team3PRate: parsed.teamA.threePRate,
+    opponent3PRate: parsed.teamB.threePRate,
+    team3PPct: parsed.teamA.threePPct,
+    opponent3PPct: parsed.teamB.threePPct
+  };
+
+  const result = estimateBasketballProbability(
+    stats,
+    parsed.spread,
+    parsed.venue,
+    parsed.league === 'NBA'
+  );
+
+  const constants = parsed.league === 'NBA' ? NBA_CONSTANTS : CBB_CONSTANTS;
+
+  // Data completeness from the optional basketball inputs (FG%, rebound margin,
+  // turnover margin, pace, 3PT%, 3PT rate for each team = 12 optional signals).
+  const optionalPresent = [
+    parsed.teamA.fgPct, parsed.teamA.reboundMargin, parsed.teamA.turnoverMargin,
+    parsed.teamA.pace, parsed.teamA.threePPct, parsed.teamA.threePRate,
+    parsed.teamB.fgPct, parsed.teamB.reboundMargin, parsed.teamB.turnoverMargin,
+    parsed.teamB.pace, parsed.teamB.threePPct, parsed.teamB.threePRate
+  ].filter((v) => v !== undefined).length;
+  const dataCompleteness = dataCompletenessFrom(optionalPresent, 12);
+
+  const decision = evaluateDecision({
+    modelProbabilityPct: result.probability,
+    sideOdds: parsed.spreadOdds,
+    otherSideOdds: parsed.oppSpreadOdds,
+    dataCompleteness
+  });
+
+  const riskFactors = buildSpreadRiskFactors(dataCompleteness, parsed.venue, result.probability);
+
+  return {
+    success: true,
+    sport: 'basketball',
+    league: parsed.league,
+    matchup: {
+      teamA: parsed.teamA.name,
+      teamB: parsed.teamB.name,
+      spread: parsed.spread,
+      venue: parsed.venue
+    },
+    result: {
+      probability: result.probability,
+      predictedMargin: result.predictedMargin,
+      sigma: result.sigma,
+      homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeCourtAdvantage : 0
+    },
+    decision,
+    dataCompleteness: Math.round(dataCompleteness * 100) / 100,
+    riskFactors,
+    interpretation: getInterpretation(result.probability, parsed.teamA.name, parsed.spread),
+    disclaimer: PROJECTION_DISCLAIMER
+  };
+}
+
+export const PROJECTION_DISCLAIMER =
+  'Model projection only — a possible edge based on formula output, not a guaranteed result. ' +
+  'No bet is risk-free. Use bankroll discipline.';
+
+/**
+ * Surface risk factors that should lower trust in a spread/total projection.
+ * Spread models rely on season-long team rates and don't see injuries, rest, or
+ * line moves, so we flag the structural uncertainties.
+ */
+function buildSpreadRiskFactors(
+  dataCompleteness: number,
+  venue: 'home' | 'away' | 'neutral',
+  probability: number
+): string[] {
+  const risks: string[] = [];
+  if (dataCompleteness < 0.8) {
+    risks.push('Incomplete optional stats — projection uses fewer inputs, confidence reduced.');
+  }
+  if (venue === 'neutral') {
+    risks.push('Neutral-site assumption — no home-field/court adjustment applied.');
+  }
+  if (Math.abs(probability - 50) < 5) {
+    risks.push('Projection is near a coin flip — small input changes can flip the lean.');
+  }
+  risks.push('Model uses season-long team rates; it does not account for injuries, rest, weather, or late line moves.');
+  return risks;
+}
+
+function getInterpretation(probability: number, teamName: string, spread: number): string {
+  const spreadText = spread < 0
+    ? `${teamName} as ${Math.abs(spread)}-point favorites`
+    : `${teamName} as ${spread}-point underdogs`;
+
+  if (probability >= 65) {
+    return `STRONG COVER: ${probability}% probability. ${spreadText} looks like good value.`;
+  } else if (probability >= 55) {
+    return `FAVORABLE: ${probability}% probability. ${spreadText} has a slight edge.`;
+  } else if (probability >= 45) {
+    return `COIN FLIP: ${probability}% probability. ${spreadText} is essentially even odds.`;
+  } else if (probability >= 35) {
+    return `UNFAVORABLE: ${probability}% probability. ${spreadText} is risky.`;
+  } else {
+    return `POOR VALUE: ${probability}% probability. ${spreadText} is not recommended.`;
+  }
+}
+
+export interface ProbabilityOutput {
+  success: boolean;
+  sport: 'football' | 'basketball';
+  league: string;
+  matchup: {
+    teamA: string;
+    teamB: string;
+    spread: number;
+    venue: 'home' | 'away' | 'neutral';
+  };
+  result: {
+    probability: number;
+    predictedMargin: number;
+    sigma: number;
+    homeFieldAdvantage: number;
+  };
+  decision: DecisionResult;
+  dataCompleteness: number;
+  riskFactors: string[];
+  interpretation: string;
+  disclaimer: string;
+}

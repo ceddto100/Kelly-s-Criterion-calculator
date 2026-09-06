@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#050510"/>
+      <stop offset="50%" style="stop-color:#0a0a2e"/>
+      <stop offset="100%" style="stop-color:#050510"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="50%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- Grid lines for tech feel -->
+  <g opacity="0.05" stroke="white" stroke-width="0.5">
+    <line x1="0" y1="100" x2="1024" y2="100"/>
+    <line x1="0" y1="200" x2="1024" y2="200"/>
+    <line x1="0" y1="300" x2="1024" y2="300"/>
+    <line x1="0" y1="400" x2="1024" y2="400"/>
+    <line x1="200" y1="0" x2="200" y2="500"/>
+    <line x1="400" y1="0" x2="400" y2="500"/>
+    <line x1="600" y1="0" x2="600" y2="500"/>
+    <line x1="800" y1="0" x2="800" y2="500"/>
+  </g>
+
+  <!-- Decorative orb glow -->
+  <circle cx="150" cy="250" r="200" fill="#8b5cf6" opacity="0.05"/>
+  <circle cx="874" cy="250" r="200" fill="#06b6d4" opacity="0.05"/>
+
+  <!-- Analytics chart in background -->
+  <polyline points="50,350 150,300 250,320 350,270 450,290 550,240 650,260 750,210 850,230 950,190"
+            fill="none" stroke="url(#accent)" stroke-width="3" stroke-linecap="round"
+            stroke-linejoin="round" opacity="0.3" filter="url(#glow)"/>
+
+  <!-- App Icon -->
+  <circle cx="200" cy="220" r="80" fill="#8b5cf6" opacity="0.3"/>
+  <circle cx="200" cy="220" r="65" fill="#8b5cf6" opacity="0.5"/>
+  <text x="200" y="250" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="bold"
+        fill="white" text-anchor="middle">B</text>
+
+  <!-- App Name -->
+  <text x="550" y="180" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="bold"
+        fill="white" text-anchor="left">Betgistics</text>
+
+  <!-- Tagline -->
+  <text x="550" y="230" font-family="Arial, Helvetica, sans-serif" font-size="24"
+        fill="#a78bfa" text-anchor="left">Smart Sports Analytics &amp; Kelly Criterion Calculator</text>
+
+  <!-- Feature pills -->
+  <rect x="550" y="270" width="140" height="36" rx="18" fill="#8b5cf6" opacity="0.3"/>
+  <text x="620" y="294" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Kelly Criterion</text>
+
+  <rect x="700" y="270" width="130" height="36" rx="18" fill="#3b82f6" opacity="0.3"/>
+  <text x="765" y="294" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">AI Analysis</text>
+
+  <rect x="840" y="270" width="130" height="36" rx="18" fill="#06b6d4" opacity="0.3"/>
+  <text x="905" y="294" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">NFL / NBA Stats</text>
+
+  <rect x="550" y="316" width="120" height="36" rx="18" fill="#06b6d4" opacity="0.3"/>
+  <text x="610" y="340" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Bet Tracking</text>
+
+  <rect x="680" y="316" width="155" height="36" rx="18" fill="#8b5cf6" opacity="0.3"/>
+  <text x="757" y="340" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle">Bankroll Manager</text>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="490" width="1024" height="10" fill="url(#accent)" opacity="0.6"/>
+</svg>

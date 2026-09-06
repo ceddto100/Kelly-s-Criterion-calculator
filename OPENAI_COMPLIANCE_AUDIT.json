@@ -1,0 +1,615 @@
+{
+  "auditMetadata": {
+    "auditDate": "2025-12-21",
+    "auditVersion": "1.0.0",
+    "auditor": "Claude Code Compliance Auditor",
+    "appName": "Kelly's Criterion Calculator MCP Server",
+    "appVersion": "1.0.0",
+    "framework": "Model Context Protocol (MCP)",
+    "license": "Apache-2.0"
+  },
+
+  "executiveSummary": {
+    "overallStatus": "NEEDS_CHANGES",
+    "criticalIssues": 3,
+    "majorIssues": 4,
+    "minorIssues": 5,
+    "passedCategories": 2,
+    "failedCategories": 3,
+    "recommendation": "App requires creation of Privacy Policy, Terms of Service, and Gemini AI disclosure documentation before OpenAI App Store submission. Technical implementation is sound but legal/policy documents are missing."
+  },
+
+  "categories": {
+    "1_policy_safety_compliance": {
+      "status": "PASS",
+      "score": "85/100",
+      "summary": "The app provides betting calculation tools with appropriate safeguards. No harmful content generation detected.",
+
+      "findings": [
+        {
+          "id": "PSC-001",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Usage Policy Alignment",
+          "description": "App provides mathematical betting calculations without generating harmful or inappropriate content.",
+          "codeReference": "mcp-server/src/tools/kelly.ts:25-45",
+          "evidence": "Tool performs pure mathematical calculations (Kelly Criterion formula) and returns structured numerical data."
+        },
+        {
+          "id": "PSC-002",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "Age Restriction Documentation",
+          "description": "App involves betting/gambling calculations but no age restriction documentation exists.",
+          "recommendation": "Add explicit 18+/21+ age requirement in app metadata and Terms of Service depending on jurisdiction.",
+          "codeReference": null
+        },
+        {
+          "id": "PSC-003",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Input Validation Prevents Injection",
+          "description": "Zod schema validation on all tool inputs prevents prompt injection attacks.",
+          "codeReference": "mcp-server/src/tools/kelly.ts:15-20",
+          "evidence": "const kellyInputSchema = z.object({ bankroll: z.number().positive(), odds: z.number(), probability: z.number().min(0.1).max(99.9), fraction: z.enum(['1', '0.5', '0.25']).default('1') });"
+        },
+        {
+          "id": "PSC-004",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "Gemini AI Output Not Filtered",
+          "description": "AI-generated 'analyst insights' from Gemini are passed through without content filtering.",
+          "codeReference": "mcp-server/src/utils/gemini.ts:34-39",
+          "evidence": "System instruction exists but no output filtering: 'You are a seasoned betting analyst. Provide brief (1-2 sentences), insightful...'",
+          "recommendation": "Add output content filtering or review Gemini safety settings configuration."
+        },
+        {
+          "id": "PSC-005",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Responsible Gambling Language",
+          "description": "Gemini system prompt includes 'responsible' tone requirement.",
+          "codeReference": "mcp-server/src/utils/gemini.ts:34-35",
+          "evidence": "systemInstruction: 'Your tone should be responsible and clear.'"
+        }
+      ],
+
+      "passedChecks": [
+        "No violent or hateful content generated",
+        "No exploitation or harmful output vectors",
+        "Input validation prevents injection attacks",
+        "Tool returns structured mathematical data only",
+        "Responsible gambling messaging in AI prompts"
+      ],
+
+      "failedChecks": [
+        "Age restriction not explicitly documented",
+        "Gemini output lacks content filtering"
+      ]
+    },
+
+    "2_privacy_data_handling": {
+      "status": "FAIL",
+      "score": "35/100",
+      "summary": "CRITICAL: No Privacy Policy exists. MCP server is stateless but Gemini integration sends user data to Google without disclosure. Legacy backend stores significant PII.",
+
+      "findings": [
+        {
+          "id": "PDH-001",
+          "severity": "CRITICAL",
+          "status": "FAIL",
+          "title": "Missing Privacy Policy",
+          "description": "No privacy policy document found in the repository. This is a mandatory requirement for OpenAI App Store submission.",
+          "recommendation": "Create PRIVACY_POLICY.md detailing: (1) Data collected, (2) How data is used, (3) Data sharing with third parties (Gemini), (4) Data retention, (5) User rights/deletion procedures",
+          "codeReference": null
+        },
+        {
+          "id": "PDH-002",
+          "severity": "MAJOR",
+          "status": "FAIL",
+          "title": "Undisclosed Gemini Data Sharing",
+          "description": "User bankroll, odds, and probability data is sent to Google Gemini API without user consent or disclosure.",
+          "codeReference": "mcp-server/src/utils/gemini.ts:37-39",
+          "evidence": "userPrompt includes: 'Bankroll: $${params.bankroll}, Odds: ${params.odds}, Win Probability: ${params.probability}%'",
+          "recommendation": "Add clear disclosure that calculation data may be sent to Google Gemini for AI insights. Consider opt-in consent mechanism."
+        },
+        {
+          "id": "PDH-003",
+          "severity": "MAJOR",
+          "status": "FAIL",
+          "title": "Legacy Backend PII Collection",
+          "description": "If legacy backend is included in deployment, it collects significant PII without adequate documentation.",
+          "codeReference": "backend/models/BetLog.js:1-233",
+          "evidence": "BetLog stores: userId (Google OAuth), matchup data, bankroll amounts, actual wager amounts, bet outcomes, payouts",
+          "recommendation": "Document all data collection in privacy policy. Implement data minimization where possible."
+        },
+        {
+          "id": "PDH-004",
+          "severity": "MINOR",
+          "status": "PASS",
+          "title": "API Key Security",
+          "description": "Gemini API key is properly secured server-side and never exposed to clients.",
+          "codeReference": "mcp-server/src/utils/gemini.ts:26-27",
+          "evidence": "Comment: 'SECURITY: Load API key from environment (server-side only)'"
+        },
+        {
+          "id": "PDH-005",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "No Data Retention Policy",
+          "description": "No documentation of how long data is retained or how users can request deletion.",
+          "recommendation": "Add data retention policy and user deletion procedure to privacy policy."
+        },
+        {
+          "id": "PDH-006",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "MCP Server Stateless Design",
+          "description": "Core MCP server does not persist user data between requests.",
+          "codeReference": "mcp-server/src/server.ts:52-56",
+          "evidence": "McpServer handles requests statelessly with no database connections."
+        },
+        {
+          "id": "PDH-007",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "XSS Prevention Partial",
+          "description": "Backend has XSS sanitization but pattern is incomplete.",
+          "codeReference": "backend/routes/bets.js (reference)",
+          "evidence": "sanitizeString only removes <> brackets, does not handle all XSS vectors",
+          "recommendation": "Use comprehensive sanitization library like DOMPurify or validator.js."
+        }
+      ],
+
+      "dataCollectionInventory": {
+        "mcpServer": {
+          "persistent": false,
+          "dataPoints": [
+            "Bankroll amount (transient)",
+            "Odds values (transient)",
+            "Probability estimates (transient)",
+            "Locale preference (transient)"
+          ],
+          "thirdPartySharing": ["Google Gemini API (optional)"]
+        },
+        "legacyBackend": {
+          "persistent": true,
+          "dataPoints": [
+            "Google OAuth ID",
+            "Email address",
+            "Name",
+            "Avatar URL",
+            "Bankroll amounts",
+            "Bet history with wagers",
+            "Win/loss outcomes",
+            "Payout amounts"
+          ],
+          "thirdPartySharing": ["Google OAuth"]
+        }
+      }
+    },
+
+    "3_technical_implementation": {
+      "status": "PASS",
+      "score": "80/100",
+      "summary": "Technical implementation is solid with proper MCP SDK usage, input validation, error handling, and CORS configuration. Some dependency updates recommended.",
+
+      "findings": [
+        {
+          "id": "TI-001",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "MCP SDK Compliance",
+          "description": "Uses official @modelcontextprotocol/sdk with correct server and transport setup.",
+          "codeReference": "mcp-server/src/server.ts:8-9",
+          "evidence": "import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'; import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';"
+        },
+        {
+          "id": "TI-002",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Public MCP Endpoint",
+          "description": "MCP endpoint properly exposed at /mcp path with SSE transport.",
+          "codeReference": "mcp-server/src/server.ts:123-133",
+          "evidence": "app.get('/mcp', async (req, res) => { const transport = new SSEServerTransport('/mcp', res); await mcpServer.connect(transport); });"
+        },
+        {
+          "id": "TI-003",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "CORS Configuration",
+          "description": "CORS properly configured to allow ChatGPT origin.",
+          "codeReference": "mcp-server/src/server.ts:34-50",
+          "evidence": "const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['https://chatgpt.com'];"
+        },
+        {
+          "id": "TI-004",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Health Check Endpoint",
+          "description": "Health check endpoint present for deployment monitoring.",
+          "codeReference": "mcp-server/src/server.ts:113-120",
+          "evidence": "app.get('/health', (req, res) => { res.json({ status: 'ok', ... }); });"
+        },
+        {
+          "id": "TI-005",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Input Validation with Zod",
+          "description": "All tool inputs validated with Zod schemas.",
+          "codeReference": "mcp-server/src/tools/kelly.ts:15-20",
+          "evidence": "Zod schema with .positive(), .min(), .max(), .enum() constraints"
+        },
+        {
+          "id": "TI-006",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Error Handling",
+          "description": "Comprehensive error handling with structured error responses.",
+          "codeReference": "mcp-server/src/tools/kelly.ts:55-145",
+          "evidence": "Multiple validation checks with isError: true responses and localized error messages"
+        },
+        {
+          "id": "TI-007",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "Dependency Versions",
+          "description": "Dependencies should be regularly updated for security patches.",
+          "codeReference": "mcp-server/package.json:13-18",
+          "evidence": "Current versions: express ^4.18.2, zod ^3.22.4, @modelcontextprotocol/sdk ^1.0.0",
+          "recommendation": "Run npm audit regularly and update dependencies as needed."
+        },
+        {
+          "id": "TI-008",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "OpenID Configuration Placeholder",
+          "description": "OpenID configuration endpoint returns placeholder values.",
+          "codeReference": "mcp-server/src/server.ts:99-110",
+          "evidence": "/.well-known/openid-configuration returns placeholder endpoints that don't exist",
+          "recommendation": "Either implement full OAuth flow or remove placeholder endpoint to avoid confusion."
+        },
+        {
+          "id": "TI-009",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Graceful Gemini Degradation",
+          "description": "App functions correctly when Gemini API is not configured.",
+          "codeReference": "mcp-server/src/utils/gemini.ts:29-31",
+          "evidence": "if (!apiKey || apiKey === 'your_gemini_api_key_here') { return ''; }"
+        }
+      ],
+
+      "dependencyAudit": {
+        "mcpServer": {
+          "totalDependencies": 4,
+          "production": ["@modelcontextprotocol/sdk@^1.0.0", "express@^4.18.2", "dotenv@^16.3.1", "zod@^3.22.4"],
+          "development": ["@types/express@^4.17.21", "@types/node@^20.10.5", "typescript@^5.3.3", "tsx@^4.7.0"],
+          "knownVulnerabilities": "Run npm audit for current status",
+          "status": "REVIEW_RECOMMENDED"
+        }
+      }
+    },
+
+    "4_ux_ui_guidelines": {
+      "status": "PASS",
+      "score": "75/100",
+      "summary": "Widget components follow ChatGPT integration patterns. Tool responses include proper metadata for UI rendering. Some enhancements recommended.",
+
+      "findings": [
+        {
+          "id": "UX-001",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Widget Integration",
+          "description": "ChatGPT widget components use proper window.openai API.",
+          "codeReference": "chatgpt-widgets/src/types/openai.ts:40-80",
+          "evidence": "Proper TypeScript definitions for OpenAIAPI interface with toolOutput, widgetState, displayMode, setWidgetState, callTool"
+        },
+        {
+          "id": "UX-002",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Display Mode Support",
+          "description": "Widget supports inline, fullscreen, and pip display modes.",
+          "codeReference": "chatgpt-widgets/src/types/openai.ts:11",
+          "evidence": "export type DisplayMode = 'inline' | 'fullscreen' | 'pip';"
+        },
+        {
+          "id": "UX-003",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Tool Output Metadata",
+          "description": "Tool responses include proper _meta for widget rendering.",
+          "codeReference": "mcp-server/src/tools/kelly.ts:205-233",
+          "evidence": "_meta includes: outputTemplate, widgetAccessible, toolInvocation/invoking, locale, calculation, displaySettings"
+        },
+        {
+          "id": "UX-004",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Localization Support",
+          "description": "App supports 12 languages for international users.",
+          "codeReference": "mcp-server/src/utils/translations.ts (reference)",
+          "evidence": "negotiateLocale and translation functions imported and used"
+        },
+        {
+          "id": "UX-005",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "No Icon/Logo Documentation",
+          "description": "No app icon or logo assets documented for App Store listing.",
+          "recommendation": "Create app icon (512x512px, 1:1 ratio) and ensure no OpenAI logo misuse."
+        },
+        {
+          "id": "UX-006",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Predictable Responses",
+          "description": "Tool responses are structured and predictable based on input.",
+          "codeReference": "mcp-server/src/tools/kelly.ts:177-188",
+          "evidence": "Consistent structuredContent format with hasValue, stake, stakePercentage, etc."
+        }
+      ]
+    },
+
+    "5_submission_requirements": {
+      "status": "FAIL",
+      "score": "40/100",
+      "summary": "CRITICAL: Missing Privacy Policy and Terms of Service. App metadata is incomplete. Pre-submission checklist has several gaps.",
+
+      "findings": [
+        {
+          "id": "SR-001",
+          "severity": "CRITICAL",
+          "status": "FAIL",
+          "title": "Missing Privacy Policy",
+          "description": "Privacy Policy is required for App Store submission. None exists.",
+          "recommendation": "Create PRIVACY_POLICY.md with URL accessible from app metadata."
+        },
+        {
+          "id": "SR-002",
+          "severity": "CRITICAL",
+          "status": "FAIL",
+          "title": "Missing Terms of Service",
+          "description": "Terms of Service/Use is recommended for betting/gambling apps. None exists.",
+          "recommendation": "Create TERMS_OF_SERVICE.md with responsible gambling disclaimers and no investment advice clauses."
+        },
+        {
+          "id": "SR-003",
+          "severity": "MAJOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "App Category Not Specified",
+          "description": "No OpenAI App Store category metadata defined.",
+          "recommendation": "Determine appropriate category: Finance/Utilities. Betting apps may require additional review."
+        },
+        {
+          "id": "SR-004",
+          "severity": "MAJOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "Contact Information Missing",
+          "description": "No developer contact information in app metadata.",
+          "recommendation": "Add developer email and support URL to app configuration."
+        },
+        {
+          "id": "SR-005",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "App Description Present",
+          "description": "Basic app description exists in package.json and README.",
+          "codeReference": "mcp-server/package.json:4",
+          "evidence": "\"description\": \"MCP server for Kelly's Criterion betting calculator\""
+        },
+        {
+          "id": "SR-006",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Version Information",
+          "description": "Proper semantic versioning in place.",
+          "codeReference": "mcp-server/package.json:3",
+          "evidence": "\"version\": \"1.0.0\""
+        },
+        {
+          "id": "SR-007",
+          "severity": "INFO",
+          "status": "PASS",
+          "title": "Public MCP Endpoint Available",
+          "description": "MCP endpoint is publicly accessible when deployed.",
+          "codeReference": "mcp-server/src/server.ts:123",
+          "evidence": "app.get('/mcp', async (req, res) => {...})"
+        },
+        {
+          "id": "SR-008",
+          "severity": "MINOR",
+          "status": "NEEDS_ATTENTION",
+          "title": "Verified Developer Account Status Unknown",
+          "description": "Cannot verify if OpenAI developer account is verified from codebase.",
+          "recommendation": "Ensure developer account is verified at platform.openai.com before submission."
+        }
+      ],
+
+      "preSubmissionChecklist": {
+        "ownerRole": "UNKNOWN - Verify in OpenAI dashboard",
+        "verifiedAccount": "UNKNOWN - Verify in OpenAI dashboard",
+        "publicMcpEndpoint": "PASS - /mcp endpoint available",
+        "privacyPolicyLink": "FAIL - No privacy policy exists",
+        "termsOfServiceLink": "FAIL - No terms of service exists",
+        "appDescription": "PARTIAL - Basic description exists, needs enhancement",
+        "appCategory": "FAIL - Not specified",
+        "contactInfo": "FAIL - Not specified",
+        "appIcon": "FAIL - Not documented"
+      }
+    }
+  },
+
+  "codeAnnotations": {
+    "securityPositives": [
+      {
+        "file": "mcp-server/src/utils/gemini.ts",
+        "line": "26-27",
+        "note": "API key properly secured server-side with environment variable"
+      },
+      {
+        "file": "mcp-server/src/tools/kelly.ts",
+        "line": "15-20",
+        "note": "Comprehensive Zod schema validation prevents malformed inputs"
+      },
+      {
+        "file": "mcp-server/src/server.ts",
+        "line": "34-50",
+        "note": "CORS whitelist prevents unauthorized origins"
+      },
+      {
+        "file": "backend/middleware/validation.js",
+        "line": "35-61",
+        "note": "Request validation middleware factory pattern"
+      }
+    ],
+    "securityConcerns": [
+      {
+        "file": "mcp-server/src/utils/gemini.ts",
+        "line": "37-39",
+        "note": "User financial data (bankroll) sent to Gemini without disclosure",
+        "severity": "MAJOR"
+      },
+      {
+        "file": "backend/models/BetLog.js",
+        "line": "79-98",
+        "note": "Stores actual wager amounts and payouts - sensitive financial data",
+        "severity": "MAJOR"
+      },
+      {
+        "file": "mcp-server/src/server.ts",
+        "line": "99-110",
+        "note": "Placeholder OpenID config could confuse OAuth implementations",
+        "severity": "MINOR"
+      }
+    ]
+  },
+
+  "requiredDocuments": {
+    "mustCreate": [
+      {
+        "name": "PRIVACY_POLICY.md",
+        "priority": "CRITICAL",
+        "requiredSections": [
+          "Introduction",
+          "Data We Collect",
+          "How We Use Your Data",
+          "Data Sharing (including Gemini disclosure)",
+          "Data Retention",
+          "User Rights and Data Deletion",
+          "Children's Privacy (under 13 prohibition)",
+          "Contact Information",
+          "Changes to Policy"
+        ]
+      },
+      {
+        "name": "TERMS_OF_SERVICE.md",
+        "priority": "CRITICAL",
+        "requiredSections": [
+          "Acceptance of Terms",
+          "Age Requirements (18+/21+ for gambling)",
+          "No Investment Advice Disclaimer",
+          "Responsible Gambling Statement",
+          "User Responsibilities",
+          "Limitation of Liability",
+          "Governing Law"
+        ]
+      }
+    ],
+    "shouldCreate": [
+      {
+        "name": "GEMINI_AI_DISCLOSURE.md",
+        "priority": "MAJOR",
+        "purpose": "Transparent disclosure of AI integration and data sharing with Google"
+      },
+      {
+        "name": "APP_STORE_METADATA.json",
+        "priority": "MAJOR",
+        "purpose": "Complete app metadata for OpenAI App Store submission"
+      }
+    ]
+  },
+
+  "remediationPlan": {
+    "immediate": [
+      {
+        "action": "Create Privacy Policy document",
+        "priority": "P0",
+        "estimatedEffort": "2-4 hours",
+        "blocksSubmission": true
+      },
+      {
+        "action": "Create Terms of Service document",
+        "priority": "P0",
+        "estimatedEffort": "2-4 hours",
+        "blocksSubmission": true
+      },
+      {
+        "action": "Add Gemini data sharing disclosure",
+        "priority": "P1",
+        "estimatedEffort": "1 hour",
+        "blocksSubmission": true
+      }
+    ],
+    "shortTerm": [
+      {
+        "action": "Complete app metadata (category, contact, icon)",
+        "priority": "P1",
+        "estimatedEffort": "1-2 hours"
+      },
+      {
+        "action": "Add age verification/restriction documentation",
+        "priority": "P1",
+        "estimatedEffort": "1 hour"
+      },
+      {
+        "action": "Implement Gemini output content filtering",
+        "priority": "P2",
+        "estimatedEffort": "2-3 hours"
+      }
+    ],
+    "optional": [
+      {
+        "action": "Remove placeholder OpenID configuration",
+        "priority": "P3",
+        "estimatedEffort": "30 minutes"
+      },
+      {
+        "action": "Run npm audit and update dependencies",
+        "priority": "P3",
+        "estimatedEffort": "1 hour"
+      }
+    ]
+  },
+
+  "finalRecommendation": {
+    "status": "NEEDS_CHANGES",
+    "summary": "The Kelly's Criterion Calculator MCP Server has a solid technical foundation with proper MCP SDK implementation, input validation, and security practices. However, it CANNOT be submitted to the OpenAI App Store in its current state due to missing critical legal and compliance documents.",
+    "blockers": [
+      "No Privacy Policy document",
+      "No Terms of Service document",
+      "Undisclosed data sharing with Google Gemini",
+      "Incomplete app metadata"
+    ],
+    "strengths": [
+      "Stateless MCP design minimizes data risk",
+      "Comprehensive input validation with Zod",
+      "Server-side API key security",
+      "Proper CORS configuration",
+      "Graceful degradation when Gemini unavailable",
+      "Multi-language localization support",
+      "Clean Apache-2.0 licensing"
+    ],
+    "nextSteps": [
+      "1. Create PRIVACY_POLICY.md with all required sections",
+      "2. Create TERMS_OF_SERVICE.md with gambling disclaimers",
+      "3. Add Gemini AI data sharing disclosure",
+      "4. Complete app store metadata",
+      "5. Verify developer account status",
+      "6. Re-run compliance audit",
+      "7. Submit to OpenAI App Store"
+    ]
+  }
+}

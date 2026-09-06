@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Only allow HTTPS connections in production -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Allow cleartext for local development only in debug builds -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!-- Explicitly trust our API domain -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">betgistics.com</domain>
+        <domain includeSubdomains="true">accounts.google.com</domain>
+        <domain includeSubdomains="true">stripe.com</domain>
+    </domain-config>
+</network-security-config>

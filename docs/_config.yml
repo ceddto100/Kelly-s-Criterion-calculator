@@ -1,0 +1,15 @@
+# GitHub Pages configuration for Kelly's Criterion Calculator
+# Legal documentation hosting
+
+title: "Kelly's Criterion Calculator - Legal Documentation"
+description: "Privacy Policy, Terms of Service, and AI Disclosure for Kelly's Criterion Calculator"
+theme: jekyll-theme-minimal
+
+# No additional plugins needed for static HTML
+plugins: []
+
+# Exclude unnecessary files
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock

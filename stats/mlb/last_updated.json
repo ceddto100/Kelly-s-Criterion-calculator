@@ -1,0 +1,12 @@
+{
+  "updatedAt": "2026-07-18T16:46:52Z",
+  "season": 2026,
+  "gameCount": 16,
+  "sources": [
+    "MLB StatsAPI schedule/team/pitcher/boxscore",
+    "FanGraphs leaders JSON API",
+    "Open-Meteo forecast",
+    "ESPN MLB scoreboard",
+    "repository VENUES table"
+  ]
+}

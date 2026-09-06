@@ -1,0 +1,38 @@
+# robots.txt for Betgistics
+# https://betgistics.com
+
+# Allow all search engines to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow crawling of API endpoints and backend
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /stats/*.csv$
+
+# Allow crawling of images
+Allow: /betgistics.png
+Allow: /*.mp3$
+
+# Sitemap location
+Sitemap: https://betgistics.com/sitemap.xml
+
+# Crawl-delay for specific bots (optional - prevents server overload)
+User-agent: Googlebot
+Crawl-delay: 0
+
+User-agent: Bingbot
+Crawl-delay: 1
+
+User-agent: Slurp
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: DotBot
+Crawl-delay: 10

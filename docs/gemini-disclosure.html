@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Disclosure - Kelly's Criterion Calculator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.5rem; margin-top: 2rem; border-bottom: 2px solid #0066cc; padding-bottom: 0.5rem; }
+        h3 { font-size: 1.2rem; margin-top: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        table th, table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        table th { background: #f5f5f5; font-weight: bold; }
+        .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+        .back-link { display: inline-block; margin-bottom: 1rem; color: #0066cc; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .highlight { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196f3; margin: 1rem 0; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to Legal Documentation</a>
+    
+    <h1>Gemini AI Integration Disclosure</h1>
+    <div class="meta">
+        <strong>Kelly's Criterion Calculator</strong><br>
+        <strong>Effective Date:</strong> December 21, 2025<br>
+        <strong>Last Updated:</strong> December 21, 2025<br>
+        <strong>Version:</strong> 1.0.0
+    </div>
+
+    <h2>Overview</h2>
+    <p>This document provides transparency about how Kelly's Criterion Calculator uses Google's Gemini AI service to generate optional analytical insights. We are committed to being clear about when and how AI is used in our application.</p>
+
+    <h2>1. What is Gemini?</h2>
+    <p>Gemini is a family of large language models (LLMs) developed by Google. Our App uses the <strong>Gemini 1.5 Flash</strong> model through Google's Generative Language API to generate brief, contextual commentary about betting calculations.</p>
+
+    <h2>2. What Gemini Is Used For</h2>
+    <p>When enabled, Gemini provides <strong>optional "Analyst Insight" commentary</strong> after a Kelly Criterion calculation is performed. These insights are:</p>
+    <ul>
+        <li>Brief explanations (1-2 sentences) of why a bet may or may not have value</li>
+        <li>Contextual commentary based on the calculation results</li>
+        <li>Educational observations about bankroll management</li>
+    </ul>
+    
+    <div class="highlight">
+        <strong>Example Output:</strong>
+        <p><em>"With a 55% win probability at -110 odds, this represents positive expected value. The recommended 4.5% bankroll allocation balances potential returns with prudent risk management."</em></p>
+    </div>
+
+    <h2>3. What Data Is Shared with Gemini</h2>
+    <p>When the AI insights feature is active, the following calculation data is transmitted to Google's Gemini API:</p>
+    
+    <table>
+        <tr>
+            <th>Data Sent</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>Bankroll amount (e.g., "$1,000")</td>
+            <td>Context for stake recommendation</td>
+        </tr>
+        <tr>
+            <td>Betting odds (e.g., "-110")</td>
+            <td>Context for value assessment</td>
+        </tr>
+        <tr>
+            <td>Win probability (e.g., "55%")</td>
+            <td>Context for edge calculation</td>
+        </tr>
+        <tr>
+            <td>Calculated stake (e.g., "$45")</td>
+            <td>Result to explain</td>
+        </tr>
+        <tr>
+            <td>Stake percentage (e.g., "4.5%")</td>
+            <td>Result to explain</td>
+        </tr>
+    </table>
+    
+    <h3>What Is NOT Sent</h3>
+    <ul>
+        <li>Your name or identity</li>
+        <li>Email address</li>
+        <li>Account information</li>
+        <li>IP address</li>
+        <li>Location data</li>
+        <li>Historical betting data</li>
+        <li>Any other personally identifiable information (PII)</li>
+    </ul>
+
+    <h2>4. Gemini Is Optional and Non-Essential</h2>
+    
+    <h3>4.1 Core Functionality Does Not Require Gemini</h3>
+    <p>The primary function of Kelly's Criterion Calculator is performing mathematical calculations. <strong>Gemini is completely optional.</strong> The App works fully without Gemini integration.</p>
+    
+    <h3>4.2 Server Configuration</h3>
+    <p>Gemini integration is controlled by server configuration:</p>
+    <ul>
+        <li>If no Gemini API key is configured, the feature is automatically disabled</li>
+        <li>If Gemini is unavailable, calculations proceed normally without AI insights</li>
+        <li>The App gracefully degrades to mathematical output only</li>
+    </ul>
+
+    <h2>5. AI Outputs Are Informational Only</h2>
+    
+    <div class="highlight">
+        <h3>5.1 No Betting Advice</h3>
+        <p>Gemini-generated insights are:</p>
+        <ul>
+            <li><strong>Informational and educational only</strong></li>
+            <li><strong>NOT</strong> betting recommendations</li>
+            <li><strong>NOT</strong> financial advice</li>
+            <li><strong>NOT</strong> guarantees of any outcome</li>
+        </ul>
+    </div>
+    
+    <h3>5.2 AI Limitations</h3>
+    <p>AI-generated content may:</p>
+    <ul>
+        <li>Contain errors or inaccuracies</li>
+        <li>Not account for all relevant factors</li>
+        <li>Vary in quality between requests</li>
+        <li>Not reflect current events or real-time data</li>
+    </ul>
+    
+    <h3>5.3 Your Responsibility</h3>
+    <p>You should:</p>
+    <ul>
+        <li>Treat AI insights as supplementary commentary only</li>
+        <li>Make your own independent decisions</li>
+        <li>Consult qualified professionals before betting</li>
+        <li>Never rely solely on AI-generated content</li>
+    </ul>
+
+    <h2>6. Google's AI Policies</h2>
+    <p>Gemini operates under Google's policies and terms:</p>
+    <ul>
+        <li><strong>Google Privacy Policy:</strong> <a href="https://policies.google.com/privacy" target="_blank">https://policies.google.com/privacy</a></li>
+        <li><strong>Google Terms of Service:</strong> <a href="https://policies.google.com/terms" target="_blank">https://policies.google.com/terms</a></li>
+        <li><strong>Generative AI Terms:</strong> <a href="https://ai.google.dev/terms" target="_blank">https://ai.google.dev/terms</a></li>
+        <li><strong>Gemini API Terms:</strong> <a href="https://ai.google.dev/gemini-api/terms" target="_blank">https://ai.google.dev/gemini-api/terms</a></li>
+    </ul>
+    
+    <h3>6.1 Data Processing by Google</h3>
+    <p>When data is sent to Gemini:</p>
+    <ul>
+        <li>Google processes the data to generate responses</li>
+        <li>Google's data handling practices apply</li>
+        <li>We do not control how Google uses data sent to its API</li>
+        <li>Please review Google's policies for details</li>
+    </ul>
+    
+    <h3>6.2 API Key Security</h3>
+    <ul>
+        <li>The Gemini API key is stored server-side only</li>
+        <li>The API key is never exposed to clients or users</li>
+        <li>API calls are made from our server, not from your device</li>
+    </ul>
+
+    <h2>7. Technical Implementation</h2>
+    
+    <h3>7.1 API Configuration</h3>
+    <pre style="background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto;">
+Model: gemini-1.5-flash
+Endpoint: generativelanguage.googleapis.com
+Max Output Tokens: 100
+Temperature: 0.9
+    </pre>
+    
+    <h3>7.2 System Prompt</h3>
+    <p>Gemini is instructed to:</p>
+    <ul>
+        <li>Act as a "seasoned betting analyst"</li>
+        <li>Provide brief (1-2 sentences) explanations</li>
+        <li>Maintain a responsible and clear tone</li>
+        <li>Focus on the mathematical reasoning behind recommendations</li>
+    </ul>
+    
+    <h3>7.3 Error Handling</h3>
+    <p>If Gemini fails to respond:</p>
+    <ul>
+        <li>No error is shown to the user</li>
+        <li>The calculation result is returned without an insight</li>
+        <li>The App continues to function normally</li>
+    </ul>
+
+    <h2>8. Data Retention</h2>
+    
+    <h3>8.1 Our Retention</h3>
+    <p>We do <strong>NOT</strong> store or log the data sent to Gemini. Data exists only in memory during the API request.</p>
+    
+    <h3>8.2 Google's Retention</h3>
+    <p>Google's data retention policies apply to data processed by Gemini. Please consult Google's privacy documentation for details on their retention practices.</p>
+
+    <h2>9. Your Rights</h2>
+    
+    <h3>9.1 Opt-Out</h3>
+    <p>If you do not wish for your calculation data to be processed by Gemini, please contact us at privacy@kellyscriterion.app. We can discuss available options.</p>
+    
+    <h3>9.2 Questions</h3>
+    <p>For questions about Gemini integration, contact:</p>
+    <p><strong>Email:</strong> privacy@kellyscriterion.app<br>
+    <strong>Subject:</strong> Gemini AI Inquiry</p>
+
+    <h2>10. Summary</h2>
+    <table>
+        <tr>
+            <th>Aspect</th>
+            <th>Details</th>
+        </tr>
+        <tr>
+            <td>AI Provider</td>
+            <td>Google Gemini (1.5 Flash)</td>
+        </tr>
+        <tr>
+            <td>Purpose</td>
+            <td>Generate brief analytical insights</td>
+        </tr>
+        <tr>
+            <td>Data Shared</td>
+            <td>Bankroll, odds, probability, calculated stake</td>
+        </tr>
+        <tr>
+            <td>PII Shared</td>
+            <td>None</td>
+        </tr>
+        <tr>
+            <td>Required for App</td>
+            <td>No (optional feature)</td>
+        </tr>
+        <tr>
+            <td>Advice Provided</td>
+            <td>No (informational only)</td>
+        </tr>
+        <tr>
+            <td>User Control</td>
+            <td>Contact us to discuss options</td>
+        </tr>
+    </table>
+
+    <hr style="margin-top: 3rem; border: none; border-top: 1px solid #ddd;">
+    <p style="text-align: center; color: #666; font-size: 0.9rem;"><em>This disclosure is provided to ensure transparency about AI usage in Kelly's Criterion Calculator.</em></p>
+</body>
+</html>

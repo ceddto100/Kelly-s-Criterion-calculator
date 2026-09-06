@@ -1,0 +1,399 @@
+/**
+ * NHL Hockey Over/Under Probability Estimation Tool
+ *
+ * This module implements the 4-step NHL projection algorithm for estimating the probability
+ * that a hockey game will go over or under a given total goals line. The algorithm uses
+ * advanced hockey analytics including expected goals (xG), goaltender performance (GSAx),
+ * pace indicators (HDCF), and special teams metrics to project game totals.
+ *
+ * TOOL: estimate_hockey_probability
+ * Calculates the probability that an NHL game will go over or under a specified total goals line
+ * using a sophisticated 4-step algorithm:
+ *
+ * Step A - Base Score Calculation:
+ *   Home_Score = ((Home_xGF60 + Away_xGA60) / 2) - Away_GSAx60
+ *   Away_Score = ((Away_xGF60 + Home_xGA60) / 2) - Home_GSAx60
+ *
+ * Step B - Pace Adjustment:
+ *   IF (Home_HDCF60 + Away_HDCF60) > 25 THEN add +0.25 to total
+ *
+ * Step C - Special Teams Mismatch:
+ *   Home advantage: IF (Home_PP + (100 - Away_PK)) * Away_TimesShorthanded > 150 THEN +0.35
+ *   Away advantage: IF (Away_PP + (100 - Home_PK)) * Home_TimesShorthanded > 150 THEN +0.35
+ *
+ * Step D - Probability Calculation:
+ *   Standard Deviation = sqrt(Projected Total) [Poisson-like variance]
+ *   Z-Score = (Projected Total - Line) / Standard Deviation
+ *   Over Probability = (1 - CDF(Z)) * 100
+ *
+ * The tool requires 7 statistics for each team (14 total):
+ * - xGF60: Expected Goals For per 60 minutes
+ * - xGA60: Expected Goals Against per 60 minutes
+ * - GSAx60: Goalie Goals Saved Above Expected per 60
+ * - HDCF60: High Danger Chances For per 60 (pace indicator)
+ * - PP: Power Play Percentage (0-100)
+ * - PK: Penalty Kill Percentage (0-100)
+ * - timesShorthandedPerGame: Average times shorthanded per game
+ *
+ * The response includes projected scores for each team, total projected goals, pace and special
+ * teams adjustments applied, standard deviation used, z-score, and both over and under probabilities.
+ * An interpretation categorizes the bet quality based on the calculated probability.
+ */
+
+import { z } from 'zod';
+import { normCdf } from '../utils/calculations.js';
+import { evaluateDecision, type DecisionResult } from '../utils/decision.js';
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+export interface NHLTeamStats {
+  xGF60: number;           // Expected Goals For per 60 minutes
+  xGA60: number;           // Expected Goals Against per 60 minutes
+  GSAx60: number;          // Goalie Goals Saved Above Expected per 60
+  HDCF60: number;          // High Danger Chances For per 60 (Pace indicator)
+  PP: number;              // Power Play Percentage (0-100)
+  PK: number;              // Penalty Kill Percentage (0-100)
+  timesShorthandedPerGame: number;  // Average times shorthanded per game
+}
+
+export interface NHLProjectionResult {
+  homeScore: number;
+  awayScore: number;
+  projectedTotal: number;
+  paceAdjustment: number;
+  specialTeamsAdjustment: number;
+  standardDeviation: number;
+  zScore: number;
+  overProbability: number;
+  underProbability: number;
+}
+
+// ============================================================================
+// NHL PROJECTION CALCULATION
+// ============================================================================
+
+// ============================================================================
+// NHL PROJECTION CONSTANTS
+// ============================================================================
+
+const NHL_CONSTANTS = {
+  homeIceAdvantage: 0.15,      // Home teams score ~0.15 more goals on average
+  paceThresholdLow: 20,        // Below this HDCF sum, pace is slow
+  paceThresholdHigh: 30,       // Above this HDCF sum, pace is fast
+  paceMaxAdjustment: 0.40,     // Maximum pace adjustment (goals)
+  specialTeamsThreshold: 100,  // Minimum ST score to start getting a bonus
+  specialTeamsMaxBonus: 0.50,  // Maximum ST bonus per team (goals)
+  specialTeamsCap: 250,        // ST score at which max bonus is reached
+  overdispersionFactor: 1.15,  // NHL scoring variance exceeds Poisson by ~15%
+  overtimeProbability: 0.23,   // ~23% of NHL games reach OT
+  overtimeGoalBoost: 0.23,    // Expected extra goals from OT probability (0.23 * ~1 goal)
+};
+
+/**
+ * Calculate NHL game projection and over/under probability
+ *
+ * Improved 4-step algorithm with:
+ *   - Home ice advantage (+0.15 goals for home team)
+ *   - Continuous (graduated) pace adjustment instead of binary
+ *   - Continuous special teams mismatch scaling instead of binary threshold
+ *   - Overdispersion-adjusted standard deviation (real NHL variance > Poisson)
+ *   - Overtime probability boost to projected total
+ */
+export function calculateNHLProjection(
+  home: NHLTeamStats,
+  away: NHLTeamStats,
+  line: number
+): NHLProjectionResult {
+  // ========================================================================
+  // STEP A: Base Score Calculation + Home Ice Advantage
+  // ========================================================================
+  const homeScore = ((home.xGF60 + away.xGA60) / 2) - away.GSAx60 + NHL_CONSTANTS.homeIceAdvantage;
+  const awayScore = ((away.xGF60 + home.xGA60) / 2) - home.GSAx60;
+
+  // ========================================================================
+  // STEP B: Graduated Pace Adjustment
+  // ========================================================================
+  // Instead of binary 0/0.25, use linear scaling between low and high thresholds
+  const combinedHDCF = home.HDCF60 + away.HDCF60;
+  let paceAdjustment = 0;
+  if (combinedHDCF > NHL_CONSTANTS.paceThresholdLow) {
+    const paceRange = NHL_CONSTANTS.paceThresholdHigh - NHL_CONSTANTS.paceThresholdLow;
+    const paceProgress = Math.min(1, (combinedHDCF - NHL_CONSTANTS.paceThresholdLow) / paceRange);
+    paceAdjustment = paceProgress * NHL_CONSTANTS.paceMaxAdjustment;
+  }
+
+  // ========================================================================
+  // STEP C: Graduated Special Teams Mismatch
+  // ========================================================================
+  // Instead of binary 0/0.35, scale linearly from threshold to cap
+  let specialTeamsAdjustment = 0;
+
+  const homeSpecialTeamsScore = (home.PP + (100 - away.PK)) * away.timesShorthandedPerGame;
+  if (homeSpecialTeamsScore > NHL_CONSTANTS.specialTeamsThreshold) {
+    const stRange = NHL_CONSTANTS.specialTeamsCap - NHL_CONSTANTS.specialTeamsThreshold;
+    const stProgress = Math.min(1, (homeSpecialTeamsScore - NHL_CONSTANTS.specialTeamsThreshold) / stRange);
+    specialTeamsAdjustment += stProgress * NHL_CONSTANTS.specialTeamsMaxBonus;
+  }
+
+  const awaySpecialTeamsScore = (away.PP + (100 - home.PK)) * home.timesShorthandedPerGame;
+  if (awaySpecialTeamsScore > NHL_CONSTANTS.specialTeamsThreshold) {
+    const stRange = NHL_CONSTANTS.specialTeamsCap - NHL_CONSTANTS.specialTeamsThreshold;
+    const stProgress = Math.min(1, (awaySpecialTeamsScore - NHL_CONSTANTS.specialTeamsThreshold) / stRange);
+    specialTeamsAdjustment += stProgress * NHL_CONSTANTS.specialTeamsMaxBonus;
+  }
+
+  // ========================================================================
+  // STEP D: Final Totals and Probability
+  // ========================================================================
+  // Add overtime boost: ~23% of games go to OT, adding ~1 extra goal
+  const baseTotal = homeScore + awayScore + paceAdjustment + specialTeamsAdjustment;
+  const projectedTotal = baseTotal + NHL_CONSTANTS.overtimeGoalBoost;
+
+  // Overdispersion-adjusted standard deviation
+  // Pure Poisson: SD = sqrt(mean), but NHL has correlated scoring events
+  // (power plays, empty net goals, momentum runs) that inflate variance by ~15%
+  const standardDeviation = Math.sqrt(projectedTotal) * NHL_CONSTANTS.overdispersionFactor;
+  const zScore = (projectedTotal - line) / standardDeviation;
+
+  // 1 - CDF gives probability of OVER
+  const overProbability = (1 - normCdf(zScore)) * 100;
+  const underProbability = 100 - overProbability;
+
+  return {
+    homeScore: Math.round(homeScore * 100) / 100,
+    awayScore: Math.round(awayScore * 100) / 100,
+    projectedTotal: Math.round(projectedTotal * 100) / 100,
+    paceAdjustment: Math.round(paceAdjustment * 1000) / 1000,
+    specialTeamsAdjustment: Math.round(specialTeamsAdjustment * 1000) / 1000,
+    standardDeviation: Math.round(standardDeviation * 1000) / 1000,
+    zScore: Math.round(zScore * 1000) / 1000,
+    overProbability: Math.round(overProbability * 100) / 100,
+    underProbability: Math.round(underProbability * 100) / 100
+  };
+}
+
+// ============================================================================
+// INPUT SCHEMAS
+// ============================================================================
+
+const nhlTeamStatsSchema = z.object({
+  name: z.string().describe('Team name'),
+  xGF60: z.number().describe('Expected Goals For per 60 minutes (e.g., 2.85)'),
+  xGA60: z.number().describe('Expected Goals Against per 60 minutes (e.g., 2.65)'),
+  GSAx60: z.number().describe('Goalie Goals Saved Above Expected per 60 (e.g., 0.15, can be negative)'),
+  HDCF60: z.number().describe('High Danger Chances For per 60 - pace indicator (e.g., 12.5)'),
+  PP: z.number().min(0).max(100).describe('Power Play Percentage (0-100, e.g., 22.5 for 22.5%)'),
+  PK: z.number().min(0).max(100).describe('Penalty Kill Percentage (0-100, e.g., 80.5 for 80.5%)'),
+  timesShorthandedPerGame: z.number().describe('Average times shorthanded per game (e.g., 3.2)')
+});
+
+export const hockeyProbabilityInputSchema = z.object({
+  homeTeam: nhlTeamStatsSchema.describe('Statistics for the home team'),
+  awayTeam: nhlTeamStatsSchema.describe('Statistics for the away team'),
+  line: z.number().describe('The over/under total goals line (e.g., 6.5)'),
+  betType: z.enum(['over', 'under']).describe('Whether betting on over or under the line'),
+  betOdds: z.number().optional().describe('American odds for the chosen over/under side (default -110). Used to compute edge vs the fair line.'),
+  oppOdds: z.number().optional().describe('American odds for the opposite over/under side (default -110). Used to de-vig.')
+});
+
+export type HockeyProbabilityInput = z.infer<typeof hockeyProbabilityInputSchema>;
+
+// ============================================================================
+// TOOL DEFINITION
+// ============================================================================
+
+export const hockeyProbabilityToolDefinition = {
+  name: 'estimate_hockey_probability',
+  description: `Calculate NHL over/under probability using team stats (xG, GSAx, HDCF, PP%, PK%) and a total goals line. Returns projected total, over/under probabilities, and bet quality interpretation.`,
+
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      homeTeam: {
+        type: 'object',
+        description: 'Statistics for the home team (7 metrics)',
+        properties: {
+          name: { type: 'string', description: 'Team name' },
+          xGF60: { type: 'number', description: 'Expected Goals For per 60 minutes' },
+          xGA60: { type: 'number', description: 'Expected Goals Against per 60 minutes' },
+          GSAx60: { type: 'number', description: 'Goalie Goals Saved Above Expected per 60' },
+          HDCF60: { type: 'number', description: 'High Danger Chances For per 60 (pace indicator)' },
+          PP: { type: 'number', description: 'Power Play Percentage (0-100)' },
+          PK: { type: 'number', description: 'Penalty Kill Percentage (0-100)' },
+          timesShorthandedPerGame: { type: 'number', description: 'Average times shorthanded per game' }
+        },
+        required: ['name', 'xGF60', 'xGA60', 'GSAx60', 'HDCF60', 'PP', 'PK', 'timesShorthandedPerGame']
+      },
+      awayTeam: {
+        type: 'object',
+        description: 'Statistics for the away team (7 metrics)',
+        properties: {
+          name: { type: 'string', description: 'Team name' },
+          xGF60: { type: 'number', description: 'Expected Goals For per 60 minutes' },
+          xGA60: { type: 'number', description: 'Expected Goals Against per 60 minutes' },
+          GSAx60: { type: 'number', description: 'Goalie Goals Saved Above Expected per 60' },
+          HDCF60: { type: 'number', description: 'High Danger Chances For per 60 (pace indicator)' },
+          PP: { type: 'number', description: 'Power Play Percentage (0-100)' },
+          PK: { type: 'number', description: 'Penalty Kill Percentage (0-100)' },
+          timesShorthandedPerGame: { type: 'number', description: 'Average times shorthanded per game' }
+        },
+        required: ['name', 'xGF60', 'xGA60', 'GSAx60', 'HDCF60', 'PP', 'PK', 'timesShorthandedPerGame']
+      },
+      line: {
+        type: 'number',
+        description: 'The over/under total goals line (e.g., 6.5)'
+      },
+      betType: {
+        type: 'string',
+        enum: ['over', 'under'],
+        description: 'Whether betting on over or under the line'
+      }
+    },
+    required: ['homeTeam', 'awayTeam', 'line', 'betType']
+  }
+};
+
+// ============================================================================
+// HANDLER
+// ============================================================================
+
+export interface HockeyProbabilityOutput {
+  success: boolean;
+  sport: 'hockey';
+  league: 'NHL';
+  matchup: {
+    homeTeam: string;
+    awayTeam: string;
+    line: number;
+    betType: 'over' | 'under';
+  };
+  projection: {
+    homeScore: number;
+    awayScore: number;
+    projectedTotal: number;
+    paceAdjustment: number;
+    specialTeamsAdjustment: number;
+  };
+  result: {
+    probability: number;
+    overProbability: number;
+    underProbability: number;
+    standardDeviation: number;
+    zScore: number;
+  };
+  decision: DecisionResult;
+  dataCompleteness: number;
+  riskFactors: string[];
+  interpretation: string;
+  disclaimer: string;
+}
+
+const HOCKEY_DISCLAIMER =
+  'Model projection only — a possible edge based on formula output, not a guaranteed result. ' +
+  'No bet is risk-free. Use bankroll discipline.';
+
+/** Risk factors for an NHL totals projection. */
+function buildHockeyRiskFactors(projectedTotal: number, line: number, probability: number): string[] {
+  const risks: string[] = [];
+  if (Math.abs(probability - 50) < 5) {
+    risks.push('Projection is near a coin flip — small input changes can flip the lean.');
+  }
+  if (Math.abs(projectedTotal - line) < 0.25) {
+    risks.push('Projected total sits almost exactly on the line — little margin for an edge.');
+  }
+  risks.push('Goalie confirmation matters: a backup/rookie start or a hot/cold goalie can swing the total.');
+  risks.push('Model uses season-long rates; it does not see late scratches, back-to-backs, or empty-net variance.');
+  return risks;
+}
+
+function getHockeyInterpretation(probability: number, betType: 'over' | 'under', line: number, projectedTotal: number): string {
+  const direction = betType === 'over' ? 'OVER' : 'UNDER';
+  const diff = Math.abs(projectedTotal - line);
+  const diffText = diff.toFixed(1);
+
+  if (probability >= 65) {
+    return `STRONG ${direction}: ${probability}% probability. Projected total (${projectedTotal}) is ${diffText} goals ${betType === 'over' ? 'above' : 'below'} the line. Good value bet.`;
+  } else if (probability >= 55) {
+    return `FAVORABLE ${direction}: ${probability}% probability. Projected total suggests a slight edge on the ${direction.toLowerCase()}.`;
+  } else if (probability >= 45) {
+    return `COIN FLIP: ${probability}% probability. The ${direction.toLowerCase()} ${line} is essentially even odds.`;
+  } else if (probability >= 35) {
+    return `UNFAVORABLE: ${probability}% probability. The ${direction.toLowerCase()} ${line} is risky.`;
+  } else {
+    return `POOR VALUE: ${probability}% probability. The ${direction.toLowerCase()} ${line} is not recommended.`;
+  }
+}
+
+export async function handleHockeyProbability(input: unknown): Promise<HockeyProbabilityOutput> {
+  const parsed = hockeyProbabilityInputSchema.parse(input);
+
+  const homeStats: NHLTeamStats = {
+    xGF60: parsed.homeTeam.xGF60,
+    xGA60: parsed.homeTeam.xGA60,
+    GSAx60: parsed.homeTeam.GSAx60,
+    HDCF60: parsed.homeTeam.HDCF60,
+    PP: parsed.homeTeam.PP,
+    PK: parsed.homeTeam.PK,
+    timesShorthandedPerGame: parsed.homeTeam.timesShorthandedPerGame
+  };
+
+  const awayStats: NHLTeamStats = {
+    xGF60: parsed.awayTeam.xGF60,
+    xGA60: parsed.awayTeam.xGA60,
+    GSAx60: parsed.awayTeam.GSAx60,
+    HDCF60: parsed.awayTeam.HDCF60,
+    PP: parsed.awayTeam.PP,
+    PK: parsed.awayTeam.PK,
+    timesShorthandedPerGame: parsed.awayTeam.timesShorthandedPerGame
+  };
+
+  const result = calculateNHLProjection(homeStats, awayStats, parsed.line);
+
+  // Return the probability for the selected bet type
+  const probability = parsed.betType === 'over' ? result.overProbability : result.underProbability;
+
+  // The hockey tool requires all 7 stats per team, so inputs are always complete.
+  const dataCompleteness = 1;
+
+  const decision = evaluateDecision({
+    modelProbabilityPct: probability,
+    sideOdds: parsed.betOdds,
+    otherSideOdds: parsed.oppOdds,
+    dataCompleteness
+  });
+
+  const riskFactors = buildHockeyRiskFactors(result.projectedTotal, parsed.line, probability);
+
+  return {
+    success: true,
+    sport: 'hockey',
+    league: 'NHL',
+    matchup: {
+      homeTeam: parsed.homeTeam.name,
+      awayTeam: parsed.awayTeam.name,
+      line: parsed.line,
+      betType: parsed.betType
+    },
+    projection: {
+      homeScore: result.homeScore,
+      awayScore: result.awayScore,
+      projectedTotal: result.projectedTotal,
+      paceAdjustment: result.paceAdjustment,
+      specialTeamsAdjustment: result.specialTeamsAdjustment
+    },
+    result: {
+      probability,
+      overProbability: result.overProbability,
+      underProbability: result.underProbability,
+      standardDeviation: result.standardDeviation,
+      zScore: result.zScore
+    },
+    decision,
+    dataCompleteness,
+    riskFactors,
+    interpretation: getHockeyInterpretation(probability, parsed.betType, parsed.line, result.projectedTotal),
+    disclaimer: HOCKEY_DISCLAIMER
+  };
+}
