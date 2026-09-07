@@ -1,18 +1,15 @@
 {
-  "updatedAt": "2026-09-07T16:10:20.000Z",
-  "statsApiRunAt": "2026-09-07T02:48:58.933Z",
+  "updatedAt": "2026-09-07T17:13:40.107Z",
   "season": 2026,
   "teams": 30,
-  "pitchers": 850,
+  "pitchers": 851,
   "bullpens": 30,
-  "slateGames": 1,
+  "slateGames": 11,
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
     "ESPN MLB scoreboard (consensus total + moneylines)",
     "Open-Meteo (first-pitch temperature + wind)",
-    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)",
-    "FanGraphs major-league batting leaderboard, team splits (wRC+) - stats=bat, type=8, team=0,ts, season=2026",
-    "FanGraphs major-league pitching leaderboard, all pitchers (xFIP, SIERA) - stats=pit, type=8, team=0, season=2026"
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
   ],
   "computedHere": [
     "woba (linear weights)",
@@ -24,13 +21,5 @@
     "siera",
     "throws",
     "closer_available"
-  ],
-  "notes": [
-    "FanGraphs-only backfill (2026-09-07T16:10 UTC): refreshed wrc_plus for 30/30 teams and xfip+siera for 849/850 pitchers in mlb_starters.csv.",
-    "Only the wrc_plus column in mlb_team_offense.csv and the xfip/siera columns in mlb_starters.csv were touched; every other cell (including StatsAPI-derived woba/fip/era/etc.) is byte-identical to the prior run.",
-    "One pitcher (Will Dion, WSH) left blank for xfip/siera: FanGraphs only reports him under a combined '2 Tms' row (ERA 3.89), which does not match his CSV era (3.38) exactly, so the identity could not be verified and both cells were left empty per the no-unverified-match rule.",
-    "111 traded pitchers were matched to FanGraphs' combined '2 Tms'/'3 Tms' rows by unique name + exact ERA match (rounded to 2 decimals) against the CSV's overall-season era.",
-    "No OPS+ fallback was needed: FanGraphs reported wRC+ for all 30 teams.",
-    "Values verified against independently parameterized FanGraphs queries (lg=nl for teams, qual=y for pitchers) with no discrepancies."
   ]
 }
