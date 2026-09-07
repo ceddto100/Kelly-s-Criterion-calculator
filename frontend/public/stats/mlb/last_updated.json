@@ -1,18 +1,15 @@
 {
-  "updatedAt": "2026-09-06T23:14:42.000Z",
-  "statsApiRunAt": "2026-09-06T14:57:00.340Z",
+  "updatedAt": "2026-09-07T02:48:58.933Z",
   "season": 2026,
   "teams": 30,
-  "pitchers": 848,
+  "pitchers": 850,
   "bullpens": 30,
-  "slateGames": 15,
+  "slateGames": 1,
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
     "ESPN MLB scoreboard (consensus total + moneylines)",
     "Open-Meteo (first-pitch temperature + wind)",
-    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)",
-    "FanGraphs major-league batting leaderboard (wRC+, stats=bat, team split, season=2026)",
-    "FanGraphs major-league pitching leaderboard (xFIP, SIERA, stats=pit, all pitchers, season=2026)"
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
   ],
   "computedHere": [
     "woba (linear weights)",
@@ -24,13 +21,5 @@
     "siera",
     "throws",
     "closer_available"
-  ],
-  "notes": [
-    "FanGraphs refresh: wrc_plus filled for 30/30 teams in mlb_team_offense.csv from the stats=bat, team=0,ts leaderboard.",
-    "FanGraphs refresh: xfip and siera filled for 848/848 pitchers in mlb_starters.csv from the stats=pit (all pitchers, not starters-only) leaderboard, matched on normalized name + mapped team abbreviation.",
-    "No pitcher required the '2 Tms'/'3 Tms' traded-player ERA-match fallback this run; every pitcher matched a single-team row directly.",
-    "No columns left empty this run; no Baseball-Reference OPS+ fallback was needed (FanGraphs wRC+ available for all 30 teams).",
-    "Some pitcher xfip/siera values fall outside the typical 1.50-7.00 band (e.g. Ben Bowden, Andruw Monasterio); verified against IP - all are low-IP relievers or position players who pitched, so the extreme values are genuine published FanGraphs figures, not misreads.",
-    "Spot-checked 3+ values per file against independently parameterized queries (lg=nl for teams, qual=y for pitchers) - all matched exactly."
   ]
 }
