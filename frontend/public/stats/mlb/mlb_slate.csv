@@ -1,3 +1,6 @@
 "game_date","game_time","away_team","away_abbr","home_team","home_abbr","venue","away_starter","away_starter_confirmed","home_starter","home_starter_confirmed","book_total","home_moneyline","away_moneyline","temperature_f","wind_speed_mph","wind_direction","roof_closed","away_lineup_confirmed","home_lineup_confirmed"
-"2026-09-09","2026-09-09T23:40:00Z","Arizona Diamondbacks","AZ","Kansas City Royals","KC","Kauffman Stadium","Zac Gallen","yes","Daniel Lynch IV","yes","","","","75","4","crosswind","no","yes","yes"
-"2026-09-10","2026-09-10T02:10:00Z","Cincinnati Reds","CIN","Los Angeles Dodgers","LAD","UNIQLO Field at Dodger Stadium","Rhett Lowder","yes","Yoshinobu Yamamoto","yes","","","","89","5","crosswind","no","yes","yes"
+"2026-09-10","2026-09-10T16:15:00Z","Tampa Bay Rays","TB","Atlanta Braves","ATL","Truist Park","Nick Martinez","yes","Martín Pérez","yes","","","","84","4","crosswind","no","yes","yes"
+"2026-09-10","2026-09-10T17:05:00Z","Houston Astros","HOU","Philadelphia Phillies","PHI","Citizens Bank Park","Cristian Javier","yes","Zack Wheeler","yes","","","","87","11","crosswind","no","yes","yes"
+"2026-09-10","2026-09-10T20:10:00Z","Texas Rangers","TEX","Seattle Mariners","SEA","T-Mobile Park","Jacob deGrom","yes","Logan Gilbert","yes","","","","69","6","crosswind","no","no","no"
+"2026-09-10","2026-09-10T23:05:00Z","Colorado Rockies","COL","New York Yankees","NYY","Yankee Stadium","Ryan Feltner","yes","Max Fried","yes","","","","84","5","out","no","no","no"
+"2026-09-10","2026-09-10T23:40:00Z","Pittsburgh Pirates","PIT","Chicago White Sox","CWS","Rate Field","Jared Jones","yes","Hagen Smith","yes","","","","70","8","in","no","no","no"
