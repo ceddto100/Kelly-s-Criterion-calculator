@@ -1,18 +1,15 @@
 {
-  "updatedAt": "2026-09-11T16:09:11.000Z",
+  "updatedAt": "2026-09-12T03:01:54.780Z",
   "season": 2026,
   "teams": 30,
   "pitchers": 852,
   "bullpens": 30,
-  "slateGames": 15,
-  "statsApiRunAt": "2026-09-11T15:51:23.545Z",
+  "slateGames": 5,
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
     "ESPN MLB scoreboard (consensus total + moneylines)",
     "Open-Meteo (first-pitch temperature + wind)",
-    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)",
-    "FanGraphs major-league batting leaderboard (wRC+, stats=bat, season=2026)",
-    "FanGraphs major-league pitching leaderboard (xFIP, SIERA, stats=pit, season=2026)"
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
   ],
   "computedHere": [
     "woba (linear weights)",
@@ -24,14 +21,5 @@
     "siera",
     "throws",
     "closer_available"
-  ],
-  "notes": [
-    "FanGraphs-only backfill run: refreshed wrc_plus for all 30/30 teams in mlb_team_offense.csv, and xfip+siera for 851/852 pitchers in mlb_starters.csv.",
-    "Pitcher xFIP/SIERA sourced from FanGraphs stats=pit (all pitchers, overall season line), matched to StatsAPI rows by normalized name + mapped team abbreviation (ARI->AZ, CHW->CWS, KCR->KC, SDP->SD, SFG->SF, TBR->TB, WSN->WSH, OAK->ATH).",
-    "112 traded pitchers appear on FanGraphs as a combined 'N Tms' row (TeamNameAbb); accepted only when the name was a unique match and the combined row's ERA equaled the CSV's era exactly, pinning identity.",
-    "11 pitchers matched via nickname/full-name spelling variants (e.g. Cam vs Cameron Schlittler, Tyron vs Tayron Guerrero); accepted only because both the mapped team AND the ERA (to 2 decimals) matched exactly, which independently confirms identity beyond the name alone.",
-    "JoJo Romero (MIL) left blank for xfip/siera: FanGraphs' only name match is a combined '2 Tms' row whose ERA (3.35) does not equal the CSV's era (3.72), so identity could not be pinned per the traded-pitcher rule -- no invented value was written.",
-    "No Baseball-Reference OPS+ fallback was needed; FanGraphs reported wRC+ for all 30 teams.",
-    "No other columns or files were touched in this run; all other stats (StatsAPI hitting/pitching, slate, odds, weather, bullpen, park factors) are refreshed separately by the update_stats.yml GitHub Actions workflow."
   ]
 }
