@@ -57,12 +57,15 @@ jobs:
         continue-on-error: true
         run: NODE_PATH=backend/node_modules node scripts/updateNHLStats.js
 
-      # MLB runtime reads these generated CSVs. This updater only calls the
-      # cloud-friendly StatsAPI, ESPN and Open-Meteo sources; FanGraphs-only
-      # cells filled by the stat-fetching agent are preserved by the script.
+      # MLB runtime reads these generated CSVs. This updater calls StatsAPI,
+      # Open-Meteo and The Odds API (book totals + moneylines; repository secret
+      # ODDS_API_KEY, optional — without it the lines stay blank with a warning).
+      # FanGraphs-only cells filled by the stat-fetching agent are preserved.
       - name: Update MLB stats and today's slate
         id: mlb
         continue-on-error: true
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: node scripts/updateMLBStats.js
 
       # Record when each sport's CSVs were actually refreshed (only advances a

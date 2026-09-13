@@ -21,7 +21,10 @@
  *   - MLB StatsAPI  (statsapi.mlb.com)  — teams, venues, team hitting, every
  *     pitcher's season line, today's schedule + probable starters + lineups,
  *     and boxscores for bullpen usage. Free, no auth, no bot wall.
- *   - ESPN scoreboard                    — consensus total + moneylines.
+ *   - The Odds API                       — consensus total + moneylines
+ *     (median across US books). Needs ODDS_API_KEY; the free plan's 500
+ *     monthly credits cover two runs a day at 2 credits per run. Without a
+ *     key the slate is still written, with the line columns blank.
  *   - Open-Meteo                         — first-pitch temperature and wind.
  *
  * wOBA and FIP are COMPUTED here from StatsAPI counting stats using the
@@ -45,8 +48,7 @@ const path = require('path');
 
 const OUT_DIR = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'mlb');
 const STATSAPI = 'https://statsapi.mlb.com/api/v1';
-const ESPN_SCOREBOARD =
-  'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard';
+const ODDS_API = 'https://api.the-odds-api.com/v4/sports/baseball_mlb/odds';
 const OPEN_METEO = 'https://api.open-meteo.com/v1/forecast';
 const UA = 'Mozilla/5.0 (compatible; Betgistics/1.0; +https://betgistics.app)';
 
@@ -144,17 +146,28 @@ const isoDate = (d) => d.toISOString().slice(0, 10);
 const normalize = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
- * MLB's "today" is the US Eastern date, not UTC. Without this a run after 8pm
- * ET returns tomorrow's (nearly empty) slate, because US night games fall on
- * the next UTC day.
+ * The slate date, on the US Eastern calendar the app filters by (not UTC:
+ * night games fall on the next UTC day). From 9pm ET on, that day's games are
+ * finished or under way, so the late (~03:00 UTC) run builds the NEXT day's
+ * slate instead of leaving the app with nothing to show until mid-morning.
  */
-const mlbToday = () =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+function slateDate(now = new Date()) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  if (Number(parts.hour) < 21) return date;
+  return isoDate(new Date(Date.parse(`${date}T12:00:00Z`) + 86400000));
+}
 
 // ---------------------------------------------------------------------------
 // teams + venues
@@ -410,28 +423,107 @@ function classifyWind(windFromDeg, cfBearing) {
   return 'crosswind';
 }
 
-async function fetchEspnLines() {
-  const byTeam = new Map();
-  try {
-    const data = await getJson(ESPN_SCOREBOARD);
-    for (const event of data.events || []) {
-      const comp = event.competitions?.[0];
-      if (!comp) continue;
-      const odds = comp.odds?.[0] || {};
-      const entry = {
-        total: num(odds.overUnder),
-        homeMl: num(odds.homeTeamOdds?.moneyLine),
-        awayMl: num(odds.awayTeamOdds?.moneyLine),
-      };
-      for (const c of comp.competitors || []) {
-        const name = c.team?.displayName || c.team?.name;
-        if (name) byTeam.set(normalize(name), entry);
+// ---------------------------------------------------------------------------
+// sportsbook lines (The Odds API)
+// ---------------------------------------------------------------------------
+
+const median = (values) => {
+  const v = values.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!v.length) return undefined;
+  const mid = Math.floor(v.length / 2);
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+};
+
+const americanToProbability = (price) => (price < 0 ? -price / (100 - price) : 100 / (price + 100));
+
+const probabilityToAmerican = (p) => {
+  if (!(p > 0 && p < 1)) return undefined;
+  // Even money is written +100.
+  return p > 0.5 ? -Math.round((p / (1 - p)) * 100) : Math.round(((1 - p) / p) * 100);
+};
+
+/**
+ * One consensus line per game: the median total (to the half run) and, per
+ * side, the median moneyline. Moneylines are averaged as implied
+ * probabilities, because the median of American odds breaks across ±100
+ * (the median of -105 and +105 is not 0).
+ */
+function consensusOdds(event) {
+  const totals = [];
+  const home = [];
+  const away = [];
+  for (const book of event.bookmakers || []) {
+    for (const market of book.markets || []) {
+      if (market.key === 'totals') {
+        const over = (market.outcomes || []).find((o) => o.name === 'Over');
+        if (Number.isFinite(over?.point)) totals.push(over.point);
+      } else if (market.key === 'h2h') {
+        const price = (team) => (market.outcomes || []).find((o) => normalize(o.name) === normalize(team))?.price;
+        if (Number.isFinite(price(event.home_team))) home.push(americanToProbability(price(event.home_team)));
+        if (Number.isFinite(price(event.away_team))) away.push(americanToProbability(price(event.away_team)));
       }
     }
-  } catch (e) {
-    console.log(`  ESPN odds unavailable (${e.message}) — totals left blank`);
   }
-  return byTeam;
+  const total = median(totals);
+  return {
+    home: event.home_team,
+    away: event.away_team,
+    commence: Date.parse(event.commence_time),
+    total: total === undefined ? undefined : Math.round(total * 2) / 2,
+    homeMl: probabilityToAmerican(median(home)),
+    awayMl: probabilityToAmerican(median(away)),
+  };
+}
+
+/**
+ * Pair a StatsAPI game with an odds event. Team names must match in full,
+ * or by a nickname only one team on the slate uses ("Athletics" yes, "Sox"
+ * no). On a doubleheader the closest first pitch wins.
+ */
+function matchOdds(game, events) {
+  const nick = (s) => normalize(String(s || '').trim().split(/\s+/).pop());
+  const namesByNick = new Map();
+  for (const e of events) {
+    for (const t of [e.home, e.away]) {
+      if (!namesByNick.has(nick(t))) namesByNick.set(nick(t), new Set());
+      namesByNick.get(nick(t)).add(normalize(t));
+    }
+  }
+  const same = (ours, theirs) =>
+    normalize(ours) === normalize(theirs) ||
+    (nick(ours) === nick(theirs) && namesByNick.get(nick(theirs))?.size === 1);
+  const start = Date.parse(game.gameDate);
+  let best;
+  for (const e of events) {
+    if (!same(game.home, e.home) || !same(game.away, e.away)) continue;
+    const gap = Math.abs(e.commence - start);
+    if (!(gap <= 6 * 3600e3)) continue;
+    if (!best || gap < best.gap) best = { e, gap };
+  }
+  return best?.e;
+}
+
+/** The slate day's lines. Never logs the request URL: it carries the API key. */
+async function fetchOddsLines(date) {
+  const key = (process.env.ODDS_API_KEY || '').trim();
+  if (!key) return { status: 'missing-key', events: [] };
+  // 5am ET to 5am ET covers every first pitch of the Eastern calendar day.
+  const from = `${date}T09:00:00Z`;
+  const to = new Date(Date.parse(from) + 86400000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const url =
+    `${ODDS_API}?apiKey=${encodeURIComponent(key)}&regions=us&markets=h2h,totals` +
+    `&oddsFormat=american&dateFormat=iso&commenceTimeFrom=${from}&commenceTimeTo=${to}`;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return { status: 'error', message: `HTTP ${res.status}`, events: [] };
+    const data = await res.json();
+    console.log(
+      `  The Odds API: ${data.length} events, ${res.headers.get('x-requests-remaining') ?? '?'} credits left this month`,
+    );
+    return { status: 'ok', events: data.map(consensusOdds) };
+  } catch (e) {
+    return { status: 'error', message: e.message, events: [] };
+  }
 }
 
 async function fetchWeather(lat, lon, startTimeIso) {
@@ -464,9 +556,9 @@ async function fetchWeather(lat, lon, startTimeIso) {
   }
 }
 
-async function buildSlate(teams, lines) {
+async function buildSlate(teams, odds, date) {
   const data = await getJson(
-    `${STATSAPI}/schedule?sportId=1&date=${mlbToday()}` +
+    `${STATSAPI}/schedule?sportId=1&date=${date}` +
       `&hydrate=probablePitcher,venue(location,fieldInfo),lineups`,
   );
   const rows = [];
@@ -483,12 +575,14 @@ async function buildSlate(teams, lines) {
       const lon = num(g.venue?.location?.defaultCoordinates?.longitude) ?? home.longitude;
 
       const wx = roofClosed ? {} : await fetchWeather(lat, lon, g.gameDate);
-      const line = lines.get(normalize(home.name)) || lines.get(normalize(away.name)) || {};
+      const line = matchOdds({ home: home.name, away: away.name, gameDate: g.gameDate }, odds.events) || {};
 
       const lineupOk = (players) => (Array.isArray(players) && players.length >= 9 ? 'yes' : 'no');
 
       rows.push([
-        (g.gameDate || '').slice(0, 10),
+        // The official (local) date, which is what the app filters on. The
+        // first pitch's UTC date put every 8pm+ ET game on the wrong day.
+        g.officialDate || date,
         g.gameDate || '',
         away.name,
         away.abbreviation,
@@ -624,9 +718,12 @@ async function main() {
 
   // --- today's slate --------------------------------------------------------
   let slateRows = [];
+  let odds = { status: 'skipped', events: [] };
   if (!process.argv.includes('--skip-slate')) {
-    const lines = await fetchEspnLines();
-    slateRows = await buildSlate(teams, lines);
+    const date = slateDate();
+    console.log(`  slate date ${date} (US Eastern)`);
+    odds = await fetchOddsLines(date);
+    slateRows = await buildSlate(teams, odds, date);
     writeCsv(
       'mlb_slate.csv',
       [
@@ -652,7 +749,7 @@ async function main() {
         slateGames: slateRows.length,
         sources: [
           'MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)',
-          'ESPN MLB scoreboard (consensus total + moneylines)',
+          'The Odds API (median total + moneylines across US books)',
           'Open-Meteo (first-pitch temperature + wind)',
           'repository PARK_FACTORS table (refresh yearly from Baseball Savant)',
         ],
@@ -665,9 +762,50 @@ async function main() {
     'utf8',
   );
   console.log('  wrote last_updated.json\nDone.');
+  reportLines(odds, slateRows);
 }
 
-main().catch((e) => {
-  console.error('MLB stats update failed:', e.message);
-  process.exit(1);
-});
+/**
+ * Make missing sportsbook lines impossible to miss: blank totals mean the app
+ * can never show an over/under lean. A missing key is a warning; a failed
+ * request, or no totals at all for games starting within 12 hours, fails the
+ * step (after the files are written) so the workflow run goes red.
+ */
+function reportLines(odds, slateRows) {
+  if (odds.status === 'skipped') return;
+  const now = Date.now();
+  const upcoming = slateRows.filter((r) => Date.parse(r[1]) > now + 3600e3);
+  const withTotals = upcoming.filter((r) => r[11] !== '');
+  const soon = upcoming.filter((r) => Date.parse(r[1]) - now <= 12 * 3600e3);
+  let message = `${withTotals.length}/${upcoming.length} upcoming games have a book total.`;
+  if (odds.status === 'missing-key') {
+    message =
+      'ODDS_API_KEY is not set, so MLB book totals and moneylines were left blank. Get a free key at ' +
+      'https://the-odds-api.com and add it as a repository secret named ODDS_API_KEY.';
+    console.log(`::warning::${message}`);
+  } else if (odds.status === 'error') {
+    message = `The Odds API request failed (${odds.message}); MLB book lines were left blank.`;
+    console.error(`::error::${message}`);
+    process.exitCode = 1;
+  } else if (soon.length >= 3 && withTotals.length === 0) {
+    message = odds.events.length
+      ? `${soon.length} games start within 12 hours but none matched a book line; check matchOdds() in scripts/updateMLBStats.js.`
+      : `${soon.length} games start within 12 hours but The Odds API returned no MLB events.`;
+    console.error(`::error::${message}`);
+    process.exitCode = 1;
+  } else {
+    console.log(`  ${message}`);
+  }
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### MLB lines\n${message}\n`);
+  }
+}
+
+if (require.main === module) {
+  main().catch((e) => {
+    console.error('MLB stats update failed:', e.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { consensusOdds, matchOdds, slateDate, americanToProbability, probabilityToAmerican };
