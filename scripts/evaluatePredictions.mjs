@@ -10,7 +10,7 @@ const rows=parseCsv(await readFile(filename,'utf8'));
 const groups=new Map(),seen=new Set();
 for(const row of rows){
   const key=[row.game_id,row.sport,row.market].join('|');
-  if(!row.game_id || !row.market || !['NBA','NFL','MLB','NHL'].includes(row.sport))throw Error('Invalid game/sport/market');
+  if(!row.game_id || !row.market || !['NBA','NFL','MLB','NHL','CFB'].includes(row.sport))throw Error('Invalid game/sport/market');
   if(seen.has(key))throw Error('Duplicate game/market: '+key);seen.add(key);
   const recorded=Date.parse(row.predicted_at),gameTime=Date.parse(row.game_time);
   if(!Number.isFinite(recorded)||!Number.isFinite(gameTime)||recorded>=gameTime)throw Error('Forecast must predate the game: '+key);

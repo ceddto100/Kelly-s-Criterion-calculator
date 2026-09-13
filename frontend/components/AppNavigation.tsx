@@ -63,7 +63,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: 'predictions', label: 'Prediction Board', shortLabel: 'Predict', description: 'Explore the matchup. Understand the outcome.', icon: ICONS.estimator },
       { key: 'kelly', label: 'Kelly Calculator', shortLabel: 'Kelly', description: 'Size your stake with bankroll discipline', icon: ICONS.kelly },
       { key: 'estimator', label: 'Probability Estimator', shortLabel: 'Estimate', description: 'Turn team stats into win probability', icon: ICONS.estimator },
-      { key: 'walters', label: 'Walters Protocol', shortLabel: 'Walters', description: 'Power-rating edge and line value checks', icon: ICONS.walters },
+      { key: 'walters', label: 'Walters Protocol', shortLabel: 'Walters', description: 'College football power ratings vs. the line', icon: ICONS.walters },
     ],
   },
   {

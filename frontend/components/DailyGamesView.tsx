@@ -12,6 +12,11 @@
  * browser — same math and same data as the manual MLB estimator. No backend
  * call: MLB now works exactly like the NBA/NFL/NHL tabs, off static CSVs.
  *
+ * CFB: reads this week's slate and the SP+/FPI rating blend from `/stats/cfb/`
+ * (`utils/cfbStatsLoader`) and projects each game with the Walters Protocol
+ * engine using only the automatically detected factors. Top 25 is the default
+ * filter; tapping a card opens the Walters tab with the matchup filled in.
+ *
  * NBA / NFL / NHL: calls GET /api/games/daily?sport=X to show today's slate with
  * the consensus line and live status/score. Full client-side projections for
  * those sports need the team-stat CSVs the matchup tab loads; this view surfaces
@@ -22,7 +27,7 @@
  * all the way through — the model never substitutes a guess for a missing stat,
  * it just lowers confidence, and "no bet" stays a valid outcome.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { projectMLBGame, type MLBProjectionResult } from '../utils/mlbProjection';
 import {
   buildGenericSelection,
@@ -32,13 +37,23 @@ import {
   type DailyGameSelection,
 } from '../utils/dailyGameTransfer';
 import { loadSlateGames, preloadMLBStats, type MLBSlateGame } from '../utils/mlbStatsLoader';
+import {
+  buildSlateGames,
+  lineLabel,
+  loadCFBData,
+  teamLabel,
+  type CFBData,
+  type CFBSlateGame,
+} from '../utils/cfbStatsLoader';
+import { WALTERS_CFB } from '../utils/waltersCfb';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-type SportKey = 'MLB' | 'NBA' | 'NFL' | 'NHL';
+type SportKey = 'MLB' | 'CFB' | 'NBA' | 'NFL' | 'NHL';
 
 const SPORTS: { key: SportKey; label: string; icon: string }[] = [
   { key: 'MLB', label: 'MLB', icon: '⚾' },
+  { key: 'CFB', label: 'CFB', icon: '🎓' },
   { key: 'NBA', label: 'NBA', icon: '🏀' },
   { key: 'NFL', label: 'NFL', icon: '🏈' },
   { key: 'NHL', label: 'NHL', icon: '🏒' },
@@ -155,6 +170,122 @@ function MLBGameCard({ game, onSelect }: { game: MLBSlateGame; onSelect?: () => 
   );
 }
 
+// ---- college football (Walters Protocol) card -------------------------------
+
+const CFB_CONFIDENCE_COLORS: Record<string, string> = {
+  STRONG: '#22c55e',
+  BET: '#f59e0b',
+  LEAN: '#0ea5e9',
+};
+
+function kickoff(iso: string, tbd: boolean): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return tbd
+    ? `${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} · time TBD`
+    : d.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+}
+
+function CFBGameCard({ game, onSelect }: { game: CFBSlateGame; onSelect?: () => void }) {
+  const { row, prefill, projection: p } = game;
+  const home = prefill.teamA;
+  const away = prefill.teamB;
+  const homeLabel = teamLabel(home);
+  const awayLabel = teamLabel(away);
+  const rank = (r?: number) => (r !== undefined ? `#${r} ` : '');
+  const hasPick = p !== null && p.pick !== null && p.confidence !== 'NO_BET' && !game.started;
+
+  const badge = row.completed
+    ? row.away.points !== undefined && row.home.points !== undefined
+      ? `Final ${row.away.points}–${row.home.points}`
+      : 'Final'
+    : game.started
+      ? 'Kicked off'
+      : prefill.marketSpread === null
+        ? 'No line yet'
+        : p === null
+          ? 'Not rated'
+          : hasPick
+            ? `${teamLabel(p.pick === 'A' ? home : away)} ${p.pickSpread === 0 ? 'PK' : `${p.pickSpread! > 0 ? '+' : ''}${p.pickSpread}`} · ${p.confidence}`
+            : 'No Bet';
+  const badgeColor = hasPick ? CFB_CONFIDENCE_COLORS[p!.confidence] : row.completed ? '#475569' : '#94a3b8';
+
+  // Automatic factors, named per team (a lookahead is only a suggestion).
+  const factorNames: [keyof typeof prefill.auto.A, string][] = [
+    ['bye', 'off a bye'], ['shortWeek', 'short week'], ['travel', 'long trip'],
+    ['altitude', 'altitude'], ['bounceback', 'bounceback'], ['lookahead', 'lookahead?'],
+  ];
+  const factors = [
+    ...factorNames.filter(([k]) => prefill.auto.A[k]).map(([, label]) => `${homeLabel} ${label}`),
+    ...factorNames.filter(([k]) => prefill.auto.B[k]).map(([, label]) => `${awayLabel} ${label}`),
+  ];
+
+  return (
+    <ClickableCard onSelect={onSelect}>
+      <div style={styles.cardHeader}>
+        <div>
+          <div style={styles.matchup}>
+            {rank(away.rank)}{away.name} {row.neutralSite ? 'vs' : '@'} {rank(home.rank)}{home.name}
+          </div>
+          <div style={styles.subtle}>
+            {kickoff(row.startDate, row.startTimeTbd)}
+            {row.venue ? ` · ${row.venue}` : ''}
+            {row.neutralSite ? ' · neutral site' : ''}
+          </div>
+        </div>
+        <span style={{ ...styles.leanBadge, background: badgeColor }}>{badge}</span>
+      </div>
+
+      <div style={styles.statRow}>
+        <div style={styles.stat}>
+          <div style={styles.statLabel}>Book line</div>
+          <div style={styles.statValue}>{lineLabel(prefill.marketSpread, homeLabel, awayLabel)}</div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statLabel}>Walters line</div>
+          <div style={styles.statValue}>{p ? lineLabel(Math.round(p.trueLine * 10) / 10, homeLabel, awayLabel) : '—'}</div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statLabel}>Edge (pts)</div>
+          <div style={{ ...styles.statValue, color: hasPick ? badgeColor : 'var(--text-primary)' }}>
+            {p?.edge != null ? p.edge.toFixed(1) : '—'}
+          </div>
+        </div>
+        <div style={styles.stat}>
+          <div style={styles.statLabel}>Cover %</div>
+          <div style={styles.statValue}>{p?.pickProbability != null ? `${p.pickProbability.toFixed(1)}%` : '—'}</div>
+        </div>
+      </div>
+
+      {factors.length > 0 && (
+        <div style={styles.starterRow}>
+          <span style={styles.subtle}>Auto factors: {factors.join(' · ')}</span>
+        </div>
+      )}
+
+      {prefill.notRated.length > 0 && (
+        <div style={styles.note}>
+          No power rating for {prefill.notRated.join(' and ')}
+          {prefill.marketSpread !== null ? ' — line shown, no projection.' : ' — no projection.'}
+        </div>
+      )}
+      {p?.cappedForBigSpread && hasPick && (
+        <div style={styles.note}>
+          {WALTERS_CFB.bigSpread}+ point line — capped at LEAN (starters sit, garbage time).
+        </div>
+      )}
+      {hasPick && p!.edge! >= WALTERS_CFB.thresholds.checkNews && (
+        <div style={styles.note}>
+          This {p!.edge!.toFixed(1)}-point edge usually means the market knows something the ratings
+          don't — check QB and injury news before betting.
+        </div>
+      )}
+
+      {onSelect && <CardCTA label="Open in Walters Protocol" />}
+    </ClickableCard>
+  );
+}
+
 // ---- generic (NBA/NFL/NHL) slate card ---------------------------------------
 
 function GenericGameCard({
@@ -266,14 +397,25 @@ export default function DailyGamesView({
   const [error, setError] = useState<string | null>(null);
   const [mlbGames, setMlbGames] = useState<MLBSlateGame[]>([]);
   const [genericGames, setGenericGames] = useState<GenericDailyGame[]>([]);
+  const [cfbData, setCfbData] = useState<CFBData | null>(null);
+  const [cfbFilter, setCfbFilter] = useState<'top25' | 'all'>('top25');
   const [busyGameId, setBusyGameId] = useState<string | null>(null);
   const [selectError, setSelectError] = useState<string | null>(null);
 
   // Warm the CSV cache for the active sport so the first card tap is instant.
   useEffect(() => {
     if (sport === 'MLB') preloadMLBStats();
-    else preloadSportStats(sport);
+    else if (sport !== 'CFB') preloadSportStats(sport);
   }, [sport]);
+
+  const cfbGames = useMemo(() => (cfbData ? buildSlateGames(cfbData) : []), [cfbData]);
+  const visibleCfbGames = cfbFilter === 'top25' ? cfbGames.filter((g) => g.isTop25) : cfbGames;
+
+  const handleCfbSelect = useCallback((game: CFBSlateGame) => {
+    if (!onSelectGame) return;
+    setSelectError(null);
+    onSelectGame({ sport: 'CFB', walters: game.prefill });
+  }, [onSelectGame]);
 
   const handleMlbSelect = useCallback((game: MLBSlateGame) => {
     if (!onSelectGame) return;
@@ -294,7 +436,7 @@ export default function DailyGamesView({
   }, [onSelectGame]);
 
   const handleGenericSelect = useCallback(async (game: GenericDailyGame) => {
-    if (!onSelectGame || sport === 'MLB') return;
+    if (!onSelectGame || sport === 'MLB' || sport === 'CFB') return;
     setSelectError(null);
     setBusyGameId(game.gameId);
     try {
@@ -320,6 +462,9 @@ export default function DailyGamesView({
       if (s === 'MLB') {
         // Straight from /stats/mlb/*.csv — no backend, same as NBA/NFL/NHL.
         setMlbGames(await loadSlateGames());
+      } else if (s === 'CFB') {
+        // This week's slate + ratings from /stats/cfb; Refresh skips the 1-minute cache.
+        setCfbData(await loadCFBData(true));
       } else {
         const res = await fetch(`${BACKEND_URL}/api/games/daily?sport=${s}`);
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -341,11 +486,17 @@ export default function DailyGamesView({
         <div>
           <h2 style={{ margin: 0 }}>Today's Games</h2>
           <p style={styles.subtle}>
-            Live slate with model projections. {new Date().toLocaleDateString()}
+            {sport === 'CFB'
+              ? `This week's college football slate${cfbData?.meta?.week ? ` · week ${cfbData.meta.week}` : ''}${
+                  cfbData?.meta?.updatedAt ? ` · updated ${new Date(cfbData.meta.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''
+                }`
+              : `Live slate with model projections. ${new Date().toLocaleDateString()}`}
           </p>
           {onSelectGame && (
             <p style={styles.tapHint}>
-              👉 Tap a game to send its line and team stats to the Probability Estimator.
+              {sport === 'CFB'
+                ? '👉 Tap a game to open it in the Walters Protocol with ratings, line and factors filled in.'
+                : '👉 Tap a game to send its line and team stats to the Probability Estimator.'}
             </p>
           )}
         </div>
@@ -377,9 +528,45 @@ export default function DailyGamesView({
 
       {loading && <div style={styles.loading}>Loading {sport} games…</div>}
 
+      {sport === 'CFB' && !loading && !error && cfbGames.length > 0 && (
+        <div style={styles.filterRow} role="group" aria-label="College football filter">
+          {([['top25', 'Top 25'], ['all', 'All FBS']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={cfbFilter === key}
+              onClick={() => setCfbFilter(key)}
+              style={{ ...styles.filterButton, ...(cfbFilter === key ? styles.filterButtonActive : {}) }}
+            >
+              {label}
+              <span style={{ opacity: 0.75, fontWeight: 500 }}>
+                {' '}({key === 'top25' ? cfbGames.filter((g) => g.isTop25).length : cfbGames.length})
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {!loading && !error && (
         <>
-          {sport === 'MLB' ? (
+          {sport === 'CFB' ? (
+            cfbGames.length === 0 ? (
+              <div style={styles.empty}>
+                No college football games in <code>/stats/cfb/cfb_slate.csv</code> yet. Once the
+                CFBD_API_KEY secret is added, the stats workflow refreshes this week's slate twice a day.
+              </div>
+            ) : visibleCfbGames.length === 0 ? (
+              <div style={styles.empty}>No Top 25 teams are left on this week's slate. Switch to All FBS.</div>
+            ) : (
+              visibleCfbGames.map((g) => (
+                <CFBGameCard
+                  key={g.row.gameId}
+                  game={g}
+                  onSelect={onSelectGame ? () => handleCfbSelect(g) : undefined}
+                />
+              ))
+            )
+          ) : sport === 'MLB' ? (
             mlbGames.length === 0 ? (
               <div style={styles.empty}>
                 No MLB games in <code>/stats/mlb/mlb_slate.csv</code> for today. Run the stat
@@ -410,7 +597,7 @@ export default function DailyGamesView({
         </>
       )}
 
-      {sport !== 'MLB' && !loading && genericGames.length > 0 && (
+      {sport !== 'MLB' && sport !== 'CFB' && !loading && genericGames.length > 0 && (
         <div style={styles.note}>
           {sport === 'NHL'
             ? 'Tap a game to load both teams and the over/under into the Probability Estimator.'
@@ -423,7 +610,9 @@ export default function DailyGamesView({
         MLB reads the CSVs in <code>/stats/mlb/</code>: team offense (wRC+/wOBA/OPS/R-G), starter
         (ERA/FIP/xFIP/SIERA), bullpen quality and recent usage, ballpark, game-time weather and
         lineup status. Anything blank in the CSV stays blank — it lowers confidence rather than
-        being guessed, and “No Bet” stays a smart outcome.
+        being guessed, and “No Bet” stays a smart outcome. College football cards use the SP+/FPI
+        rating blend and only the factors detected from the schedule; QB news and rivalries are
+        yours to add in the Walters tab.
       </p>
     </div>
   );
@@ -450,6 +639,18 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   sportButtonActive: {
     background: 'var(--button-primary)', color: '#fff', borderColor: 'transparent',
+    boxShadow: 'var(--button-glow)',
+  },
+  filterRow: {
+    display: 'flex', gap: '0.5rem', marginTop: '-0.5rem', marginBottom: '1rem',
+  },
+  filterButton: {
+    background: 'var(--surface-1)', color: 'var(--text-secondary)',
+    border: '1px solid var(--border-subtle)', borderRadius: 999,
+    padding: '0.35rem 0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem',
+  },
+  filterButtonActive: {
+    background: 'var(--button-primary)', color: '#fff', border: '1px solid transparent',
     boxShadow: 'var(--button-glow)',
   },
   card: {

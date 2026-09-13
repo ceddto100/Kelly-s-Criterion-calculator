@@ -18,6 +18,7 @@
  */
 
 import type { MLBProjectionInput } from './mlbProjection';
+import type { WaltersPrefill } from './cfbStatsLoader';
 
 // ---- estimator state shapes (must match index.tsx initial*State) ------------
 
@@ -57,7 +58,8 @@ export type DailyGameSelection =
   | { sport: 'NBA'; basketball: BasketballStatsShape; spread: string; isTeamAHome: boolean }
   | { sport: 'NFL'; football: FootballStatsShape; spread: string; isTeamAHome: boolean }
   | { sport: 'NHL'; hockey: HockeyStatsShape; totalGoalsLine: string }
-  | { sport: 'MLB'; mlb: MLBFieldState };
+  | { sport: 'MLB'; mlb: MLBFieldState }
+  | { sport: 'CFB'; walters: WaltersPrefill };
 
 /** Minimal shape of a generic (NBA/NFL/NHL) daily game card. */
 export interface GenericGameLike {

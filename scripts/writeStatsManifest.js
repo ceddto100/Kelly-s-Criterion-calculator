@@ -20,7 +20,7 @@ const STATS_ROOT = path.join(__dirname, '..', 'frontend', 'public', 'stats');
 const MANIFEST = path.join(STATS_ROOT, 'last_updated.json');
 // MLB joined this list when it moved off the live /api/mlb/daily fetch onto
 // CSVs in frontend/public/stats/mlb/, like every other sport.
-const SPORTS = { NBA: 'nba', NFL: 'nfl', NHL: 'nhl', MLB: 'mlb' };
+const SPORTS = { NBA: 'nba', NFL: 'nfl', NHL: 'nhl', MLB: 'mlb', CFB: 'cfb' };
 
 function dirChanged(dir) {
   try {

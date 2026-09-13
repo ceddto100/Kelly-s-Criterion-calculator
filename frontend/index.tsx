@@ -53,6 +53,7 @@ import { SEO, SEO_CONFIG } from './components/SEO';
 import { evaluateDecision } from './utils/decision';
 import { calculateNHLProjection } from './utils/nhlProjection';
 import type { DailyGameSelection, MLBFieldState } from './utils/dailyGameTransfer';
+import type { WaltersPrefill } from './utils/cfbStatsLoader';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -1786,6 +1787,8 @@ function App() {
   const [isTeamAHome, setIsTeamAHome] = useState<boolean | null>(null);
   // Pre-fill payload for the MLB estimator when a "Today's Games" card is tapped.
   const [mlbPrefill, setMlbPrefill] = useState<MLBFieldState | null>(null);
+  // Pre-fill payload for the Walters Protocol when a college football card is tapped.
+  const [waltersPrefill, setWaltersPrefill] = useState<WaltersPrefill | null>(null);
 
   // Authentication state
   const [authUser, setAuthUser] = useState<{name: string; email: string; avatar: string} | null>(null);
@@ -2111,7 +2114,13 @@ function App() {
   // Handler for a tapped "Today's Games" card: drop the matchup straight into the
   // Probability Estimator with the line pre-filled (spread for NBA/NFL, total for
   // NHL, over/under for MLB) and the team stats that drive the projection.
+  // College football opens the Walters Protocol instead.
   const handleDailyGameSelect = (selection: DailyGameSelection) => {
+    if (selection.sport === 'CFB') {
+      setWaltersPrefill(selection.walters);
+      setActiveTab(CONSTANTS.TABS.WALTERS);
+      return;
+    }
     switch (selection.sport) {
       case 'NBA':
         setBasketballStats({ ...initialBasketballState, ...selection.basketball });
@@ -2307,7 +2316,7 @@ function App() {
               {activeTab === CONSTANTS.TABS.WALTERS && (
                 <div className="panel">
                   <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading Walters Protocol...</div>}>
-                    <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} />
+                    <WaltersEstimator onApplyToKelly={handleWaltersApplyToKelly} prefill={waltersPrefill} />
                   </Suspense>
                 </div>
               )}

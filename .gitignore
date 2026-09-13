@@ -7,6 +7,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Private API response cache (college football updater; restored by actions/cache in CI)
+.cache/
+
 # Environment variables
 .env
 .env.local

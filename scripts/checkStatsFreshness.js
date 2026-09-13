@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const MANIFEST = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'last_updated.json');
+const CFB_DIR = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'cfb');
 
 const argHours = process.argv.find((a) => a.startsWith('--hours='));
 const THRESHOLD_HOURS = Number(
@@ -21,6 +22,84 @@ function ageHours(iso) {
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return Infinity;
   return (Date.now() - t) / 36e5;
+}
+
+/** Minimal quoted-CSV reader (the generators quote every cell). */
+function readCsv(file) {
+  let text;
+  try {
+    text = fs.readFileSync(file, 'utf8').replace(/\r/g, '').trim();
+  } catch {
+    return [];
+  }
+  const parseLine = (line) => {
+    const cells = [];
+    let value = '';
+    let quoted = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      if (ch === '"' && quoted && line[i + 1] === '"') { value += '"'; i += 1; }
+      else if (ch === '"') quoted = !quoted;
+      else if (ch === ',' && !quoted) { cells.push(value); value = ''; }
+      else value += ch;
+    }
+    cells.push(value);
+    return cells;
+  };
+  const [header, ...lines] = text.split('\n');
+  if (!header || !lines.length) return [];
+  const names = parseLine(header);
+  return lines.map((line) => Object.fromEntries(parseLine(line).map((v, i) => [names[i], v])));
+}
+
+/**
+ * College football, in season (Aug 20 – Jan 31): the CFB data must keep
+ * refreshing, and FBS games kicking off within 48 hours must have lines.
+ * No CFB data at all means the CFBD_API_KEY secret was never added — a setup
+ * warning, not a stalled updater. Returns false when the check fails.
+ */
+function checkCollegeFootball(now) {
+  const month = now.getUTCMonth(); // 0 = January
+  if (!((month === 7 && now.getUTCDate() >= 20) || month >= 8 || month === 0)) {
+    console.log('CFB  offseason — not checked');
+    return true;
+  }
+  let meta;
+  try {
+    meta = JSON.parse(fs.readFileSync(path.join(CFB_DIR, 'last_updated.json'), 'utf8'));
+  } catch {
+    console.warn('⚠️  CFB  no data generated yet — add the CFBD_API_KEY repository secret.');
+    return true;
+  }
+  let ok = true;
+  const age = ageHours(meta.updatedAt);
+  console.log(`CFB  ${age.toFixed(1)}h since last refresh (${meta.seasonType} week ${meta.week})`);
+  if (age > THRESHOLD_HOURS) {
+    console.error(
+      `\n❌ College football data is ${age.toFixed(0)}h old. Check the college football step of ` +
+        '"Update Sports Stats" and the CFBD_API_KEY secret.',
+    );
+    ok = false;
+  }
+  const soon = readCsv(path.join(CFB_DIR, 'cfb_slate.csv')).filter((g) => {
+    const kickoff = Date.parse(g.start_date);
+    return (
+      g.completed !== 'yes' &&
+      g.home_classification === 'fbs' &&
+      g.away_classification === 'fbs' &&
+      kickoff > now.getTime() &&
+      kickoff - now.getTime() <= 48 * 3600e3
+    );
+  });
+  const withLines = soon.filter((g) => g.spread_home !== '').length;
+  if (soon.length && !withLines) {
+    const games = soon.length === 1 ? '1 FBS game kicks' : `${soon.length} FBS games kick`;
+    console.error(`\n❌ ${games} off within 48h without a betting line.`);
+    ok = false;
+  } else if (soon.length) {
+    console.log(`CFB  ${withLines}/${soon.length} FBS games inside 48h have lines`);
+  }
+  return ok;
 }
 
 function main() {
@@ -53,6 +132,7 @@ function main() {
       `(threshold ${THRESHOLD_HOURS}h)`,
   );
 
+  let failed = false;
   if (heartbeatAge > THRESHOLD_HOURS) {
     console.error(
       `\n❌ The "Update Sports Stats" workflow has not run in over ${THRESHOLD_HOURS}h.`,
@@ -60,10 +140,13 @@ function main() {
     console.error(
       'It may be disabled or failing. Open the Actions tab and re-enable / re-run it.',
     );
-    process.exit(1);
+    failed = true;
+  } else {
+    console.log(`\n✅ Updater ran within ${THRESHOLD_HOURS}h.`);
   }
 
-  console.log(`\n✅ Updater ran within ${THRESHOLD_HOURS}h.`);
+  if (!checkCollegeFootball(new Date())) failed = true;
+  if (failed) process.exit(1);
 }
 
 main();

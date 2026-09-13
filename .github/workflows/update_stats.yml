@@ -68,6 +68,36 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: node scripts/updateMLBStats.js
 
+      # College football (Walters Protocol): CollegeFootballData.com, repository
+      # secret CFBD_API_KEY (free key). Needs Node 24, which runs the TypeScript
+      # Walters engine directly. The cache keeps season-static API responses and
+      # the pending pick log private and off the public repo, and saves API calls.
+      - name: Setup Node.js 24 for the college football step
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Restore college football API cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/cfbd
+          key: cfbd-${{ github.run_id }}
+          restore-keys: cfbd-
+
+      - name: Update college football ratings and this week's slate
+        id: cfb
+        continue-on-error: true
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: node scripts/updateCFBStats.mjs
+
+      - name: Save college football API cache
+        if: always() && hashFiles('.cache/cfbd/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/cfbd
+          key: cfbd-${{ github.run_id }}
+
       # Record when each sport's CSVs were actually refreshed (only advances a
       # sport's timestamp if its files changed this run) so the app and the
       # freshness check can tell how current the data is.
@@ -92,6 +122,17 @@ jobs:
           echo "| NFL | ${{ steps.nfl.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| NHL | ${{ steps.nhl.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MLB (CSV pipeline) | ${{ steps.mlb.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| College football | ${{ steps.cfb.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+      # MLB and college football are the in-season sports with keyed APIs and a
+      # history of failing silently (MLB book totals were blank for weeks). Their
+      # data is already committed above; this only turns the run red — and emails
+      # the owner — when either step broke. A missing key is a warning, not this.
+      - name: Fail if the MLB or college football update failed
+        if: steps.mlb.outcome == 'failure' || steps.cfb.outcome == 'failure'
+        run: |
+          echo "::error::MLB: ${{ steps.mlb.outcome }}, college football: ${{ steps.cfb.outcome }}. See those steps' logs."
+          exit 1
 
       - name: Fail if all NBA/NFL/NHL updates failed
         if: |

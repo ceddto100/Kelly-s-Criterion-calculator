@@ -40,6 +40,36 @@ Sources: [FanGraphs wRC+](https://library.fangraphs.com/offense/wrc/) explains i
 
 The board only attaches slate starters/weather when the selected pair has a unique game on the requested date (today if omitted). An unscheduled pair is explicitly hypothetical. Doubleheaders require selecting the intended game's starters in the MLB estimator. Missing optional components retain neutral fallbacks and appear as limitations; missing offense never produces a fabricated team projection. MLB normal total probabilities and logistic moneyline probabilities are approximations, not a fitted joint scoring distribution. Integer MLB totals do not yet separately model push probability; use half-run comparisons when evaluating binary calibration.
 
+## College football (Walters Protocol)
+
+The Walters tab is college-football-only. Per-game averages mislead in college football because schedules are so uneven: 50 points a game against overmatched opponents is not the same offense as 50 against a conference schedule. The model therefore starts from opponent-adjusted power ratings. Each FBS team's rating is the mean of SP+ and FPI, which both express points versus an average FBS team on a neutral field. One pure module, `mcp-server/src/utils/waltersCfb.ts`, serves the Walters tab, the Today's Games CFB cards, the stat updater and the calibration script.
+
+`margin(A) = ratingA − ratingB + home field + (situational A − situational B) + (QB A − QB B)`, then pulled up to 1 point toward zero for a rivalry game.
+
+- Home field +3.0 (0 at neutral sites).
+- Detected automatically from the weekly slate:
+  - off a bye when the opponent is not: +1.0
+  - short week (5 days or fewer): −1.0
+  - 2+ time zones or a kickoff before 10:00 on the team's home clock: −1.5
+  - visiting a 4,500+ ft stadium from under 3,000 ft: −1.0
+  - bounceback after a 21+ point loss: +1.5
+- A top-10 next opponent (lookahead, −1.0) is only suggested. Letdown spots and rivalries are manual.
+- Starting QB out: −4 with an experienced backup, −9 with an inexperienced one. QB status is never automated because there is no NCAA-wide injury report; [conferences decide](https://sportshandle.com/college-football-injury-reporting-conference-decision/), and the [SEC](https://www.cbssports.com/college-football/news/sec-institutes-player-availability-injury-reports-for-all-teams-during-2024-college-football-season/) and [Big Ten](https://www.cbssports.com/college-football/news/big-ten-institutes-player-availability-injury-reports-for-all-teams-during-2023-college-football-season) publish their own.
+
+Every value above is a structural starting point, not a fitted coefficient.
+
+The final margin is treated as normal around the projection. Its spread is 16 points, widening 0.15 per point of line beyond 14, because lopsided games (starters rest, garbage time) are the least predictable. Any 28+ point line caps at LEAN. Cover probability is reported for the side the edge favors; pushes and key numbers are not modeled. An edge of 7+ points is flagged, because it usually means the market has news the ratings lack. The optional rating updater moves a hand-kept rating by 15% of the *surprise* (actual minus expected margin), capped at ±21 points, so a blowout of an overmatched opponent cannot swing it.
+
+**Data.** `scripts/updateCFBStats.mjs` calls the [CollegeFootballData.com](https://collegefootballdata.com) API with a free key (`CFBD_API_KEY`). Twice-daily runs use about 250 of the free tier's 1,000 monthly calls. CFBD's terms forbid republishing its data as a standalone dataset, so the public CSVs hold only derived values:
+
+- the rating blend and a disagreement band
+- consensus lines (the median across books, to the nearest half point)
+- rest, travel and elevation context
+
+Pending picks and season-static responses stay in a private Actions cache.
+
+**Validation.** Once per game, 72 hours before kickoff, the updater logs the automatic-factor pick at the consensus line. After the game it grades that pick against the final score and the closing line. `cfb_predictions.csv` carries the `evaluatePredictions.mjs` columns (sport `CFB`, market `spread`) plus closing-line value. `scripts/calibrateCFBWalters.mjs` checks the constants against completed seasons using only pre-game numbers: closing lines, CFBD pre-game Elo, schedule context and the poll released before each game. It fits on earlier seasons and scores the last one. It suggests a value only when the estimate is at least two standard errors from zero, and it never edits the engine. CFBD keeps no weekly SP+/FPI snapshots, so Elo stands in for the rating there; the live pick log is the real test of the blend.
+
 ## Data contract and conversational boundaries
 
 - Canonical source: `frontend/public/stats`, or `STATS_DIR` for the MCP deployment. The duplicate top-level `stats/` folder is not the board's source.
