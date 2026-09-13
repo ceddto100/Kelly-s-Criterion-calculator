@@ -1,15 +1,17 @@
 {
-  "updatedAt": "2026-09-13T15:36:50.777Z",
+  "updatedAt": "2026-09-13T16:08:44.000Z",
   "season": 2026,
   "teams": 30,
   "pitchers": 853,
   "bullpens": 30,
   "slateGames": 15,
+  "statsApiRunAt": "2026-09-13T15:36:50.777Z",
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
     "The Odds API (median total + moneylines across US books)",
     "Open-Meteo (first-pitch temperature + wind)",
-    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
+    "repository PARK_FACTORS table (refresh yearly from Baseball Savant)",
+    "Baseball-Reference (https://www.baseball-reference.com/leagues/majors/2026.shtml) - Team Standard Batting OPS+, used as wrc_plus fallback this run"
   ],
   "computedHere": [
     "woba (linear weights)",
@@ -21,5 +23,11 @@
     "siera",
     "throws",
     "closer_available"
+  ],
+  "notes": [
+    "2026-09-13 FanGraphs refresh attempt: fangraphs.com was reachable on the first plain GET (200) but every subsequent request, including a bare GET to https://www.fangraphs.com/, returned a Cloudflare 'Just a moment...' JS challenge (HTTP 403). This was verified via the agent egress-proxy status endpoint to be a real response from Cloudflare (no proxy/policy denial, no relay failures recorded), not something the environment's network policy was blocking. No workaround was attempted (no header spoofing beyond a standard browser UA/Accept set, no headless browser, no TLS fingerprint tricks) per policy against defeating anti-bot protections.",
+    "wrc_plus (mlb_team_offense.csv): FanGraphs wRC+ could not be fetched this run. Used the sanctioned fallback, Baseball-Reference Team Standard Batting OPS+ (https://www.baseball-reference.com/leagues/majors/2026.shtml, table id teams_standard_batting, column onbase_plus_slugging_plus), for all 30 teams. These are OPS+ values, NOT true wRC+ - do not treat this column as wRC+ until a future run successfully refreshes it from FanGraphs. Spot-checked 3+ teams (Arizona 96, Atlanta 97, Chicago Cubs 111, Colorado 92, Philadelphia 89, Washington 105) against the independently-scoped NL-only page (https://www.baseball-reference.com/leagues/NL/2026.shtml), which matched exactly.",
+    "xfip and siera (mlb_starters.csv): left completely unchanged this run. FanGraphs is the sole source for these two columns and has no sanctioned fallback, so per the cardinal rule (never write a number not read from a source) the existing previously-sourced values were left untouched rather than being blanked or guessed. mlb_starters.csv has zero diff vs the prior commit.",
+    "OPS+ fallback was used for wrc_plus this run; no fallback was available or used for xfip/siera."
   ]
 }
