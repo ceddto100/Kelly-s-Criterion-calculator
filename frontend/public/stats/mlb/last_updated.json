@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-09-13T03:02:11.715Z",
+  "updatedAt": "2026-09-13T15:36:50.777Z",
   "season": 2026,
   "teams": 30,
   "pitchers": 853,
   "bullpens": 30,
-  "slateGames": 2,
+  "slateGames": 15,
   "sources": [
     "MLB StatsAPI (teams, venues, team hitting, pitcher season lines, schedule, boxscores)",
-    "ESPN MLB scoreboard (consensus total + moneylines)",
+    "The Odds API (median total + moneylines across US books)",
     "Open-Meteo (first-pitch temperature + wind)",
     "repository PARK_FACTORS table (refresh yearly from Baseball Savant)"
   ],
