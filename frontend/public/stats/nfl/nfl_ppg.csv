@@ -7,7 +7,6 @@
 "San Francisco 49ers","SF",31
 "Baltimore Ravens","BAL",29
 "Dallas Cowboys","DAL",28.5
-"New York Giants","NYG",28
 "New Orleans Saints","NO",27
 "Cincinnati Bengals","CIN",26.5
 "Indianapolis Colts","IND",26.5
@@ -21,6 +20,8 @@
 "Washington Commanders","WSH",21
 "New York Jets","NYJ",20
 "Houston Texans","HOU",18.5
+"Los Angeles Rams","LAR",17.5
+"New York Giants","NYG",17
 "Arizona Cardinals","ARI",16.5
 "Cleveland Browns","CLE",16.5
 "Denver Broncos","DEN",15
@@ -30,4 +31,3 @@
 "Miami Dolphins","MIA",13
 "Pittsburgh Steelers","PIT",11.5
 "Atlanta Falcons","ATL",8
-"Los Angeles Rams","LAR",7
