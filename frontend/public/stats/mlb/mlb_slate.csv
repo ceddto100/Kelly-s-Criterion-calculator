@@ -1,1 +1,5 @@
 "game_date","game_time","away_team","away_abbr","home_team","home_abbr","venue","away_starter","away_starter_confirmed","home_starter","home_starter_confirmed","book_total","home_moneyline","away_moneyline","temperature_f","wind_speed_mph","wind_direction","roof_closed","away_lineup_confirmed","home_lineup_confirmed"
+"2026-09-29","2026-09-29T18:00:00Z","Philadelphia Phillies","PHI","Atlanta Braves","ATL","Truist Park","Jesús Luzardo","yes","Chris Sale","yes","","","","81","1","in","no","no","no"
+"2026-09-29","2026-09-29T21:00:00Z","Chicago White Sox","CWS","Houston Astros","HOU","Daikin Park","Hagen Smith","yes","AJ Blubaugh","yes","","","","85","6","crosswind","no","no","no"
+"2026-09-29","2026-09-30T00:00:00Z","Boston Red Sox","BOS","New York Yankees","NYY","Yankee Stadium","Payton Tolle","yes","Cam Schlittler","yes","","","","65","2","crosswind","no","no","no"
+"2026-09-29","2026-09-30T02:00:00Z","Chicago Cubs","CHC","San Diego Padres","SD","Petco Park","Matthew Boyd","yes","Michael King","yes","","","","75","3","crosswind","no","no","no"
