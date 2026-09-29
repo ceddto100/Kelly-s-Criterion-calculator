@@ -1,7 +1,7 @@
 "team","abbreviation","off_yards"
-"Chicago Bears","CHI",424.5
 "Los Angeles Rams","LAR",417.7
 "Kansas City Chiefs","KC",416.3
+"Chicago Bears","CHI",408
 "Buffalo Bills","BUF",401.7
 "San Francisco 49ers","SF",399.3
 "Baltimore Ravens","BAL",398.6
@@ -11,7 +11,6 @@
 "Seattle Seahawks","SEA",367.7
 "Atlanta Falcons","ATL",340.7
 "Dallas Cowboys","DAL",330.3
-"Philadelphia Eagles","PHI",329.5
 "New York Jets","NYJ",329
 "Houston Texans","HOU",326
 "Cincinnati Bengals","CIN",323.3
@@ -23,6 +22,7 @@
 "New England Patriots","NE",307
 "Pittsburgh Steelers","PIT",303.4
 "Arizona Cardinals","ARI",303
+"Philadelphia Eagles","PHI",302.4
 "Indianapolis Colts","IND",293.3
 "Miami Dolphins","MIA",290.6
 "Tampa Bay Buccaneers","TB",279.3

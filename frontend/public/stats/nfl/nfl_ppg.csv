@@ -1,10 +1,10 @@
 "team","abbreviation","ppg"
 "Buffalo Bills","BUF",33.7
 "San Francisco 49ers","SF",32.7
-"Chicago Bears","CHI",31
 "Detroit Lions","DET",31
 "Baltimore Ravens","BAL",30.7
 "Carolina Panthers","CAR",29.7
+"Chicago Bears","CHI",29.7
 "Dallas Cowboys","DAL",29.3
 "Kansas City Chiefs","KC",29.3
 "Las Vegas Raiders","LV",29.3
@@ -14,7 +14,6 @@
 "Seattle Seahawks","SEA",25
 "Washington Commanders","WSH",25
 "Indianapolis Colts","IND",24
-"Philadelphia Eagles","PHI",24
 "Minnesota Vikings","MIN",23.7
 "New York Jets","NYJ",21.3
 "Arizona Cardinals","ARI",21
@@ -22,6 +21,7 @@
 "Los Angeles Rams","LAR",20.3
 "Denver Broncos","DEN",20
 "Green Bay Packers","GB",18.7
+"Philadelphia Eagles","PHI",18.3
 "Cleveland Browns","CLE",18
 "Houston Texans","HOU",18
 "Pittsburgh Steelers","PIT",17.7
