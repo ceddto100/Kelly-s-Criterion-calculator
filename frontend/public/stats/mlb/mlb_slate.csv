@@ -1,3 +1,2 @@
 "game_date","game_time","away_team","away_abbr","home_team","home_abbr","venue","away_starter","away_starter_confirmed","home_starter","home_starter_confirmed","book_total","home_moneyline","away_moneyline","temperature_f","wind_speed_mph","wind_direction","roof_closed","away_lineup_confirmed","home_lineup_confirmed"
-"2026-10-01","2026-10-01T18:00:00Z","Philadelphia Phillies","PHI","Atlanta Braves","ATL","Truist Park","","no","","no","","","","85","7","crosswind","no","no","no"
-"2026-10-01","2026-10-02T02:00:00Z","Chicago Cubs","CHC","San Diego Padres","SD","Petco Park","","no","","no","","","","71","6","in","no","no","no"
+"2026-10-01","2026-10-02T00:00:00Z","Philadelphia Phillies","PHI","Atlanta Braves","ATL","Truist Park","Aaron Nola","yes","Ray Kerr","yes","","","","78","5","crosswind","no","no","no"
