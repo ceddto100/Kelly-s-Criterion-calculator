@@ -1,22 +1,26 @@
 "team","abbreviation","times_shorthanded"
 "Boston Bruins","BOS",1
 "New York Rangers","NYR",2
-"Vancouver Canucks","VAN",2
+"Calgary Flames","CGY",2
 "Vegas Golden Knights","VGK",2
-"Chicago Blackhawks","CHI",2
+"Vancouver Canucks","VAN",2.5
 "Philadelphia Flyers","PHI",2.5
-"Minnesota Wild","MIN",4
+"Chicago Blackhawks","CHI",3.5
 "New York Islanders","NYI",4
 "Toronto Maple Leafs","TOR",4
 "New Jersey Devils","NJD",4
 "Columbus Blue Jackets","CBJ",4
+"Minnesota Wild","MIN",4
 "Nashville Predators","NSH",4
 "Montreal Canadiens","MTL",4
-"Edmonton Oilers","EDM",4
+"Edmonton Oilers","EDM",4.5
+"Utah Hockey Club","UTA",5
 "Pittsburgh Penguins","PIT",5
 "Los Angeles Kings","LAK",5
-"Buffalo Sabres","BUF",6
 "Colorado Avalanche","COL",6
+"Buffalo Sabres","BUF",6
+"San Jose Sharks","SJS",6
+"Seattle Kraken","SEA",6
 "Florida Panthers","FLA",7
 "Carolina Hurricanes","CAR",7
 "Tampa Bay Lightning","TBL",8
