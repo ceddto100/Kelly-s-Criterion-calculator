@@ -1,1 +1,5 @@
 "game_date","game_time","away_team","away_abbr","home_team","home_abbr","venue","away_starter","away_starter_confirmed","home_starter","home_starter_confirmed","book_total","home_moneyline","away_moneyline","temperature_f","wind_speed_mph","wind_direction","roof_closed","away_lineup_confirmed","home_lineup_confirmed"
+"2026-10-03","2026-10-03T17:00:00Z","Chicago White Sox","CWS","Cleveland Guardians","CLE","Progressive Field","Hagen Smith","yes","Parker Messick","yes","","","","64","6","in","no","no","no"
+"2026-10-03","2026-10-03T20:00:00Z","Atlanta Braves","ATL","Los Angeles Dodgers","LAD","UNIQLO Field at Dodger Stadium","","no","Tarik Skubal","yes","","","","102","5","out","no","no","no"
+"2026-10-03","2026-10-03T22:30:00Z","New York Yankees","NYY","Tampa Bay Rays","TB","Tropicana Field","Gerrit Cole","yes","Drew Rasmussen","yes","","","","","","none","yes","no","no"
+"2026-10-03","2026-10-04T00:30:00Z","San Diego Padres","SD","Milwaukee Brewers","MIL","American Family Field","Robbie Ray","yes","Jacob Misiorowski","yes","","","","56","5","out","no","no","no"
