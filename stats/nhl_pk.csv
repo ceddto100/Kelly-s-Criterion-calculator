@@ -1,33 +1,33 @@
 "team","abbreviation","pk"
 "Colorado Avalanche","COL",100
 "Minnesota Wild","MIN",100
-"New York Rangers","NYR",100
 "Pittsburgh Penguins","PIT",100
-"Seattle Kraken","SEA",100
 "St. Louis Blues","STL",100
 "Toronto Maple Leafs","TOR",100
 "Utah Mammoth","UTAH",100
-"Vegas Golden Knights","VGK",100
-"Winnipeg Jets","WPG",100
 "Carolina Hurricanes","CAR",92.3
+"New York Rangers","NYR",91.7
 "Calgary Flames","CGY",90
-"Florida Panthers","FLA",90
 "New York Islanders","NYI",88.9
 "Washington Capitals","WSH",88.9
+"Anaheim Ducks","ANA",85.7
+"Vegas Golden Knights","VGK",85.7
+"Winnipeg Jets","WPG",85.7
+"Seattle Kraken","SEA",83.3
 "Nashville Predators","NSH",80
-"Detroit Red Wings","DET",75
 "New Jersey Devils","NJD",75
 "Ottawa Senators","OTT",75
 "Tampa Bay Lightning","TBL",75
 "Dallas Stars","DAL",71.4
+"Florida Panthers","FLA",71.4
 "Montreal Canadiens","MTL",71.4
-"Anaheim Ducks","ANA",66.7
+"Vancouver Canucks","VAN",68.8
 "Chicago Blackhawks","CHI",66.7
 "Columbus Blue Jackets","CBJ",66.7
 "Philadelphia Flyers","PHI",66.7
 "San Jose Sharks","SJS",66.7
-"Vancouver Canucks","VAN",63.6
 "Buffalo Sabres","BUF",60
 "Boston Bruins","BOS",57.1
 "Edmonton Oilers","EDM",57.1
+"Detroit Red Wings","DET",50
 "Los Angeles Kings","LAK",28.6
