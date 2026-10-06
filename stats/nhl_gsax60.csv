@@ -4,23 +4,23 @@
 "Seattle Kraken","SEA",1.41
 "New York Rangers","NYR",1.33
 "Toronto Maple Leafs","TOR",1.31
-"Ottawa Senators","OTT",1.16
+"Ottawa Senators","OTT",1.29
 "Minnesota Wild","MIN",1.11
 "Utah Hockey Club","UTA",1.01
-"Winnipeg Jets","WPG",0.96
 "Anaheim Ducks","ANA",0.94
-"Boston Bruins","BOS",0.71
+"Winnipeg Jets","WPG",0.85
 "Nashville Predators","NSH",0.71
 "Florida Panthers","FLA",0.54
+"Philadelphia Flyers","PHI",0.52
+"Dallas Stars","DAL",0.46
 "Detroit Red Wings","DET",0.44
-"San Jose Sharks","SJS",0.41
+"Tampa Bay Lightning","TBL",0.42
 "St. Louis Blues","STL",0.24
-"Tampa Bay Lightning","TBL",0.21
-"Philadelphia Flyers","PHI",0.16
-"Carolina Hurricanes","CAR",-0.06
+"San Jose Sharks","SJS",0.2
+"Boston Bruins","BOS",0.16
+"Pittsburgh Penguins","PIT",0.16
 "Colorado Avalanche","COL",-0.06
-"Dallas Stars","DAL",-0.1
-"Pittsburgh Penguins","PIT",-0.18
+"Carolina Hurricanes","CAR",-0.06
 "Vegas Golden Knights","VGK",-0.6
 "Columbus Blue Jackets","CBJ",-0.73
 "Montreal Canadiens","MTL",-0.99
