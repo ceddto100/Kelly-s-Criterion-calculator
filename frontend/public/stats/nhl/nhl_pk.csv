@@ -1,19 +1,19 @@
 "team","abbreviation","pk"
 "Colorado Avalanche","COL",100
 "Minnesota Wild","MIN",100
-"Pittsburgh Penguins","PIT",100
 "Utah Mammoth","UTAH",92.9
+"Washington Capitals","WSH",91.7
 "Toronto Maple Leafs","TOR",90.9
 "Calgary Flames","CGY",90
+"Pittsburgh Penguins","PIT",90
 "St. Louis Blues","STL",90
+"Winnipeg Jets","WPG",90
 "Carolina Hurricanes","CAR",89.5
-"Washington Capitals","WSH",88.9
-"Winnipeg Jets","WPG",88.9
 "New York Rangers","NYR",87.5
-"Anaheim Ducks","ANA",85.7
 "Tampa Bay Lightning","TBL",85.7
 "New York Islanders","NYI",83.3
 "Vegas Golden Knights","VGK",83.3
+"Anaheim Ducks","ANA",81.8
 "Florida Panthers","FLA",78.9
 "Dallas Stars","DAL",77.8
 "Ottawa Senators","OTT",76.9
@@ -26,8 +26,8 @@
 "Vancouver Canucks","VAN",68.8
 "Buffalo Sabres","BUF",66.7
 "Columbus Blue Jackets","CBJ",66.7
+"Edmonton Oilers","EDM",64.3
 "Chicago Blackhawks","CHI",63.6
 "New Jersey Devils","NJD",62.5
 "Detroit Red Wings","DET",61.5
 "Los Angeles Kings","LAK",61.5
-"Edmonton Oilers","EDM",57.1
