@@ -1,5 +1,2 @@
 "game_date","game_time","away_team","away_abbr","home_team","home_abbr","venue","away_starter","away_starter_confirmed","home_starter","home_starter_confirmed","book_total","home_moneyline","away_moneyline","temperature_f","wind_speed_mph","wind_direction","roof_closed","away_lineup_confirmed","home_lineup_confirmed"
-"2026-10-07","2026-10-07T20:00:00Z","Cleveland Guardians","CLE","Chicago White Sox","CWS","Rate Field","Daniel Espino","yes","Sean Newcomb","yes","","","","69","6","in","no","yes","yes"
-"2026-10-07","2026-10-07T22:00:00Z","Los Angeles Dodgers","LAD","Atlanta Braves","ATL","Truist Park","Tyler Glasnow","yes","Tyler Mahle","yes","","","","77","6","crosswind","no","no","no"
-"2026-10-07","2026-10-08T00:00:00Z","Tampa Bay Rays","TB","New York Yankees","NYY","Yankee Stadium","Nick Martinez","yes","Max Fried","yes","","","","58","5","crosswind","no","no","no"
-"2026-10-07","2026-10-08T02:00:00Z","Milwaukee Brewers","MIL","San Diego Padres","SD","Petco Park","","no","Walker Buehler","yes","","","","78","5","in","no","no","no"
+"2026-10-08","2026-10-09T00:00:00Z","Cleveland Guardians","CLE","Chicago White Sox","CWS","Rate Field","Parker Messick","yes","Hagen Smith","yes","","","","60","4","in","no","no","no"
