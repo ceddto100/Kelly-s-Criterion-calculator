@@ -1,33 +1,33 @@
 "team","abbreviation","xga60"
-"Vegas Golden Knights","VGK",2.2
-"Colorado Avalanche","COL",2.3
-"Buffalo Sabres","BUF",2.31
-"Dallas Stars","DAL",2.4
+"Vegas Golden Knights","VGK",2.24
+"Buffalo Sabres","BUF",2.32
+"Colorado Avalanche","COL",2.42
 "Edmonton Oilers","EDM",2.43
-"Carolina Hurricanes","CAR",2.51
+"Dallas Stars","DAL",2.46
+"Carolina Hurricanes","CAR",2.46
 "Florida Panthers","FLA",2.54
-"Utah Hockey Club","UTA",2.58
 "Los Angeles Kings","LAK",2.59
+"Utah Hockey Club","UTA",2.6
 "New York Rangers","NYR",2.71
-"Tampa Bay Lightning","TBL",2.74
 "Columbus Blue Jackets","CBJ",2.77
+"Tampa Bay Lightning","TBL",2.79
 "Detroit Red Wings","DET",2.84
-"Minnesota Wild","MIN",2.91
+"Minnesota Wild","MIN",2.93
 "Anaheim Ducks","ANA",3.14
 "Pittsburgh Penguins","PIT",3.17
-"St. Louis Blues","STL",3.17
+"St. Louis Blues","STL",3.18
 "Boston Bruins","BOS",3.19
 "New Jersey Devils","NJD",3.2
-"Ottawa Senators","OTT",3.27
+"Ottawa Senators","OTT",3.24
+"Calgary Flames","CGY",3.24
 "Seattle Kraken","SEA",3.29
 "Winnipeg Jets","WPG",3.31
-"Calgary Flames","CGY",3.38
 "Nashville Predators","NSH",3.41
 "Montreal Canadiens","MTL",3.49
-"Vancouver Canucks","VAN",3.53
 "Chicago Blackhawks","CHI",3.54
 "New York Islanders","NYI",3.61
-"Toronto Maple Leafs","TOR",3.64
+"Vancouver Canucks","VAN",3.64
+"Toronto Maple Leafs","TOR",3.83
 "San Jose Sharks","SJS",3.87
 "Washington Capitals","WSH",4.05
 "Philadelphia Flyers","PHI",4.21
