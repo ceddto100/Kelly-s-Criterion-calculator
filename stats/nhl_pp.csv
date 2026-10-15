@@ -5,7 +5,6 @@
 "Winnipeg Jets","WPG",31.3
 "Toronto Maple Leafs","TOR",29.2
 "Nashville Predators","NSH",27.3
-"Colorado Avalanche","COL",23.8
 "Edmonton Oilers","EDM",23.8
 "New Jersey Devils","NJD",23.8
 "San Jose Sharks","SJS",23.5
@@ -14,6 +13,7 @@
 "Seattle Kraken","SEA",22.7
 "New York Rangers","NYR",21.7
 "New York Islanders","NYI",21.1
+"Colorado Avalanche","COL",20
 "Detroit Red Wings","DET",20
 "Vancouver Canucks","VAN",20
 "Florida Panthers","FLA",18.4
@@ -21,13 +21,13 @@
 "Columbus Blue Jackets","CBJ",16.7
 "Pittsburgh Penguins","PIT",16.7
 "Los Angeles Kings","LAK",15.8
+"Washington Capitals","WSH",15.8
 "Calgary Flames","CGY",15.4
 "Ottawa Senators","OTT",15.2
-"Dallas Stars","DAL",14.3
 "St. Louis Blues","STL",14.3
-"Washington Capitals","WSH",13.3
+"Montreal Canadiens","MTL",13.6
 "Chicago Blackhawks","CHI",12.5
+"Dallas Stars","DAL",12.5
 "Buffalo Sabres","BUF",11.1
-"Montreal Canadiens","MTL",10
 "Philadelphia Flyers","PHI",8.3
 "Tampa Bay Lightning","TBL",8.3

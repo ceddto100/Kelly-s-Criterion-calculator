@@ -1,11 +1,11 @@
 "team","abbreviation","gsax60"
 "New York Rangers","NYR",1.04
-"Dallas Stars","DAL",1.04
-"Washington Capitals","WSH",1.02
+"Dallas Stars","DAL",0.98
 "New York Islanders","NYI",0.93
+"Washington Capitals","WSH",0.76
 "Toronto Maple Leafs","TOR",0.68
-"Boston Bruins","BOS",0.66
 "Minnesota Wild","MIN",0.66
+"Boston Bruins","BOS",0.66
 "Seattle Kraken","SEA",0.64
 "Anaheim Ducks","ANA",0.46
 "Winnipeg Jets","WPG",0.44
@@ -21,12 +21,12 @@
 "Utah Hockey Club","UTA",-0.03
 "San Jose Sharks","SJS",-0.06
 "St. Louis Blues","STL",-0.27
-"Montreal Canadiens","MTL",-0.35
+"Montreal Canadiens","MTL",-0.38
 "Buffalo Sabres","BUF",-0.54
+"Colorado Avalanche","COL",-0.57
 "Chicago Blackhawks","CHI",-0.59
 "Edmonton Oilers","EDM",-0.61
 "New Jersey Devils","NJD",-0.62
-"Colorado Avalanche","COL",-0.65
 "Columbus Blue Jackets","CBJ",-0.87
 "Vancouver Canucks","VAN",-1.09
 "Los Angeles Kings","LAK",-1.59
