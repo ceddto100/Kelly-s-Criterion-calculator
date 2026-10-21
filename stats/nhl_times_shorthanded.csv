@@ -1,33 +1,33 @@
 "team","abbreviation","times_shorthanded"
-"St. Louis Blues","STL",2.88
-"Chicago Blackhawks","CHI",3
 "Dallas Stars","DAL",3
-"Columbus Blue Jackets","CBJ",3
+"Chicago Blackhawks","CHI",3
 "Philadelphia Flyers","PHI",3.09
-"Winnipeg Jets","WPG",3.25
+"St. Louis Blues","STL",3.11
+"Winnipeg Jets","WPG",3.22
+"Vancouver Canucks","VAN",3.36
 "Nashville Predators","NSH",3.38
-"Boston Bruins","BOS",3.44
+"Boston Bruins","BOS",3.5
 "Calgary Flames","CGY",3.5
-"Edmonton Oilers","EDM",3.5
-"Vancouver Canucks","VAN",3.5
-"Minnesota Wild","MIN",3.56
+"Columbus Blue Jackets","CBJ",3.5
+"Minnesota Wild","MIN",3.5
+"Edmonton Oilers","EDM",3.56
+"New Jersey Devils","NJD",3.56
 "Pittsburgh Penguins","PIT",3.6
-"New York Islanders","NYI",3.75
-"Washington Capitals","WSH",3.75
-"New Jersey Devils","NJD",3.88
-"Toronto Maple Leafs","TOR",3.9
-"San Jose Sharks","SJS",4
-"Seattle Kraken","SEA",4
+"Colorado Avalanche","COL",3.8
+"New York Islanders","NYI",3.89
+"Anaheim Ducks","ANA",3.89
+"Washington Capitals","WSH",3.89
+"Seattle Kraken","SEA",3.9
+"Toronto Maple Leafs","TOR",4
+"Los Angeles Kings","LAK",4
 "New York Rangers","NYR",4.09
 "Buffalo Sabres","BUF",4.11
-"Colorado Avalanche","COL",4.11
-"Anaheim Ducks","ANA",4.13
-"Vegas Golden Knights","VGK",4.3
-"Los Angeles Kings","LAK",4.33
-"Montreal Canadiens","MTL",4.38
+"San Jose Sharks","SJS",4.2
+"Vegas Golden Knights","VGK",4.27
+"Tampa Bay Lightning","TBL",4.33
 "Utah Hockey Club","UTA",4.4
-"Carolina Hurricanes","CAR",4.5
-"Tampa Bay Lightning","TBL",4.5
-"Detroit Red Wings","DET",4.63
+"Montreal Canadiens","MTL",4.44
+"Carolina Hurricanes","CAR",4.55
+"Detroit Red Wings","DET",4.56
 "Ottawa Senators","OTT",5
 "Florida Panthers","FLA",5.33
