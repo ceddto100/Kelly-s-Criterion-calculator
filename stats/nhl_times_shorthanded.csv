@@ -1,20 +1,20 @@
 "team","abbreviation","times_shorthanded"
-"Chicago Blackhawks","CHI",3
 "St. Louis Blues","STL",3
 "Dallas Stars","DAL",3
 "Nashville Predators","NSH",3.11
+"Chicago Blackhawks","CHI",3.2
 "Philadelphia Flyers","PHI",3.33
 "New Jersey Devils","NJD",3.4
 "Winnipeg Jets","WPG",3.4
 "Vancouver Canucks","VAN",3.42
 "Boston Bruins","BOS",3.45
 "Columbus Blue Jackets","CBJ",3.5
-"Pittsburgh Penguins","PIT",3.55
 "Minnesota Wild","MIN",3.55
+"Pittsburgh Penguins","PIT",3.55
 "Calgary Flames","CGY",3.56
-"Edmonton Oilers","EDM",3.6
 "Anaheim Ducks","ANA",3.6
-"Colorado Avalanche","COL",3.8
+"Edmonton Oilers","EDM",3.6
+"Colorado Avalanche","COL",3.82
 "Toronto Maple Leafs","TOR",3.83
 "New York Rangers","NYR",3.83
 "Washington Capitals","WSH",3.89
@@ -25,9 +25,9 @@
 "Buffalo Sabres","BUF",4.1
 "Los Angeles Kings","LAK",4.13
 "Utah Hockey Club","UTA",4.27
+"Montreal Canadiens","MTL",4.3
 "Carolina Hurricanes","CAR",4.33
-"Tampa Bay Lightning","TBL",4.33
-"Montreal Canadiens","MTL",4.44
+"Tampa Bay Lightning","TBL",4.4
 "Detroit Red Wings","DET",4.5
 "Ottawa Senators","OTT",5.64
 "Florida Panthers","FLA",5.73

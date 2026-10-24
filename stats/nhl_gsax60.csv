@@ -11,22 +11,22 @@
 "Anaheim Ducks","ANA",0.39
 "Detroit Red Wings","DET",0.34
 "Toronto Maple Leafs","TOR",0.29
-"Tampa Bay Lightning","TBL",0.25
 "Pittsburgh Penguins","PIT",0.2
 "Nashville Predators","NSH",0.16
 "Ottawa Senators","OTT",0.09
 "Seattle Kraken","SEA",0.04
+"Tampa Bay Lightning","TBL",-0.08
 "St. Louis Blues","STL",-0.09
 "Florida Panthers","FLA",-0.1
 "Columbus Blue Jackets","CBJ",-0.13
 "Carolina Hurricanes","CAR",-0.14
-"Montreal Canadiens","MTL",-0.29
-"Colorado Avalanche","COL",-0.31
+"Montreal Canadiens","MTL",-0.15
+"Colorado Avalanche","COL",-0.2
 "Vegas Golden Knights","VGK",-0.31
 "Buffalo Sabres","BUF",-0.39
 "Edmonton Oilers","EDM",-0.44
-"Chicago Blackhawks","CHI",-0.49
 "New Jersey Devils","NJD",-0.51
+"Chicago Blackhawks","CHI",-0.56
 "Los Angeles Kings","LAK",-0.6
 "Utah Hockey Club","UTA",-0.68
 "Vancouver Canucks","VAN",-0.71
