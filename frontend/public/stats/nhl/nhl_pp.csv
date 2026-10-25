@@ -1,33 +1,33 @@
 "team","abbreviation","pp"
-"Utah Mammoth","UTAH",38.5
-"Edmonton Oilers","EDM",35.3
-"Nashville Predators","NSH",28.6
-"Toronto Maple Leafs","TOR",28.6
-"Calgary Flames","CGY",26.1
-"Minnesota Wild","MIN",25.7
-"San Jose Sharks","SJS",25.7
-"Seattle Kraken","SEA",25
-"St. Louis Blues","STL",25
-"Vegas Golden Knights","VGK",25
-"Carolina Hurricanes","CAR",23.9
-"Boston Bruins","BOS",22.6
-"Detroit Red Wings","DET",22.2
+"Utah Mammoth","UTAH",38.1
+"Edmonton Oilers","EDM",35.1
+"Calgary Flames","CGY",32
+"Toronto Maple Leafs","TOR",30.2
+"Nashville Predators","NSH",27.6
+"San Jose Sharks","SJS",26.8
+"Carolina Hurricanes","CAR",25.5
+"Vegas Golden Knights","VGK",24.4
+"Minnesota Wild","MIN",24.3
+"St. Louis Blues","STL",24.1
+"Seattle Kraken","SEA",23.1
+"Anaheim Ducks","ANA",22.2
+"Boston Bruins","BOS",22.2
 "Vancouver Canucks","VAN",22.2
 "Winnipeg Jets","WPG",22.2
-"Anaheim Ducks","ANA",21.9
-"New Jersey Devils","NJD",21.9
-"Pittsburgh Penguins","PIT",21.2
+"Detroit Red Wings","DET",21.1
+"New Jersey Devils","NJD",20.6
+"Pittsburgh Penguins","PIT",20.6
 "Colorado Avalanche","COL",20
 "New York Islanders","NYI",20
-"New York Rangers","NYR",20
-"Washington Capitals","WSH",20
 "Florida Panthers","FLA",19.2
+"New York Rangers","NYR",18.9
+"Washington Capitals","WSH",17.9
+"Philadelphia Flyers","PHI",16.3
 "Dallas Stars","DAL",16
-"Los Angeles Kings","LAK",16
-"Philadelphia Flyers","PHI",13.9
-"Tampa Bay Lightning","TBL",13.5
+"Tampa Bay Lightning","TBL",15
+"Los Angeles Kings","LAK",14.8
 "Montreal Canadiens","MTL",12.5
-"Ottawa Senators","OTT",12.2
-"Buffalo Sabres","BUF",11.1
+"Columbus Blue Jackets","CBJ",11.5
+"Ottawa Senators","OTT",11.5
+"Buffalo Sabres","BUF",10.5
 "Chicago Blackhawks","CHI",10.3
-"Columbus Blue Jackets","CBJ",8.7
