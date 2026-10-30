@@ -368,6 +368,13 @@ export const initialFootballState = {
   teamTurnoverDiff: '', opponentTurnoverDiff: '',
   teamAName: '', teamBName: '',
 };
+// Team labels plus the NBA off/def ratings: none of these have a form input and the
+// basketball estimate doesn't read them, so they must not gate Calculate.
+const NON_REQUIRED_STAT_KEYS = new Set([
+  'teamAName', 'teamBName',
+  'teamOffRtg', 'teamDefRtg', 'opponentOffRtg', 'opponentDefRtg',
+]);
+
 export const initialBasketballState = {
   teamPointsFor: '', opponentPointsFor: '',
   teamPointsAgainst: '', opponentPointsAgainst: '',
@@ -497,7 +504,7 @@ function ProbabilityEstimator({
         ? basketballStats
         : hockeyStats;
     const requiredFields = Object.entries(current)
-      .filter(([key]) => key !== 'teamAName' && key !== 'teamBName')
+      .filter(([key]) => !NON_REQUIRED_STAT_KEYS.has(key))
       .map(([, value]) => value);
     const ok = requiredFields.every(v => v !== '');
     // Hockey uses totalGoalsLine, others use pointSpread
@@ -512,7 +519,7 @@ function ProbabilityEstimator({
       : activeSport === CONSTANTS.SPORTS.BASKETBALL
         ? basketballStats
         : hockeyStats;
-    const statEntries = Object.entries(current).filter(([key]) => key !== 'teamAName' && key !== 'teamBName');
+    const statEntries = Object.entries(current).filter(([key]) => !NON_REQUIRED_STAT_KEYS.has(key));
     const filledFields = statEntries.filter(([, v]) => v !== '').length;
     const totalFields = statEntries.length;
     const hasLine = isHockey ? totalGoalsLine !== '' : pointSpread !== '';
