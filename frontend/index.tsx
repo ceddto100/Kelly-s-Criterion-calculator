@@ -1115,6 +1115,14 @@ function ProbabilityEstimator({
         </div>
       )}
 
+      {!isFormValid && (
+        <p role="status" style={{color:'var(--text-secondary)', fontSize:'.85rem', margin:'0 0 .75rem'}}>
+          {activeSport === CONSTANTS.SPORTS.HOCKEY
+            ? (totalGoalsLine === '' ? 'Enter the Total Goals Line above to enable Calculate.' : 'Fill in all stat fields to enable Calculate.')
+            : (pointSpread === '' ? 'Enter the Point Spread above (no market line was loaded for this game) to enable Calculate.' : 'Fill in all stat fields to enable Calculate.')}
+        </p>
+      )}
+
       <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
         <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid || isCalculating} style={{flex:'1'}}>
           {isCalculating ? 'Calculating…' : 'Calculate Probability'}
