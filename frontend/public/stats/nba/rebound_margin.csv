@@ -1,31 +1,31 @@
 "team","abbreviation","rebound_margin"
-"Atlanta Hawks","ATL",0
-"Boston Celtics","BOS",0
-"Brooklyn Nets","BKN",0
-"Charlotte Hornets","CHA",0
-"Chicago Bulls","CHI",0
-"Cleveland Cavaliers","CLE",0
-"Dallas Mavericks","DAL",0
-"Denver Nuggets","DEN",0
-"Detroit Pistons","DET",0
-"Golden State Warriors","GS",0
-"Houston Rockets","HOU",0
-"Indiana Pacers","IND",0
-"LA Clippers","LAC",0
-"Los Angeles Lakers","LAL",0
-"Memphis Grizzlies","MEM",0
-"Miami Heat","MIA",0
-"Milwaukee Bucks","MIL",0
-"Minnesota Timberwolves","MIN",0
-"New Orleans Pelicans","NO",0
-"New York Knicks","NY",0
-"Oklahoma City Thunder","OKC",0
-"Orlando Magic","ORL",0
-"Philadelphia 76ers","PHI",0
-"Phoenix Suns","PHX",0
-"Portland Trail Blazers","POR",0
-"Sacramento Kings","SAC",0
-"San Antonio Spurs","SA",0
-"Toronto Raptors","TOR",0
-"Utah Jazz","UTAH",0
-"Washington Wizards","WSH",0
+"Minnesota Timberwolves","MIN",7.5
+"Memphis Grizzlies","MEM",7.4
+"Charlotte Hornets","CHA",7
+"Houston Rockets","HOU",6.8
+"Milwaukee Bucks","MIL",5.8
+"New York Knicks","NY",5.3
+"Portland Trail Blazers","POR",4.5
+"Utah Jazz","UTAH",3.6
+"Golden State Warriors","GS",2.6
+"Toronto Raptors","TOR",1.8
+"Brooklyn Nets","BKN",1.4
+"Cleveland Cavaliers","CLE",1.4
+"Oklahoma City Thunder","OKC",1.4
+"Detroit Pistons","DET",1
+"Dallas Mavericks","DAL",0.3
+"San Antonio Spurs","SA",0.2
+"New Orleans Pelicans","NO",-0.6
+"Denver Nuggets","DEN",-1
+"Chicago Bulls","CHI",-2.2
+"LA Clippers","LAC",-2.2
+"Los Angeles Lakers","LAL",-2.4
+"Boston Celtics","BOS",-2.8
+"Miami Heat","MIA",-2.8
+"Atlanta Hawks","ATL",-3.2
+"Indiana Pacers","IND",-5.3
+"Sacramento Kings","SAC",-5.6
+"Orlando Magic","ORL",-6.8
+"Washington Wizards","WSH",-6.8
+"Philadelphia 76ers","PHI",-9.5
+"Phoenix Suns","PHX",-9.7
