@@ -175,7 +175,7 @@ export function LogBetButton({
       if (navBar) {
         navBar.style.visibility = 'visible';
         navBar.style.opacity = '1';
-        navBar.style.display = 'block';
+        navBar.style.display = '';
       }
     }
 
@@ -191,7 +191,7 @@ export function LogBetButton({
       if (navBar) {
         navBar.style.visibility = 'visible';
         navBar.style.opacity = '1';
-        navBar.style.display = 'block';
+        navBar.style.display = '';
       }
     };
   }, [isOpen]);
@@ -261,7 +261,7 @@ export function LogBetButton({
         if (navBar) {
           navBar.style.visibility = 'visible';
           navBar.style.opacity = '1';
-          navBar.style.display = 'block';
+          navBar.style.display = '';
         }
       }, 1500);
     } catch (err: any) {
