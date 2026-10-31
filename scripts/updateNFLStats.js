@@ -1,11 +1,14 @@
 // scripts/updateNFLStats.js
-// Fetches LIVE NFL stats from ESPN's free public API
+// Fetches LIVE NFL stats from ESPN's free public API: team statistics for each
+// team's own numbers, game box scores for the opponent side (points and yards
+// allowed, turnover differential)
 // Outputs CSVs to frontend/public/stats/nfl/
 const axios = require('axios');
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
 const { fetchPointsAllowed } = require('./espnPointsAllowed');
+const { fetchNFLOpponentStats } = require('./espnNFLBoxscores');
 
 const STATS_DIR = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'nfl');
 
@@ -220,14 +223,34 @@ async function main() {
   console.log(`\nFetched stats for ${allStats.length} / ${teams.length} teams`);
   if (zeroCount > 0) console.warn(`  (${zeroCount} teams had zero stats)\n`);
 
-  // Points allowed: ESPN's per-team /statistics endpoint omits opponent points,
-  // so fill it from the standings feed (cloud-friendly). Keyed by ESPN abbr.
-  const pointsAllowedMap = await fetchPointsAllowed('football/nfl', getCurrentSeason());
+  // ESPN's per-team /statistics endpoint omits opponent totals, so points and
+  // yards allowed and turnover differential come from the game box scores.
+  let opponentMap = new Map();
+  try {
+    opponentMap = await fetchNFLOpponentStats(getCurrentSeason());
+  } catch (err) {
+    console.warn(`  WARNING: box-score opponent stats failed: ${err.message}`);
+  }
+  let boxFilled = 0;
+  for (const s of allStats) {
+    const opp = opponentMap.get(s.abbreviation);
+    if (!opp) continue;
+    s.allowed = opp.allowed;
+    s.def_yards = opp.def_yards;
+    s.turnover_diff = opp.turnover_diff;
+    boxFilled++;
+  }
+  console.log(`Filled allowed/def_yards/turnover_diff for ${boxFilled}/${allStats.length} NFL teams from box scores`);
+
+  // Fallback for points allowed: the standings feed. Keyed by ESPN abbr.
+  const pointsAllowedMap = boxFilled < allStats.length
+    ? await fetchPointsAllowed('football/nfl', getCurrentSeason())
+    : new Map();
   if (pointsAllowedMap.size > 0) {
     let filled = 0;
     for (const s of allStats) {
       const pa = pointsAllowedMap.get(s.abbreviation);
-      if (pa !== undefined) { s.allowed = pa; filled++; }
+      if (pa !== undefined && !opponentMap.has(s.abbreviation)) { s.allowed = pa; filled++; }
     }
     console.log(`Filled points-allowed for ${filled}/${allStats.length} NFL teams from standings`);
   }
