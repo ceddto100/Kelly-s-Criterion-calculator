@@ -59,7 +59,8 @@ function parseStandings(data) {
 
 /**
  * @param {string} leaguePath e.g. 'basketball/nba' or 'football/nfl'
- * @param {number} season  season start year (e.g. 2025 for 2025-26)
+ * @param {number} season  ESPN season year: the start year for the NFL, the end
+ *                         year for the NBA (2027 for 2026-27)
  * @returns {Promise<Map<string, number>>} ESPN abbr -> points allowed per game
  */
 async function fetchPointsAllowed(leaguePath, season) {

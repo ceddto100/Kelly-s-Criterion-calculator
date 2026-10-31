@@ -1,13 +1,15 @@
 // scripts/updateNBAStats.js
 // Fetches LIVE NBA stats from multiple free sources:
 //   - Primary: NBA.com stats API (free, no key required - includes pace, 3PT%, differentials)
-//   - Fallback: ESPN public API for basic stats + standings for PA
+//   - Fallback: ESPN public API for basic stats, standings for PA, and game
+//     box scores for rebound/turnover margins
 // Outputs CSVs to frontend/public/stats/nba/
 const axios = require('axios');
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const path = require('path');
 const { fetchPointsAllowed } = require('./espnPointsAllowed');
+const { fetchNBAMargins } = require('./espnNBABoxscores');
 
 const STATS_DIR = path.join(__dirname, '..', 'frontend', 'public', 'stats', 'nba');
 const ESPN_SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
@@ -35,9 +37,9 @@ function getCurrentSeason() {
 }
 
 function getESPNSeasonYear() {
-  const now = new Date();
-  // ESPN core/site NBA endpoints use season start year (e.g. 2025 for 2025-26).
-  return now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+  // ESPN NBA endpoints use the year the season ENDS (2027 for 2026-27). Passing
+  // the start year silently returns last season's finished stats.
+  return getCurrentSeason();
 }
 
 function getNBASeasonString() {
@@ -242,6 +244,13 @@ async function fetchESPNFallback() {
   // Points-allowed comes from the standings feed (the per-team /statistics
   // endpoint has no opponent data). Fetched once, keyed by ESPN abbreviation.
   const pointsAllowedMap = await fetchPointsAllowed('basketball/nba', season);
+  // Rebound/turnover margins need opponent totals, which only the box scores have.
+  let marginsMap = new Map();
+  try {
+    marginsMap = await fetchNBAMargins(season);
+  } catch (err) {
+    console.warn(`  WARNING: box-score margins failed: ${err.message}`);
+  }
 
   // Get per-team stats from core API
   for (const { team } of teams) {
@@ -280,8 +289,9 @@ async function fetchESPNFallback() {
     const fgPct = toPercent(getStat(statMap, ['fieldGoalPct', 'fgPct', 'fieldGoalPercentage']));
     const threePct = toPercent(getStat(statMap, ['threePointFieldGoalPct', 'threePointPct', '3ptPct']));
 
-    const rebMargin = getStat(statMap, ['reboundDifferential', 'reboundMargin']);
-    const tovMargin = getStat(statMap, ['turnoverDifferential', 'turnoverMargin']);
+    const margins = marginsMap.get(team.abbreviation);
+    const rebMargin = margins?.rebound_margin ?? getStat(statMap, ['reboundDifferential', 'reboundMargin']);
+    const tovMargin = margins?.turnover_margin ?? getStat(statMap, ['turnoverDifferential', 'turnoverMargin']);
 
     const pace = getStat(statMap, ['pace', 'possessionsPerGame', 'avgPossessions']);
 
