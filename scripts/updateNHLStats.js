@@ -47,7 +47,7 @@ const TEAM_MAP = {
   'TBL': { name: 'Tampa Bay Lightning', abbr: 'TBL' },
   'T.B': { name: 'Tampa Bay Lightning', abbr: 'TBL' },
   'TOR': { name: 'Toronto Maple Leafs', abbr: 'TOR' },
-  'UTA': { name: 'Utah Hockey Club', abbr: 'UTA' },
+  'UTA': { name: 'Utah Mammoth', abbr: 'UTA' },
   'VAN': { name: 'Vancouver Canucks', abbr: 'VAN' },
   'VGK': { name: 'Vegas Golden Knights', abbr: 'VGK' },
   'WPG': { name: 'Winnipeg Jets', abbr: 'WPG' },
@@ -271,7 +271,7 @@ async function fetchESPNSpecialTeams() {
     // Map ESPN team names to our abbreviations
     const abbr = team.abbreviation;
     const normalizedAbbr = {
-      'LA': 'LAK', 'NJ': 'NJD', 'SJ': 'SJS', 'TB': 'TBL', 'WSH': 'WSH',
+      'LA': 'LAK', 'NJ': 'NJD', 'SJ': 'SJS', 'TB': 'TBL', 'WSH': 'WSH', 'UTAH': 'UTA',
     }[abbr] || abbr;
 
     const mappedTeam = Object.values(TEAM_MAP).find((t) => t.abbr === normalizedAbbr);
