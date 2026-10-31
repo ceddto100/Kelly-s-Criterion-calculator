@@ -7,7 +7,7 @@
 "New York Knicks","NY",5.3
 "Portland Trail Blazers","POR",4.5
 "Utah Jazz","UTAH",3.6
-"Golden State Warriors","GS",2.6
+"Golden State Warriors","GS",2
 "Toronto Raptors","TOR",1.8
 "Brooklyn Nets","BKN",1.4
 "Cleveland Cavaliers","CLE",1.4
@@ -16,16 +16,16 @@
 "Dallas Mavericks","DAL",0.3
 "San Antonio Spurs","SA",0.2
 "New Orleans Pelicans","NO",-0.6
-"Denver Nuggets","DEN",-1
+"Denver Nuggets","DEN",-1.2
+"Los Angeles Lakers","LAL",-1.8
 "Chicago Bulls","CHI",-2.2
 "LA Clippers","LAC",-2.2
-"Los Angeles Lakers","LAL",-2.4
 "Boston Celtics","BOS",-2.8
 "Miami Heat","MIA",-2.8
 "Atlanta Hawks","ATL",-3.2
 "Indiana Pacers","IND",-5.3
 "Sacramento Kings","SAC",-5.6
+"Phoenix Suns","PHX",-6.7
 "Orlando Magic","ORL",-6.8
 "Washington Wizards","WSH",-6.8
 "Philadelphia 76ers","PHI",-9.5
-"Phoenix Suns","PHX",-9.7
