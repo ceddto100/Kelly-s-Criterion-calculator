@@ -1,21 +1,21 @@
 "team","abbreviation","rebound_margin"
-"Minnesota Timberwolves","MIN",7.5
-"Memphis Grizzlies","MEM",7.4
-"Houston Rockets","HOU",6.8
+"Memphis Grizzlies","MEM",8.2
 "Charlotte Hornets","CHA",6.3
-"Milwaukee Bucks","MIL",5.8
+"Houston Rockets","HOU",6.1
 "Portland Trail Blazers","POR",5.8
 "New York Knicks","NY",5.3
+"Minnesota Timberwolves","MIN",4.9
+"Cleveland Cavaliers","CLE",3
+"Milwaukee Bucks","MIL",3
 "Golden State Warriors","GS",2
+"San Antonio Spurs","SA",2
 "Toronto Raptors","TOR",1.8
 "New Orleans Pelicans","NO",1.7
 "Brooklyn Nets","BKN",1.4
-"Cleveland Cavaliers","CLE",1.4
-"Oklahoma City Thunder","OKC",1.4
 "Utah Jazz","UTAH",1.2
 "Detroit Pistons","DET",1
+"Oklahoma City Thunder","OKC",0.8
 "Dallas Mavericks","DAL",0.3
-"San Antonio Spurs","SA",0.2
 "Denver Nuggets","DEN",-1.2
 "Los Angeles Lakers","LAL",-1.8
 "Chicago Bulls","CHI",-2.2
@@ -24,8 +24,8 @@
 "Miami Heat","MIA",-2.8
 "Atlanta Hawks","ATL",-4.6
 "Indiana Pacers","IND",-5.3
-"Sacramento Kings","SAC",-5.6
 "Phoenix Suns","PHX",-6.7
+"Sacramento Kings","SAC",-6.7
 "Orlando Magic","ORL",-6.8
 "Washington Wizards","WSH",-6.8
 "Philadelphia 76ers","PHI",-8.4

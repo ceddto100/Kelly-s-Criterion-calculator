@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-01T01:47:01.881Z",
+  "updatedAt": "2026-11-01T04:12:53.338Z",
   "season": 2026,
   "seasonType": "regular",
   "week": 9,
@@ -8,9 +8,9 @@
   "fbsGamesWithLines": 56,
   "rankedGames": 18,
   "ratedTeams": 138,
-  "ratingsUpdatedAt": "2026-11-01T01:47:01.881Z",
+  "ratingsUpdatedAt": "2026-11-01T04:12:53.338Z",
   "poll": "AP Top 25, week 9",
-  "apiCalls": 7,
+  "apiCalls": 5,
   "picksPending": 3,
   "picksLogged": 0,
   "modelVersion": "walters-cfb-2026.09-v1",
