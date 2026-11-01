@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useHiddenSports } from '../utils/sportVisibility';
+
+const STATS_SPORTS: { key: 'NBA' | 'NFL' | 'NHL'; label: string; defaultCategory: string }[] = [
+  { key: 'NBA', label: '🏀 NBA', defaultCategory: 'ppg' },
+  { key: 'NFL', label: '🏈 NFL', defaultCategory: 'ppg' },
+  { key: 'NHL', label: '🏒 NHL', defaultCategory: 'xgf60' },
+];
 
 interface StatsData {
   [key: string]: string | number;
@@ -11,6 +18,16 @@ type SortDirection = 'asc' | 'desc' | null;
 export const StatsPage: React.FC<StatsPageProps> = () => {
   const [sport, setSport] = useState<'NBA' | 'NFL' | 'NHL'>('NBA');
   const [statCategory, setStatCategory] = useState<string>('ppg');
+  const hiddenSports = useHiddenSports();
+  const visibleSports = STATS_SPORTS.filter((sp) => !hiddenSports.includes(sp.key));
+
+  // If the admin hides the selected sport, jump to the first one still shown.
+  useEffect(() => {
+    if (visibleSports.length && !visibleSports.some((sp) => sp.key === sport)) {
+      setSport(visibleSports[0].key);
+      setStatCategory(visibleSports[0].defaultCategory);
+    }
+  }, [hiddenSports]); // eslint-disable-line react-hooks/exhaustive-deps
   const [statsData, setStatsData] = useState<StatsData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -229,42 +246,21 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
 
       <div style={styles.controls}>
         <div style={styles.sportToggle}>
-          <button
-            onClick={() => {
-              setSport('NBA');
-              setStatCategory('ppg');
-            }}
-            style={{
-              ...styles.sportButton,
-              ...(sport === 'NBA' ? styles.sportButtonActive : {}),
-            }}
-          >
-            🏀 NBA
-          </button>
-          <button
-            onClick={() => {
-              setSport('NFL');
-              setStatCategory('ppg');
-            }}
-            style={{
-              ...styles.sportButton,
-              ...(sport === 'NFL' ? styles.sportButtonActive : {}),
-            }}
-          >
-            🏈 NFL
-          </button>
-          <button
-            onClick={() => {
-              setSport('NHL');
-              setStatCategory('xgf60');
-            }}
-            style={{
-              ...styles.sportButton,
-              ...(sport === 'NHL' ? styles.sportButtonActive : {}),
-            }}
-          >
-            🏒 NHL
-          </button>
+          {visibleSports.map((sp) => (
+            <button
+              key={sp.key}
+              onClick={() => {
+                setSport(sp.key);
+                setStatCategory(sp.defaultCategory);
+              }}
+              style={{
+                ...styles.sportButton,
+                ...(sport === sp.key ? styles.sportButtonActive : {}),
+              }}
+            >
+              {sp.label}
+            </button>
+          ))}
         </div>
 
         <select

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useHiddenSports } from '../utils/sportVisibility';
 import { loadCatalog, predictFromCatalog, type Catalog, type Prediction, type PredictionSport } from '../../mcp-server/src/utils/predictionCore';
 
 const SPORTS: {key: PredictionSport; name: string; mark: string; tag: string}[] = [
@@ -22,6 +23,12 @@ const initials=(name:string)=>name.split(' ').map(w=>w[0]).slice(-2).join('');
 
 export default function PredictionHub() {
   const [sport,setSport]=useState<PredictionSport>('NBA');
+  const hiddenSports=useHiddenSports();
+  const visibleSports=SPORTS.filter(s=>!hiddenSports.includes(s.key));
+  // If the admin hides the selected sport, jump to the first one still shown.
+  useEffect(()=>{
+    if(visibleSports.length && !visibleSports.some(s=>s.key===sport)) setSport(visibleSports[0].key);
+  },[hiddenSports]); // eslint-disable-line react-hooks/exhaustive-deps
   const [catalog,setCatalog]=useState<Catalog|null>(null);
   const [home,setHome]=useState(''),[away,setAway]=useState(''),[line,setLine]=useState('');
   const [prediction,setPrediction]=useState<Prediction|null>(null);
@@ -49,7 +56,7 @@ export default function PredictionHub() {
       </div>
       <div className="court-art" aria-hidden="true"><div className="court-lines"/><span className="court-word">READ<br/>THE<br/><b>GAME.</b></span><span className="court-caption">BETGISTICS / PREDICTIONS</span></div>
     </section>
-    <div className="sport-tabs" role="group" aria-label="Choose sport">{SPORTS.map(s=><button key={s.key} type="button" aria-pressed={sport===s.key} className={sport===s.key?'selected':''} onClick={()=>setSport(s.key)}><span className="sport-mark" aria-hidden="true">{s.mark}</span><span><strong>{s.key}</strong><small>{s.name}</small></span><span className="sport-arrow" aria-hidden="true">↗</span></button>)}</div>
+    <div className="sport-tabs" role="group" aria-label="Choose sport">{visibleSports.map(s=><button key={s.key} type="button" aria-pressed={sport===s.key} className={sport===s.key?'selected':''} onClick={()=>setSport(s.key)}><span className="sport-mark" aria-hidden="true">{s.mark}</span><span><strong>{s.key}</strong><small>{s.name}</small></span><span className="sport-arrow" aria-hidden="true">↗</span></button>)}</div>
     <div className="board-title"><div><span className="eyebrow">YOUR MATCHUP LAB</span><h3>{SPORTS.find(s=>s.key===sport)?.tag}.</h3></div><button className="snapshot-refresh" onClick={()=>setRevision(v=>v+1)} disabled={loading}>{loading?'Loading snapshot…':'↻ Refresh stats'}</button></div>
     <div className="prediction-workspace">
       <form id="matchup-builder" className="matchup-builder" onSubmit={calculate}>

@@ -1,4 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  MANAGED_SPORTS,
+  saveHiddenSports,
+  useHiddenSports,
+  loadHiddenSports,
+  type ManagedSport,
+} from '../utils/sportVisibility';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -95,6 +102,30 @@ function resolveEmbedUrl(promo: Promo): string {
 
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   const isAdmin = normalizeEmail(user?.email) === ADMIN_EMAIL;
+
+  const hiddenSports = useHiddenSports();
+  const [savingSport, setSavingSport] = useState<ManagedSport | null>(null);
+  const [sportsMessage, setSportsMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleToggleSport = async (sport: ManagedSport) => {
+    const next = hiddenSports.includes(sport)
+      ? hiddenSports.filter((s) => s !== sport)
+      : [...hiddenSports, sport];
+    setSavingSport(sport);
+    setSportsMessage(null);
+    try {
+      await saveHiddenSports(next);
+      setSportsMessage({
+        ok: true,
+        text: `${sport} is now ${next.includes(sport) ? 'hidden from' : 'shown in'} the app.`,
+      });
+    } catch (err) {
+      setSportsMessage({ ok: false, text: err instanceof Error ? err.message : 'Unable to update sports.' });
+      void loadHiddenSports(true);
+    } finally {
+      setSavingSport(null);
+    }
+  };
 
   const [resetStatus, setResetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -270,6 +301,51 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
                 color: resetStatus === 'success' ? '#4ade80' : '#f87171'
               }}>
                 {resetMessage}
+              </div>
+            )}
+          </div>
+          <div style={styles.resetCard}>
+            <div>
+              <div style={styles.resetTitle}>Sports in the App</div>
+              <div style={styles.resetDescription}>
+                Hide a sport when its season is over. Hidden sports disappear from
+                the Prediction Board, Today's Games, the Probability Estimator and
+                Team Stats for everyone (CFB also hides Walters).
+              </div>
+            </div>
+            <div style={styles.sportToggleList}>
+              {MANAGED_SPORTS.map((sp) => {
+                const shown = !hiddenSports.includes(sp.key);
+                return (
+                  <div key={sp.key} style={styles.sportToggleRow}>
+                    <span>{sp.icon} {sp.label}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: shown ? '#4ade80' : '#f87171' }}>
+                        {savingSport === sp.key ? 'Saving…' : shown ? 'Shown' : 'Hidden'}
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={shown}
+                        aria-label={`Show ${sp.label}`}
+                        disabled={savingSport !== null}
+                        onClick={() => handleToggleSport(sp.key)}
+                        style={{
+                          ...styles.switchTrack,
+                          background: shown ? '#22c55e' : 'rgba(255, 255, 255, 0.18)',
+                          opacity: savingSport !== null ? 0.6 : 1,
+                        }}
+                      >
+                        <span style={{ ...styles.switchThumb, transform: shown ? 'translateX(20px)' : 'translateX(0)' }} />
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {sportsMessage && (
+              <div style={{ ...styles.resetMessage, color: sportsMessage.ok ? '#4ade80' : '#f87171' }}>
+                {sportsMessage.text}
               </div>
             )}
           </div>
@@ -501,6 +577,45 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '12px',
     cursor: 'pointer',
     boxShadow: '0 6px 20px rgba(239, 68, 68, 0.35)',
+  },
+  sportToggleList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  sportToggleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 12px',
+    borderRadius: '10px',
+    background: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    fontSize: '14px',
+    fontWeight: 600,
+  },
+  switchTrack: {
+    position: 'relative',
+    flexShrink: 0,
+    width: '46px',
+    height: '26px',
+    minHeight: 0,
+    padding: 0,
+    border: 'none',
+    borderRadius: '999px',
+    cursor: 'pointer',
+    transition: 'background 0.2s ease',
+  },
+  switchThumb: {
+    position: 'absolute',
+    top: '3px',
+    left: '3px',
+    width: '20px',
+    height: '20px',
+    borderRadius: '50%',
+    background: '#fff',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
+    transition: 'transform 0.2s ease',
   },
   resetMessage: {
     fontSize: '13px',

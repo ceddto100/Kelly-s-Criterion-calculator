@@ -53,6 +53,7 @@ import { evaluateDecision } from './utils/decision';
 import { calculateNHLProjection } from './utils/nhlProjection';
 import type { DailyGameSelection, MLBFieldState } from './utils/dailyGameTransfer';
 import type { WaltersPrefill } from './utils/cfbStatsLoader';
+import { useHiddenSports, type ManagedSport } from './utils/sportVisibility';
 
 /* === Backend URL configuration === */
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
@@ -430,6 +431,14 @@ interface EstimationData {
 }
 
 /* ========================= Probability Estimator panel ===================== */
+/* Estimator sport tabs, mapped to the league keys the admin can hide. */
+const ESTIMATOR_SPORT_TABS: { key: string; label: string; league: ManagedSport }[] = [
+  { key: CONSTANTS.SPORTS.FOOTBALL, label: 'Football', league: 'NFL' },
+  { key: CONSTANTS.SPORTS.BASKETBALL, label: 'Basketball', league: 'NBA' },
+  { key: CONSTANTS.SPORTS.HOCKEY, label: 'NHL', league: 'NHL' },
+  { key: CONSTANTS.SPORTS.MLB, label: 'MLB', league: 'MLB' },
+];
+
 function ProbabilityEstimator({
   setProbability,
   setActiveTab,
@@ -932,17 +941,15 @@ function ProbabilityEstimator({
     }
   };
 
+  const hiddenSports = useHiddenSports();
+
   return (
     <div className="panel panel-strong">
       <div className="tabs nested-tabs" role="tablist" aria-label="Sport selector">
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.FOOTBALL ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.FOOTBALL)}>Football</button>
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.BASKETBALL ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.BASKETBALL)}>Basketball</button>
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.HOCKEY ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.HOCKEY)}>NHL</button>
-        <button className={`tab ${activeSport === CONSTANTS.SPORTS.MLB ? 'active' : ''}`}
-                onClick={()=>setActiveSport(CONSTANTS.SPORTS.MLB)}>MLB</button>
+        {ESTIMATOR_SPORT_TABS.filter((t) => !hiddenSports.includes(t.league)).map((t) => (
+          <button key={t.key} className={`tab ${activeSport === t.key ? 'active' : ''}`}
+                  onClick={()=>setActiveSport(t.key)}>{t.label}</button>
+        ))}
       </div>
 
       {activeSport === CONSTANTS.SPORTS.MLB && (
@@ -1790,6 +1797,19 @@ function App() {
 
   // Probability estimator state
   const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
+  const hiddenSports = useHiddenSports();
+
+  // Respect admin-hidden sports: move the estimator off a hidden sport, and
+  // leave the Walters (college football) tab if CFB is hidden.
+  useEffect(() => {
+    const visible = ESTIMATOR_SPORT_TABS.filter((t) => !hiddenSports.includes(t.league));
+    if (visible.length && !visible.some((t) => t.key === activeSport)) {
+      setActiveSport(visible[0].key);
+    }
+    if (hiddenSports.includes('CFB') && activeTab === CONSTANTS.TABS.WALTERS) {
+      setActiveTab(CONSTANTS.TABS.PREDICTIONS);
+    }
+  }, [hiddenSports]); // eslint-disable-line react-hooks/exhaustive-deps
   const [footballStats, setFootballStats] = useState(initialFootballState);
   const [basketballStats, setBasketballStats] = useState(initialBasketballState);
   const [hockeyStats, setHockeyStats] = useState(initialHockeyState);
@@ -2041,12 +2061,6 @@ function App() {
 
   const handleLogout = () => {
     window.location.href = `${BACKEND_URL}/auth/logout`;
-  };
-
-  const getTeamAbbreviation = (fullName: string): string => {
-    if (!fullName) return '';
-    const words = fullName.trim().split(' ');
-    return words[words.length - 1];
   };
 
   // Handler for a tapped "Today's Games" card: drop the matchup straight into the
