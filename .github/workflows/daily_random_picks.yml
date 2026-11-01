@@ -34,11 +34,15 @@ jobs:
         env:
           MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
         run: |
-          for i in 1 2 3 4 5 6; do
-            curl -fsS --max-time 60 "$MCP_SERVER_URL/health" && exit 0
-            echo "health check failed, retry $i"; sleep 20
+          # Wait until the server is up AND connected to MongoDB; a cold start
+          # can answer /health before the database connection is ready.
+          for i in $(seq 1 10); do
+            out=$(curl -fsS --max-time 60 "$MCP_SERVER_URL/health" || true)
+            echo "attempt $i: ${out:-no response}"
+            echo "$out" | grep -q '"database":"connected"' && exit 0
+            sleep 20
           done
-          exit 1
+          echo "Server never reported a database connection"; exit 1
 
       - name: Run daily random picks
         env:
@@ -60,4 +64,11 @@ jobs:
             }
             for (const e of r.errors || []) console.log("  note:", e);
             if (!r.success) process.exit(1);
+            // Fail loudly if nothing was logged, unless that is expected
+            // (already ran today, or no bettable games on the slate).
+            const ok = (r.errors || []).some((e) => /already logged|only 0 bettable/.test(e));
+            if ((r.randomPicks || []).filter((p) => p.betLogged).length === 0 && !ok) {
+              console.log("No picks were logged — check the server logs.");
+              process.exit(1);
+            }
           '
