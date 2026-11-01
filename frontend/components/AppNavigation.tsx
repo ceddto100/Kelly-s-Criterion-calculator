@@ -6,8 +6,8 @@
  *  - Desktop (>=1024px): a fixed left sidebar with grouped destinations
  *    (rendered by <SidebarNav/>). Styled by `.sidebar*` / `.nav-*` rules
  *    in index.css; hidden on mobile.
- *  - Mobile (<1024px): a fixed 4-slot bottom bar (rendered by
- *    <MobileNav/>) with the three everyday destinations plus a "More"
+ *  - Mobile (<1024px): a fixed 5-slot bottom bar (rendered by
+ *    <MobileNav/>) with four everyday destinations plus a "More"
  *    sheet holding the rest. Styled by `.mobile-nav` / `.more-*` rules;
  *    hidden on desktop.
  *
@@ -89,9 +89,18 @@ export function findDestination(key: string): NavDestination | undefined {
   return ALL_DESTINATIONS.find((d) => d.key === key);
 }
 
-/* Mobile bottom bar: the three everyday destinations + "More". */
-const MOBILE_PRIMARY_KEYS = ['predictions', 'daily_games', 'stats'];
-const MOBILE_MORE_KEYS = ['kelly', 'estimator', 'walters', 'bet_history', 'media', 'promo', 'account'];
+/* Mobile bottom bar: four everyday destinations + "More". Order matters:
+ * Today's Games sits in the centre (3rd of 5 slots) as the featured tab. */
+const MOBILE_PRIMARY_KEYS = ['predictions', 'bet_history', 'daily_games', 'kelly'];
+const MOBILE_FEATURED_KEY = 'daily_games';
+const MOBILE_MORE_KEYS = ['estimator', 'walters', 'stats', 'media', 'promo', 'account'];
+
+/* Yellow star drawn around the featured tab's icon. */
+const FEATURED_STAR = (
+  <svg className="mnav-star" viewBox="0 0 48 48" aria-hidden="true">
+    <polygon points="24,2 30.5,16.5 46,17.5 34,28 37.5,44 24,35.5 10.5,44 14,28 2,17.5 17.5,16.5" />
+  </svg>
+);
 
 interface NavProps {
   activeTab: string;
@@ -178,11 +187,18 @@ export function MobileNav({ activeTab, onTabChange }: NavProps) {
           <button
             key={item.key}
             type="button"
-            className={`mnav-item ${activeTab === item.key && !moreOpen ? 'active' : ''}`}
+            className={`mnav-item ${item.key === MOBILE_FEATURED_KEY ? 'mnav-featured' : ''} ${activeTab === item.key && !moreOpen ? 'active' : ''}`}
             aria-current={activeTab === item.key ? 'page' : undefined}
             onClick={() => select(item.key)}
           >
-            {item.icon}
+            {item.key === MOBILE_FEATURED_KEY ? (
+              <span className="mnav-star-wrap">
+                {FEATURED_STAR}
+                {item.icon}
+              </span>
+            ) : (
+              item.icon
+            )}
             <span>{item.shortLabel ?? item.label}</span>
           </button>
         ))}
