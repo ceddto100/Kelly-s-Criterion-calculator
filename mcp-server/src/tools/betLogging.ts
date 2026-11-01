@@ -41,8 +41,8 @@ export const logBetInputSchema = z.object({
     .describe('User identifier (Google ID or unique user ID)'),
 
   sport: z
-    .enum(['football', 'basketball'])
-    .describe('Sport type: football (NFL/CFB) or basketball (NBA/CBB)'),
+    .enum(['football', 'basketball', 'hockey', 'baseball'])
+    .describe('Sport type: football (NFL/CFB), basketball (NBA/CBB), hockey (NHL) or baseball (MLB)'),
 
   teamA: z.object({
     name: z.string().min(1).describe('Team A name (team being bet on)'),
@@ -151,7 +151,7 @@ export const logBetToolDefinition = {
       },
       sport: {
         type: 'string',
-        enum: ['football', 'basketball'],
+        enum: ['football', 'basketball', 'hockey', 'baseball'],
         description: 'Sport type'
       },
       teamA: {

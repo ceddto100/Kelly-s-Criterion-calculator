@@ -26,6 +26,7 @@ import { handleLogBet } from './betLogging.js';
 import { getNBATeamStats, getNFLTeamStats, getNHLTeamStats, clearStatsCache } from '../utils/statsLoader.js';
 import { isDatabaseConnected, ensureDatabaseConnection } from '../config/database.js';
 import { User } from '../models/User.js';
+import { BetLog } from '../models/BetLog.js';
 import { handleRecordProjection } from './projectionLog.js';
 import { evaluateDecision } from '../utils/decision.js';
 import { projectMLBGame } from '../utils/mlb.js';
@@ -75,6 +76,44 @@ export interface GameCalcResult {
   error?: string;
 }
 
+/**
+ * A game the model has an opinion on, reduced to "the side we'd bet and how
+ * likely we think it is". Collected from every sport during the run so the
+ * random-picks mode can choose N games across NBA/NFL/NHL/MLB.
+ */
+export interface PickCandidate {
+  sport: 'NBA' | 'NFL' | 'NHL' | 'MLB';
+  sportLabel: 'basketball' | 'football' | 'hockey' | 'baseball';
+  homeTeam: string;
+  homeAbbr?: string;
+  awayTeam: string;
+  awayAbbr?: string;
+  market: 'moneyline' | 'total';
+  /** Human-readable pick, e.g. "Boston Celtics ML" or "Over 6.5". */
+  pick: string;
+  /** Team being backed (moneyline) — used as teamA in the bet log. */
+  pickedSide: 'home' | 'away' | 'over' | 'under';
+  /** Total line for totals bets; 0 for moneyline. */
+  line: number;
+  /** Model probability (%) that the picked side wins. */
+  probability: number;
+  expectedMargin?: number;
+}
+
+export interface LoggedPick {
+  game: string;
+  sport: PickCandidate['sport'];
+  market: PickCandidate['market'];
+  pick: string;
+  probability: number;
+  edge: number;
+  recommendedStake: number;
+  stakePercentage: number;
+  betLogged: boolean;
+  betId?: string;
+  error?: string;
+}
+
 export interface DailyCalcSummary {
   success: boolean;
   date: string;
@@ -86,6 +125,8 @@ export interface DailyCalcSummary {
   allResults: GameCalcResult[];
   errors: string[];
   userId?: string;
+  /** Present when the run used random-picks mode. */
+  randomPicks?: LoggedPick[];
 }
 
 export interface DailyCalcOptions {
@@ -101,6 +142,17 @@ export interface DailyCalcOptions {
    */
   recordProjections?: boolean;
   sport?: 'NBA' | 'NFL' | 'NHL' | 'MLB' | 'ALL';
+  /**
+   * Random-picks mode: instead of logging every positive-edge NBA/NFL bet,
+   * randomly choose this many games across all sports (NBA, NFL, NHL, MLB),
+   * bet the side the model favors, size it with `kellyFraction` (half Kelly by
+   * default) and log exactly those bets to the admin account. Games where the
+   * model shows a positive edge are drawn first; remaining slots are filled
+   * from the other games (their Kelly stake will be $0). Idempotent per day:
+   * if random picks were already logged today, nothing new is logged.
+   * 0 / undefined disables it.
+   */
+  randomPicks?: number;
 }
 
 // ============================================================================
@@ -136,7 +188,8 @@ async function getAdminUserId(): Promise<string | null> {
  */
 async function calcNHLGame(
   game: DailyGame,
-  recordProjections: boolean
+  recordProjections: boolean,
+  collector?: PickCandidate[]
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (NHL)`;
   const baseResult: GameCalcResult = {
@@ -192,6 +245,24 @@ async function calcNHLGame(
   // Lean over/under via the shared decision layer against the (de-vigged) total.
   const overSide = overProbability >= 50;
   const sideProb = overSide ? overProbability : 100 - overProbability;
+
+  // Only a real sportsbook line makes a bettable total.
+  if (collector && game.overUnder !== undefined) {
+    collector.push({
+      sport: 'NHL',
+      sportLabel: 'hockey',
+      homeTeam: game.homeTeam,
+      homeAbbr: game.homeAbbr,
+      awayTeam: game.awayTeam,
+      awayAbbr: game.awayAbbr,
+      market: 'total',
+      pick: `${overSide ? 'Over' : 'Under'} ${game.overUnder}`,
+      pickedSide: overSide ? 'over' : 'under',
+      line: game.overUnder,
+      probability: sideProb,
+      expectedMargin: projectedTotal - game.overUnder,
+    });
+  }
   const decision = evaluateDecision({
     modelProbabilityPct: sideProb,
     sideOdds: -110,
@@ -249,7 +320,8 @@ async function calcGame(
   americanOdds: number,
   userId: string | null,
   logBets: boolean,
-  recordProjections: boolean
+  recordProjections: boolean,
+  collector?: PickCandidate[]
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (${game.sport})`;
 
@@ -271,7 +343,7 @@ async function calcGame(
   // NHL uses a totals (over/under) model, not a spread/moneyline one, so it has
   // its own path. NBA/NFL continue through the shared spread/moneyline flow below.
   if (game.sport === 'NHL') {
-    return calcNHLGame(game, recordProjections);
+    return calcNHLGame(game, recordProjections, collector);
   }
 
   // 1. Load team stats
@@ -374,6 +446,24 @@ async function calcGame(
 
   if (probability === 0) {
     return { ...baseResult, skipped: 'Probability calculation returned 0' };
+  }
+
+  if (collector) {
+    const homeFav = probability >= 50;
+    collector.push({
+      sport: game.sport as 'NBA' | 'NFL',
+      sportLabel: game.sport === 'NBA' ? 'basketball' : 'football',
+      homeTeam: game.homeTeam,
+      homeAbbr: game.homeAbbr,
+      awayTeam: game.awayTeam,
+      awayAbbr: game.awayAbbr,
+      market: 'moneyline',
+      pick: `${homeFav ? game.homeTeam : game.awayTeam} ML`,
+      pickedSide: homeFav ? 'home' : 'away',
+      line: 0,
+      probability: homeFav ? probability : 100 - probability,
+      expectedMargin: homeFav ? predictedMargin : -predictedMargin,
+    });
   }
 
   // 3. Calculate Kelly
@@ -518,7 +608,8 @@ async function calcGame(
  */
 async function runMLBDailyCalc(
   summary: DailyCalcSummary,
-  recordProjections: boolean
+  recordProjections: boolean,
+  collector?: PickCandidate[]
 ): Promise<void> {
   const season = new Date().getUTCFullYear();
   let games;
@@ -546,6 +637,23 @@ async function runMLBDailyCalc(
       const input = await fetchMLBGameInputs(game, season, offenseCache, totals);
       const result = projectMLBGame(input);
       summary.gamesAnalyzed++;
+
+      const bookTotal = result.totals.bookTotal;
+      if (collector && bookTotal !== null) {
+        const over = result.totals.overProbability >= 50;
+        collector.push({
+          sport: 'MLB',
+          sportLabel: 'baseball',
+          homeTeam: game.home.name,
+          awayTeam: game.away.name,
+          market: 'total',
+          pick: `${over ? 'Over' : 'Under'} ${bookTotal}`,
+          pickedSide: over ? 'over' : 'under',
+          line: bookTotal,
+          probability: over ? result.totals.overProbability : result.totals.underProbability,
+          expectedMargin: result.totals.projectedTotal - bookTotal,
+        });
+      }
 
       if (result.totals.lean !== 'no-bet') {
         summary.highValueBets.push({
@@ -597,22 +705,147 @@ async function runMLBDailyCalc(
 }
 
 // ============================================================================
+// RANDOM PICKS (N random games across all sports, fractional Kelly)
+// ============================================================================
+
+function shuffle<T>(items: T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Choose `count` candidates at random. Positive-edge games (model probability
+ * above the -110 break-even) are drawn first so Kelly actually stakes money;
+ * leftover slots are filled randomly from the rest.
+ */
+export function selectRandomPicks(candidates: PickCandidate[], count: number): PickCandidate[] {
+  const value = candidates.filter((c) => c.probability > IMPLIED_PROB_AT_MINUS_110);
+  const rest = candidates.filter((c) => c.probability <= IMPLIED_PROB_AT_MINUS_110);
+  return [...shuffle(value), ...shuffle(rest)].slice(0, Math.max(0, count));
+}
+
+function randomPicksTag(date: string): string {
+  return `random-picks-${date}`;
+}
+
+async function logRandomPicks(
+  candidates: PickCandidate[],
+  count: number,
+  userId: string,
+  bankroll: number,
+  kellyFraction: number,
+  americanOdds: number,
+  today: string
+): Promise<LoggedPick[]> {
+  const picks = selectRandomPicks(candidates, count);
+  const logged: LoggedPick[] = [];
+
+  for (const c of picks) {
+    const game = `${c.awayTeam} @ ${c.homeTeam} (${c.sport})`;
+    const edge = c.probability - IMPLIED_PROB_AT_MINUS_110;
+    const entry: LoggedPick = {
+      game,
+      sport: c.sport,
+      market: c.market,
+      pick: c.pick,
+      probability: c.probability,
+      edge,
+      recommendedStake: 0,
+      stakePercentage: 0,
+      betLogged: false,
+    };
+
+    try {
+      const kelly = await handleKellyCalculation({
+        bankroll,
+        probability: Math.min(99, Math.max(1, c.probability)),
+        americanOdds,
+        fraction: kellyFraction,
+      });
+      if (kelly.success) {
+        entry.recommendedStake = Math.max(0, kelly.result.recommendedStake);
+        entry.stakePercentage = Math.max(0, kelly.result.stakePercentage);
+      }
+
+      // teamA is always the side being backed; for totals keep home first.
+      const backAway = c.pickedSide === 'away';
+      const teamA = backAway
+        ? { name: c.awayTeam, abbreviation: c.awayAbbr }
+        : { name: c.homeTeam, abbreviation: c.homeAbbr };
+      const teamB = backAway
+        ? { name: c.homeTeam, abbreviation: c.homeAbbr }
+        : { name: c.awayTeam, abbreviation: c.awayAbbr };
+
+      const res = await handleLogBet({
+        userId,
+        sport: c.sportLabel,
+        teamA,
+        teamB,
+        venue: backAway ? 'away' : 'home',
+        pointSpread: c.line,
+        calculatedProbability: c.probability,
+        expectedMargin: c.expectedMargin,
+        impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+        edge,
+        bankroll,
+        americanOdds,
+        kellyFraction: kellyFraction >= 0.75 ? 1 : kellyFraction >= 0.4 ? 0.5 : 0.25,
+        recommendedStake: entry.recommendedStake,
+        stakePercentage: entry.stakePercentage,
+        actualWager: entry.recommendedStake,
+        notes: `Random daily pick (${today}): ${c.pick} [${c.market}]` +
+          (edge > 0 ? '' : ' — model shows no edge at -110, Kelly stake is $0'),
+        tags: [
+          'auto',
+          'random-picks',
+          randomPicksTag(today),
+          c.sport.toLowerCase(),
+          c.market,
+          ...(edge > 0 ? [] : ['no-edge']),
+        ],
+      });
+      if (res.success) {
+        entry.betLogged = true;
+        entry.betId = res.betId;
+      }
+    } catch (err) {
+      entry.error = err instanceof Error ? err.message : String(err);
+      console.warn(`[DailyCalc] Random pick logging failed for ${game}:`, err);
+    }
+
+    logged.push(entry);
+  }
+
+  return logged;
+}
+
+// ============================================================================
 // MAIN DAILY CALC FUNCTION
 // ============================================================================
 
 export async function runDailyCalculations(options: DailyCalcOptions = {}): Promise<DailyCalcSummary> {
   const {
-    bankroll = DEFAULT_BANKROLL,
     kellyFraction = DEFAULT_KELLY_FRACTION,
     americanOdds = DEFAULT_AMERICAN_ODDS,
     logBets = true,
     recordProjections = true,
     sport = 'ALL',
+    randomPicks = 0,
   } = options;
+  let { bankroll } = options;
+  // In random-picks mode only the chosen picks get logged; the per-game
+  // "log every value bet" behaviour is switched off.
+  const randomMode = randomPicks > 0 && logBets;
+  const perGameLogBets = logBets && !randomMode;
+  const collector: PickCandidate[] | undefined = randomMode ? [] : undefined;
 
   const today = new Date().toISOString().split('T')[0];
   console.log(`[DailyCalc] Starting daily calculations for ${today}`);
-  console.log(`[DailyCalc] Settings: bankroll=$${bankroll}, kelly=${kellyFraction}, odds=${americanOdds}, logBets=${logBets}`);
+  console.log(`[DailyCalc] Settings: bankroll=${bankroll ?? 'admin/default'}, kelly=${kellyFraction}, odds=${americanOdds}, logBets=${logBets}, randomPicks=${randomPicks}`);
 
   const summary: DailyCalcSummary = {
     success: false,
@@ -638,6 +871,41 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     }
   }
 
+  // Random-picks mode sizes off the admin's real bankroll unless overridden.
+  if (bankroll === undefined && randomMode && userId) {
+    const admin = await User.findOne({ identifier: userId });
+    if (admin && admin.currentBankroll > 0) bankroll = admin.currentBankroll;
+  }
+  if (bankroll === undefined) bankroll = DEFAULT_BANKROLL;
+
+  if (randomMode && userId) {
+    const already = await BetLog.exists({ userId, tags: randomPicksTag(today) });
+    if (already) {
+      summary.errors.push(`Random picks already logged for ${today}; skipping to avoid duplicates`);
+      summary.success = true;
+      return summary;
+    }
+  }
+
+  const finalBankroll = bankroll;
+  async function finishRandomPicks(): Promise<void> {
+    if (!randomMode || !collector) return;
+    if (!userId) {
+      summary.errors.push('Random picks: admin user not found, nothing logged');
+      return;
+    }
+    summary.randomPicks = await logRandomPicks(
+      collector, randomPicks, userId, finalBankroll, kellyFraction, americanOdds, today
+    );
+    summary.betsLogged += summary.randomPicks.filter((p) => p.betLogged).length;
+    if (summary.randomPicks.length < randomPicks) {
+      summary.errors.push(
+        `Random picks: only ${collector.length} bettable games today, logged ${summary.randomPicks.length} of ${randomPicks}`
+      );
+    }
+    console.log(`[DailyCalc] Random picks logged: ${summary.randomPicks.map((p) => `${p.pick} $${p.recommendedStake.toFixed(2)}`).join(', ')}`);
+  }
+
   // Refresh stats cache before calculations
   clearStatsCache();
 
@@ -648,9 +916,10 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   // decline most games. MLB is analysis + backtesting only — never auto-logged
   // as a wager. Runs when sport is MLB or ALL.
   if (sport === 'MLB' || sport === 'ALL') {
-    await runMLBDailyCalc(summary, recordProjections);
+    await runMLBDailyCalc(summary, recordProjections, collector);
     // When the caller asked only for MLB, we're done.
     if (sport === 'MLB') {
+      await finishRandomPicks();
       summary.success = true;
       return summary;
     }
@@ -673,6 +942,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
 
   if (games.length === 0) {
     console.log('[DailyCalc] No games scheduled today');
+    await finishRandomPicks();
     summary.success = true;
     return summary;
   }
@@ -681,7 +951,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   for (const game of games) {
     console.log(`[DailyCalc] Processing: ${game.awayTeam} @ ${game.homeTeam} (${game.sport})`);
 
-    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, logBets, recordProjections);
+    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, perGameLogBets, recordProjections, collector);
     summary.allResults.push(result);
 
     if (result.skipped) {
@@ -702,6 +972,8 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
       }
     }
   }
+
+  await finishRandomPicks();
 
   summary.success = true;
   console.log(`[DailyCalc] Done. ${summary.gamesAnalyzed} analyzed, ${summary.highValueBets.length} value bets, ${summary.betsLogged} logged, ${summary.projectionsRecorded} projections recorded`);
@@ -746,6 +1018,13 @@ export const runDailyCalcInputSchema = z.object({
     .enum(['NBA', 'NFL', 'NHL', 'MLB', 'ALL'])
     .optional()
     .describe('Which sport to analyze. NBA/NFL produce moneyline projections, NHL produces totals projections; MLB is not yet automated. Defaults to ALL.'),
+  randomPicks: z
+    .number()
+    .int()
+    .min(0)
+    .max(20)
+    .optional()
+    .describe('Random-picks mode: randomly choose this many games across all sports and log a fractional-Kelly bet on the model\'s side of each (instead of logging every value bet). 0 disables. Once per day.'),
 });
 
 export async function handleRunDailyCalc(
@@ -758,5 +1037,6 @@ export async function handleRunDailyCalc(
     logBets: params.logBets !== false,
     recordProjections: params.recordProjections !== false,
     sport: (params.sport || 'ALL') as 'NBA' | 'NFL' | 'NHL' | 'MLB' | 'ALL',
+    randomPicks: params.randomPicks,
   });
 }

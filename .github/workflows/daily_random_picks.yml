@@ -1,0 +1,63 @@
+name: Daily Random Picks (half Kelly)
+
+# Once a day, ask the MCP server to pick N random games across NBA/NFL/NHL/MLB,
+# size each on the model's side with half Kelly, and log them to the admin
+# account. The server refuses to log twice for the same day, so manual re-runs
+# are safe.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   MCP_SERVER_URL  e.g. https://your-mcp-server.onrender.com  (no trailing slash)
+#   ADMIN_KEY       same value as the ADMIN_KEY env var on the MCP server
+# Optional repository variables:
+#   DAILY_RANDOM_PICKS    number of games (default 5)
+#   DAILY_KELLY_FRACTION  Kelly multiplier (default 0.5)
+
+on:
+  schedule:
+    # 15:17 UTC = 11:17 AM ET: lines are posted, nothing has started yet.
+    - cron: '17 15 * * *'
+  workflow_dispatch:
+    inputs:
+      picks:
+        description: 'Number of random games'
+        default: '5'
+
+concurrency:
+  group: daily-random-picks
+  cancel-in-progress: false
+
+jobs:
+  log-picks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake server (free hosts sleep)
+        env:
+          MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
+        run: |
+          for i in 1 2 3 4 5 6; do
+            curl -fsS --max-time 60 "$MCP_SERVER_URL/health" && exit 0
+            echo "health check failed, retry $i"; sleep 20
+          done
+          exit 1
+
+      - name: Run daily random picks
+        env:
+          MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          PICKS: ${{ github.event.inputs.picks || vars.DAILY_RANDOM_PICKS || '5' }}
+          KELLY: ${{ vars.DAILY_KELLY_FRACTION || '0.5' }}
+        run: |
+          body=$(printf '{"randomPicks":%s,"kellyFraction":%s,"sport":"ALL"}' "$PICKS" "$KELLY")
+          curl -fsS --max-time 300 -X POST "$MCP_SERVER_URL/api/daily-calcs" \
+            -H "Content-Type: application/json" \
+            -H "x-admin-key: $ADMIN_KEY" \
+            -d "$body" -o result.json
+          node -e '
+            const r = require("./result.json");
+            console.log(`Date: ${r.date}  analyzed: ${r.gamesAnalyzed}  logged: ${r.betsLogged}`);
+            for (const p of r.randomPicks || []) {
+              console.log(`  ${p.betLogged ? "✔" : "✘"} ${p.game} — ${p.pick}  p=${p.probability.toFixed(1)}%  stake=$${p.recommendedStake.toFixed(2)}${p.error ? "  ERR " + p.error : ""}`);
+            }
+            for (const e of r.errors || []) console.log("  note:", e);
+            if (!r.success) process.exit(1);
+          '

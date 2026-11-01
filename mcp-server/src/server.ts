@@ -1082,11 +1082,18 @@ async function start() {
   });
 
   // Daily calculations: every day at 9:00 AM UTC
-  // Fetches today's games, calculates probabilities, logs value bets
-  cron.schedule('0 9 * * *', async () => {
+  // Fetches today's games, calculates probabilities, logs value bets.
+  // DAILY_RANDOM_PICKS=N switches to random-picks mode: N random games across
+  // all sports, half Kelly (DAILY_KELLY_FRACTION overrides), logged to the admin.
+  const dailyRandomPicks = parseInt(process.env.DAILY_RANDOM_PICKS || '0', 10) || 0;
+  const dailyKellyFraction = parseFloat(process.env.DAILY_KELLY_FRACTION || '0.5') || 0.5;
+  cron.schedule(process.env.DAILY_CALC_CRON || '0 9 * * *', async () => {
     console.log('[Cron] Daily calculations starting...');
     try {
-      const result = await runDailyCalculations({});
+      const result = await runDailyCalculations({
+        randomPicks: dailyRandomPicks,
+        kellyFraction: dailyKellyFraction,
+      });
       console.log(`[Cron] Daily calc complete. Games: ${result.gamesAnalyzed}, Value bets: ${result.highValueBets.length}, Logged: ${result.betsLogged}`);
     } catch (err) {
       console.error('[Cron] Daily calculations failed:', err);
@@ -1094,7 +1101,8 @@ async function start() {
   });
 
   console.log('[Cron] Scheduled: stats refresh at 00:00 and 12:00 UTC');
-  console.log('[Cron] Scheduled: daily calculations at 09:00 UTC');
+  console.log(`[Cron] Scheduled: daily calculations (${process.env.DAILY_CALC_CRON || '0 9 * * *'} UTC)` +
+    (dailyRandomPicks > 0 ? ` — random picks: ${dailyRandomPicks} @ ${dailyKellyFraction} Kelly` : ''));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) start().catch((error) => {
