@@ -10,7 +10,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 // ============================================================================
 
 export interface IMatchup {
-  sport: 'football' | 'basketball';
+  sport: 'football' | 'basketball' | 'hockey' | 'baseball';
   teamA: {
     name: string;
     abbreviation?: string;
@@ -100,7 +100,7 @@ const betLogSchema = new Schema<IBetLog>(
       sport: {
         type: String,
         required: true,
-        enum: ['football', 'basketball']
+        enum: ['football', 'basketball', 'hockey', 'baseball']
       },
       teamA: {
         name: { type: String, required: true },
