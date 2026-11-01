@@ -6,8 +6,8 @@
  *  - Desktop (>=1024px): a fixed left sidebar with grouped destinations
  *    (rendered by <SidebarNav/>). Styled by `.sidebar*` / `.nav-*` rules
  *    in index.css; hidden on mobile.
- *  - Mobile (<1024px): a fixed 5-slot bottom bar (rendered by
- *    <MobileNav/>) with the four everyday destinations plus a "More"
+ *  - Mobile (<1024px): a fixed 4-slot bottom bar (rendered by
+ *    <MobileNav/>) with the three everyday destinations plus a "More"
  *    sheet holding the rest. Styled by `.mobile-nav` / `.more-*` rules;
  *    hidden on desktop.
  *
@@ -48,7 +48,6 @@ const ICONS = {
   estimator: icon(<><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>),
   walters: icon(<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />),
   games: icon(<><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>),
-  matchups: icon(<><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M16 3h3a2 2 0 0 1 2 2v3" /><path d="M8 21H5a2 2 0 0 1-2-2v-3" /><path d="M16 21h3a2 2 0 0 0 2-2v-3" /><line x1="7" y1="12" x2="17" y2="12" /></>),
   bets: icon(<><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></>),
   stats: icon(<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />),
   media: icon(<><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></>),
@@ -70,7 +69,6 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Games & data',
     items: [
       { key: 'daily_games', label: "Today's Games", shortLabel: 'Games', description: 'Live slate with model projections', icon: ICONS.games },
-      { key: 'sports_matchup', label: 'Sports Matchups', shortLabel: 'Matchups', description: 'Load and compare team data', icon: ICONS.matchups },
       { key: 'stats', label: 'Team Stats', shortLabel: 'Stats', description: 'NBA / NFL / NHL statistics', icon: ICONS.stats },
     ],
   },
@@ -91,8 +89,8 @@ export function findDestination(key: string): NavDestination | undefined {
   return ALL_DESTINATIONS.find((d) => d.key === key);
 }
 
-/* Mobile bottom bar: the four everyday destinations + "More". */
-const MOBILE_PRIMARY_KEYS = ['predictions', 'daily_games', 'sports_matchup', 'stats'];
+/* Mobile bottom bar: the three everyday destinations + "More". */
+const MOBILE_PRIMARY_KEYS = ['predictions', 'daily_games', 'stats'];
 const MOBILE_MORE_KEYS = ['kelly', 'estimator', 'walters', 'bet_history', 'media', 'promo', 'account'];
 
 interface NavProps {

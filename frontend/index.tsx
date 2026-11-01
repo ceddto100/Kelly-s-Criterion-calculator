@@ -30,7 +30,6 @@ const BasketballEstimator = lazy(() => import("./forms/BasketballEstimator"));
 const HockeyEstimator = lazy(() => import("./forms/HockeyEstimator"));
 const MLBEstimator = lazy(() => import("./forms/MLBEstimator"));
 const DecisionPanel = lazy(() => import("./components/DecisionPanel"));
-const ConsolidatedSportsMatchup = lazy(() => import("./forms/ConsolidatedSportsMatchup"));
 const WaltersEstimator = lazy(() => import("./forms/WaltersEstimator"));
 const DailyGamesView = lazy(() => import("./components/DailyGamesView"));
 const MediaPage = lazy(() => import("./components/MediaPage"));
@@ -299,7 +298,6 @@ const CONSTANTS = {
     ESTIMATOR: 'estimator',
     WALTERS: 'walters',
     DAILY_GAMES: 'daily_games',  // Live "Today's Games" slate + projections
-    SPORTS_MATCHUP: 'sports_matchup',  // Consolidated NBA/NFL/NHL matchup
     BET_HISTORY: 'bet_history',  // Bet tracking
     STATS: 'stats',  // NBA/NFL/NHL statistics
     MEDIA: 'media',  // Audio/video library + user uploads
@@ -2051,81 +2049,6 @@ function App() {
     return words[words.length - 1];
   };
 
-  // Handler to transfer NBA matchup data to Basketball Estimator
-  const handleTransferToEstimator = (matchupData: any) => {
-    setBasketballStats({
-      ...initialBasketballState,
-      teamPointsFor: matchupData.teamA.points_per_game?.toFixed(1) || '',
-      opponentPointsFor: matchupData.teamB.points_per_game?.toFixed(1) || '',
-      teamPointsAgainst: matchupData.teamA.points_allowed?.toFixed(1) || '',
-      opponentPointsAgainst: matchupData.teamB.points_allowed?.toFixed(1) || '',
-      teamFgPct: matchupData.teamA.field_goal_pct?.toFixed(1) || '',
-      opponentFgPct: matchupData.teamB.field_goal_pct?.toFixed(1) || '',
-      teamReboundMargin: matchupData.teamA.rebound_margin?.toFixed(1) || '',
-      opponentReboundMargin: matchupData.teamB.rebound_margin?.toFixed(1) || '',
-      teamTurnoverMargin: matchupData.teamA.turnover_margin?.toFixed(1) || '',
-      opponentTurnoverMargin: matchupData.teamB.turnover_margin?.toFixed(1) || '',
-      teamOffRtg: matchupData.teamA.off_rtg?.toFixed(1) || '',
-      teamDefRtg: matchupData.teamA.def_rtg?.toFixed(1) || '',
-      opponentOffRtg: matchupData.teamB.off_rtg?.toFixed(1) || '',
-      opponentDefRtg: matchupData.teamB.def_rtg?.toFixed(1) || '',
-      teamPace: matchupData.teamA.pace?.toFixed(1) || '',
-      opponentPace: matchupData.teamB.pace?.toFixed(1) || '',
-      team3PRate: matchupData.teamA.three_rate?.toFixed(3) || '',
-      opponent3PRate: matchupData.teamB.three_rate?.toFixed(3) || '',
-      team3PPct: matchupData.teamA.three_pct?.toFixed(1) || '',
-      opponent3PPct: matchupData.teamB.three_pct?.toFixed(1) || '',
-      teamAName: getTeamAbbreviation(matchupData.teamA.team || ''),
-      teamBName: getTeamAbbreviation(matchupData.teamB.team || ''),
-    });
-    setActiveSport(CONSTANTS.SPORTS.BASKETBALL);
-    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
-  };
-
-  // Handler to transfer NFL matchup data to Football Estimator
-  const handleNFLTransferToEstimator = (matchupData: any) => {
-    setFootballStats({
-      teamPointsFor: matchupData.teamPointsFor || '',
-      opponentPointsFor: matchupData.opponentPointsFor || '',
-      teamPointsAgainst: matchupData.teamPointsAgainst || '',
-      opponentPointsAgainst: matchupData.opponentPointsAgainst || '',
-      teamOffYards: matchupData.teamOffYards || '',
-      opponentOffYards: matchupData.opponentOffYards || '',
-      teamDefYards: matchupData.teamDefYards || '',
-      opponentDefYards: matchupData.opponentDefYards || '',
-      teamTurnoverDiff: matchupData.teamTurnoverDiff || '',
-      opponentTurnoverDiff: matchupData.opponentTurnoverDiff || '',
-      teamAName: matchupData.teamAName || '',
-      teamBName: matchupData.teamBName || '',
-    });
-    setActiveSport(CONSTANTS.SPORTS.FOOTBALL);
-    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
-  };
-
-  // Handler to transfer NHL matchup data to Hockey Estimator
-  const handleNHLTransferToEstimator = (matchupData: any) => {
-    setHockeyStats({
-      homeXgf60: matchupData.homeXgf60?.toFixed(2) || '',
-      homeXga60: matchupData.homeXga60?.toFixed(2) || '',
-      homeGsax60: matchupData.homeGsax60?.toFixed(2) || '',
-      homeHdcf60: matchupData.homeHdcf60?.toFixed(1) || '',
-      homePP: matchupData.homePP?.toFixed(1) || '',
-      homePK: matchupData.homePK?.toFixed(1) || '',
-      homeTimesShorthanded: matchupData.homeTimesShorthanded?.toFixed(1) || '',
-      awayXgf60: matchupData.awayXgf60?.toFixed(2) || '',
-      awayXga60: matchupData.awayXga60?.toFixed(2) || '',
-      awayGsax60: matchupData.awayGsax60?.toFixed(2) || '',
-      awayHdcf60: matchupData.awayHdcf60?.toFixed(1) || '',
-      awayPP: matchupData.awayPP?.toFixed(1) || '',
-      awayPK: matchupData.awayPK?.toFixed(1) || '',
-      awayTimesShorthanded: matchupData.awayTimesShorthanded?.toFixed(1) || '',
-      teamAName: matchupData.homeTeamName || '',
-      teamBName: matchupData.awayTeamName || '',
-    });
-    setActiveSport(CONSTANTS.SPORTS.HOCKEY);
-    setActiveTab(CONSTANTS.TABS.ESTIMATOR);
-  };
-
   // Handler for a tapped "Today's Games" card: drop the matchup straight into the
   // Probability Estimator with the line pre-filled (spread for NBA/NFL, total for
   // NHL, over/under for MLB) and the team stats that drive the projection.
@@ -2191,8 +2114,6 @@ function App() {
       case CONSTANTS.TABS.ESTIMATOR:
         return SEO_CONFIG.estimator;
       case CONSTANTS.TABS.DAILY_GAMES:
-        return SEO_CONFIG.sports_matchup;
-      case CONSTANTS.TABS.SPORTS_MATCHUP:
         return SEO_CONFIG.sports_matchup;
       case CONSTANTS.TABS.BET_HISTORY:
         return SEO_CONFIG.bet_history;
@@ -2339,17 +2260,6 @@ function App() {
                 <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading today's games...</div>}>
                   <DailyGamesView onSelectGame={handleDailyGameSelect} />
                 </Suspense>
-              )}
-              {activeTab === CONSTANTS.TABS.SPORTS_MATCHUP && (
-                <div className="panel">
-                  <Suspense fallback={<div style={{padding:'2rem', textAlign:'center', color:'var(--text-muted)'}}>Loading matchup data...</div>}>
-                    <ConsolidatedSportsMatchup
-                      onTransferToNBAEstimator={handleTransferToEstimator}
-                      onTransferToNFLEstimator={handleNFLTransferToEstimator}
-                      onTransferToNHLEstimator={handleNHLTransferToEstimator}
-                    />
-                  </Suspense>
-                </div>
               )}
               {activeTab === CONSTANTS.TABS.BET_HISTORY && (
                 <div className="panel">
