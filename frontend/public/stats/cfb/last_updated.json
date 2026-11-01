@@ -1,0 +1,27 @@
+{
+  "updatedAt": "2026-11-01T01:47:01.881Z",
+  "season": 2026,
+  "seasonType": "regular",
+  "week": 9,
+  "games": 56,
+  "fbsGames": 56,
+  "fbsGamesWithLines": 56,
+  "rankedGames": 18,
+  "ratedTeams": 138,
+  "ratingsUpdatedAt": "2026-11-01T01:47:01.881Z",
+  "poll": "AP Top 25, week 9",
+  "apiCalls": 7,
+  "picksPending": 3,
+  "picksLogged": 0,
+  "modelVersion": "walters-cfb-2026.09-v1",
+  "venueElevationUnit": "meters",
+  "sources": [
+    "CollegeFootballData.com API: games, betting lines, rankings, SP+ and FPI ratings, venues, teams"
+  ],
+  "derived": [
+    "rating = mean of SP+ and FPI (points vs. an average FBS team on a neutral field)",
+    "ratings_gap_band = how far SP+ and FPI disagree (0-3, 3-6, 6+ points)",
+    "spread_home / total = median across books, nearest half point",
+    "rest days, previous margin, time-zone change, body-clock hour, stadium elevations, next opponent"
+  ]
+}
