@@ -28,6 +28,7 @@
  * it just lowers confidence, and "no bet" stays a valid outcome.
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useHiddenSports } from '../utils/sportVisibility';
 import { projectMLBGame, type MLBProjectionResult } from '../utils/mlbProjection';
 import {
   buildGenericSelection,
@@ -393,6 +394,15 @@ export default function DailyGamesView({
   onSelectGame?: (selection: DailyGameSelection) => void;
 }) {
   const [sport, setSport] = useState<SportKey>('MLB');
+  const hiddenSports = useHiddenSports();
+  const visibleSports = SPORTS.filter((sp) => !hiddenSports.includes(sp.key));
+
+  // If the admin hides the selected sport, jump to the first one still shown.
+  useEffect(() => {
+    if (visibleSports.length && !visibleSports.some((sp) => sp.key === sport)) {
+      setSport(visibleSports[0].key);
+    }
+  }, [hiddenSports]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mlbGames, setMlbGames] = useState<MLBSlateGame[]>([]);
@@ -507,7 +517,7 @@ export default function DailyGamesView({
 
       {/* Sport toggle */}
       <div style={styles.sportToggle}>
-        {SPORTS.map((sp) => (
+        {visibleSports.map((sp) => (
           <button
             key={sp.key}
             onClick={() => setSport(sp.key)}

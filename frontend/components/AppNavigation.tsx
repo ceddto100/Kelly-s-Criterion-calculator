@@ -15,6 +15,7 @@
  * sync. Tab keys must match CONSTANTS.TABS in index.tsx.
  */
 import React, { useEffect, useState } from 'react';
+import { useHiddenSports, type ManagedSport } from '../utils/sportVisibility';
 
 export interface NavDestination {
   key: string;
@@ -89,6 +90,19 @@ export function findDestination(key: string): NavDestination | undefined {
   return ALL_DESTINATIONS.find((d) => d.key === key);
 }
 
+/* Destinations that only make sense while a given sport is shown. */
+const SPORT_ONLY_DESTINATIONS: Record<string, ManagedSport> = {
+  walters: 'CFB',
+};
+
+function useDestinationVisible(): (key: string) => boolean {
+  const hidden = useHiddenSports();
+  return (key) => {
+    const sport = SPORT_ONLY_DESTINATIONS[key];
+    return !sport || !hidden.includes(sport);
+  };
+}
+
 /* Mobile bottom bar: four everyday destinations + "More". Order matters:
  * Today's Games sits in the centre (3rd of 5 slots) as the featured tab. */
 const MOBILE_PRIMARY_KEYS = ['predictions', 'bet_history', 'daily_games', 'kelly'];
@@ -113,6 +127,7 @@ export function SidebarNav({
   onTabChange,
   footer,
 }: NavProps & { footer?: React.ReactNode }) {
+  const isVisible = useDestinationVisible();
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -127,7 +142,7 @@ export function SidebarNav({
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
             <div className="nav-group-label">{section.label}</div>
-            {section.items.map((item) => (
+            {section.items.filter((item) => isVisible(item.key)).map((item) => (
               <button
                 key={item.key}
                 type="button"
@@ -169,7 +184,9 @@ export function MobileNav({ activeTab, onTabChange }: NavProps) {
   const primary = MOBILE_PRIMARY_KEYS
     .map(findDestination)
     .filter((d): d is NavDestination => Boolean(d));
+  const isVisible = useDestinationVisible();
   const more = MOBILE_MORE_KEYS
+    .filter(isVisible)
     .map(findDestination)
     .filter((d): d is NavDestination => Boolean(d));
   const moreIsActive = MOBILE_MORE_KEYS.includes(activeTab);
