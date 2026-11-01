@@ -443,7 +443,7 @@ textarea {
   right: 0;
   z-index: 100;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: color-mix(in srgb, var(--background-color) 94%, #ffffff 6%);
   border-top: 1px solid var(--border-subtle);
   padding: 0.3rem 0.4rem calc(0.3rem + env(safe-area-inset-bottom, 0px));
@@ -475,6 +475,42 @@ textarea {
 
 .mnav-item.active {
   color: var(--text-primary);
+}
+
+/* Featured centre tab (Today's Games): icon framed by a yellow star */
+.mnav-star-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  /* Overflow the 22px icon slot so the label lines up with its siblings */
+  margin: -6px 0;
+}
+
+.mnav-star-wrap > svg {
+  grid-area: 1 / 1;
+}
+
+.mnav-item .mnav-star-wrap > svg:not(.mnav-star) {
+  width: 15px;
+  height: 15px;
+  margin-top: 3px;
+}
+
+.mnav-item svg.mnav-star {
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: #facc15;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.45));
+}
+
+.mnav-item.mnav-featured.active svg.mnav-star {
+  fill: rgba(250, 204, 21, 0.15);
+  filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.7));
 }
 
 .mnav-item.active svg {
