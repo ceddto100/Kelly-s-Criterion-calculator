@@ -17,6 +17,10 @@ const ESPN_ENDPOINTS = {
   NFL: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
   NHL: 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard',
   MLB: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard',
+  // Only used to grade logged bets (not shown in the Games tab).
+  CFB: 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?groups=80&limit=300',
+  CBB: 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=50&limit=400',
+  WNBA: 'https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard',
 };
 const HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; Betgistics/1.0)' };
 const TIMEOUT = 12000;
@@ -53,8 +57,10 @@ function parseScoreboard(data, sport) {
       sport,
       homeTeam: home.team?.displayName || home.team?.name || 'Unknown',
       homeAbbr: home.team?.abbreviation || '',
+      homeShort: home.team?.shortDisplayName || home.team?.name || '',
       awayTeam: away.team?.displayName || away.team?.name || 'Unknown',
       awayAbbr: away.team?.abbreviation || '',
+      awayShort: away.team?.shortDisplayName || away.team?.name || '',
       startTime: event.date || competition.date || new Date().toISOString(),
       status: mapStatus(statusType, statusDetail),
       statusDetail,
@@ -67,12 +73,29 @@ function parseScoreboard(data, sport) {
   return games;
 }
 
-async function fetchScoreboard(sport) {
+// Short in-memory cache so the Bets tab polling live scores doesn't hammer ESPN.
+const cache = new Map(); // key -> { at, games }
+const CACHE_MS = 30 * 1000;
+
+/**
+ * Fetch one sport's scoreboard. `date` is an optional ESPN calendar day
+ * (YYYYMMDD, US/Eastern); omitted = ESPN's "today".
+ */
+async function fetchScoreboard(sport, date) {
+  const key = `${sport}:${date || 'today'}`;
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.games;
   try {
-    const res = await axios.get(ESPN_ENDPOINTS[sport], { headers: HEADERS, timeout: TIMEOUT });
-    return parseScoreboard(res.data, sport);
+    const url = ESPN_ENDPOINTS[sport];
+    if (!url) return [];
+    const full = date ? `${url}${url.includes('?') ? '&' : '?'}dates=${date}` : url;
+    const res = await axios.get(full, { headers: HEADERS, timeout: TIMEOUT });
+    const games = parseScoreboard(res.data, sport);
+    cache.set(key, { at: Date.now(), games });
+    if (cache.size > 500) cache.delete(cache.keys().next().value);
+    return games;
   } catch (e) {
-    console.error(`[dailyGames] ${sport} fetch failed: ${e.message}`);
+    console.error(`[dailyGames] ${sport} ${date || ''} fetch failed: ${e.message}`);
     return [];
   }
 }
@@ -83,7 +106,7 @@ async function fetchScoreboard(sport) {
  */
 async function fetchDailyGames(sport = 'ALL') {
   const sports = sport === 'ALL' ? ['NBA', 'NFL', 'NHL', 'MLB'] : [sport];
-  const results = await Promise.all(sports.map(fetchScoreboard));
+  const results = await Promise.all(sports.map((s) => fetchScoreboard(s)));
   const games = results.flat();
   return {
     date: new Date().toISOString().split('T')[0],
@@ -93,4 +116,4 @@ async function fetchDailyGames(sport = 'ALL') {
   };
 }
 
-module.exports = { fetchDailyGames, parseScoreboard, mapStatus };
+module.exports = { fetchDailyGames, fetchScoreboard, parseScoreboard, mapStatus, ESPN_ENDPOINTS };

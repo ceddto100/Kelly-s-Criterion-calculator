@@ -5,6 +5,7 @@ const BetLog = require('../models/BetLog');
 const { User } = require('../config/database');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { checkPendingBets } = require('../utils/betGrading');
 
 // All routes require authentication
 router.use(ensureAuthenticated);
@@ -207,6 +208,46 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json(bet);
 }));
 
+// Set the outcome fields (and payout) on a bet document. Doesn't save.
+const applyOutcome = (bet, result, actualScore, payout) => {
+  bet.outcome.result = result;
+  bet.outcome.settledAt = new Date();
+  if (actualScore) {
+    bet.outcome.actualScore = { teamA: actualScore.teamA, teamB: actualScore.teamB };
+  }
+  if (result === 'win') {
+    bet.outcome.payout = payout !== undefined ? payout : bet.calculatePotentialPayout();
+  } else if (result === 'push' || result === 'cancelled') {
+    bet.outcome.payout = bet.actualWager; // Return original wager
+  } else {
+    bet.outcome.payout = 0;
+  }
+};
+
+// POST /api/bets/sync-scores - Live scores for pending bets + auto-grade finals
+// Looks every pending bet up on ESPN's scoreboard. Bets whose game is FINAL
+// are graded win/loss/push from the final score and saved; the rest come
+// back with their live status/score so the Bets tab can show them.
+router.post('/sync-scores', asyncHandler(async (req, res) => {
+  const pending = await BetLog.find({
+    userId: getUserId(req),
+    'outcome.result': 'pending'
+  }).sort({ createdAt: -1 }).limit(100);
+
+  const { live, toGrade } = await checkPendingBets(pending);
+
+  const graded = [];
+  for (const { bet, result, scoreA, scoreB, gameId } of toGrade) {
+    applyOutcome(bet, result, { teamA: scoreA, teamB: scoreB });
+    bet.outcome.autoGraded = true;
+    bet.outcome.gameId = gameId;
+    await bet.save();
+    graded.push(bet);
+  }
+
+  res.json({ success: true, live, graded });
+}));
+
 // PATCH /api/bets/:id/outcome - Update bet outcome (win/loss/push)
 router.patch('/:id/outcome', asyncHandler(async (req, res) => {
   const { result, actualScore, payout } = req.body;
@@ -227,30 +268,8 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Bet not found' });
   }
 
-  // Update outcome
-  bet.outcome.result = result;
-  bet.outcome.settledAt = new Date();
-
-  if (actualScore) {
-    bet.outcome.actualScore = {
-      teamA: actualScore.teamA,
-      teamB: actualScore.teamB
-    };
-  }
-
-  // Calculate payout based on result
-  if (result === 'win') {
-    // If payout provided, use it; otherwise calculate from odds
-    if (payout !== undefined) {
-      bet.outcome.payout = payout;
-    } else {
-      bet.outcome.payout = bet.calculatePotentialPayout();
-    }
-  } else if (result === 'push' || result === 'cancelled') {
-    bet.outcome.payout = bet.actualWager; // Return original wager
-  } else {
-    bet.outcome.payout = 0;
-  }
+  applyOutcome(bet, result, actualScore, payout);
+  bet.outcome.autoGraded = false;
 
   await bet.save();
 
