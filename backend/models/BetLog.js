@@ -100,7 +100,10 @@ const betLogSchema = new mongoose.Schema({
       teamB: Number
     },
     payout: Number, // Amount won (or 0 for loss, refund for push)
-    settledAt: Date
+    settledAt: Date,
+    // true when graded automatically from the ESPN final score
+    autoGraded: { type: Boolean, default: false },
+    gameId: String // ESPN event id the bet was matched to
   },
 
   // Metadata

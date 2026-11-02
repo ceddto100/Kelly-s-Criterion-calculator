@@ -110,10 +110,28 @@ interface SavedBet extends BetLogData {
     actualScore?: { teamA: number; teamB: number };
     payout?: number;
     settledAt?: string;
+    autoGraded?: boolean;
+    gameId?: string;
   };
   createdAt: string;
   updatedAt: string;
 }
+
+/** Live game info for a pending bet, from POST /api/bets/sync-scores. */
+interface LiveBetInfo {
+  matched: boolean;
+  gameId?: string;
+  status?: 'scheduled' | 'in_progress' | 'final' | 'postponed';
+  statusDetail?: string;
+  startTime?: string;
+  scoreA?: number | null;
+  scoreB?: number | null;
+  teamAIsHome?: boolean;
+  currentGrade?: 'win' | 'loss' | 'push' | null;
+}
+
+// How often the Bets tab refreshes live scores while a game is on.
+const LIVE_POLL_MS = 60 * 1000;
 
 interface BetStats {
   totalBets: number;
@@ -908,6 +926,61 @@ export function ManualLogBetButton({
   );
 }
 
+// ==================== Live score line ====================
+/**
+ * What to show under a bet card: the live/final score, game status and, while
+ * the game is on, how the bet stands right now.
+ */
+function getScoreLine(bet: SavedBet, info: LiveBetInfo | undefined, isTotal: boolean) {
+  const A = bet.matchup.teamA.abbreviation || bet.matchup.teamA.name;
+  const B = bet.matchup.teamB.abbreviation || bet.matchup.teamB.name;
+  // Totals are shown "away @ home" (teamB first), spreads/moneylines as "pick vs opponent".
+  const fmt = (a: number, b: number) => isTotal ? `${B} ${b} – ${a} ${A}` : `${A} ${a} – ${b} ${B}`;
+
+  if (bet.outcome.result !== 'pending') {
+    const s = bet.outcome.actualScore;
+    if (!s || s.teamA == null || s.teamB == null) return null;
+    return {
+      state: 'final',
+      score: fmt(s.teamA, s.teamB),
+      status: bet.outcome.autoGraded ? 'Final · auto-graded' : 'Final',
+      tracking: isTotal ? `Total ${s.teamA + s.teamB}` : '',
+      trackingClass: '',
+    };
+  }
+
+  if (!info?.matched) return null;
+  if (info.status === 'scheduled' || info.status === 'postponed' || info.scoreA == null || info.scoreB == null) {
+    const when = info.startTime
+      ? new Date(info.startTime).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+      : '';
+    return {
+      state: 'scheduled',
+      score: info.status === 'postponed' ? 'Postponed' : 'Not started',
+      status: info.status === 'postponed' ? (info.statusDetail || '') : when,
+      tracking: '',
+      trackingClass: '',
+    };
+  }
+
+  const g = info.currentGrade;
+  const isFinal = info.status === 'final';
+  const tracking = g
+    ? isFinal
+      ? g === 'win' ? 'Won' : g === 'loss' ? 'Lost' : 'Push'
+      : g === 'win' ? 'Winning' : g === 'loss' ? 'Losing' : 'Push'
+    : '';
+  return {
+    state: isFinal ? 'final' : 'live',
+    score: fmt(info.scoreA, info.scoreB),
+    status: isFinal ? 'Final' : `🔴 ${info.statusDetail || 'Live'}`,
+    tracking: isTotal
+      ? `Total ${info.scoreA + info.scoreB}${tracking ? ` · ${tracking}` : ''}`
+      : tracking,
+    trackingClass: g || '',
+  };
+}
+
 // ==================== Bet History Component ====================
 interface BetHistoryProps {
   isAuthenticated: boolean;
@@ -924,6 +997,33 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
   const [betTypeFilter, setBetTypeFilter] = useState<'all' | BetType>('all');
   const [expandedBet, setExpandedBet] = useState<string | null>(null);
   const [updatingBet, setUpdatingBet] = useState<string | null>(null);
+  const [live, setLive] = useState<Record<string, LiveBetInfo>>({});
+  const [justGraded, setJustGraded] = useState<SavedBet[]>([]);
+
+  // Pull live scores for pending bets; the backend auto-grades any whose game
+  // has gone final and returns them already settled.
+  const syncScores = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/bets/sync-scores`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!res.ok) return;
+      const data: { live: Record<string, LiveBetInfo>; graded: SavedBet[] } = await res.json();
+      setLive(data.live || {});
+      if (data.graded?.length) {
+        const byId = new Map(data.graded.map(b => [b._id, b]));
+        setBets(prev => prev.map(b => byId.get(b._id) || b));
+        setJustGraded(data.graded);
+        const statsRes = await fetch(`${BACKEND_URL}/api/bets/stats`, { credentials: 'include' });
+        if (statsRes.ok) setStats(await statsRes.json());
+        onBankrollUpdate?.();
+      }
+    } catch (err) {
+      console.error('Failed to sync live scores:', err);
+    }
+  }, [isAuthenticated, onBankrollUpdate]);
 
   // Fetch bets and stats
   const fetchData = useCallback(async () => {
@@ -953,8 +1053,28 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
   }, [isAuthenticated]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData().then(syncScores);
+  }, [fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep polling while any pending bet's game is live (or about to start).
+  const hasLiveGames = useMemo(() => {
+    const soon = Date.now() + 30 * 60 * 1000;
+    return bets.some(b => {
+      if (b.outcome.result !== 'pending') return false;
+      const info = live[b._id];
+      if (!info?.matched) return false;
+      return info.status === 'in_progress' ||
+        (info.status === 'scheduled' && !!info.startTime && new Date(info.startTime).getTime() < soon);
+    });
+  }, [bets, live]);
+
+  useEffect(() => {
+    if (!hasLiveGames) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible') syncScores();
+    }, LIVE_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [hasLiveGames, syncScores]);
 
   // Filter bets
   const filteredBets = useMemo(() => {
@@ -1096,6 +1216,14 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
         />
       </div>
 
+      {justGraded.length > 0 && (
+        <div className="auto-graded-banner" onClick={() => setJustGraded([])}>
+          🤖 Auto-graded {justGraded.length} bet{justGraded.length > 1 ? 's' : ''} from final scores:{' '}
+          {justGraded.map(b => `${b.matchup.teamA.abbreviation || b.matchup.teamA.name} ${b.outcome.result.toUpperCase()}`).join(' · ')}
+          <span className="dismiss">✕</span>
+        </div>
+      )}
+
       {/* Stats Dashboard */}
       {stats && (
         <div className="stats-dashboard">
@@ -1193,6 +1321,7 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
             const side = bet.estimation.totalSide;
             const home = bet.matchup.teamA.abbreviation || bet.matchup.teamA.name;
             const away = bet.matchup.teamB.abbreviation || bet.matchup.teamB.name;
+            const scoreLine = getScoreLine(bet, live[bet._id], isTotal);
             return (
             <div
               key={bet._id}
@@ -1233,6 +1362,16 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
                    bet.outcome.result === 'push' ? '↔️ Push' : '🚫 Cancelled'}
                 </div>
               </div>
+
+              {scoreLine && (
+                <div className={`bet-live-score ${scoreLine.state}`}>
+                  <span className="score-pill">{scoreLine.score}</span>
+                  <span className="score-status">{scoreLine.status}</span>
+                  {scoreLine.tracking && (
+                    <span className={`score-tracking ${scoreLine.trackingClass}`}>{scoreLine.tracking}</span>
+                  )}
+                </div>
+              )}
 
               <div className="bet-card-body">
                 <div className="bet-detail">
@@ -1319,6 +1458,15 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
                   {/* Outcome Actions for Pending Bets */}
                   {bet.outcome.result === 'pending' && (
                     <div className="outcome-actions">
+                      <p className="auto-grade-hint">
+                        {live[bet._id]?.matched
+                          ? isTotal && !side
+                            ? 'Pick Over or Under above so this bet can auto-grade when the game goes final.'
+                            : '🤖 This bet will grade itself automatically when the game goes final.'
+                          : live[bet._id]
+                            ? "Couldn't find this game on the live scoreboard — grade it manually."
+                            : ''}
+                      </p>
                       <p>Mark outcome:</p>
                       <div className="outcome-buttons">
                         <button
@@ -2044,6 +2192,50 @@ export const BetLoggerStyles = `
   }
 
   /* Expanded Card - Glass Panel */
+  .bet-live-score {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin: .25rem 1rem .5rem;
+    font-size: .85rem;
+  }
+  .bet-live-score .score-pill {
+    padding: .2rem .65rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: #475569;
+    color: #f8fafc;
+  }
+  .bet-live-score.live .score-pill { background: #f59e0b; color: #111827; }
+  .bet-live-score.scheduled .score-pill { background: rgba(148,163,184,.2); color: #cbd5e1; }
+  .bet-live-score .score-status { color: #94a3b8; }
+  .bet-live-score .score-tracking { font-weight: 700; color: #cbd5e1; }
+  .bet-live-score .score-tracking.win { color: #10b981; }
+  .bet-live-score .score-tracking.loss { color: #ef4444; }
+  .bet-live-score .score-tracking.push { color: #f59e0b; }
+  .auto-graded-banner {
+    position: relative;
+    margin: 0 0 1rem;
+    padding: .75rem 2rem .75rem 1rem;
+    border-radius: 12px;
+    background: rgba(16,185,129,.12);
+    border: 1px solid rgba(16,185,129,.4);
+    color: #a7f3d0;
+    font-weight: 600;
+    font-size: .9rem;
+    cursor: pointer;
+  }
+  .auto-graded-banner .dismiss { position: absolute; right: .75rem; top: .7rem; opacity: .7; }
+  .outcome-actions p.auto-grade-hint {
+    font-size: .8rem;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-bottom: .5rem;
+  }
+  .outcome-actions p.auto-grade-hint:empty { display: none; }
+
   .bet-card-expanded {
     padding: 1.25rem;
     background: rgba(0, 0, 0, 0.4);
