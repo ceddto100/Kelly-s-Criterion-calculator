@@ -13,7 +13,7 @@ const betLogSchema = new mongoose.Schema({
   matchup: {
     sport: {
       type: String,
-      enum: ['nfl', 'cfb', 'nba', 'wnba', 'cbb', 'mlb', 'football', 'basketball', 'hockey', 'baseball'],
+      enum: ['nfl', 'cfb', 'nba', 'wnba', 'cbb', 'mlb', 'nhl', 'football', 'basketball', 'hockey', 'baseball'],
       required: true
     },
     teamA: {
@@ -56,6 +56,12 @@ const betLogSchema = new mongoose.Schema({
 
   // Probability Estimation Data
   estimation: {
+    // What kind of wager this is. 'total' = over/under on combined score
+    // (e.g. NHL goals); for totals, pointSpread holds the total line and
+    // totalSide says which side was bet. Older bets have no betType and are
+    // treated as spreads, except hockey bets, which were always totals.
+    betType: { type: String, enum: ['spread', 'total', 'moneyline'] },
+    totalSide: { type: String, enum: ['over', 'under'] },
     pointSpread: { type: Number, required: true },
     calculatedProbability: { type: Number, required: true }, // The probability % calculated
     expectedMargin: { type: Number }, // Predicted point margin

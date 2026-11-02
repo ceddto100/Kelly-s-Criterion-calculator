@@ -91,6 +91,10 @@ router.post('/', asyncHandler(async (req, res) => {
       venue: matchup.venue || 'neutral'
     },
     estimation: {
+      betType: ['spread', 'total', 'moneyline'].includes(estimation.betType) ? estimation.betType : undefined,
+      totalSide: estimation.betType === 'total' && ['over', 'under'].includes(estimation.totalSide)
+        ? estimation.totalSide
+        : undefined,
       pointSpread: estimation.pointSpread,
       calculatedProbability: estimation.calculatedProbability,
       expectedMargin: estimation.expectedMargin,
@@ -261,9 +265,9 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
   });
 }));
 
-// PATCH /api/bets/:id - Update bet details (notes, tags, actualWager)
+// PATCH /api/bets/:id - Update bet details (notes, tags, actualWager, totalSide)
 router.patch('/:id', asyncHandler(async (req, res) => {
-  const { notes, tags, actualWager } = req.body;
+  const { notes, tags, actualWager, totalSide } = req.body;
 
   const bet = await BetLog.findOne({
     _id: req.params.id,
@@ -290,6 +294,14 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (notes !== undefined) bet.notes = sanitizeString(notes);
   if (tags !== undefined) bet.tags = Array.isArray(tags) ? tags.map(sanitizeString) : tags;
   if (actualWager !== undefined) bet.actualWager = actualWager;
+  // Lets users record Over/Under on totals bets logged before the side was saved
+  if (totalSide !== undefined) {
+    if (!['over', 'under'].includes(totalSide)) {
+      return res.status(400).json({ error: "totalSide must be 'over' or 'under'" });
+    }
+    bet.estimation.betType = 'total';
+    bet.estimation.totalSide = totalSide;
+  }
 
   await bet.save();
 
@@ -339,7 +351,9 @@ router.get('/export/csv', asyncHandler(async (req, res) => {
     'Sport',
     'Team A',
     'Team B',
-    'Spread',
+    'Bet Type',
+    'Pick',
+    'Line',
     'Probability',
     'Edge',
     'Odds',
@@ -359,11 +373,20 @@ router.get('/export/csv', asyncHandler(async (req, res) => {
         ? -bet.actualWager
         : 0;
 
+    const isTotal = bet.estimation.betType === 'total' ||
+      (!bet.estimation.betType && ['hockey', 'nhl'].includes(bet.matchup.sport));
+    const betType = isTotal ? 'Over/Under' : bet.estimation.betType === 'moneyline' ? 'Moneyline' : 'Spread';
+    const pick = isTotal
+      ? (bet.estimation.totalSide ? bet.estimation.totalSide.toUpperCase() : 'O/U (side not recorded)')
+      : bet.matchup.teamA.name;
+
     return [
       new Date(bet.createdAt).toLocaleDateString(),
       bet.matchup.sport,
       bet.matchup.teamA.name,
       bet.matchup.teamB.name,
+      betType,
+      pick,
       bet.estimation.pointSpread,
       bet.estimation.calculatedProbability?.toFixed(1) + '%',
       (bet.estimation.edge > 0 ? '+' : '') + bet.estimation.edge?.toFixed(1) + '%',
