@@ -1,5 +1,5 @@
 "team","abbreviation","turnover_margin"
-"Toronto Raptors","TOR",7.2
+"Toronto Raptors","TOR",7.5
 "Atlanta Hawks","ATL",4.7
 "Philadelphia 76ers","PHI",4.6
 "Boston Celtics","BOS",3
@@ -8,7 +8,6 @@
 "Detroit Pistons","DET",1.7
 "Miami Heat","MIA",1.5
 "Oklahoma City Thunder","OKC",1.3
-"Los Angeles Lakers","LAL",1.2
 "Golden State Warriors","GS",0.9
 "Houston Rockets","HOU",0.7
 "Minnesota Timberwolves","MIN",0.6
@@ -17,6 +16,7 @@
 "Portland Trail Blazers","POR",0
 "Denver Nuggets","DEN",-0.2
 "Cleveland Cavaliers","CLE",-0.3
+"Los Angeles Lakers","LAL",-0.3
 "New Orleans Pelicans","NO",-1.2
 "Washington Wizards","WSH",-1.2
 "Sacramento Kings","SAC",-1.3

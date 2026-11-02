@@ -1,21 +1,21 @@
 "team","abbreviation","three_rate"
 "Charlotte Hornets","CHA",0.51
 "Portland Trail Blazers","POR",0.51
+"Brooklyn Nets","BKN",0.48
 "Chicago Bulls","CHI",0.48
-"Brooklyn Nets","BKN",0.47
-"Golden State Warriors","GS",0.46
+"Golden State Warriors","GS",0.47
+"Orlando Magic","ORL",0.47
+"Boston Celtics","BOS",0.46
 "Los Angeles Lakers","LAL",0.46
 "Milwaukee Bucks","MIL",0.46
-"Orlando Magic","ORL",0.46
 "Atlanta Hawks","ATL",0.45
-"Boston Celtics","BOS",0.45
 "Phoenix Suns","PHX",0.45
 "Cleveland Cavaliers","CLE",0.44
 "Dallas Mavericks","DAL",0.43
 "Detroit Pistons","DET",0.43
+"Indiana Pacers","IND",0.43
 "Minnesota Timberwolves","MIN",0.43
 "New York Knicks","NY",0.43
-"Indiana Pacers","IND",0.42
 "LA Clippers","LAC",0.42
 "Memphis Grizzlies","MEM",0.42
 "Miami Heat","MIA",0.42
@@ -25,7 +25,7 @@
 "San Antonio Spurs","SA",0.39
 "Houston Rockets","HOU",0.38
 "Sacramento Kings","SAC",0.38
+"Toronto Raptors","TOR",0.38
 "Washington Wizards","WSH",0.38
 "Oklahoma City Thunder","OKC",0.36
-"Toronto Raptors","TOR",0.35
 "New Orleans Pelicans","NO",0.33

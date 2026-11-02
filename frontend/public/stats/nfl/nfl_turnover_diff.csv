@@ -1,7 +1,7 @@
 "team","abbreviation","turnover_diff"
 "Jacksonville Jaguars","JAX",7
 "Minnesota Vikings","MIN",7
-"Washington Commanders","WSH",6
+"Washington Commanders","WSH",7
 "Kansas City Chiefs","KC",5
 "Las Vegas Raiders","LV",5
 "Pittsburgh Steelers","PIT",5
@@ -23,10 +23,10 @@
 "Buffalo Bills","BUF",-2
 "New York Giants","NYG",-2
 "Miami Dolphins","MIA",-3
-"Philadelphia Eagles","PHI",-3
 "San Francisco 49ers","SF",-3
 "Los Angeles Rams","LAR",-4
 "New Orleans Saints","NO",-4
+"Philadelphia Eagles","PHI",-4
 "Atlanta Falcons","ATL",-6
 "Los Angeles Chargers","LAC",-6
 "New England Patriots","NE",-7

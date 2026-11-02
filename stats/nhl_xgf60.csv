@@ -1,26 +1,26 @@
 "team","abbreviation","xgf60"
-"Minnesota Wild","MIN",3.92
+"Minnesota Wild","MIN",3.9
 "Carolina Hurricanes","CAR",3.86
 "Tampa Bay Lightning","TBL",3.71
-"Utah Mammoth","UTA",3.57
-"Washington Capitals","WSH",3.56
+"Utah Mammoth","UTA",3.55
+"Washington Capitals","WSH",3.54
 "New Jersey Devils","NJD",3.5
 "Colorado Avalanche","COL",3.38
 "Vegas Golden Knights","VGK",3.36
 "Florida Panthers","FLA",3.31
 "Montreal Canadiens","MTL",3.29
 "Pittsburgh Penguins","PIT",3.28
-"Ottawa Senators","OTT",3.27
-"New York Rangers","NYR",3.23
+"Ottawa Senators","OTT",3.25
 "Detroit Red Wings","DET",3.23
+"New York Rangers","NYR",3.17
 "Boston Bruins","BOS",3.16
 "Buffalo Sabres","BUF",3.11
 "Nashville Predators","NSH",3.09
 "Toronto Maple Leafs","TOR",3.07
-"Anaheim Ducks","ANA",3.06
+"Anaheim Ducks","ANA",3.04
 "St. Louis Blues","STL",3.03
+"Edmonton Oilers","EDM",3.02
 "Los Angeles Kings","LAK",3
-"Edmonton Oilers","EDM",3
 "Dallas Stars","DAL",2.94
 "San Jose Sharks","SJS",2.93
 "Winnipeg Jets","WPG",2.89
@@ -29,5 +29,5 @@
 "Chicago Blackhawks","CHI",2.76
 "Calgary Flames","CGY",2.74
 "Columbus Blue Jackets","CBJ",2.74
-"Philadelphia Flyers","PHI",2.51
+"Philadelphia Flyers","PHI",2.53
 "Vancouver Canucks","VAN",2.49
