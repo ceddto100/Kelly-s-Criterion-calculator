@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-  || '';
-const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
 
 interface User {
   name?: string;
@@ -53,21 +48,10 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
 
       const data = await response.json();
 
-      if (stripePromise && data.sessionId) {
-        const stripe = await stripePromise;
-
-        if (!stripe) {
-          throw new Error('Stripe failed to initialize');
-        }
-
-        const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
-
-        if (error) {
-          throw new Error(error.message || 'Stripe checkout redirect failed');
-        }
-        return;
-      }
-
+      // Go straight to the hosted Checkout URL the backend created — the same
+      // path the estimator's upgrade prompt uses. (Stripe.js redirectToCheckout
+      // is deprecated and fails when the publishable key doesn't match the
+      // session's live/test mode, showing "Something went wrong".)
       if (!data.url) {
         throw new Error('Stripe checkout URL was not returned');
       }
