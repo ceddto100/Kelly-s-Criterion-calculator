@@ -2,7 +2,7 @@
 "Minnesota Wild","MIN",3.76
 "Tampa Bay Lightning","TBL",3.27
 "New York Rangers","NYR",3.13
-"Carolina Hurricanes","CAR",2.89
+"Carolina Hurricanes","CAR",3.02
 "Anaheim Ducks","ANA",2.89
 "Ottawa Senators","OTT",2.82
 "Nashville Predators","NSH",2.76
@@ -19,8 +19,8 @@
 "Vegas Golden Knights","VGK",2.38
 "Dallas Stars","DAL",2.38
 "Boston Bruins","BOS",2.31
-"New Jersey Devils","NJD",2.27
 "Los Angeles Kings","LAK",2.27
+"New Jersey Devils","NJD",2.27
 "Florida Panthers","FLA",2.25
 "Detroit Red Wings","DET",2.23
 "Philadelphia Flyers","PHI",2.1

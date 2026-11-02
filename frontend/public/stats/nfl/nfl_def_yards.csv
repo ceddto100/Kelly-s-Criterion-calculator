@@ -1,33 +1,33 @@
 "team","abbreviation","def_yards"
 "Seattle Seahawks","SEA",233.9
-"Minnesota Vikings","MIN",252.8
-"Tampa Bay Buccaneers","TB",294.7
+"Minnesota Vikings","MIN",271.6
+"Tampa Bay Buccaneers","TB",285.9
 "San Francisco 49ers","SF",299.3
-"Los Angeles Rams","LAR",302
-"Pittsburgh Steelers","PIT",303.7
+"Los Angeles Rams","LAR",301.1
+"Pittsburgh Steelers","PIT",305.6
+"New England Patriots","NE",309.9
 "New York Giants","NYG",313
 "Chicago Bears","CHI",313.4
 "Green Bay Packers","GB",314.9
-"New York Jets","NYJ",315.4
-"New England Patriots","NE",315.7
-"Baltimore Ravens","BAL",317.4
-"Cleveland Browns","CLE",318.1
-"Kansas City Chiefs","KC",323.3
-"Los Angeles Chargers","LAC",330
-"Miami Dolphins","MIA",337.7
-"Indianapolis Colts","IND",340.3
+"New York Jets","NYJ",317.6
+"Kansas City Chiefs","KC",319.1
+"Los Angeles Chargers","LAC",323
+"Cleveland Browns","CLE",323.5
+"Baltimore Ravens","BAL",331
+"Jacksonville Jaguars","JAX",331.3
+"Miami Dolphins","MIA",334.1
+"Atlanta Falcons","ATL",341.6
 "Houston Texans","HOU",342
-"Atlanta Falcons","ATL",344.4
-"Jacksonville Jaguars","JAX",346
-"Cincinnati Bengals","CIN",346.7
-"Denver Broncos","DEN",349
+"Arizona Cardinals","ARI",342.6
+"Indianapolis Colts","IND",343.5
 "Carolina Panthers","CAR",349.6
-"Arizona Cardinals","ARI",354.3
+"Buffalo Bills","BUF",352.1
 "Washington Commanders","WSH",354.5
-"Tennessee Titans","TEN",364.1
+"Denver Broncos","DEN",355.3
+"Cincinnati Bengals","CIN",360
 "Philadelphia Eagles","PHI",371.3
 "New Orleans Saints","NO",372.7
-"Dallas Cowboys","DAL",373.7
-"Las Vegas Raiders","LV",373.7
-"Buffalo Bills","BUF",386.8
-"Detroit Lions","DET",391
+"Detroit Lions","DET",373.1
+"Las Vegas Raiders","LV",381.9
+"Tennessee Titans","TEN",382.4
+"Dallas Cowboys","DAL",385.4

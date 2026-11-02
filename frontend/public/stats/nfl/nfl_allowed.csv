@@ -1,33 +1,33 @@
 "team","abbreviation","allowed"
-"Minnesota Vikings","MIN",12.3
-"Kansas City Chiefs","KC",17.2
-"Jacksonville Jaguars","JAX",17.3
+"Minnesota Vikings","MIN",13.3
+"Jacksonville Jaguars","JAX",15.9
 "Seattle Seahawks","SEA",17.9
-"Pittsburgh Steelers","PIT",19.7
+"Pittsburgh Steelers","PIT",18
+"Kansas City Chiefs","KC",18.7
+"Tampa Bay Buccaneers","TB",18.9
 "San Francisco 49ers","SF",19.9
-"Denver Broncos","DEN",20.1
-"Cincinnati Bengals","CIN",20.3
+"New England Patriots","NE",20.3
 "Chicago Bears","CHI",20.4
-"New England Patriots","NE",20.4
 "Green Bay Packers","GB",20.5
-"Cleveland Browns","CLE",20.9
-"New York Jets","NYJ",21.4
-"Tampa Bay Buccaneers","TB",21.6
-"Tennessee Titans","TEN",22.3
-"Los Angeles Rams","LAR",22.7
+"Denver Broncos","DEN",20.6
+"Los Angeles Rams","LAR",21
+"Cleveland Browns","CLE",21.6
+"Cincinnati Bengals","CIN",22.6
 "New York Giants","NYG",23
-"Baltimore Ravens","BAL",23.9
+"New York Jets","NYJ",23.5
+"Atlanta Falcons","ATL",23.6
 "Houston Texans","HOU",24.3
-"Atlanta Falcons","ATL",24.7
+"Tennessee Titans","TEN",24.9
+"Los Angeles Chargers","LAC",25
 "Philadelphia Eagles","PHI",25
-"Los Angeles Chargers","LAC",25.2
-"Dallas Cowboys","DAL",25.7
-"Indianapolis Colts","IND",25.7
-"Miami Dolphins","MIA",26.2
-"Detroit Lions","DET",27.5
+"Baltimore Ravens","BAL",25.4
+"Detroit Lions","DET",25.7
+"Buffalo Bills","BUF",25.9
+"Miami Dolphins","MIA",25.9
+"Dallas Cowboys","DAL",26.6
 "Carolina Panthers","CAR",27.6
 "New Orleans Saints","NO",27.7
-"Las Vegas Raiders","LV",28.1
-"Buffalo Bills","BUF",28.5
+"Indianapolis Colts","IND",27.8
 "Washington Commanders","WSH",28.7
-"Arizona Cardinals","ARI",29.7
+"Las Vegas Raiders","LV",28.8
+"Arizona Cardinals","ARI",29.8
