@@ -11,7 +11,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 // generic football/basketball/hockey/baseball values are kept for
 // backward compatibility with bets logged via the calculator workflow.
 export type SportKey =
-  | 'nfl' | 'cfb' | 'nba' | 'wnba' | 'cbb' | 'mlb'
+  | 'nfl' | 'cfb' | 'nba' | 'wnba' | 'cbb' | 'mlb' | 'nhl'
   | 'football' | 'basketball' | 'hockey' | 'baseball';
 
 // Options shown in the manual logger / filter dropdowns
@@ -22,6 +22,7 @@ export const SPORT_OPTIONS: { value: SportKey; label: string; icon: string }[] =
   { value: 'wnba', label: 'WNBA', icon: '🏀' },
   { value: 'cbb', label: 'College Basketball', icon: '🏀' },
   { value: 'mlb', label: 'MLB', icon: '⚾' },
+  { value: 'nhl', label: 'NHL', icon: '🏒' },
 ];
 
 // Full metadata map including legacy generic values
@@ -35,6 +36,34 @@ const SPORT_META: Record<string, { label: string; icon: string }> = {
 
 export const getSportMeta = (sport: string) =>
   SPORT_META[sport] || { label: sport, icon: '🎯' };
+
+// Legacy generic sport values that should match a league filter
+const SPORT_ALIASES: Record<string, string[]> = {
+  nhl: ['hockey'],
+  mlb: ['baseball'],
+};
+const sportMatchesFilter = (betSport: string, filter: string) =>
+  betSport === filter || (SPORT_ALIASES[filter] || []).includes(betSport);
+
+// ---- Bet type (spread vs over/under) ----
+export type BetType = 'spread' | 'total' | 'moneyline';
+export type TotalSide = 'over' | 'under';
+
+// Sports that are bet as over/under totals by default (no spread market in the app)
+const TOTALS_SPORTS = new Set(['hockey', 'nhl']);
+
+/** Bets logged before betType existed: hockey was always a total, everything else a spread. */
+const resolveBetType = (sport: string, betType?: BetType): BetType =>
+  betType || (TOTALS_SPORTS.has(sport) ? 'total' : 'spread');
+
+/** What a total counts, for labels like "6.5 total goals". */
+const totalUnit = (sport: string) =>
+  TOTALS_SPORTS.has(sport) ? 'goals' : sport === 'mlb' || sport === 'baseball' ? 'runs' : 'points';
+
+const sideLabel = (side?: TotalSide) =>
+  side === 'over' ? 'OVER' : side === 'under' ? 'UNDER' : 'OVER/UNDER';
+
+const formatSpread = (n: number) => `${n > 0 ? '+' : ''}${n}`;
 
 // Types
 interface BetLogData {
@@ -53,6 +82,9 @@ interface BetLogData {
     venue: 'home' | 'away' | 'neutral';
   };
   estimation: {
+    /** 'total' = over/under; pointSpread then holds the total line. */
+    betType?: BetType;
+    totalSide?: TotalSide;
     pointSpread: number;
     calculatedProbability: number;
     expectedMargin?: number;
@@ -105,6 +137,8 @@ interface LogBetButtonProps {
   teamB: { name: string; abbreviation?: string; stats: Record<string, number> };
   venue: 'home' | 'away' | 'neutral';
   pointSpread: number;
+  betType?: BetType;
+  totalSide?: TotalSide;
   calculatedProbability: number;
   expectedMargin?: number;
   impliedProbability?: number;
@@ -131,6 +165,8 @@ export function LogBetButton({
   teamB,
   venue,
   pointSpread,
+  betType: betTypeProp,
+  totalSide,
   calculatedProbability,
   expectedMargin,
   impliedProbability,
@@ -150,6 +186,8 @@ export function LogBetButton({
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const betType = resolveBetType(sport, betTypeProp);
+  const isTotal = betType === 'total';
 
   // Reset wager when recommended stake changes
   useEffect(() => {
@@ -213,6 +251,8 @@ export function LogBetButton({
         venue
       },
       estimation: {
+        betType,
+        totalSide: isTotal ? totalSide : undefined,
         pointSpread,
         calculatedProbability,
         expectedMargin,
@@ -289,13 +329,23 @@ export function LogBetButton({
 
         {/* Matchup Summary */}
         <div className="bet-summary">
-          <div className="your-pick-banner">
-            <div className="pick-indicator">✓ YOUR PICK</div>
-            <div className="pick-team">{teamA.abbreviation || teamA.name}</div>
-            <div className="pick-details">
-              {pointSpread > 0 ? '+' : ''}{pointSpread} vs {teamB.abbreviation || teamB.name}
+          {isTotal ? (
+            <div className={`your-pick-banner total-pick ${totalSide || ''}`}>
+              <div className="pick-indicator">✓ OVER/UNDER BET</div>
+              <div className="pick-team">{sideLabel(totalSide)} {pointSpread}</div>
+              <div className="pick-details">
+                Total {totalUnit(sport)} · {teamB.abbreviation || teamB.name} @ {teamA.abbreviation || teamA.name}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="your-pick-banner">
+              <div className="pick-indicator">✓ YOUR PICK</div>
+              <div className="pick-team">{teamA.abbreviation || teamA.name}</div>
+              <div className="pick-details">
+                {formatSpread(pointSpread)} vs {teamB.abbreviation || teamB.name}
+              </div>
+            </div>
+          )}
 
           <div className="summary-divider"></div>
 
@@ -304,13 +354,21 @@ export function LogBetButton({
             <span className="summary-value">{getSportMeta(sport).icon} {getSportMeta(sport).label}</span>
           </div>
           <div className="summary-row">
-            <span className="summary-label">Venue:</span>
-            <span className="summary-value">
-              {venue === 'home' ? '🏠 Home' : venue === 'away' ? '✈️ Away' : '⚖️ Neutral'}
-            </span>
+            <span className="summary-label">Bet Type:</span>
+            <span className="summary-value">{isTotal ? 'Over/Under (Total)' : betType === 'moneyline' ? 'Moneyline' : 'Point Spread'}</span>
           </div>
+          {!isTotal && (
+            <div className="summary-row">
+              <span className="summary-label">Venue:</span>
+              <span className="summary-value">
+                {venue === 'home' ? '🏠 Home' : venue === 'away' ? '✈️ Away' : '⚖️ Neutral'}
+              </span>
+            </div>
+          )}
           <div className="summary-row">
-            <span className="summary-label">Win Probability:</span>
+            <span className="summary-label">
+              {isTotal ? `${totalSide === 'under' ? 'Under' : 'Over'} Probability:` : 'Win Probability:'}
+            </span>
             <span className="summary-value">{calculatedProbability.toFixed(1)}%</span>
           </div>
           {edge !== undefined && (
@@ -449,10 +507,20 @@ export function ManualLogBetButton({
   const [americanOdds, setAmericanOdds] = useState('');
   const [actualWager, setActualWager] = useState('');
   const [pointSpread, setPointSpread] = useState('');
+  const [betType, setBetType] = useState<BetType>('spread');
+  const [totalSide, setTotalSide] = useState<TotalSide>('over');
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isTotal = betType === 'total';
+
+  const handleSportChange = (next: SportKey) => {
+    setSport(next);
+    // NHL is bet as over/under totals by default
+    if (TOTALS_SPORTS.has(next)) setBetType('total');
+    else if (TOTALS_SPORTS.has(sport) && betType === 'total') setBetType('spread');
+  };
 
   // Lock body scroll when modal is open (mobile-safe lock/unlock)
   useEffect(() => {
@@ -484,6 +552,8 @@ export function ManualLogBetButton({
     setAmericanOdds('');
     setActualWager('');
     setPointSpread('');
+    setBetType('spread');
+    setTotalSide('over');
     setNotes('');
     setError(null);
   };
@@ -497,6 +567,11 @@ export function ManualLogBetButton({
     // Validate the fields the user entered manually
     if (!teamA.trim() || !teamB.trim()) {
       setError('Please enter both team names.');
+      return;
+    }
+    const line = parseFloat(pointSpread);
+    if (isTotal && (Number.isNaN(line) || line <= 0)) {
+      setError('Please enter the total line (e.g. 6.5).');
       return;
     }
     const odds = parseInt(americanOdds, 10);
@@ -535,10 +610,12 @@ export function ManualLogBetButton({
         sport,
         teamA: { name: teamA.trim(), stats: {} },
         teamB: { name: teamB.trim(), stats: {} },
-        venue
+        venue: isTotal ? 'neutral' : venue
       },
       estimation: {
-        pointSpread: parseFloat(pointSpread) || 0,
+        betType,
+        totalSide: isTotal ? totalSide : undefined,
+        pointSpread: betType === 'moneyline' ? 0 : (parseFloat(pointSpread) || 0),
         // No model probability for a manual bet — use the odds-implied value
         calculatedProbability: impliedProbability,
         impliedProbability,
@@ -614,7 +691,7 @@ export function ManualLogBetButton({
             id="manualSport"
             className="input-field"
             value={sport}
-            onChange={(e) => setSport(e.target.value as SportKey)}
+            onChange={(e) => handleSportChange(e.target.value as SportKey)}
           >
             {SPORT_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>
@@ -624,31 +701,91 @@ export function ManualLogBetButton({
           </select>
         </div>
 
+        {/* Bet type */}
+        <div className="input-group">
+          <label>Bet Type</label>
+          <div className="bet-type-toggle" role="radiogroup" aria-label="Bet type">
+            {([
+              ['spread', 'Spread'],
+              ['total', 'Over/Under'],
+              ['moneyline', 'Moneyline'],
+            ] as [BetType, string][]).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={betType === value}
+                className={`bet-type-option ${betType === value ? 'active' : ''}`}
+                onClick={() => setBetType(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Over/Under side + line */}
+        {isTotal && (
+          <>
+            <div className="input-group">
+              <label>Your Pick</label>
+              <div className="bet-type-toggle" role="radiogroup" aria-label="Over or under">
+                {(['over', 'under'] as TotalSide[]).map(side => (
+                  <button
+                    key={side}
+                    type="button"
+                    role="radio"
+                    aria-checked={totalSide === side}
+                    className={`bet-type-option ${side} ${totalSide === side ? 'active' : ''}`}
+                    onClick={() => setTotalSide(side)}
+                  >
+                    {side === 'over' ? '⬆ OVER' : '⬇ UNDER'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="input-group">
+              <label htmlFor="manualSpread">Total Line ({totalUnit(sport)})</label>
+              <input
+                id="manualSpread"
+                type="number"
+                className="input-field"
+                value={pointSpread}
+                onChange={(e) => setPointSpread(e.target.value)}
+                placeholder={TOTALS_SPORTS.has(sport) ? 'e.g. 6.5' : 'e.g. 47.5'}
+                min="0"
+                step="0.5"
+              />
+            </div>
+          </>
+        )}
+
         {/* Teams */}
         <div className="input-group">
-          <label htmlFor="manualTeamA">Your Pick (Team)</label>
+          <label htmlFor="manualTeamA">{isTotal ? 'Home Team' : 'Your Pick (Team)'}</label>
           <input
             id="manualTeamA"
             type="text"
             className="input-field"
             value={teamA}
             onChange={(e) => setTeamA(e.target.value)}
-            placeholder="e.g. Kansas City Chiefs"
+            placeholder={TOTALS_SPORTS.has(sport) ? 'e.g. Philadelphia Flyers' : 'e.g. Kansas City Chiefs'}
           />
         </div>
         <div className="input-group">
-          <label htmlFor="manualTeamB">Opponent (Team)</label>
+          <label htmlFor="manualTeamB">{isTotal ? 'Away Team' : 'Opponent (Team)'}</label>
           <input
             id="manualTeamB"
             type="text"
             className="input-field"
             value={teamB}
             onChange={(e) => setTeamB(e.target.value)}
-            placeholder="e.g. Buffalo Bills"
+            placeholder={TOTALS_SPORTS.has(sport) ? 'e.g. Utah Mammoth' : 'e.g. Buffalo Bills'}
           />
         </div>
 
-        {/* Venue */}
+        {/* Venue (not meaningful for a total — both teams share the result) */}
+        {!isTotal && (
         <div className="input-group">
           <label htmlFor="manualVenue">Venue (for your pick)</label>
           <select
@@ -662,6 +799,7 @@ export function ManualLogBetButton({
             <option value="neutral">⚖️ Neutral</option>
           </select>
         </div>
+        )}
 
         {/* Odds + Wager */}
         <div className="input-group">
@@ -691,6 +829,7 @@ export function ManualLogBetButton({
         </div>
 
         {/* Optional spread */}
+        {betType === 'spread' && (
         <div className="input-group">
           <label htmlFor="manualSpread">Point Spread (optional)</label>
           <input
@@ -703,6 +842,7 @@ export function ManualLogBetButton({
             step="0.5"
           />
         </div>
+        )}
 
         {/* Notes */}
         <div className="input-group">
@@ -781,6 +921,7 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'settled'>('all');
   const [sportFilter, setSportFilter] = useState<'all' | SportKey>('all');
+  const [betTypeFilter, setBetTypeFilter] = useState<'all' | BetType>('all');
   const [expandedBet, setExpandedBet] = useState<string | null>(null);
   const [updatingBet, setUpdatingBet] = useState<string | null>(null);
 
@@ -820,10 +961,32 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
     return bets.filter(bet => {
       if (filter === 'pending' && bet.outcome.result !== 'pending') return false;
       if (filter === 'settled' && bet.outcome.result === 'pending') return false;
-      if (sportFilter !== 'all' && bet.matchup.sport !== sportFilter) return false;
+      if (sportFilter !== 'all' && !sportMatchesFilter(bet.matchup.sport, sportFilter)) return false;
+      if (betTypeFilter !== 'all' && resolveBetType(bet.matchup.sport, bet.estimation.betType) !== betTypeFilter) return false;
       return true;
     });
-  }, [bets, filter, sportFilter]);
+  }, [bets, filter, sportFilter, betTypeFilter]);
+
+  // Record Over/Under on a totals bet that was logged without a side
+  const setTotalSide = async (betId: string, totalSide: TotalSide) => {
+    setUpdatingBet(betId);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/bets/${betId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ totalSide })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setBets(prev => prev.map(b => b._id === betId ? data.bet : b));
+      }
+    } catch (err) {
+      console.error('Failed to set over/under side:', err);
+    } finally {
+      setUpdatingBet(null);
+    }
+  };
 
   // Update bet outcome
   const updateOutcome = async (betId: string, result: 'win' | 'loss' | 'push', actualScore?: { teamA: number; teamB: number }) => {
@@ -993,6 +1156,15 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
             ))}
           </select>
         </div>
+        <div className="filter-group">
+          <label>Type:</label>
+          <select value={betTypeFilter} onChange={(e) => setBetTypeFilter(e.target.value as any)}>
+            <option value="all">All Types</option>
+            <option value="spread">Spread</option>
+            <option value="total">Over/Under</option>
+            <option value="moneyline">Moneyline</option>
+          </select>
+        </div>
         <a
           href={`${BACKEND_URL}/api/bets/export/csv`}
           className="export-btn"
@@ -1015,7 +1187,13 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
         </div>
       ) : (
         <div className="bet-list">
-          {filteredBets.map(bet => (
+          {filteredBets.map(bet => {
+            const betType = resolveBetType(bet.matchup.sport, bet.estimation.betType);
+            const isTotal = betType === 'total';
+            const side = bet.estimation.totalSide;
+            const home = bet.matchup.teamA.abbreviation || bet.matchup.teamA.name;
+            const away = bet.matchup.teamB.abbreviation || bet.matchup.teamB.name;
+            return (
             <div
               key={bet._id}
               className={`bet-card ${bet.outcome.result}`}
@@ -1026,13 +1204,27 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
                   <span className="sport-icon" title={getSportMeta(bet.matchup.sport).label}>
                     {getSportMeta(bet.matchup.sport).icon}
                   </span>
-                  <div className="teams-container">
-                    <div className="your-pick-label">
-                      <span className="pick-badge">YOUR PICK</span>
-                      <span className="pick-team-name">{bet.matchup.teamA.abbreviation || bet.matchup.teamA.name}</span>
+                  {isTotal ? (
+                    <div className="teams-container">
+                      <div className="your-pick-label">
+                        <span className={`pick-badge total-badge ${side || 'unknown'}`}>
+                          {side ? `O/U · ${sideLabel(side)}` : 'O/U TOTAL'}
+                        </span>
+                        <span className="pick-team-name">
+                          {side ? `${side === 'over' ? 'Over' : 'Under'} ${bet.estimation.pointSpread}` : `Total ${bet.estimation.pointSpread}`}
+                        </span>
+                      </div>
+                      <span className="vs-text">{away} @ {home} · total {totalUnit(bet.matchup.sport)}</span>
                     </div>
-                    <span className="vs-text">vs {bet.matchup.teamB.abbreviation || bet.matchup.teamB.name}</span>
-                  </div>
+                  ) : (
+                    <div className="teams-container">
+                      <div className="your-pick-label">
+                        <span className="pick-badge">YOUR PICK</span>
+                        <span className="pick-team-name">{home}</span>
+                      </div>
+                      <span className="vs-text">vs {away}</span>
+                    </div>
+                  )}
                 </div>
                 <div className={`bet-status ${bet.outcome.result}`}>
                   {bet.outcome.result === 'pending' ? '⏳ Pending' :
@@ -1044,11 +1236,15 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
 
               <div className="bet-card-body">
                 <div className="bet-detail">
-                  <span className="detail-label">Spread:</span>
-                  <span>{bet.estimation.pointSpread > 0 ? '+' : ''}{bet.estimation.pointSpread}</span>
+                  <span className="detail-label">{isTotal ? 'Total Line:' : betType === 'moneyline' ? 'Bet:' : 'Spread:'}</span>
+                  <span>
+                    {isTotal
+                      ? `${side === 'over' ? 'O ' : side === 'under' ? 'U ' : ''}${bet.estimation.pointSpread}`
+                      : betType === 'moneyline' ? 'Moneyline' : formatSpread(bet.estimation.pointSpread)}
+                  </span>
                 </div>
                 <div className="bet-detail">
-                  <span className="detail-label">Prob:</span>
+                  <span className="detail-label">{isTotal && side ? `${side === 'over' ? 'Over' : 'Under'} Prob:` : 'Prob:'}</span>
                   <span>{bet.estimation.calculatedProbability.toFixed(1)}%</span>
                 </div>
                 <div className="bet-detail">
@@ -1065,6 +1261,10 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
               {expandedBet === bet._id && (
                 <div className="bet-card-expanded" onClick={(e) => e.stopPropagation()}>
                   <div className="expanded-details">
+                    <div className="detail-row">
+                      <span>Bet type:</span>
+                      <span>{isTotal ? `Over/Under — ${side ? sideLabel(side) : 'side not recorded'}` : betType === 'moneyline' ? 'Moneyline' : 'Point Spread'}</span>
+                    </div>
                     <div className="detail-row">
                       <span>Odds:</span>
                       <span>{bet.kelly.americanOdds > 0 ? '+' : ''}{bet.kelly.americanOdds}</span>
@@ -1092,6 +1292,29 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
                       </div>
                     )}
                   </div>
+
+                  {/* Older totals bets didn't save which side was bet — let the user record it */}
+                  {isTotal && !side && bet.outcome.result === 'pending' && (
+                    <div className="outcome-actions">
+                      <p>Which side did you bet?</p>
+                      <div className="outcome-buttons">
+                        <button
+                          className="outcome-btn side-over"
+                          onClick={() => setTotalSide(bet._id, 'over')}
+                          disabled={updatingBet === bet._id}
+                        >
+                          ⬆ Over {bet.estimation.pointSpread}
+                        </button>
+                        <button
+                          className="outcome-btn side-under"
+                          onClick={() => setTotalSide(bet._id, 'under')}
+                          disabled={updatingBet === bet._id}
+                        >
+                          ⬇ Under {bet.estimation.pointSpread}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Outcome Actions for Pending Bets */}
                   {bet.outcome.result === 'pending' && (
@@ -1133,7 +1356,8 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -1922,6 +2146,75 @@ export const BetLoggerStyles = `
     background: rgba(245, 158, 11, 0.25);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+  /* ---- Over/Under (totals) bets ----
+     Over = sky blue, Under = violet: kept distinct from the win/loss
+     green/red so a side never reads as a result. */
+  .pick-badge.total-badge.over {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+  }
+  .pick-badge.total-badge.under {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.15);
+    border-color: rgba(167, 139, 250, 0.4);
+  }
+  .pick-badge.total-badge.unknown {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .your-pick-banner.total-pick.over {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(14, 165, 233, 0.1));
+    border-color: rgba(56, 189, 248, 0.45);
+  }
+  .your-pick-banner.total-pick.over .pick-indicator { color: #38bdf8; }
+  .your-pick-banner.total-pick.under {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(139, 92, 246, 0.1));
+    border-color: rgba(167, 139, 250, 0.45);
+  }
+  .your-pick-banner.total-pick.under .pick-indicator { color: #a78bfa; }
+  .outcome-btn.side-over {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+  .outcome-btn.side-under {
+    background: rgba(167, 139, 250, 0.12);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.35);
+  }
+  .bet-type-toggle {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .bet-type-option {
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    min-height: 44px;
+  }
+  .bet-type-option.active {
+    border-color: rgba(16, 185, 129, 0.6);
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  .bet-type-option.over.active {
+    border-color: rgba(56, 189, 248, 0.6);
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+  }
+  .bet-type-option.under.active {
+    border-color: rgba(167, 139, 250, 0.6);
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
   }
 
   /* Delete Button - Glass */

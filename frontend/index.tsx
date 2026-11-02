@@ -425,6 +425,9 @@ interface MatchupData {
 }
 
 interface EstimationData {
+  /** 'total' = over/under bet (NHL); pointSpread then holds the total line. */
+  betType?: 'spread' | 'total' | 'moneyline';
+  totalSide?: 'over' | 'under';
   pointSpread: number;
   calculatedProbability: number;
   expectedMargin?: number;
@@ -847,8 +850,11 @@ function ProbabilityEstimator({
       };
     }
 
+    const isTotalBet = activeSport === CONSTANTS.SPORTS.HOCKEY;
     const estimationData: EstimationData = {
-      pointSpread: activeSport === CONSTANTS.SPORTS.HOCKEY ? parseFloat(totalGoalsLine) : parseFloat(pointSpread),
+      betType: isTotalBet ? 'total' : 'spread',
+      totalSide: isTotalBet ? (isOverBet ? 'over' : 'under') : undefined,
+      pointSpread: isTotalBet ? parseFloat(totalGoalsLine) : parseFloat(pointSpread),
       calculatedProbability: prob,
       expectedMargin: expectedDiff || undefined
     };
@@ -1159,6 +1165,11 @@ function ProbabilityEstimator({
         <div ref={resultsRef} className="results" role="status" aria-live="polite">
           <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? `Estimated ${isOverBet ? 'Over' : 'Under'} Probability` : 'Estimated Cover Probability'}</p>
           <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
+          {activeSport === CONSTANTS.SPORTS.HOCKEY && totalGoalsLine !== '' && (
+            <div style={{fontWeight:800, letterSpacing:'.05em', color: isOverBet ? '#38bdf8' : '#a78bfa', marginBottom:'.35rem'}}>
+              Over/Under bet · {isOverBet ? 'OVER' : 'UNDER'} {totalGoalsLine} total goals
+            </div>
+          )}
           <div className="matchup-result-stats">
             <div className="matchup-result-value">
               {calculatedProb.toFixed(2)}%
@@ -1678,6 +1689,8 @@ function KellyCalculator({
               teamB={matchupData!.teamB}
               venue={matchupData!.venue}
               pointSpread={estimationData!.pointSpread}
+              betType={estimationData!.betType}
+              totalSide={estimationData!.totalSide}
               calculatedProbability={estimationData!.calculatedProbability}
               expectedMargin={estimationData!.expectedMargin}
               impliedProbability={impliedProb || undefined}
