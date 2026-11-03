@@ -35,13 +35,20 @@ test('record, ROI and units', () => {
   assert.strictEqual(s.units, 0.9); // 91 / 100 avg stake
   assert.deepStrictEqual(s.unitsTrend, [1, 0, 0.9, 0.9]);
   assert.deepStrictEqual(s.streak, { type: 'win', count: 1 }); // push skipped
+  assert.strictEqual(s.profit, 91);
+  assert.strictEqual(s.wagered, 400);
+  assert.strictEqual(s.avgStake, 100);
+  assert.deepStrictEqual(s.profitTrend, [100, 0, 91, 91]);
 });
 
-test('recent is newest first, no dollar fields', () => {
+test('recent is newest first with per-bet stake and profit', () => {
   const s = summarize([bet('win', 100, 200, 1), bet('loss', 100, 0, 2)]);
   assert.strictEqual(s.recent[0].result, 'loss');
   assert.strictEqual(s.recent[0].pick, 'Packers -3.5');
-  assert.ok(!('actualWager' in s.recent[0]) && !('payout' in s.recent[0]));
+  assert.strictEqual(s.recent[0].stake, 100);
+  assert.strictEqual(s.recent[0].profit, -100);
+  assert.strictEqual(s.recent[1].profit, 100);
+  assert.ok(!('notes' in s.recent[0]) && !('payout' in s.recent[0]));
 });
 
 test('by sport and totals label', () => {

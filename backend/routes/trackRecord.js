@@ -1,8 +1,8 @@
 // routes/trackRecord.js - Public, read-only summary of the admin's logged bets.
 //
-// Powers the "Founder's Track Record" panel on the Matchup Lab page. It only
-// ever exposes aggregates (record, ROI, units, recent form) — never dollar
-// amounts, bankroll, notes, or anything about other users.
+// Powers the "Founder's Track Record" panel on the Matchup Lab page. It exposes
+// the admin's record, ROI, units, dollar profit/stakes and recent form — never
+// bankroll, notes, or anything about other users.
 
 const express = require('express');
 const BetLog = require('../models/BetLog');
@@ -56,6 +56,7 @@ function summarize(bets) {
   // A "unit" is the average stake, so the record reads the same at any bankroll.
   const unit = settled.length ? wagered / settled.length : 0;
   const round1 = (n) => Math.round(n * 10) / 10;
+  const round2 = (n) => Math.round(n * 100) / 100;
 
   // Cumulative units after each bet, for the trend line.
   let running = 0;
@@ -87,6 +88,7 @@ function summarize(bets) {
     .map((r) => ({
       sport: r.sport, wins: r.wins, losses: r.losses, pushes: r.pushes,
       roi: r.wagered ? round1((r.profit / r.wagered) * 100) : 0,
+      profit: round2(r.profit),
     }))
     .sort((a, b) => b.wins + b.losses + b.pushes - (a.wins + a.losses + a.pushes));
 
@@ -94,6 +96,8 @@ function summarize(bets) {
     sport: sportLabel(b.matchup?.sport),
     matchup: `${b.matchup?.teamA?.name || ''} vs ${b.matchup?.teamB?.name || ''}`,
     pick: pickLabel(b),
+    stake: round2(b.actualWager || 0),
+    profit: round2(betProfit(b)),
     result: b.outcome.result,
     date: b.outcome?.settledAt || b.createdAt,
   }));
@@ -105,6 +109,10 @@ function summarize(bets) {
     winRate: wins + losses ? round1((wins / (wins + losses)) * 100) : 0,
     roi: wagered ? round1((profit / wagered) * 100) : 0,
     units: unit ? round1(profit / unit) : 0,
+    profit: round2(profit),
+    wagered: round2(wagered),
+    avgStake: round2(unit),
+    profitTrend: settled.reduce((acc, b) => { acc.push(round2((acc[acc.length - 1] || 0) + betProfit(b))); return acc; }, []),
     streak,
     unitsTrend,
     bySport,
