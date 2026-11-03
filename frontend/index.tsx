@@ -464,11 +464,15 @@ function ProbabilityEstimator({
   isTeamAHome,
   setIsTeamAHome,
   isAuthenticated,
+  authLoading = false,
   onLoginRequired,
   // NEW: Callbacks to store data for bet logging
   setCurrentMatchup,
   setCurrentEstimation,
-  mlbInitialFields
+  mlbInitialFields,
+  initialIsOverBet,
+  resumeAfterLogin = false,
+  onResumeHandled
 }: {
   setProbability:(v:string)=>void;
   setActiveTab:(t:string)=>void;
@@ -491,16 +495,21 @@ function ProbabilityEstimator({
   isTeamAHome: boolean|null;
   setIsTeamAHome: (v:boolean|null)=>void;
   isAuthenticated: boolean;
-  onLoginRequired: () => void;
+  authLoading?: boolean;
+  onLoginRequired: (ctx?: { isOverBet: boolean }) => void;
   // NEW props
   setCurrentMatchup: (v: MatchupData | null) => void;
   setCurrentEstimation: (v: EstimationData | null) => void;
   mlbInitialFields: MLBFieldState | null;
+  initialIsOverBet?: boolean;
+  /** True when the user just came back from the sign-in redirect started by this form. */
+  resumeAfterLogin?: boolean;
+  onResumeHandled?: () => void;
 }) {
   const [showFreeCalcModal, setShowFreeCalcModal] = useState(false);
   const [freeCalculationsLeft, setFreeCalculationsLeft] = useState<number | null>(null);
   const [isUpgradeLoading, setIsUpgradeLoading] = useState(false);
-  const [isOverBet, setIsOverBet] = useState(true); // true = Over, false = Under
+  const [isOverBet, setIsOverBet] = useState(initialIsOverBet ?? true); // true = Over, false = Under
   const [calcError, setCalcError] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const resultsRef = React.useRef<HTMLDivElement | null>(null);
@@ -577,7 +586,7 @@ function ProbabilityEstimator({
 
   const handleCalculate = async () => {
     if (!isAuthenticated) {
-      onLoginRequired();
+      onLoginRequired({ isOverBet });
       return;
     }
 
@@ -599,7 +608,7 @@ function ProbabilityEstimator({
       }
 
       if (accessResponse.status === 401) {
-        onLoginRequired();
+        onLoginRequired({ isOverBet });
         return;
       }
 
@@ -680,6 +689,18 @@ function ProbabilityEstimator({
       setIsCalculating(false);
     }
   };
+
+  // Back from the sign-in redirect: finish the calculation the user asked for,
+  // so they land on their prediction instead of having to press the button again.
+  const resumeHandledRef = React.useRef(false);
+  useEffect(() => {
+    if (!resumeAfterLogin || authLoading || resumeHandledRef.current) return;
+    resumeHandledRef.current = true;
+    onResumeHandled?.();
+    if (isAuthenticated && isFormValid) {
+      handleCalculate();
+    }
+  }, [resumeAfterLogin, authLoading, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (calculatedProb === null || !resultsRef.current) return;
@@ -1143,7 +1164,9 @@ function ProbabilityEstimator({
 
       <div style={{display:'flex', gap:'.75rem', flexWrap:'wrap'}}>
         <button className="btn-primary" onClick={handleCalculate} disabled={!isFormValid || isCalculating} style={{flex:'1'}}>
-          {isCalculating ? 'Calculating…' : 'Calculate Probability'}
+          {isCalculating
+            ? 'Calculating…'
+            : (!authLoading && !isAuthenticated ? 'Sign in to Get Prediction' : 'Calculate Probability')}
         </button>
         {activeSport !== CONSTANTS.SPORTS.HOCKEY && (
           <button
@@ -1792,10 +1815,53 @@ function KellyCalculator({
   );
 }
 /* ================================== App =================================== */
+// Snapshot of the Probability Estimator taken right before a sign-in redirect,
+// so the user returns to the same game, inputs and scroll position.
+const PENDING_ESTIMATOR_KEY = 'betgistics-pending-estimator';
+const PENDING_ESTIMATOR_MAX_AGE_MS = 30 * 60 * 1000;
+
+type PendingEstimatorState = {
+  ts: number;
+  activeTab: string;
+  activeSport: string;
+  footballStats: typeof initialFootballState;
+  basketballStats: typeof initialBasketballState;
+  hockeyStats: typeof initialHockeyState;
+  pointSpread: string;
+  totalGoalsLine: string;
+  isTeamAHome: boolean | null;
+  isOverBet: boolean;
+  mlbPrefill: MLBFieldState | null;
+  scrollY: number;
+};
+
+function readPendingEstimatorState(): PendingEstimatorState | null {
+  try {
+    const raw = localStorage.getItem(PENDING_ESTIMATOR_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingEstimatorState;
+    if (!parsed || typeof parsed.ts !== 'number' || Date.now() - parsed.ts > PENDING_ESTIMATOR_MAX_AGE_MS) {
+      localStorage.removeItem(PENDING_ESTIMATOR_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingEstimatorState() {
+  try { localStorage.removeItem(PENDING_ESTIMATOR_KEY); } catch {}
+}
+
 function App() {
+  // If the user was sent to sign in from the estimator, pick up exactly where they left off.
+  const [pendingRestore, setPendingRestore] = useState<PendingEstimatorState | null>(() => readPendingEstimatorState());
+
   // Restore the last-viewed tab so resuming the app (mobile WebViews and
   // browser tabs reload on resume) lands the user back where they were.
   const [activeTab, setActiveTab] = useState<string>(() => {
+    if (pendingRestore) return pendingRestore.activeTab;
     try {
       const saved = localStorage.getItem('betgistics-active-tab');
       if (saved && Object.values(CONSTANTS.TABS).includes(saved as any)) return saved;
@@ -1809,7 +1875,7 @@ function App() {
   const [theme, setTheme] = useState<ThemeKey>('midnight');
 
   // Probability estimator state
-  const [activeSport, setActiveSport] = useState(CONSTANTS.SPORTS.FOOTBALL);
+  const [activeSport, setActiveSport] = useState<string>(pendingRestore?.activeSport ?? CONSTANTS.SPORTS.FOOTBALL);
   const hiddenSports = useHiddenSports();
 
   // Respect admin-hidden sports: move the estimator off a hidden sport, and
@@ -1823,16 +1889,16 @@ function App() {
       setActiveTab(CONSTANTS.TABS.PREDICTIONS);
     }
   }, [hiddenSports]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [footballStats, setFootballStats] = useState(initialFootballState);
-  const [basketballStats, setBasketballStats] = useState(initialBasketballState);
-  const [hockeyStats, setHockeyStats] = useState(initialHockeyState);
-  const [pointSpread, setPointSpread] = useState<string>('');
-  const [totalGoalsLine, setTotalGoalsLine] = useState<string>('');
+  const [footballStats, setFootballStats] = useState(() => ({ ...initialFootballState, ...(pendingRestore?.footballStats ?? {}) }));
+  const [basketballStats, setBasketballStats] = useState(() => ({ ...initialBasketballState, ...(pendingRestore?.basketballStats ?? {}) }));
+  const [hockeyStats, setHockeyStats] = useState(() => ({ ...initialHockeyState, ...(pendingRestore?.hockeyStats ?? {}) }));
+  const [pointSpread, setPointSpread] = useState<string>(pendingRestore?.pointSpread ?? '');
+  const [totalGoalsLine, setTotalGoalsLine] = useState<string>(pendingRestore?.totalGoalsLine ?? '');
   const [calculatedProb, setCalculatedProb] = useState<number|null>(null);
   const [expectedDiff, setExpectedDiff] = useState<number|null>(null);
-  const [isTeamAHome, setIsTeamAHome] = useState<boolean | null>(null);
+  const [isTeamAHome, setIsTeamAHome] = useState<boolean | null>(pendingRestore?.isTeamAHome ?? null);
   // Pre-fill payload for the MLB estimator when a "Today's Games" card is tapped.
-  const [mlbPrefill, setMlbPrefill] = useState<MLBFieldState | null>(null);
+  const [mlbPrefill, setMlbPrefill] = useState<MLBFieldState | null>(pendingRestore?.mlbPrefill ?? null);
   // Pre-fill payload for the Walters Protocol when a college football card is tapped.
   const [waltersPrefill, setWaltersPrefill] = useState<WaltersPrefill | null>(null);
 
@@ -2131,6 +2197,40 @@ function App() {
     window.location.href = `${BACKEND_URL}/auth/google`;
   };
 
+  // Login from the Probability Estimator: remember the game, inputs and scroll
+  // position so the user comes back to exactly where they pressed the button.
+  const handleEstimatorLoginRequired = (ctx?: { isOverBet: boolean }) => {
+    const snapshot: PendingEstimatorState = {
+      ts: Date.now(),
+      activeTab,
+      activeSport,
+      footballStats,
+      basketballStats,
+      hockeyStats,
+      pointSpread,
+      totalGoalsLine,
+      isTeamAHome,
+      isOverBet: ctx?.isOverBet ?? true,
+      mlbPrefill,
+      scrollY: window.scrollY || window.pageYOffset || 0,
+    };
+    try { localStorage.setItem(PENDING_ESTIMATOR_KEY, JSON.stringify(snapshot)); } catch {}
+    handleLoginRequired();
+  };
+
+  // After coming back, put the user back at the same scroll position.
+  useEffect(() => {
+    if (!pendingRestore) return;
+    const y = pendingRestore.scrollY;
+    let tries = 0;
+    const restore = () => {
+      window.scrollTo(0, y);
+      // Lazy content can still be growing; retry briefly until the position sticks.
+      if (Math.abs(window.scrollY - y) > 4 && tries++ < 20) setTimeout(restore, 100);
+    };
+    requestAnimationFrame(restore);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Get SEO config based on active tab
   const getSEOForTab = () => {
     switch (activeTab) {
@@ -2270,10 +2370,14 @@ function App() {
                   isTeamAHome={isTeamAHome}
                   setIsTeamAHome={setIsTeamAHome}
                   isAuthenticated={!!authUser}
-                  onLoginRequired={handleLoginRequired}
+                  authLoading={authLoading}
+                  onLoginRequired={handleEstimatorLoginRequired}
                   setCurrentMatchup={setCurrentMatchup}
                   setCurrentEstimation={setCurrentEstimation}
                   mlbInitialFields={mlbPrefill}
+                  initialIsOverBet={pendingRestore?.isOverBet}
+                  resumeAfterLogin={!!pendingRestore}
+                  onResumeHandled={() => { clearPendingEstimatorState(); setPendingRestore(null); }}
                 />
               )}
               {activeTab === CONSTANTS.TABS.WALTERS && (
