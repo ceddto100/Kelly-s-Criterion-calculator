@@ -127,6 +127,8 @@ export interface DailyCalcSummary {
   userId?: string;
   /** Present when the run used random-picks mode. */
   randomPicks?: LoggedPick[];
+  /** Present when the run used all-picks mode. */
+  allPicks?: LoggedPick[];
 }
 
 export interface DailyCalcOptions {
@@ -153,7 +155,19 @@ export interface DailyCalcOptions {
    * 0 / undefined disables it.
    */
   randomPicks?: number;
+  /**
+   * All-picks mode: log a fractional-Kelly bet on the model's side of EVERY
+   * bettable game in `allPicksSports` (NBA, NFL, NHL by default) to the admin
+   * account. Takes precedence over `randomPicks`. Each game is logged at most
+   * once per day, so re-runs only add games that were not logged yet (e.g. an
+   * NHL total whose line was posted late).
+   */
+  allPicks?: boolean;
+  /** Sports included in all-picks mode. Defaults to NBA, NFL and NHL. */
+  allPicksSports?: PickCandidate['sport'][];
 }
+
+export const DEFAULT_ALL_PICKS_SPORTS: PickCandidate['sport'][] = ['NBA', 'NFL', 'NHL'];
 
 // ============================================================================
 // ADMIN USER LOOKUP
@@ -732,16 +746,47 @@ function randomPicksTag(date: string): string {
   return `random-picks-${date}`;
 }
 
-async function logRandomPicks(
+function allPicksTag(date: string): string {
+  return `all-picks-${date}`;
+}
+
+/** Stable per-game, per-day tag used to avoid logging the same game twice. */
+export function gameTag(date: string, c: Pick<PickCandidate, 'sport' | 'awayTeam' | 'homeTeam'>): string {
+  const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `game-${date}-${c.sport.toLowerCase()}-${slug(c.awayTeam)}-at-${slug(c.homeTeam)}`;
+}
+
+/**
+ * All-picks selection: every candidate from the requested sports, at most one
+ * per game, minus games already logged (by game tag). Value bets come first.
+ */
+export function selectAllPicks(
   candidates: PickCandidate[],
-  count: number,
+  sports: PickCandidate['sport'][],
+  date: string,
+  alreadyLogged: Set<string> = new Set()
+): PickCandidate[] {
+  const seen = new Set<string>();
+  const out: PickCandidate[] = [];
+  for (const c of candidates) {
+    if (!sports.includes(c.sport)) continue;
+    const tag = gameTag(date, c);
+    if (seen.has(tag) || alreadyLogged.has(tag)) continue;
+    seen.add(tag);
+    out.push(c);
+  }
+  return out.sort((a, b) => b.probability - a.probability);
+}
+
+async function logPicks(
+  picks: PickCandidate[],
+  mode: 'random' | 'all',
   userId: string,
   bankroll: number,
   kellyFraction: number,
   americanOdds: number,
   today: string
 ): Promise<LoggedPick[]> {
-  const picks = selectRandomPicks(candidates, count);
   const logged: LoggedPick[] = [];
 
   for (const c of picks) {
@@ -797,12 +842,14 @@ async function logRandomPicks(
         recommendedStake: entry.recommendedStake,
         stakePercentage: entry.stakePercentage,
         actualWager: entry.recommendedStake,
-        notes: `Random daily pick (${today}): ${c.pick} [${c.market}]` +
+        notes: `${mode === 'all' ? 'Daily auto pick' : 'Random daily pick'} (${today}): ${c.pick} [${c.market}]` +
           (edge > 0 ? '' : ' — model shows no edge at -110, Kelly stake is $0'),
         tags: [
           'auto',
-          'random-picks',
-          randomPicksTag(today),
+          ...(mode === 'all'
+            ? ['all-picks', allPicksTag(today)]
+            : ['random-picks', randomPicksTag(today)]),
+          gameTag(today, c),
           c.sport.toLowerCase(),
           c.market,
           ...(edge > 0 ? [] : ['no-edge']),
@@ -814,7 +861,7 @@ async function logRandomPicks(
       }
     } catch (err) {
       entry.error = err instanceof Error ? err.message : String(err);
-      console.warn(`[DailyCalc] Random pick logging failed for ${game}:`, err);
+      console.warn(`[DailyCalc] ${mode === 'all' ? 'All' : 'Random'} pick logging failed for ${game}:`, err);
     }
 
     logged.push(entry);
@@ -835,17 +882,21 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     recordProjections = true,
     sport = 'ALL',
     randomPicks = 0,
+    allPicks = false,
+    allPicksSports = DEFAULT_ALL_PICKS_SPORTS,
   } = options;
   let { bankroll } = options;
-  // In random-picks mode only the chosen picks get logged; the per-game
-  // "log every value bet" behaviour is switched off.
-  const randomMode = randomPicks > 0 && logBets;
-  const perGameLogBets = logBets && !randomMode;
-  const collector: PickCandidate[] | undefined = randomMode ? [] : undefined;
+  // In random-/all-picks mode only the chosen picks get logged; the per-game
+  // "log every value bet" behaviour is switched off. All-picks wins if both set.
+  const allMode = allPicks && logBets;
+  const randomMode = !allMode && randomPicks > 0 && logBets;
+  const picksMode = allMode || randomMode;
+  const perGameLogBets = logBets && !picksMode;
+  const collector: PickCandidate[] | undefined = picksMode ? [] : undefined;
 
   const today = new Date().toISOString().split('T')[0];
   console.log(`[DailyCalc] Starting daily calculations for ${today}`);
-  console.log(`[DailyCalc] Settings: bankroll=${bankroll ?? 'admin/default'}, kelly=${kellyFraction}, odds=${americanOdds}, logBets=${logBets}, randomPicks=${randomPicks}`);
+  console.log(`[DailyCalc] Settings: bankroll=${bankroll ?? 'admin/default'}, kelly=${kellyFraction}, odds=${americanOdds}, logBets=${logBets}, randomPicks=${randomPicks}, allPicks=${allMode ? allPicksSports.join('/') : 'off'}`);
 
   const summary: DailyCalcSummary = {
     success: false,
@@ -872,7 +923,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   }
 
   // Random-picks mode sizes off the admin's real bankroll unless overridden.
-  if (bankroll === undefined && randomMode && userId) {
+  if (bankroll === undefined && picksMode && userId) {
     const admin = await User.findOne({ identifier: userId });
     if (admin && admin.currentBankroll > 0) bankroll = admin.currentBankroll;
   }
@@ -888,14 +939,37 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   }
 
   const finalBankroll = bankroll;
+  async function finishAllPicks(): Promise<void> {
+    if (!collector) return;
+    if (!userId) {
+      summary.errors.push('All picks: admin user not found, nothing logged');
+      return;
+    }
+    const existing = await BetLog.find({ userId, tags: allPicksTag(today) }, { tags: 1 }).lean();
+    const alreadyLogged = new Set<string>(
+      existing.flatMap((b: { tags?: string[] }) => (b.tags || []).filter((t) => t.startsWith('game-')))
+    );
+    const picks = selectAllPicks(collector, allPicksSports, today, alreadyLogged);
+    summary.allPicks = await logPicks(picks, 'all', userId, finalBankroll, kellyFraction, americanOdds, today);
+    summary.betsLogged += summary.allPicks.filter((p) => p.betLogged).length;
+    if (alreadyLogged.size > 0) {
+      summary.errors.push(`All picks: ${alreadyLogged.size} games already logged for ${today}, skipped`);
+    }
+    if (picks.length === 0) {
+      summary.errors.push(`All picks: no new bettable ${allPicksSports.join('/')} games for ${today}`);
+    }
+    console.log(`[DailyCalc] All picks logged (${summary.allPicks.length}): ${summary.allPicks.map((p) => `${p.pick} $${p.recommendedStake.toFixed(2)}`).join(', ')}`);
+  }
+
   async function finishRandomPicks(): Promise<void> {
+    if (allMode) return finishAllPicks();
     if (!randomMode || !collector) return;
     if (!userId) {
       summary.errors.push('Random picks: admin user not found, nothing logged');
       return;
     }
-    summary.randomPicks = await logRandomPicks(
-      collector, randomPicks, userId, finalBankroll, kellyFraction, americanOdds, today
+    summary.randomPicks = await logPicks(
+      selectRandomPicks(collector, randomPicks), 'random', userId, finalBankroll, kellyFraction, americanOdds, today
     );
     summary.betsLogged += summary.randomPicks.filter((p) => p.betLogged).length;
     if (summary.randomPicks.length < randomPicks) {
@@ -1025,6 +1099,14 @@ export const runDailyCalcInputSchema = z.object({
     .max(20)
     .optional()
     .describe('Random-picks mode: randomly choose this many games across all sports and log a fractional-Kelly bet on the model\'s side of each (instead of logging every value bet). 0 disables. Once per day.'),
+  allPicks: z
+    .boolean()
+    .optional()
+    .describe('All-picks mode: log a fractional-Kelly bet on the model\'s side of every bettable game in allPicksSports (NBA/NFL/NHL by default). Each game is logged at most once per day.'),
+  allPicksSports: z
+    .array(z.enum(['NBA', 'NFL', 'NHL', 'MLB']))
+    .optional()
+    .describe('Sports included in all-picks mode. Defaults to NBA, NFL, NHL.'),
 });
 
 export async function handleRunDailyCalc(
@@ -1038,5 +1120,7 @@ export async function handleRunDailyCalc(
     recordProjections: params.recordProjections !== false,
     sport: (params.sport || 'ALL') as 'NBA' | 'NFL' | 'NHL' | 'MLB' | 'ALL',
     randomPicks: params.randomPicks,
+    allPicks: params.allPicks,
+    allPicksSports: params.allPicksSports,
   });
 }

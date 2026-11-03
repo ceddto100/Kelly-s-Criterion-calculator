@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { selectRandomPicks, type PickCandidate } from '../src/tools/dailyCalc.js';
+import { selectRandomPicks, selectAllPicks, gameTag, DEFAULT_ALL_PICKS_SPORTS, type PickCandidate } from '../src/tools/dailyCalc.js';
 
 function cand(id: string, probability: number): PickCandidate {
   return {
@@ -34,5 +34,25 @@ describe('selectRandomPicks', () => {
     const picks = selectRandomPicks(c, 5);
     expect(picks).toHaveLength(2);
     expect(new Set(picks.map((p) => p.homeTeam)).size).toBe(2);
+  });
+});
+
+describe('selectAllPicks', () => {
+  const date = '2026-11-03';
+  const nhl: PickCandidate = { ...cand('h', 54), sport: 'NHL', sportLabel: 'hockey', market: 'total', pick: 'Over 6.5', pickedSide: 'over', line: 6.5 };
+  const mlb: PickCandidate = { ...cand('m', 56), sport: 'MLB', sportLabel: 'baseball' };
+
+  it('returns every NBA/NFL/NHL game, value bets first, and excludes other sports', () => {
+    const c = [cand('a', 51), cand('b', 60), nhl, mlb];
+    const picks = selectAllPicks(c, DEFAULT_ALL_PICKS_SPORTS, date);
+    expect(picks.map((p) => p.homeTeam)).toEqual(['Home b', 'Home h', 'Home a']);
+  });
+
+  it('skips duplicates and games already logged today', () => {
+    const a = cand('a', 55);
+    const logged = new Set([gameTag(date, cand('b', 50))]);
+    const picks = selectAllPicks([a, a, cand('b', 58)], DEFAULT_ALL_PICKS_SPORTS, date, logged);
+    expect(picks).toHaveLength(1);
+    expect(picks[0].homeTeam).toBe('Home a');
   });
 });

@@ -1,35 +1,51 @@
-name: Daily Random Picks (half Kelly)
+name: Daily Auto Picks (all NBA/NFL/NHL games, half Kelly)
 
-# Once a day, ask the MCP server to pick N random games across NBA/NFL/NHL/MLB,
-# size each on the model's side with half Kelly, and log them to the admin
-# account. The server refuses to log twice for the same day, so manual re-runs
-# are safe.
+# Once a day, ask the MCP server to log a bet on the model's side of EVERY
+# bettable NBA, NFL and NHL game on today's slate, sized with half Kelly, to the
+# admin account. Each game is logged at most once per day, so re-runs (manual or
+# the second scheduled run) only add games that were missing — e.g. an NHL total
+# whose line was posted late.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   MCP_SERVER_URL  e.g. https://your-mcp-server.onrender.com  (no trailing slash)
 #   ADMIN_KEY       same value as the ADMIN_KEY env var on the MCP server
 # Optional repository variables:
-#   DAILY_RANDOM_PICKS    number of games (default 5)
 #   DAILY_KELLY_FRACTION  Kelly multiplier (default 0.5)
+#   DAILY_PICK_SPORTS     comma-separated sports (default NBA,NFL,NHL)
 
 on:
   schedule:
     # 15:17 UTC = 11:17 AM ET: lines are posted, nothing has started yet.
     - cron: '17 15 * * *'
+    # 21:47 UTC = 5:47 PM ET: catch games/lines that weren't up in the morning.
+    - cron: '47 21 * * *'
   workflow_dispatch:
     inputs:
-      picks:
-        description: 'Number of random games'
-        default: '5'
+      sports:
+        description: 'Comma-separated sports to log'
+        default: 'NBA,NFL,NHL'
 
 concurrency:
-  group: daily-random-picks
+  group: daily-auto-picks
   cancel-in-progress: false
 
 jobs:
   log-picks:
     runs-on: ubuntu-latest
     steps:
+      - name: Check configuration
+        env:
+          MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+        run: |
+          missing=""
+          [ -z "$MCP_SERVER_URL" ] && missing="$missing MCP_SERVER_URL"
+          [ -z "$ADMIN_KEY" ] && missing="$missing ADMIN_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (Settings -> Secrets and variables -> Actions)"
+            exit 1
+          fi
+
       - name: Wake server (free hosts sleep)
         env:
           MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
@@ -44,14 +60,23 @@ jobs:
           done
           echo "Server never reported a database connection"; exit 1
 
-      - name: Run daily random picks
+      - name: Log all picks
         env:
           MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
-          PICKS: ${{ github.event.inputs.picks || vars.DAILY_RANDOM_PICKS || '5' }}
+          SPORTS: ${{ github.event.inputs.sports || vars.DAILY_PICK_SPORTS || 'NBA,NFL,NHL' }}
           KELLY: ${{ vars.DAILY_KELLY_FRACTION || '0.5' }}
         run: |
-          body=$(printf '{"randomPicks":%s,"kellyFraction":%s,"sport":"ALL"}' "$PICKS" "$KELLY")
+          body=$(node -e '
+            const sports = process.env.SPORTS.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+            process.stdout.write(JSON.stringify({
+              allPicks: true,
+              allPicksSports: sports,
+              kellyFraction: Number(process.env.KELLY),
+              sport: "ALL",
+            }));
+          ')
+          echo "Request: $body"
           curl -fsS --max-time 300 -X POST "$MCP_SERVER_URL/api/daily-calcs" \
             -H "Content-Type: application/json" \
             -H "x-admin-key: $ADMIN_KEY" \
@@ -59,16 +84,14 @@ jobs:
           node -e '
             const r = require("./result.json");
             console.log(`Date: ${r.date}  analyzed: ${r.gamesAnalyzed}  logged: ${r.betsLogged}`);
-            for (const p of r.randomPicks || []) {
+            for (const p of r.allPicks || []) {
               console.log(`  ${p.betLogged ? "✔" : "✘"} ${p.game} — ${p.pick}  p=${p.probability.toFixed(1)}%  stake=$${p.recommendedStake.toFixed(2)}${p.error ? "  ERR " + p.error : ""}`);
             }
             for (const e of r.errors || []) console.log("  note:", e);
             if (!r.success) process.exit(1);
-            // Fail loudly if nothing was logged, unless that is expected
-            // (already ran today, or no bettable games on the slate).
-            const ok = (r.errors || []).some((e) => /already logged|only 0 bettable/.test(e));
-            if ((r.randomPicks || []).filter((p) => p.betLogged).length === 0 && !ok) {
-              console.log("No picks were logged — check the server logs.");
+            const failed = (r.allPicks || []).filter((p) => !p.betLogged);
+            if (failed.length > 0) {
+              console.log(`${failed.length} picks failed to log — check the server logs.`);
               process.exit(1);
             }
           '
