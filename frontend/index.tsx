@@ -2249,7 +2249,7 @@ function App() {
   const getSEOForTab = () => {
     switch (activeTab) {
       case CONSTANTS.TABS.PREDICTIONS:
-        return {title:"Sports Prediction Board",description:"Explore NBA, NFL, MLB and NHL outcomes with transparent, CSV-backed sports models.",canonical:"https://betgistics.com/#predictions"};
+        return {title:"Matchup Lab",description:"Build any NBA, NFL, MLB or NHL matchup, see the stats-driven projection, and bet with a disciplined, edge-first method.",canonical:"https://betgistics.com/#predictions"};
       case CONSTANTS.TABS.KELLY:
         return SEO_CONFIG.kelly;
       case CONSTANTS.TABS.ESTIMATOR:
