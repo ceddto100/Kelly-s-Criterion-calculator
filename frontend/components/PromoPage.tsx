@@ -253,7 +253,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
               <div style={styles.resetTitle}>Sports in the App</div>
               <div style={styles.resetDescription}>
                 Hide a sport when its season is over. Hidden sports disappear from
-                the Prediction Board, Today's Games, the Probability Estimator and
+                the Matchup Lab, Today's Games, the Probability Estimator and
                 Team Stats for everyone (CFB also hides Walters).
               </div>
             </div>
