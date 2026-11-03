@@ -48,58 +48,6 @@ const INITIAL_DRAFT: PromoDraft = {
   imageUrl: '',
 };
 
-const MEDIA_OPTIONS: Array<{ value: MediaType; label: string; hint: string }> = [
-  { value: 'link', label: 'Link only', hint: 'External page with no inline embed' },
-  { value: 'youtube', label: 'YouTube', hint: 'Video via youtube.com or youtu.be URL' },
-  { value: 'vimeo', label: 'Vimeo', hint: 'Video via Vimeo URL' },
-  { value: 'iframe', label: 'Custom iframe', hint: 'Paste provider embed URL (not raw HTML)' },
-  { value: 'pdf', label: 'PDF / e-book file', hint: 'Embed a PDF URL' },
-  { value: 'ebook', label: 'e-Book platform', hint: 'Use provider embed URL or fallback button link' },
-];
-
-function extractYouTubeId(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes('youtu.be')) {
-      return parsed.pathname.replace('/', '') || null;
-    }
-    if (parsed.searchParams.get('v')) {
-      return parsed.searchParams.get('v');
-    }
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    return parts[parts.length - 1] || null;
-  } catch {
-    return null;
-  }
-}
-
-function extractVimeoId(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    const id = parts[parts.length - 1] || '';
-    return /^\d+$/.test(id) ? id : null;
-  } catch {
-    return null;
-  }
-}
-
-function resolveEmbedUrl(promo: Promo): string {
-  if (!promo.embedUrl) return '';
-
-  if (promo.mediaType === 'youtube') {
-    const id = extractYouTubeId(promo.embedUrl);
-    return id ? `https://www.youtube.com/embed/${id}` : '';
-  }
-
-  if (promo.mediaType === 'vimeo') {
-    const id = extractVimeoId(promo.embedUrl);
-    return id ? `https://player.vimeo.com/video/${id}` : '';
-  }
-
-  return promo.embedUrl;
-}
-
 export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   const isAdmin = normalizeEmail(user?.email) === ADMIN_EMAIL;
 
@@ -138,10 +86,10 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   const [submittingPromo, setSubmittingPromo] = useState(false);
   const [newPromo, setNewPromo] = useState<PromoDraft>(INITIAL_DRAFT);
 
-  const requiresEmbedUrl = useMemo(
-    () => newPromo.mediaType !== 'link',
-    [newPromo.mediaType]
-  );
+  // Promotions are sportsbook offers (link type). Video / PDF / e-book embeds
+  // belong to the Media Library, so they are not rendered here.
+  const offers = useMemo(() => promos.filter((p) => p.mediaType === 'link'), [promos]);
+  const legacyMediaCount = promos.length - offers.length;
 
   const loadPromos = async () => {
     setLoadingPromos(true);
@@ -172,13 +120,8 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
       return;
     }
 
-    if (requiresEmbedUrl && !newPromo.embedUrl.trim()) {
-      alert('This media type needs an embed URL');
-      return;
-    }
-
-    if (!newPromo.embedUrl.trim() && !newPromo.ctaUrl.trim()) {
-      alert('Please provide at least one URL (embed URL or button URL)');
+    if (!newPromo.ctaUrl.trim()) {
+      alert('Please add the offer link');
       return;
     }
 
@@ -191,7 +134,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newPromo),
+        body: JSON.stringify({ ...newPromo, mediaType: 'link', embedUrl: '' }),
       });
 
       if (!response.ok) {
@@ -267,9 +210,10 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h2 style={styles.title}>🎬 Media & Promotions</h2>
+        <h2 style={styles.title}>Sportsbook Promotions & Bonuses</h2>
         <p style={styles.subtitle}>
-          Admin-controlled embeds for trailers, videos, PDF e-books, and external platforms (including future 11Reader embeds)
+          Current sportsbook welcome offers, bonus bets and deposit matches. Betgistics does not take bets —
+          offers are claimed directly with each sportsbook, and every offer has its own terms.
         </p>
       </div>
 
@@ -279,7 +223,7 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
             onClick={() => setShowAddForm(!showAddForm)}
             style={styles.addButton}
           >
-            {showAddForm ? '✕ Cancel' : '➕ Add Media Item'}
+            {showAddForm ? '✕ Cancel' : '➕ Add Promotion'}
           </button>
           <div style={styles.resetCard}>
             <div>
@@ -354,152 +298,125 @@ export const PromoPage: React.FC<PromoPageProps> = ({ user }) => {
 
       {showAddForm && (
         <div style={styles.addForm}>
-          <h3 style={styles.formTitle}>Create Embedded Media Item</h3>
+          <h3 style={styles.formTitle}>Add Sportsbook Promotion</h3>
           <input
             type="text"
-            placeholder="Title *"
+            placeholder="Offer headline * (e.g., Sportsbook — Bet $5, Get $200 in Bonus Bets)"
             value={newPromo.title}
             onChange={(e) => setNewPromo({ ...newPromo, title: e.target.value })}
             style={styles.input}
           />
           <textarea
-            placeholder="Description"
+            placeholder="Offer details and key terms (eligible states, minimum deposit, wagering requirements, expiry)"
             value={newPromo.description}
             onChange={(e) => setNewPromo({ ...newPromo, description: e.target.value })}
             style={{ ...styles.input, ...styles.textarea }}
           />
-
-          <label style={styles.label}>Media Type</label>
-          <select
-            value={newPromo.mediaType}
-            onChange={(e) => setNewPromo({ ...newPromo, mediaType: e.target.value as MediaType })}
-            style={styles.input}
-          >
-            {MEDIA_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label} — {opt.hint}
-              </option>
-            ))}
-          </select>
-
           <input
             type="url"
-            placeholder={requiresEmbedUrl ? 'Embed URL *' : 'Embed URL (optional)'}
-            value={newPromo.embedUrl}
-            onChange={(e) => setNewPromo({ ...newPromo, embedUrl: e.target.value })}
-            style={styles.input}
-          />
-          <input
-            type="url"
-            placeholder="Button URL (optional fallback or CTA)"
+            placeholder="Offer link * (sportsbook promotion page)"
             value={newPromo.ctaUrl}
             onChange={(e) => setNewPromo({ ...newPromo, ctaUrl: e.target.value })}
             style={styles.input}
           />
           <input
             type="url"
-            placeholder="Thumbnail Image URL (optional)"
+            placeholder="Sportsbook logo / banner image URL (optional)"
             value={newPromo.imageUrl}
             onChange={(e) => setNewPromo({ ...newPromo, imageUrl: e.target.value })}
             style={styles.input}
           />
 
           <button onClick={handleAddPromo} style={styles.submitButton} disabled={submittingPromo}>
-            {submittingPromo ? 'Saving...' : 'Save Media Item'}
+            {submittingPromo ? 'Saving...' : 'Save Promotion'}
           </button>
         </div>
       )}
 
       {promoError && <div style={styles.errorBanner}>{promoError}</div>}
 
+      {isAdmin && legacyMediaCount > 0 && (
+        <div style={styles.errorBanner}>
+          {legacyMediaCount} older media embed{legacyMediaCount === 1 ? ' is' : 's are'} stored here but hidden from
+          Promos (videos, PDFs and e-books belong in the Media Library). Delete or re-add them as offers.
+        </div>
+      )}
+
       <div style={styles.promoGrid}>
         {loadingPromos ? (
           <div style={styles.emptyState}>
-            <p style={styles.emptyText}>Loading media items…</p>
+            <p style={styles.emptyText}>Loading promotions…</p>
           </div>
-        ) : promos.length === 0 ? (
+        ) : offers.length === 0 ? (
           <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>📭</div>
-            <p style={styles.emptyText}>No media items yet</p>
-            {isAdmin && (
-              <p style={styles.emptySubtext}>
-                Add your trailer, e-book, or platform embed from the admin form.
-              </p>
-            )}
+            <div style={styles.emptyIcon}>🎁</div>
+            <p style={styles.emptyText}>No sportsbook promotions listed right now</p>
+            <p style={styles.emptySubtext}>
+              {isAdmin
+                ? 'Use “Add Promotion” to list a sportsbook offer with its link and key terms.'
+                : 'Check back soon — current offers will be listed here.'}
+            </p>
           </div>
         ) : (
-          promos.map((promo) => {
-            const embedSrc = resolveEmbedUrl(promo);
-            return (
-              <div key={promo._id} style={styles.promoCard}>
-                {promo.imageUrl && (
-                  <div style={styles.promoImageContainer}>
-                    <img
-                      src={promo.imageUrl}
-                      alt={promo.title}
-                      title={promo.title}
-                      style={styles.promoImage}
-                      width="100%"
-                      height="auto"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-
-                {embedSrc && promo.mediaType !== 'link' && (
-                  <div style={styles.embedContainer}>
-                    <iframe
-                      src={embedSrc}
-                      title={`${promo.title} embed`}
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      style={styles.iframe}
-                    />
-                  </div>
-                )}
-
-                <div style={styles.promoContent}>
-                  <div style={styles.promoHeader}>
-                    <h3 style={styles.promoTitle}>{promo.title}</h3>
-                    <span style={styles.promoDate}>{formatDate(promo.createdAt)}</span>
-                  </div>
-                  {promo.description && (
-                    <p style={styles.promoDescription}>{promo.description}</p>
-                  )}
-                  <div style={styles.badge}>{promo.mediaType.toUpperCase()}</div>
-                  <div style={styles.promoActions}>
-                    {(promo.ctaUrl || promo.embedUrl) && (
-                      <a
-                        href={promo.ctaUrl || promo.embedUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={styles.promoLink}
-                      >
-                        🔗 Open
-                      </a>
-                    )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDeletePromo(promo._id)}
-                        style={styles.deleteButton}
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </div>
+          offers.map((promo) => (
+            <div key={promo._id} style={styles.promoCard}>
+              {promo.imageUrl && (
+                <div style={styles.promoImageContainer}>
+                  <img
+                    src={promo.imageUrl}
+                    alt={promo.title}
+                    title={promo.title}
+                    style={styles.promoImage}
+                    width="100%"
+                    height="auto"
+                    loading="lazy"
+                  />
                 </div>
+              )}
+
+              <div style={styles.promoContent}>
+                <div style={styles.promoHeader}>
+                  <h3 style={styles.promoTitle}>{promo.title}</h3>
+                  <span style={styles.promoDate}>Added {formatDate(promo.createdAt)}</span>
+                </div>
+                <div style={styles.badge}>SPORTSBOOK OFFER</div>
+                {promo.description && (
+                  <p style={styles.promoDescription}>{promo.description}</p>
+                )}
+                <div style={styles.promoActions}>
+                  {(promo.ctaUrl || promo.embedUrl) && (
+                    <a
+                      href={promo.ctaUrl || promo.embedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      style={styles.promoLink}
+                    >
+                      View offer ↗
+                    </a>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeletePromo(promo._id)}
+                      style={styles.deleteButton}
+                      aria-label={`Delete ${promo.title}`}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+                <p style={styles.offerTerms}>
+                  21+. Terms apply; availability varies by state. Verify the offer on the sportsbook's site.
+                </p>
               </div>
-            );
-          })
+            </div>
+          ))
         )}
       </div>
 
       {user && !isAdmin && (
         <div style={styles.loginPrompt}>
           <p style={styles.loginText}>
-            Only the site administrator can add and manage media embeds.
+            Promotions are curated by the Betgistics team.
           </p>
         </div>
       )}
@@ -703,17 +620,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: '100%',
     objectFit: 'cover',
   },
-  embedContainer: {
-    width: '100%',
-    aspectRatio: '16 / 9',
-    background: 'rgba(0, 0, 0, 0.45)',
-    borderBottom: '1px solid rgba(255,255,255,0.12)',
-  },
-  iframe: {
-    width: '100%',
-    height: '100%',
-    border: 'none',
-  },
   promoContent: {
     padding: '20px',
   },
@@ -780,6 +686,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
+  },
+  offerTerms: {
+    marginTop: '12px',
+    marginBottom: 0,
+    fontSize: '11px',
+    color: 'rgba(255, 255, 255, 0.5)',
+    lineHeight: 1.4,
   },
   emptyState: {
     textAlign: 'center',

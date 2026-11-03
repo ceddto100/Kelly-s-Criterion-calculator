@@ -19,6 +19,7 @@ export const predictionOutputSchema = z.object({
   sport:sportSchema,home:z.string(),away:z.string(),headline:z.string(),summary:z.string(),
   homeScore:z.number().finite().optional(),awayScore:z.number().finite().optional(),margin:z.number().finite().optional(),total:z.number().finite().optional(),
   probability:z.number().min(0).max(100).optional(),probabilityLabel:z.string().optional(),pushProbability:z.number().min(0).max(100).optional(),
+  homeWinProbability:z.number().min(0).max(100).optional(),awayWinProbability:z.number().min(0).max(100).optional(),projectedWinner:z.string().optional(),
   drivers:z.array(z.string()),warnings:z.array(z.string()),updatedAt:z.string().nullable(),modelVersion:z.string(),source:z.literal('CSV'),files:z.array(z.string()),inputs:z.record(z.unknown()),
 });
 export const questionSchema=z.object({question:z.string().trim().min(3).max(2000),sport:sportSchema.optional()}).strict();

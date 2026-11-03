@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Kelly's Criterion Calculator</title>
+    <title>Privacy Policy | Betgistics</title>
+    <meta name="description" content="How Betgistics collects, uses and protects your information.">
+    <link rel="canonical" href="https://betgistics.com/privacy.html">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -12,183 +14,117 @@
             padding: 40px 20px;
             line-height: 1.6;
             color: #333;
+            background: #fff;
         }
         h1 { font-size: 2rem; margin-bottom: 0.5rem; }
         h2 { font-size: 1.5rem; margin-top: 2rem; border-bottom: 2px solid #0066cc; padding-bottom: 0.5rem; }
         h3 { font-size: 1.2rem; margin-top: 1.5rem; }
-        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-        table th, table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        table th { background: #f5f5f5; font-weight: bold; }
         .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
         .back-link { display: inline-block; margin-bottom: 1rem; color: #0066cc; text-decoration: none; }
         .back-link:hover { text-decoration: underline; }
+        .important { background: #fff8e1; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; margin: 1rem 0; }
+        .rg { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #ddd; color: #666; font-size: 0.9rem; text-align: center; }
     </style>
 </head>
 <body>
-    <a href="index.html" class="back-link">← Back to Legal Documentation</a>
-    
+    <a href="/" class="back-link">← Back to Betgistics</a>
+
     <h1>Privacy Policy</h1>
     <div class="meta">
-        <strong>Kelly's Criterion Calculator</strong><br>
-        <strong>Effective Date:</strong> December 21, 2025<br>
-        <strong>Last Updated:</strong> December 21, 2025<br>
-        <strong>Version:</strong> 1.0.0
+        <strong>Betgistics</strong> (betgistics.com)<br>
+        <strong>Effective Date:</strong> November 3, 2026<br>
+        <strong>Last Updated:</strong> November 3, 2026<br>
+        <strong>Version:</strong> 2.0.0
     </div>
 
     <h2>1. Introduction</h2>
-    <p>This Privacy Policy describes how Kelly's Criterion Calculator ("the App," "we," "us," or "our") collects, uses, shares, and protects information when you use our Model Context Protocol (MCP) server integrated with ChatGPT.</p>
-    <p>By using the App, you agree to the collection and use of information in accordance with this policy. If you do not agree with this policy, please do not use the App.</p>
+    <p>This Privacy Policy explains what information Betgistics ("Betgistics," "we," "us," or "our") collects when you use the Betgistics website and app, how we use it, and the choices you have.</p>
 
-    <h2>2. Data We Collect</h2>
-    
-    <h3>2.1 MCP Server (Primary Service)</h3>
-    <p>The core MCP server operates in a <strong>stateless manner</strong> and does not persistently store any user data. During a calculation session, we temporarily process the following information:</p>
-    
-    <table>
-        <tr>
-            <th>Data Type</th>
-            <th>Purpose</th>
-            <th>Persistence</th>
-        </tr>
-        <tr>
-            <td>Bankroll amount</td>
-            <td>Calculate optimal bet size</td>
-            <td>Not stored</td>
-        </tr>
-        <tr>
-            <td>Betting odds</td>
-            <td>Perform Kelly Criterion calculation</td>
-            <td>Not stored</td>
-        </tr>
-        <tr>
-            <td>Win probability</td>
-            <td>Calculate expected value</td>
-            <td>Not stored</td>
-        </tr>
-        <tr>
-            <td>Kelly fraction preference</td>
-            <td>Adjust calculation conservatism</td>
-            <td>Not stored</td>
-        </tr>
-        <tr>
-            <td>Locale/language preference</td>
-            <td>Provide localized responses</td>
-            <td>Not stored</td>
-        </tr>
-    </table>
-    
-    <p><strong>Important:</strong> None of the above data is logged, saved to a database, or retained after your session ends.</p>
+    <div class="important">
+        <p><strong>What Betgistics is — and is not.</strong> Betgistics is a sports research and bet-tracking tool. It is <strong>not a sportsbook</strong>. Betgistics does <strong>not</strong> take bets, does <strong>not</strong> build or place parlays, and does <strong>not</strong> hold, accept or transfer money on your behalf. Any wager you make is placed with a third-party sportsbook, not with Betgistics.</p>
+    </div>
 
-    <h3>2.2 Optional AI Insights Feature</h3>
-    <p>If the AI analyst insights feature is enabled (server configuration), the following data may be transmitted to Google's Gemini API:</p>
+    <h2>2. Information We Collect</h2>
+
+    <h3>2.1 Google sign-in account information</h3>
+    <p>If you sign in, you do so with your Google account. Google shares the basic profile information you approve, which we store to identify your account:</p>
     <ul>
-        <li>Bankroll amount</li>
-        <li>Betting odds</li>
-        <li>Win probability estimate</li>
-        <li>Calculated stake recommendation</li>
+        <li>Your name</li>
+        <li>Your email address</li>
+        <li>Your profile picture URL</li>
+        <li>Your Google account identifier</li>
     </ul>
-    <p>This data is sent to Google for the sole purpose of generating a brief analytical insight. See Section 4 and our <a href="gemini-disclosure.html">Gemini AI Disclosure</a> for more details.</p>
+    <p>We never receive or store your Google password.</p>
 
-    <h2>3. How We Use Your Data</h2>
-    <p>We use the information we collect solely for the following purposes:</p>
-    <ol>
-        <li><strong>Perform Calculations:</strong> Process Kelly Criterion and probability calculations based on your inputs</li>
-        <li><strong>Generate AI Insights:</strong> If enabled, provide optional AI-generated analytical commentary</li>
-        <li><strong>Localization:</strong> Display results in your preferred language</li>
-        <li><strong>Improve Service:</strong> Aggregate, anonymized error logs may be used to improve reliability</li>
-    </ol>
-    
-    <p>We do <strong>NOT</strong> use your data for:</p>
+    <h3>2.2 Bets you log (straight bets only)</h3>
+    <p>When you choose to log a bet in Bet History, we store the details you enter or carry over from the calculators so you can track your results. The bet log supports straight bets only (spread, total or moneyline on a single game). A logged bet can include:</p>
     <ul>
-        <li>Targeted advertising</li>
-        <li>Sale to third parties</li>
-        <li>Profiling or behavioral tracking</li>
-        <li>Marketing communications (unless you explicitly opt in)</li>
+        <li>Sport, teams and the team statistics used in your analysis</li>
+        <li>The line, odds, and the probability and projected margin shown by the calculators</li>
+        <li>The bankroll, stake and Kelly percentage figures you entered</li>
+        <li>The outcome you record (win, loss or push) and any notes</li>
+    </ul>
+    <p>These are records you type in for your own tracking. Logging a bet does not place a wager anywhere.</p>
+
+    <h3>2.3 Usage needed to run the service</h3>
+    <ul>
+        <li>A count of the probability calculations used by your account</li>
+        <li>Standard server logs (such as IP address, browser type and request time) used for security and troubleshooting</li>
+        <li>Preferences stored in your own browser (for example your theme, last-opened tab and any media you upload to the Media page, which stays on your device)</li>
     </ul>
 
-    <h2>4. Data Sharing and Third-Party Services</h2>
-    
-    <h3>4.1 Google Gemini API (Optional)</h3>
-    <p>If the AI insights feature is enabled, your calculation inputs (bankroll, odds, probability) are transmitted to Google's Gemini API to generate analytical commentary. This transmission:</p>
-    <ul>
-        <li>Occurs only when the feature is server-enabled</li>
-        <li>Is subject to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a></li>
-        <li>Is subject to <a href="https://ai.google.dev/terms" target="_blank">Google's Generative AI Terms</a></li>
-        <li>Does not include any personally identifiable information</li>
-    </ul>
-    <p>For complete details, see our <a href="gemini-disclosure.html">Gemini AI Disclosure</a>.</p>
+    <h3>2.4 Calculator explanations</h3>
+    <p>The Kelly Calculator can show a short written explanation of your result. To generate it, only the numbers from that calculation (bankroll, odds, probability and recommended stake) are sent to a third-party AI service provider. Your name, email and bet log are not included.</p>
 
-    <h3>4.2 No Other Third-Party Sharing</h3>
-    <p>We do not share, sell, rent, or trade your personal information with any other third parties for their promotional or marketing purposes.</p>
+    <h3>2.5 Payments</h3>
+    <p>If you choose an optional paid plan, payment is handled entirely by our payment processor, Stripe. We do not receive or store your full card number. We keep only the subscription status Stripe reports back so we can unlock access.</p>
+
+    <h2>3. How We Use Your Information</h2>
+    <ul>
+        <li>To sign you in and keep your account secure</li>
+        <li>To show your logged bets, results and bankroll history back to you</li>
+        <li>To operate, maintain and fix the service</li>
+        <li>To respond when you contact us</li>
+    </ul>
+    <p>We do <strong>not</strong> sell your personal information and do not use it for third-party advertising.</p>
+
+    <h2>4. How Information Is Shared</h2>
+    <p>We share information only with service providers that help us run Betgistics, and only as needed for that purpose:</p>
+    <ul>
+        <li><strong>Google</strong> — sign-in (authentication)</li>
+        <li><strong>Our hosting and database providers</strong> — to store and serve your account and bet log</li>
+        <li><strong>An AI service provider</strong> — only the calculation numbers described in section 2.4</li>
+        <li><strong>Stripe</strong> — only if you choose a paid plan</li>
+    </ul>
+    <p>We may also disclose information if required by law or to protect the rights, safety and security of our users or the service.</p>
 
     <h2>5. Data Retention</h2>
-    
-    <h3>5.1 MCP Server</h3>
-    <p>The MCP server is stateless. <strong>No user data is retained</strong> after a calculation request is completed. Data exists only in memory during the processing of your request.</p>
+    <p>We keep your account information and bet log for as long as your account is active. If you ask us to delete your account, we delete your account information and logged bets, except where we must keep limited records to meet legal obligations.</p>
 
-    <h2>6. User Rights and Data Deletion</h2>
-    <p>You have the following rights regarding your data:</p>
-    
-    <h3>6.1 Right to Access</h3>
-    <p>You may request a copy of any personal data we hold about you.</p>
-    
-    <h3>6.2 Right to Correction</h3>
-    <p>You may request correction of inaccurate personal data.</p>
-    
-    <h3>6.3 Right to Deletion</h3>
-    <p>You may request deletion of your personal data. For the MCP server, no action is required as no data is stored.</p>
-    
-    <h3>6.4 How to Exercise Your Rights</h3>
-    <p>To exercise any of these rights, contact us at:</p>
-    <p><strong>Email:</strong> privacy@kellyscriterion.app<br>
-    <strong>Subject Line:</strong> "Privacy Rights Request"</p>
-    <p>We will respond to your request within 30 days.</p>
-
-    <h2>7. Children's Privacy</h2>
-    <p><strong>The App is not intended for use by anyone under the age of 18.</strong></p>
-    <p>We do not knowingly collect personal information from children under 13 years of age. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately. If we discover that we have collected personal information from a child under 13, we will delete that information promptly.</p>
-    <p>Given the nature of this App (betting calculations), users must be of legal gambling age in their jurisdiction to use this service.</p>
-
-    <h2>8. Security Practices</h2>
-    <p>We implement appropriate technical and organizational measures to protect your data:</p>
+    <h2>6. Your Choices and Rights</h2>
     <ul>
-        <li><strong>Server-Side API Keys:</strong> All third-party API keys (including Gemini) are stored server-side only and never exposed to clients</li>
-        <li><strong>Input Validation:</strong> All user inputs are validated using schema validation (Zod) to prevent injection attacks</li>
-        <li><strong>CORS Protection:</strong> Cross-origin requests are restricted to authorized domains</li>
-        <li><strong>HTTPS:</strong> All data transmission occurs over encrypted connections</li>
-        <li><strong>No Logging:</strong> The MCP server does not log user calculation data</li>
-        <li><strong>Rate Limiting:</strong> Request rate limiting prevents abuse</li>
+        <li><strong>Access and correction:</strong> you can view your logged bets and update their outcomes in Bet History.</li>
+        <li><strong>Deletion:</strong> you can delete individual bets in Bet History, or email us to delete your whole account.</li>
+        <li><strong>Sign out:</strong> you can sign out at any time and revoke Betgistics' access from your Google account settings.</li>
     </ul>
-    <p>While we strive to protect your data, no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.</p>
+    <p>Depending on where you live (for example California or the EU/UK), you may have additional rights to access, correct, delete or port your data. Email us to exercise them; we respond within 30 days.</p>
 
-    <h2>9. International Data Transfers</h2>
-    <p>If you access the App from outside the United States, your data may be transferred to and processed in the United States or other countries where our servers or third-party service providers are located. By using the App, you consent to such transfers.</p>
+    <h2>7. Age Restriction</h2>
+    <p>Betgistics is for adults <strong>21 and older</strong>. We do not knowingly collect information from anyone under 21. If you believe someone under 21 has created an account, contact us and we will delete it.</p>
+
+    <h2>8. Security</h2>
+    <p>We use HTTPS encryption in transit, access controls on our database, and sign-in through Google rather than our own passwords. No system is perfectly secure, but we work to protect your information.</p>
+
+    <h2>9. Disclaimer</h2>
+    <p>Betgistics is provided for <strong>informational and educational purposes only</strong>. We make <strong>no guarantee of the accuracy</strong> of any calculation, probability, projection or prediction shown in the app. Do not rely solely on Betgistics calculations when deciding whether to place a bet.</p>
 
     <h2>10. Changes to This Policy</h2>
-    <p>We may update this Privacy Policy from time to time. We will notify you of any material changes by:</p>
-    <ul>
-        <li>Updating the "Last Updated" date at the top of this policy</li>
-        <li>Posting a notice within the App (if applicable)</li>
-    </ul>
-    <p>Your continued use of the App after any changes indicates your acceptance of the updated policy.</p>
+    <p>If we change this policy, we will update the "Last Updated" date and version above. Material changes will be highlighted in the app.</p>
 
-    <h2>11. Contact Information</h2>
-    <p>If you have questions or concerns about this Privacy Policy or our data practices, please contact us:</p>
-    <p><strong>Email:</strong> privacy@kellyscriterion.app<br>
-    <strong>Subject:</strong> Privacy Inquiry</p>
-    <p><strong>Developer:</strong><br>
-    Kelly's Criterion Calculator Team<br>
-    support@kellyscriterion.app</p>
+    <h2>11. Contact</h2>
+    <p><strong>Email:</strong> <a href="mailto:privacy@betgistics.com">privacy@betgistics.com</a><br>
+    <strong>Website:</strong> <a href="https://betgistics.com">https://betgistics.com</a></p>
 
-    <h2>12. Additional Disclosures</h2>
-    
-    <h3>12.1 California Residents (CCPA)</h3>
-    <p>California residents have additional rights under the California Consumer Privacy Act (CCPA). You may request disclosure of the categories of personal information collected and the purposes for collection. We do not sell personal information.</p>
-    
-    <h3>12.2 European Users (GDPR)</h3>
-    <p>If you are located in the European Economic Area (EEA), you have rights under the General Data Protection Regulation (GDPR), including access, rectification, erasure, restriction, and data portability. Our legal basis for processing is legitimate interest (providing the calculation service you request) or consent where applicable.</p>
-
-    <hr style="margin-top: 3rem; border: none; border-top: 1px solid #ddd;">
-    <p style="text-align: center; color: #666; font-size: 0.9rem;"><em>This Privacy Policy is provided in good faith and is intended to be compliant with applicable laws and OpenAI App Store requirements.</em></p>
+    <p class="rg">21+ only. Betgistics is a research and tracking tool — not a sportsbook, and it does not take bets. If gambling stops being fun, call or text 1-800-GAMBLER.</p>
 </body>
 </html>

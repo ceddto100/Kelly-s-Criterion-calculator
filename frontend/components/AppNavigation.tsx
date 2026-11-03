@@ -78,7 +78,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { key: 'bet_history', label: 'Bet History', shortLabel: 'Bets', description: 'Logged bets and bankroll trend', icon: ICONS.bets },
       { key: 'media', label: 'Media', shortLabel: 'Media', description: 'Your audio & video library', icon: ICONS.media },
-      { key: 'promo', label: 'Promos', shortLabel: 'Promos', description: 'Promotions and partner offers', icon: ICONS.promos },
+      { key: 'promo', label: 'Promos', shortLabel: 'Promos', description: 'Sportsbook promotions & bonuses', icon: ICONS.promos },
       { key: 'account', label: 'Settings', shortLabel: 'Account', description: 'Profile, themes, and preferences', icon: ICONS.account },
     ],
   },
