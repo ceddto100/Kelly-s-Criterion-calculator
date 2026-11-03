@@ -76,6 +76,44 @@ interface GenericDailyGame {
   awayScore: number | null;
   overUnder: number | null;
   spread: string | null;
+  homeSpread?: number | null;
+  /** 'pregame' = closing line recovered after kickoff; 'live' = still on the scoreboard. */
+  lineSource?: 'pregame' | 'live' | null;
+  atsResult?: 'home' | 'away' | 'push' | null;
+  totalResult?: 'over' | 'under' | 'push' | null;
+}
+
+function fmtSpread(n: number): string {
+  return n === 0 ? 'PK' : `${n > 0 ? '+' : ''}${n}`;
+}
+
+/** "Packers -3.5 covered" / "Over 44.5 hit" style result lines for live & final games. */
+function gameResults(game: GenericDailyGame): { text: string; color: string }[] {
+  const out: { text: string; color: string }[] = [];
+  const isFinal = game.status === 'final';
+  const verbCover = isFinal ? 'covered' : 'covering';
+  if (game.atsResult) {
+    if (game.atsResult === 'push') {
+      out.push({ text: isFinal ? 'Spread: push' : 'Spread: on the number', color: '#94a3b8' });
+    } else if (game.homeSpread !== null && game.homeSpread !== undefined) {
+      const home = game.atsResult === 'home';
+      const team = home ? game.homeTeam : game.awayTeam;
+      const line = home ? game.homeSpread : -game.homeSpread;
+      out.push({ text: `${team} ${fmtSpread(line)} ${verbCover}`, color: '#22c55e' });
+    }
+  }
+  if (game.totalResult && game.overUnder !== null) {
+    if (game.totalResult === 'push') {
+      out.push({ text: `Total ${game.overUnder}: push`, color: '#94a3b8' });
+    } else {
+      const label = game.totalResult === 'over' ? 'Over' : 'Under';
+      out.push({
+        text: `${label} ${game.overUnder} ${isFinal ? 'hit' : 'pacing'}`,
+        color: game.totalResult === 'over' ? '#22c55e' : '#0ea5e9',
+      });
+    }
+  }
+  return out;
 }
 
 // ---- helpers ----------------------------------------------------------------
@@ -308,6 +346,7 @@ function GenericGameCard({
     : sport === 'NHL'
       ? 'Open over/under in Estimator'
       : 'Open spread in Estimator';
+  const results = gameResults(game);
   return (
     <ClickableCard onSelect={onSelect} busy={busy}>
       <div style={styles.cardHeader}>
@@ -325,14 +364,31 @@ function GenericGameCard({
       </div>
       <div style={styles.statRow}>
         <div style={styles.stat}>
-          <div style={styles.statLabel}>Total (O/U)</div>
+          <div style={styles.statLabel}>{isLive || isFinal ? 'Pre-game O/U' : 'Total (O/U)'}</div>
           <div style={styles.statValue}>{game.overUnder !== null ? game.overUnder : '—'}</div>
         </div>
         <div style={styles.stat}>
-          <div style={styles.statLabel}>Spread</div>
+          <div style={styles.statLabel}>{isLive || isFinal ? 'Pre-game spread' : 'Spread'}</div>
           <div style={styles.statValue}>{game.spread || '—'}</div>
         </div>
+        {(isLive || isFinal) && game.homeScore !== null && game.awayScore !== null && (
+          <div style={styles.stat}>
+            <div style={styles.statLabel}>Total pts</div>
+            <div style={styles.statValue}>{game.homeScore + game.awayScore}</div>
+          </div>
+        )}
       </div>
+
+      {results.length > 0 && (
+        <div style={styles.resultRow}>
+          {!isFinal && <span style={styles.subtle}>Live:</span>}
+          {results.map((r) => (
+            <span key={r.text} style={{ ...styles.resultChip, borderColor: r.color, color: r.color }}>
+              {r.text}
+            </span>
+          ))}
+        </div>
+      )}
 
       {onSelect && <CardCTA label={ctaLabel} />}
     </ClickableCard>
@@ -697,6 +753,14 @@ const styles: { [key: string]: React.CSSProperties } = {
   stat: { textAlign: 'center' },
   statLabel: { color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.04em' },
   statValue: { color: 'var(--text-primary)', fontWeight: 700, fontSize: '1.15rem', marginTop: 2 },
+  resultRow: {
+    display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.4rem',
+    marginTop: '0.75rem',
+  },
+  resultChip: {
+    border: '1px solid', borderRadius: '999px', padding: '0.2rem 0.6rem',
+    fontSize: '0.78rem', fontWeight: 700,
+  },
   starterRow: { marginTop: '0.8rem', paddingTop: '0.6rem', borderTop: '1px solid rgba(255,255,255,0.06)' },
   note: {
     marginTop: '0.7rem', color: 'var(--text-muted)', fontSize: '0.8rem',
