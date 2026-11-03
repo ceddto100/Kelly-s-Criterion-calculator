@@ -77,6 +77,8 @@ interface GenericDailyGame {
   overUnder: number | null;
   spread: string | null;
   homeSpread?: number | null;
+  /** True when ESPN's line is a moneyline (e.g. "SJ -125"), not a point spread. */
+  isMoneyline?: boolean;
   /** 'pregame' = closing line recovered after kickoff; 'live' = still on the scoreboard. */
   lineSource?: 'pregame' | 'live' | null;
   atsResult?: 'home' | 'away' | 'push' | null;
@@ -92,7 +94,12 @@ function gameResults(game: GenericDailyGame): { text: string; color: string }[] 
   const out: { text: string; color: string }[] = [];
   const isFinal = game.status === 'final';
   const verbCover = isFinal ? 'covered' : 'covering';
-  if (game.atsResult) {
+  if (game.isMoneyline && game.homeScore !== null && game.awayScore !== null) {
+    if (game.homeScore !== game.awayScore) {
+      const team = game.homeScore > game.awayScore ? game.homeTeam : game.awayTeam;
+      out.push({ text: `${team} ML ${isFinal ? 'won' : 'leading'}`, color: '#22c55e' });
+    }
+  } else if (game.atsResult) {
     if (game.atsResult === 'push') {
       out.push({ text: isFinal ? 'Spread: push' : 'Spread: on the number', color: '#94a3b8' });
     } else if (game.homeSpread !== null && game.homeSpread !== undefined) {
@@ -368,7 +375,9 @@ function GenericGameCard({
           <div style={styles.statValue}>{game.overUnder !== null ? game.overUnder : '—'}</div>
         </div>
         <div style={styles.stat}>
-          <div style={styles.statLabel}>{isLive || isFinal ? 'Pre-game spread' : 'Spread'}</div>
+          <div style={styles.statLabel}>{game.isMoneyline
+            ? isLive || isFinal ? 'Pre-game ML' : 'Moneyline'
+            : isLive || isFinal ? 'Pre-game spread' : 'Spread'}</div>
           <div style={styles.statValue}>{game.spread || '—'}</div>
         </div>
         {(isLive || isFinal) && game.homeScore !== null && game.awayScore !== null && (
@@ -558,13 +567,6 @@ export default function DailyGamesView({
                 }`
               : `Live slate with model projections. ${new Date().toLocaleDateString()}`}
           </p>
-          {onSelectGame && (
-            <p style={styles.tapHint}>
-              {sport === 'CFB'
-                ? '👉 Tap a game to open it in the Walters Protocol with ratings, line and factors filled in.'
-                : '👉 Tap a game to send its line and team stats to the Probability Estimator.'}
-            </p>
-          )}
         </div>
         <button onClick={() => load(sport)} style={styles.refreshBtn} disabled={loading}>
           {loading ? 'Loading…' : '↻ Refresh'}
@@ -583,6 +585,18 @@ export default function DailyGamesView({
           </button>
         ))}
       </div>
+
+      {onSelectGame && (
+        <div style={styles.tapHint} role="note">
+          <span style={styles.tapHintIcon} aria-hidden>👆</span>
+          <span>
+            Tap any game to load its prediction
+            <span style={styles.tapHintSub}>
+              {sport === 'CFB' ? 'Opens in the Walters Protocol' : 'Opens in the Probability Estimator'}
+            </span>
+          </span>
+        </div>
+      )}
 
       {error && (
         <div style={styles.errorBox}>
@@ -663,22 +677,8 @@ export default function DailyGamesView({
         </>
       )}
 
-      {sport !== 'MLB' && sport !== 'CFB' && !loading && genericGames.length > 0 && (
-        <div style={styles.note}>
-          {sport === 'NHL'
-            ? 'Tap a game to load both teams and the over/under into the Probability Estimator.'
-            : `Tap a game to load both teams and the spread into the Probability Estimator.`}
-        </div>
-      )}
-
       <p style={styles.disclaimer}>
-        Model projections only — a possible edge from formula output, not a guaranteed result.
-        MLB reads the CSVs in <code>/stats/mlb/</code>: team offense (wRC+/wOBA/OPS/R-G), starter
-        (ERA/FIP/xFIP/SIERA), bullpen quality and recent usage, ballpark, game-time weather and
-        lineup status. Anything blank in the CSV stays blank — it lowers confidence rather than
-        being guessed, and “No Bet” stays a smart outcome. College football cards use the SP+/FPI
-        rating blend and only the factors detected from the schedule; QB news and rivalries are
-        yours to add in the Walters tab.
+        Predictions are model estimates and do not account for injuries — check injury news before betting.
       </p>
     </div>
   );
@@ -735,7 +735,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: 'var(--button-primary, #818cf8)', fontWeight: 700, fontSize: '0.82rem',
   },
   tapHint: {
-    color: 'var(--button-primary, #818cf8)', fontSize: '0.8rem', marginTop: '0.35rem', fontWeight: 600,
+    display: 'flex', alignItems: 'center', gap: '0.75rem',
+    margin: '0 0 1rem', padding: '0.85rem 1rem', borderRadius: '14px',
+    background: 'linear-gradient(135deg, rgba(190,242,100,0.18), rgba(52,211,153,0.14))',
+    border: '1.5px solid rgba(190,242,100,0.65)',
+    boxShadow: '0 0 18px rgba(190,242,100,0.25)',
+    color: '#d9f99d', fontSize: '1.05rem', fontWeight: 800, letterSpacing: '0.01em',
+  },
+  tapHintIcon: { fontSize: '1.6rem', lineHeight: 1 },
+  tapHintSub: {
+    display: 'block', marginTop: '0.15rem', color: 'var(--text-muted)',
+    fontSize: '0.78rem', fontWeight: 600,
   },
   cardHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem',

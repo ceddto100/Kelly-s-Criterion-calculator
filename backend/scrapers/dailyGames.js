@@ -64,13 +64,13 @@ function parseHomeSpread(details, homeAbbr, awayAbbr, odds) {
 
 /** Pull { spread, overUnder, homeSpread } out of one ESPN odds/pickcenter entry. */
 function extractLine(odds, homeAbbr, awayAbbr) {
-  if (!odds) return { spread: null, overUnder: null, homeSpread: null };
+  if (!odds) return { spread: null, overUnder: null, homeSpread: null, isMoneyline: false };
   const spread = odds.details || null;
-  return {
-    spread,
-    overUnder: toNum(odds.overUnder),
-    homeSpread: parseHomeSpread(spread, homeAbbr, awayAbbr, odds),
-  };
+  let homeSpread = parseHomeSpread(spread, homeAbbr, awayAbbr, odds);
+  // NHL/MLB "details" is often a moneyline ("SJ -125"), not a point spread.
+  const isMoneyline = homeSpread !== null && Math.abs(homeSpread) >= 100;
+  if (isMoneyline) homeSpread = null;
+  return { spread, overUnder: toNum(odds.overUnder), homeSpread, isMoneyline };
 }
 
 function hasLine(g) {
@@ -129,6 +129,7 @@ function parseScoreboard(data, sport) {
       overUnder: line.overUnder,
       spread: line.spread,
       homeSpread: line.homeSpread,
+      isMoneyline: line.isMoneyline,
     });
   }
   return games;
@@ -175,7 +176,9 @@ const SUMMARY_MISS_MS = 5 * 60 * 1000;
 function rememberLines(games) {
   for (const g of games) {
     if (hasLine(g) && g.status === 'scheduled') {
-      lineMemory.set(g.gameId, { spread: g.spread, overUnder: g.overUnder, homeSpread: g.homeSpread });
+      lineMemory.set(g.gameId, {
+        spread: g.spread, overUnder: g.overUnder, homeSpread: g.homeSpread, isMoneyline: g.isMoneyline,
+      });
     }
   }
   while (lineMemory.size > 2000) lineMemory.delete(lineMemory.keys().next().value);
