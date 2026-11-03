@@ -53,11 +53,11 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 type SportKey = 'MLB' | 'CFB' | 'NBA' | 'NFL' | 'NHL';
 
 const SPORTS: { key: SportKey; label: string; icon: string }[] = [
-  { key: 'MLB', label: 'MLB', icon: '⚾' },
-  { key: 'CFB', label: 'CFB', icon: '🎓' },
   { key: 'NBA', label: 'NBA', icon: '🏀' },
   { key: 'NFL', label: 'NFL', icon: '🏈' },
   { key: 'NHL', label: 'NHL', icon: '🏒' },
+  { key: 'CFB', label: 'CFB', icon: '🎓' },
+  { key: 'MLB', label: 'MLB', icon: '⚾' },
 ];
 
 // ---- shapes returned by the backend -----------------------------------------
@@ -466,7 +466,7 @@ export default function DailyGamesView({
 }: {
   onSelectGame?: (selection: DailyGameSelection) => void;
 }) {
-  const [sport, setSport] = useState<SportKey>('MLB');
+  const [sport, setSport] = useState<SportKey>('NBA');
   const hiddenSports = useHiddenSports();
   const visibleSports = SPORTS.filter((sp) => !hiddenSports.includes(sp.key));
 
