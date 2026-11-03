@@ -114,6 +114,11 @@ body::before {background:linear-gradient(150deg,#101921,#0b1014 50%);}
 /* Founder's track record: real logged bets, clearly labeled. */
 .track-record {border:1px solid #45623b;border-radius:14px;padding:24px;background:linear-gradient(160deg,#18261b,#131c23 60%);}
 .track-record .panel-heading {margin-bottom:10px;}
+.tr-title {display:flex;align-items:center;gap:12px;margin:0;font-size:clamp(24px,2.6vw,34px);font-weight:900;letter-spacing:-1px;line-height:1.1;color:#f1f6f7;}
+.tr-title .signal-dot {width:10px;height:10px;flex:none;box-shadow:0 0 12px #c5f36b;}
+.track-record .panel-heading {gap:12px;}
+.track-record .result-tag {white-space:nowrap;}
+@media(max-width:700px) {.track-record .panel-heading {flex-direction:column-reverse;align-items:flex-start;gap:10px}.tr-title {font-size:27px;letter-spacing:-.8px}}
 .tr-explain {font-size:12px;color:#c3d2d9;line-height:1.7;margin:0 0 18px;max-width:720px;}
 .tr-empty {font-size:13px;color:var(--muted);}
 .tr-stats {display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}

@@ -63,7 +63,7 @@ function TrackRecordPanel() {
     return()=>{active=false;};
   },[]);
   if(failed) return null;
-  const header=<div className="panel-heading"><span className="eyebrow"><span className="signal-dot"/> FOUNDER'S TRACK RECORD</span><span className="result-tag">REAL BETS</span></div>;
+  const header=<div className="panel-heading"><h3 className="tr-title"><span className="signal-dot" aria-hidden="true"/>Founder's Track Record</h3><span className="result-tag">REAL BETS</span></div>;
   if(!data) return <section className="track-record" aria-busy="true">{header}<p className="tr-explain">Loading results…</p></section>;
   return <section className="track-record" aria-label="Founder's track record">
     {header}
