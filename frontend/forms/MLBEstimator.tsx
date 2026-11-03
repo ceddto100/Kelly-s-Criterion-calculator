@@ -137,10 +137,10 @@ function canProject(f: FieldState): boolean {
 /** Fill the form from a team's CSV row (offense + bullpen +, for home, park). */
 function fieldsFromTeamRow(row: MLBTeamRow, side: "home" | "away"): FieldState {
   const s = (v: number | undefined, dp?: number) =>
-    v === undefined ? "" : dp === undefined ? String(v) : v.toFixed(dp);
+    v === undefined || !Number.isFinite(v) ? "" : dp === undefined ? String(Math.round(v * 100) / 100) : v.toFixed(dp);
   const out: FieldState = {
     [`${side}Name`]: row.team,
-    [`${side}Wrc`]: s(row.wrcPlus),
+    [`${side}Wrc`]: s(row.wrcPlus, 1),
     [`${side}Woba`]: s(row.woba, 3),
     [`${side}Ops`]: s(row.ops, 3),
     [`${side}Rpg`]: s(row.runsPerGame, 2),
@@ -156,7 +156,7 @@ function fieldsFromTeamRow(row: MLBTeamRow, side: "home" | "away"): FieldState {
   }
   // The ballpark is a property of the HOME team's venue.
   if (side === "home") {
-    if (row.parkFactor !== undefined) out.parkFactor = String(row.parkFactor);
+    if (row.parkFactor !== undefined) out.parkFactor = s(row.parkFactor);
     const domed = row.roofType === "Dome" || row.roofType === "Closed";
     if (row.roofType) out.roofClosed = domed ? "yes" : "no";
   }

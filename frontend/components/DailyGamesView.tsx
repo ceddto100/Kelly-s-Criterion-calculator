@@ -370,16 +370,24 @@ function GenericGameCard({
         )}
       </div>
       <div style={styles.statRow}>
-        <div style={styles.stat}>
-          <div style={styles.statLabel}>{isLive || isFinal ? 'Pre-game O/U' : 'Total (O/U)'}</div>
-          <div style={styles.statValue}>{game.overUnder !== null ? game.overUnder : '—'}</div>
-        </div>
-        <div style={styles.stat}>
-          <div style={styles.statLabel}>{game.isMoneyline
-            ? isLive || isFinal ? 'Pre-game ML' : 'Moneyline'
-            : isLive || isFinal ? 'Pre-game spread' : 'Spread'}</div>
-          <div style={styles.statValue}>{game.spread || '—'}</div>
-        </div>
+        {/* Only label a line when there is a number to show. */}
+        {game.overUnder !== null && game.overUnder !== undefined && (
+          <div style={styles.stat}>
+            <div style={styles.statLabel}>{isLive || isFinal ? 'Pre-game O/U' : 'Total (O/U)'}</div>
+            <div style={styles.statValue}>{game.overUnder}</div>
+          </div>
+        )}
+        {!!game.spread && (
+          <div style={styles.stat}>
+            <div style={styles.statLabel}>{game.isMoneyline
+              ? isLive || isFinal ? 'Pre-game ML' : 'Moneyline'
+              : isLive || isFinal ? 'Pre-game spread' : 'Spread'}</div>
+            <div style={styles.statValue}>{game.spread}</div>
+          </div>
+        )}
+        {(game.overUnder === null || game.overUnder === undefined) && !game.spread && !(isLive || isFinal) && (
+          <div style={styles.subtle}>No spread or total posted yet.</div>
+        )}
         {(isLive || isFinal) && game.homeScore !== null && game.awayScore !== null && (
           <div style={styles.stat}>
             <div style={styles.statLabel}>Total pts</div>

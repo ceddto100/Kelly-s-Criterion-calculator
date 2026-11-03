@@ -81,7 +81,7 @@ export default function ProjectionResultCard({ result, onUseInKelly }: Props) {
     if (!onUseInKelly) return;
     if (isTotal) {
       const prob = lean === "under" ? totals.underProbability : totals.overProbability;
-      onUseInKelly(prob, `${result.matchup} — ${lean === "under" ? "Under" : "Over"} ${totals.bookTotal ?? totals.projectedTotal}`);
+      onUseInKelly(prob, `${result.matchup} — ${lean === "under" ? "Under" : "Over"} ${totals.bookTotal ?? totals.projectedTotal.toFixed(1)}`);
     } else {
       const prob = lean === "away" ? moneyline.awayWinProbability : moneyline.homeWinProbability;
       const side = lean === "away" ? result.awayTeam : result.homeTeam;

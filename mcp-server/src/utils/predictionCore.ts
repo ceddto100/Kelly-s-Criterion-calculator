@@ -1,4 +1,4 @@
-import { estimateBasketballProbability, estimateFootballProbability } from './calculations.js';
+import { estimateBasketballProbability, estimateFootballProbability, coverProbability } from './calculations.js';
 import { calculateNHLProjection } from './nhl.js';
 import { buildMatchupInput, buildSlateGame, loadMLBStatsFrom, type MLBStats } from './mlbCsv.js';
 import { projectMLBGame } from './mlb.js';
@@ -12,6 +12,8 @@ export type Prediction = {
   sport: PredictionSport; home: string; away: string; headline: string; summary: string;
   homeScore?: number; awayScore?: number; margin?: number; total?: number;
   probability?: number; probabilityLabel?: string; pushProbability?: number;
+  /** Straight-up win probabilities (%), independent of any entered line. */
+  homeWinProbability?: number; awayWinProbability?: number; projectedWinner?: string;
   drivers: string[]; warnings: string[]; updatedAt: string | null; modelVersion: string;
   source: 'CSV'; files: string[]; inputs: Record<string, unknown>;
 };
@@ -73,6 +75,18 @@ export function resolveTeam(catalog: Catalog, name: string): CsvTeam {
   return matches[0];
 }
 
+/** Fill both teams' win probabilities and refuse an inconsistent projection
+ *  (the projected winner can never be shown under 50% to win). */
+function setWinProbabilities(result: Prediction, homeWinPct: number, homeIsProjectedWinner: boolean) {
+  const home = Math.round(homeWinPct * 10) / 10;
+  const away = Math.round((100 - homeWinPct) * 10) / 10;
+  const winnerPct = homeIsProjectedWinner ? home : away;
+  if (!Number.isFinite(home) || winnerPct < 50) throw new Error('Inconsistent projection: projected winner below 50% win probability');
+  result.homeWinProbability = home;
+  result.awayWinProbability = away;
+  result.projectedWinner = homeIsProjectedWinner ? result.home : result.away;
+}
+
 export function predictFromCatalog(catalog: Catalog, request: PredictionRequest): Prediction {
   if (catalog.sport !== request.sport) throw new Error('Sport does not match snapshot');
   const h = resolveTeam(catalog,request.home), a = resolveTeam(catalog,request.away);
@@ -101,9 +115,10 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
     result.inputs = input as unknown as Record<string,unknown>;
     result.homeScore = p.totals.projectedHomeRuns; result.awayScore = p.totals.projectedAwayRuns;
     result.total = p.totals.projectedTotal; result.probability = p.moneyline.homeWinProbability;
-    result.probabilityLabel = h.team + ' win estimate';
-    if(request.line !== undefined) {result.probability = p.totals.overProbability; result.probabilityLabel = 'Over ' + request.line + ' runs';}
-    result.headline = (p.moneyline.homeWinProbability >= 50 ? h.team : a.team) + ' lean';
+    result.probabilityLabel = h.team + ' (home) win probability';
+    setWinProbabilities(result, p.moneyline.homeWinProbability, p.moneyline.homeWinProbability >= 50);
+    if(request.line !== undefined) {result.probability = p.totals.overProbability; result.probabilityLabel = 'Over ' + request.line + ' runs probability';}
+    result.headline = result.projectedWinner + ' lean';
     result.summary = 'Run projection from offense, opposing pitching and the home ballpark.';
     result.drivers = ['wRC+ anchors offense; wOBA, OPS and runs are fallbacks.', 'Starter and bullpen contributions follow their expected share of innings.', 'Available weather and lineup data adjust the same shared model.'];
     warnings.push(...p.riskFactors);
@@ -124,8 +139,14 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
     const estimate=catalog.sport==='NBA'?estimateBasketballProbability:estimateFootballProbability;
     const p=estimate(stats,request.line ?? 0,'home');
     result.margin=p.predictedMargin;result.probability=p.probability;
-    result.probabilityLabel=request.line===undefined ? h.team+' win estimate' : h.team+' covers '+(request.line>0?'+':'')+request.line;
-    result.headline=(p.predictedMargin>=0?h.team:a.team)+' by '+Math.abs(p.predictedMargin).toFixed(1);
+    // Straight-up win probability = P(home margin > 0) — the same normal model
+    // evaluated at a line of 0. With no line entered it equals p.probability.
+    const homeWin=request.line===undefined ? p.probability : Math.round(coverProbability(p.predictedMargin,0,p.sigma)*100)/100;
+    setWinProbabilities(result, homeWin, p.predictedMargin>=0);
+    // A line turns the probability into a COVER probability; label it as such
+    // so it never reads as a claim that the team covers.
+    result.probabilityLabel=request.line===undefined ? h.team+' (home) win probability' : h.team+' cover probability at '+(request.line>0?'+':'')+request.line;
+    result.headline=result.projectedWinner+' projected to win by '+Math.abs(p.predictedMargin).toFixed(1);
     result.summary='Projected margin with home advantage, using the selected snapshot.';
     result.drivers=catalog.sport==='NBA'?['Offensive and defensive efficiency share equal matchup weight.','Both teams are compared at the same expected pace.','Shooting, rebounds and turnovers are shown in stats, without counting them again.']:['Scoring differential is the primary matchup signal.','Yardage contributes a smaller supporting signal.','Season turnover totals receive no extra bonus without a games-played denominator.'];
   }

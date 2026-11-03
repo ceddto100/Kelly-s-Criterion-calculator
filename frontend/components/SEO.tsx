@@ -101,6 +101,12 @@ export const SEO_CONFIG = {
       url: 'https://betgistics.com/#estimator',
     },
   },
+  walters: {
+    title: 'Walters Protocol',
+    description: 'Build a college football power-rating spread with the Walters Protocol and compare it with the market line.',
+    keywords: 'walters protocol, college football power ratings, CFB spread model, point spread projection',
+    canonical: 'https://betgistics.com/#walters',
+  },
   sports_matchup: {
     title: 'Sports Matchup Analysis - NBA, NFL & NHL',
     description: 'Compare teams head-to-head across NBA, NFL, and NHL with detailed statistics. Analyze PPG, defensive stats, field goal percentage, expected goals (xG), and more for data-driven betting decisions.',

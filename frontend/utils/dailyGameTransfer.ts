@@ -123,10 +123,14 @@ function normalize(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-/** Stringify a stat for an estimator input; '' when missing. */
+/**
+ * Stringify a stat for an estimator input; '' when missing. Without explicit
+ * decimals the value is still rounded (max 2 places, trailing zeros dropped)
+ * so float artefacts such as 116.69999999999999 never reach an input field.
+ */
 function str(n: number | undefined | null, decimals?: number): string {
-  if (n === undefined || n === null || Number.isNaN(n)) return '';
-  return decimals === undefined ? String(n) : n.toFixed(decimals);
+  if (n === undefined || n === null || !Number.isFinite(n)) return '';
+  return decimals === undefined ? String(Math.round(n * 100) / 100) : n.toFixed(decimals);
 }
 
 /**
@@ -304,7 +308,7 @@ function nbaToBasketball(home: NBATeamRow, away: NBATeamRow): BasketballStatsSha
     teamReboundMargin: str(home.rebound_margin, 1), opponentReboundMargin: str(away.rebound_margin, 1),
     teamTurnoverMargin: str(home.turnover_margin, 1), opponentTurnoverMargin: str(away.turnover_margin, 1),
     teamPace: str(home.pace, 1), opponentPace: str(away.pace, 1),
-    team3PRate: str(home.three_rate, 1), opponent3PRate: str(away.three_rate, 1),
+    team3PRate: str(home.three_rate, 2), opponent3PRate: str(away.three_rate, 2),
     team3PPct: str(home.three_pct, 1), opponent3PPct: str(away.three_pct, 1),
     teamAName: home.abbreviation, teamBName: away.abbreviation,
   };
@@ -420,8 +424,8 @@ export function mlbInputToFields(game: MLBGameLike): MLBFieldState {
   set('awayStarter', game.awayStarter || '');
   set('bookTotal', str(total));
 
-  set('homeWrc', str(home?.offense?.wrcPlus));
-  set('awayWrc', str(away?.offense?.wrcPlus));
+  set('homeWrc', str(home?.offense?.wrcPlus, 1));
+  set('awayWrc', str(away?.offense?.wrcPlus, 1));
   set('homeWoba', str(home?.offense?.woba, 3));
   set('awayWoba', str(away?.offense?.woba, 3));
   set('homeOps', str(home?.offense?.ops, 3));

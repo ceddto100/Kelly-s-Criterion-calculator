@@ -292,6 +292,8 @@ const GlobalStyle = () => (
 );
 
 /* =============================== App Constants ============================= */
+// Responsible-gambling notice shown in the shared footer on every view.
+const RESPONSIBLE_GAMBLING_TEXT = '21+ only. Betgistics is a research and tracking tool — not a sportsbook, and it does not take bets. If gambling stops being fun, call or text 1-800-GAMBLER.';
 const CONSTANTS = {
   TABS: {
     PREDICTIONS: 'predictions',
@@ -349,6 +351,18 @@ function predictedMarginBasketball(stats: any, isHome: boolean | null = null) {
 }
 
 /* ================================= Utilities ============================== */
+// Guard against float artefacts (e.g. "116.69999999999999") in prefilled
+// estimator fields: any numeric string with more than 3 decimals is rounded
+// to 2 decimals. Text fields (team names, yes/no flags) pass through.
+const cleanNumericString = (value: string): string => {
+  if (typeof value !== 'string' || !/^-?\d+\.\d{4,}$/.test(value.trim())) return value;
+  return String(Math.round(Number(value) * 100) / 100);
+};
+function cleanPrefill<T extends Record<string, any>>(fields: T): T {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(fields)) out[k] = typeof v === 'string' ? cleanNumericString(v) : v;
+  return out as T;
+}
 const formatCurrency = (v: any) => isNaN(Number(v)) ? '$0.00' :
   new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v));
 
@@ -1186,7 +1200,7 @@ function ProbabilityEstimator({
 
       {calculatedProb !== null && (
         <div ref={resultsRef} className="results" role="status" aria-live="polite">
-          <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? `Estimated ${isOverBet ? 'Over' : 'Under'} Probability` : 'Estimated Cover Probability'}</p>
+          <p>{activeSport === CONSTANTS.SPORTS.HOCKEY ? `Estimated ${isOverBet ? 'Over' : 'Under'} Probability` : `Cover probability${pointSpread !== '' ? ` at ${Number(pointSpread) > 0 ? '+' : ''}${pointSpread}` : ''} (not a projection that this team covers)`}</p>
           <h2 className="results-team" style={{margin:'0.25rem 0 0.35rem'}}>{selectedTeamName}</h2>
           {activeSport === CONSTANTS.SPORTS.HOCKEY && totalGoalsLine !== '' && (
             <div style={{fontWeight:800, letterSpacing:'.05em', color: isOverBet ? '#38bdf8' : '#a78bfa', marginBottom:'.35rem'}}>
@@ -2154,30 +2168,30 @@ function App() {
     }
     switch (selection.sport) {
       case 'NBA':
-        setBasketballStats({ ...initialBasketballState, ...selection.basketball });
-        setPointSpread(selection.spread);
+        setBasketballStats({ ...initialBasketballState, ...cleanPrefill(selection.basketball) });
+        setPointSpread(cleanNumericString(selection.spread));
         setIsTeamAHome(selection.isTeamAHome);
         setCalculatedProb(null);
         setExpectedDiff(null);
         setActiveSport(CONSTANTS.SPORTS.BASKETBALL);
         break;
       case 'NFL':
-        setFootballStats({ ...initialFootballState, ...selection.football });
-        setPointSpread(selection.spread);
+        setFootballStats({ ...initialFootballState, ...cleanPrefill(selection.football) });
+        setPointSpread(cleanNumericString(selection.spread));
         setIsTeamAHome(selection.isTeamAHome);
         setCalculatedProb(null);
         setExpectedDiff(null);
         setActiveSport(CONSTANTS.SPORTS.FOOTBALL);
         break;
       case 'NHL':
-        setHockeyStats({ ...initialHockeyState, ...selection.hockey });
-        setTotalGoalsLine(selection.totalGoalsLine);
+        setHockeyStats({ ...initialHockeyState, ...cleanPrefill(selection.hockey) });
+        setTotalGoalsLine(cleanNumericString(selection.totalGoalsLine));
         setCalculatedProb(null);
         setExpectedDiff(null);
         setActiveSport(CONSTANTS.SPORTS.HOCKEY);
         break;
       case 'MLB':
-        setMlbPrefill(selection.mlb);
+        setMlbPrefill(cleanPrefill(selection.mlb));
         setActiveSport(CONSTANTS.SPORTS.MLB);
         break;
     }
@@ -2240,6 +2254,8 @@ function App() {
         return SEO_CONFIG.kelly;
       case CONSTANTS.TABS.ESTIMATOR:
         return SEO_CONFIG.estimator;
+      case CONSTANTS.TABS.WALTERS:
+        return SEO_CONFIG.walters;
       case CONSTANTS.TABS.DAILY_GAMES:
         return SEO_CONFIG.sports_matchup;
       case CONSTANTS.TABS.BET_HISTORY:
@@ -2484,6 +2500,10 @@ function App() {
                     🎬 Watch Demo
                   </button>
                 </div>
+
+                <p className="rg-footer" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.9rem 0 0', lineHeight: 1.5, textAlign: 'center' }}>
+                  {RESPONSIBLE_GAMBLING_TEXT}
+                </p>
 
                 <div style={{ marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: '1px solid var(--border-subtle)' }}>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
