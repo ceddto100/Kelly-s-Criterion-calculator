@@ -156,8 +156,8 @@ export interface DailyCalcOptions {
    */
   randomPicks?: number;
   /**
-   * All-picks mode: log a fractional-Kelly bet on the model's side of EVERY
-   * bettable game in `allPicksSports` (NBA, NFL, NHL by default) to the admin
+   * All-picks mode: log a fractional-Kelly bet on the model's side of every
+   * positive-edge game in `allPicksSports` (NBA, NFL, NHL by default) to the admin
    * account. Takes precedence over `randomPicks`. Each game is logged at most
    * once per day, so re-runs only add games that were not logged yet (e.g. an
    * NHL total whose line was posted late).
@@ -757,8 +757,9 @@ export function gameTag(date: string, c: Pick<PickCandidate, 'sport' | 'awayTeam
 }
 
 /**
- * All-picks selection: every candidate from the requested sports, at most one
- * per game, minus games already logged (by game tag). Value bets come first.
+ * All-picks selection: every positive-edge candidate (model probability above
+ * the -110 break-even) from the requested sports, at most one per game, minus
+ * games already logged (by game tag). No-edge games are never logged.
  */
 export function selectAllPicks(
   candidates: PickCandidate[],
@@ -770,6 +771,7 @@ export function selectAllPicks(
   const out: PickCandidate[] = [];
   for (const c of candidates) {
     if (!sports.includes(c.sport)) continue;
+    if (c.probability <= IMPLIED_PROB_AT_MINUS_110) continue;
     const tag = gameTag(date, c);
     if (seen.has(tag) || alreadyLogged.has(tag)) continue;
     seen.add(tag);
@@ -956,7 +958,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
       summary.errors.push(`All picks: ${alreadyLogged.size} games already logged for ${today}, skipped`);
     }
     if (picks.length === 0) {
-      summary.errors.push(`All picks: no new bettable ${allPicksSports.join('/')} games for ${today}`);
+      summary.errors.push(`All picks: no new positive-edge ${allPicksSports.join('/')} games for ${today}`);
     }
     console.log(`[DailyCalc] All picks logged (${summary.allPicks.length}): ${summary.allPicks.map((p) => `${p.pick} $${p.recommendedStake.toFixed(2)}`).join(', ')}`);
   }
@@ -1102,7 +1104,7 @@ export const runDailyCalcInputSchema = z.object({
   allPicks: z
     .boolean()
     .optional()
-    .describe('All-picks mode: log a fractional-Kelly bet on the model\'s side of every bettable game in allPicksSports (NBA/NFL/NHL by default). Each game is logged at most once per day.'),
+    .describe('All-picks mode: log a fractional-Kelly bet on the model\'s side of every positive-edge game in allPicksSports (NBA/NFL/NHL by default). Each game is logged at most once per day.'),
   allPicksSports: z
     .array(z.enum(['NBA', 'NFL', 'NHL', 'MLB']))
     .optional()

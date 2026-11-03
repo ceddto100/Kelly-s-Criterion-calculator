@@ -42,10 +42,16 @@ describe('selectAllPicks', () => {
   const nhl: PickCandidate = { ...cand('h', 54), sport: 'NHL', sportLabel: 'hockey', market: 'total', pick: 'Over 6.5', pickedSide: 'over', line: 6.5 };
   const mlb: PickCandidate = { ...cand('m', 56), sport: 'MLB', sportLabel: 'baseball' };
 
-  it('returns every NBA/NFL/NHL game, value bets first, and excludes other sports', () => {
-    const c = [cand('a', 51), cand('b', 60), nhl, mlb];
+  it('returns every positive-edge NBA/NFL/NHL game and excludes other sports', () => {
+    const c = [cand('a', 55), cand('b', 60), nhl, mlb];
     const picks = selectAllPicks(c, DEFAULT_ALL_PICKS_SPORTS, date);
-    expect(picks.map((p) => p.homeTeam)).toEqual(['Home b', 'Home h', 'Home a']);
+    expect(picks.map((p) => p.homeTeam)).toEqual(['Home b', 'Home a', 'Home h']);
+  });
+
+  it('never returns no-edge games', () => {
+    const c = [cand('a', 51), cand('b', 52.38), cand('c', 53)];
+    const picks = selectAllPicks(c, DEFAULT_ALL_PICKS_SPORTS, date);
+    expect(picks.map((p) => p.homeTeam)).toEqual(['Home c']);
   });
 
   it('skips duplicates and games already logged today', () => {

@@ -1,7 +1,8 @@
-name: Daily Auto Picks (all NBA/NFL/NHL games, half Kelly)
+name: Daily Auto Picks (all positive-edge NBA/NFL/NHL games, half Kelly)
 
-# Once a day, ask the MCP server to log a bet on the model's side of EVERY
-# bettable NBA, NFL and NHL game on today's slate, sized with half Kelly, to the
+# Once a day, ask the MCP server to log a bet on the model's side of every
+# NBA, NFL and NHL game where the model shows an edge (no-edge games are not
+# logged), sized with half Kelly, to the
 # admin account. Each game is logged at most once per day, so re-runs (manual or
 # the second scheduled run) only add games that were missing — e.g. an NHL total
 # whose line was posted late.
