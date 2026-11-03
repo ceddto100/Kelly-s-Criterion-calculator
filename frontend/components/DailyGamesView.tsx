@@ -588,7 +588,6 @@ export default function DailyGamesView({
 
       {onSelectGame && (
         <div style={styles.tapHint} role="note">
-          <span style={styles.tapHintIcon} aria-hidden>👆</span>
           <span>
             Tap any game to load its prediction
             <span style={styles.tapHintSub}>
@@ -742,7 +741,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxShadow: '0 0 18px rgba(190,242,100,0.25)',
     color: '#d9f99d', fontSize: '1.05rem', fontWeight: 800, letterSpacing: '0.01em',
   },
-  tapHintIcon: { fontSize: '1.6rem', lineHeight: 1 },
   tapHintSub: {
     display: 'block', marginTop: '0.15rem', color: 'var(--text-muted)',
     fontSize: '0.78rem', fontWeight: 600,
