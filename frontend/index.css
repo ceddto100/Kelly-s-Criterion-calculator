@@ -999,6 +999,46 @@ textarea:focus {
   background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
 }
 
+/* ==================== KELLY: BET BEING SIZED ==================== */
+.kelly-bet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-cyan) 7%, var(--surface-raised));
+  overflow-wrap: anywhere;
+}
+.kelly-bet-card--empty {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: var(--surface-raised);
+}
+.kelly-bet-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.kelly-bet-pick {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.kelly-bet-matchup {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.kelly-bet-meta {
+  font-size: 0.82rem;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  margin-top: 0.15rem;
+}
+
 /* ==================== ANALYST INSIGHT ==================== */
 .analyst-insight {
   background: var(--surface-raised);
