@@ -47,6 +47,7 @@ import {
   type CFBSlateGame,
 } from '../utils/cfbStatsLoader';
 import { WALTERS_CFB } from '../utils/waltersCfb';
+import { AutoTeamLogo, LeagueLogo } from './TeamLogo';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -69,6 +70,12 @@ interface GenericDailyGame {
   awayTeam: string;
   homeAbbr?: string;
   awayAbbr?: string;
+  homeId?: string;
+  awayId?: string;
+  homeLogo?: string;
+  awayLogo?: string;
+  homeColor?: string;
+  awayColor?: string;
   startTime: string;
   status: string;
   statusDetail?: string;
@@ -147,6 +154,43 @@ function confColor(label: string): string {
   return '#94a3b8';
 }
 
+// ---- matchup line with team logos -------------------------------------------
+
+interface MatchupSide {
+  name: string;
+  abbr?: string | null;
+  id?: string | number | null;
+  logo?: string | null;
+  color?: string | null;
+  prefix?: string;
+}
+
+function MatchupLine({
+  sport,
+  away,
+  home,
+  separator = '@',
+}: {
+  sport: string;
+  away: MatchupSide;
+  home: MatchupSide;
+  separator?: string;
+}) {
+  const side = (t: MatchupSide) => (
+    <span style={styles.matchupSide}>
+      <AutoTeamLogo sport={sport} name={t.name} abbr={t.abbr} id={t.id} src={t.logo} color={t.color} size={30} />
+      <span>{t.prefix}{t.name}</span>
+    </span>
+  );
+  return (
+    <div style={{ ...styles.matchup, ...styles.matchupRow }}>
+      {side(away)}
+      <span style={styles.matchupSep}>{separator}</span>
+      {side(home)}
+    </div>
+  );
+}
+
 // ---- MLB projection card ----------------------------------------------------
 
 function MLBGameCard({ game, onSelect }: { game: MLBSlateGame; onSelect?: () => void }) {
@@ -163,7 +207,11 @@ function MLBGameCard({ game, onSelect }: { game: MLBSlateGame; onSelect?: () => 
     <ClickableCard onSelect={onSelect}>
       <div style={styles.cardHeader}>
         <div>
-          <div style={styles.matchup}>{s.awayTeam} @ {s.homeTeam}</div>
+          <MatchupLine
+            sport="MLB"
+            away={{ name: s.awayTeam, abbr: s.awayAbbr }}
+            home={{ name: s.homeTeam, abbr: s.homeAbbr }}
+          />
           <div style={styles.subtle}>
             {formatTime(s.gameTime)}{s.venue ? ` · ${s.venue}` : ''}
           </div>
@@ -270,9 +318,12 @@ function CFBGameCard({ game, onSelect }: { game: CFBSlateGame; onSelect?: () => 
     <ClickableCard onSelect={onSelect}>
       <div style={styles.cardHeader}>
         <div>
-          <div style={styles.matchup}>
-            {rank(away.rank)}{away.name} {row.neutralSite ? 'vs' : '@'} {rank(home.rank)}{home.name}
-          </div>
+          <MatchupLine
+            sport="CFB"
+            separator={row.neutralSite ? 'vs' : '@'}
+            away={{ name: away.name, abbr: row.away.abbreviation, id: row.away.teamId, prefix: rank(away.rank) }}
+            home={{ name: home.name, abbr: row.home.abbreviation, id: row.home.teamId, prefix: rank(home.rank) }}
+          />
           <div style={styles.subtle}>
             {kickoff(row.startDate, row.startTimeTbd)}
             {row.venue ? ` · ${row.venue}` : ''}
@@ -358,7 +409,11 @@ function GenericGameCard({
     <ClickableCard onSelect={onSelect} busy={busy}>
       <div style={styles.cardHeader}>
         <div>
-          <div style={styles.matchup}>{game.awayTeam} @ {game.homeTeam}</div>
+          <MatchupLine
+            sport={sport}
+            away={{ name: game.awayTeam, abbr: game.awayAbbr, id: game.awayId, logo: game.awayLogo, color: game.awayColor }}
+            home={{ name: game.homeTeam, abbr: game.homeAbbr, id: game.homeId, logo: game.homeLogo, color: game.homeColor }}
+          />
           <div style={styles.subtle}>
             {isLive || isFinal ? game.statusDetail : formatTime(game.startTime)}
           </div>
@@ -589,7 +644,7 @@ export default function DailyGamesView({
             onClick={() => setSport(sp.key)}
             style={{ ...styles.sportButton, ...(sport === sp.key ? styles.sportButtonActive : {}) }}
           >
-            <span style={{ fontSize: 18 }}>{sp.icon}</span> {sp.label}
+            <LeagueLogo sport={sp.key} fallback={sp.icon} size={20} /> {sp.label}
           </button>
         ))}
       </div>
@@ -757,6 +812,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem',
   },
   matchup: { fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' },
+  matchupRow: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem 0.5rem' },
+  matchupSide: { display: 'inline-flex', alignItems: 'center', gap: '0.45rem', minWidth: 0 },
+  matchupSep: { color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem' },
   subtle: { color: 'var(--text-muted)', fontSize: '0.8rem' },
   leanBadge: {
     color: '#0b1020', fontWeight: 800, fontSize: '0.8rem', padding: '0.3rem 0.7rem',

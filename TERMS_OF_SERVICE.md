@@ -153,6 +153,8 @@ The App, including its code, design, content, and documentation, is licensed und
 
 "Kelly's Criterion Calculator" and associated logos (if any) are our property. You may not use our trademarks without prior written permission.
 
+Team names, team logos and league marks shown in the App (for example NFL, NBA, NHL, MLB, WNBA and NCAA teams) are trademarks of their respective owners. They are displayed only to identify teams and games. The App is not affiliated with, endorsed by, or sponsored by any league or team.
+
 ### 7.3 User Content
 
 You retain ownership of any data you input into the App. By using the App, you grant us a limited license to process your inputs solely to provide the calculation service.

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useHiddenSports } from '../utils/sportVisibility';
+import { AutoTeamLogo, LeagueLogo } from './TeamLogo';
 
-const STATS_SPORTS: { key: 'NBA' | 'NFL' | 'NHL'; label: string; defaultCategory: string }[] = [
-  { key: 'NBA', label: '🏀 NBA', defaultCategory: 'ppg' },
-  { key: 'NFL', label: '🏈 NFL', defaultCategory: 'ppg' },
-  { key: 'NHL', label: '🏒 NHL', defaultCategory: 'xgf60' },
+const STATS_SPORTS: { key: 'NBA' | 'NFL' | 'NHL'; label: string; icon: string; defaultCategory: string }[] = [
+  { key: 'NBA', label: 'NBA', icon: '🏀', defaultCategory: 'ppg' },
+  { key: 'NFL', label: 'NFL', icon: '🏈', defaultCategory: 'ppg' },
+  { key: 'NHL', label: 'NHL', icon: '🏒', defaultCategory: 'xgf60' },
 ];
 
 interface StatsData {
@@ -258,7 +259,9 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                 ...(sport === sp.key ? styles.sportButtonActive : {}),
               }}
             >
-              {sp.label}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <LeagueLogo sport={sp.key} fallback={sp.icon} size={20} /> {sp.label}
+              </span>
             </button>
           ))}
         </div>
@@ -302,6 +305,14 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                   }}
                 >
                   <div style={styles.medalBadge}>{medal}</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                    <AutoTeamLogo
+                      sport={sport}
+                      name={teamName}
+                      abbr={team.abbreviation ? String(team.abbreviation) : undefined}
+                      size={48}
+                    />
+                  </div>
                   <div style={styles.performerTeam}>{teamName}</div>
                   <div style={styles.performerStat}>
                     {typeof statValue === 'number'
@@ -422,7 +433,17 @@ export const StatsPage: React.FC<StatsPageProps> = () => {
                               ...(cellStyle || {}),
                             }}
                           >
-                            {typeof value === 'number'
+                            {colIndex === 0 ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.55rem' }}>
+                                <AutoTeamLogo
+                                  sport={sport}
+                                  name={String(value)}
+                                  abbr={row.abbreviation ? String(row.abbreviation) : undefined}
+                                  size={24}
+                                />
+                                {value}
+                              </span>
+                            ) : typeof value === 'number'
                               ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
                               : value}
                           </td>

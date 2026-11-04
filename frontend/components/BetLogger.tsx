@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom';
+import { AutoTeamLogo, LeagueLogo } from './TeamLogo';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -358,7 +359,10 @@ export function LogBetButton({
           ) : (
             <div className="your-pick-banner">
               <div className="pick-indicator">✓ YOUR PICK</div>
-              <div className="pick-team">{teamA.abbreviation || teamA.name}</div>
+              <div className="pick-team team-logo-row">
+                <AutoTeamLogo sport={sport} name={teamA.name} abbr={teamA.abbreviation} size={32} />
+                {teamA.abbreviation || teamA.name}
+              </div>
               <div className="pick-details">
                 {formatSpread(pointSpread)} vs {teamB.abbreviation || teamB.name}
               </div>
@@ -369,7 +373,9 @@ export function LogBetButton({
 
           <div className="summary-row">
             <span className="summary-label">Sport:</span>
-            <span className="summary-value">{getSportMeta(sport).icon} {getSportMeta(sport).label}</span>
+            <span className="summary-value team-logo-row">
+              <LeagueLogo sport={sport} fallback={getSportMeta(sport).icon} size={18} /> {getSportMeta(sport).label}
+            </span>
           </div>
           <div className="summary-row">
             <span className="summary-label">Bet Type:</span>
@@ -1335,7 +1341,7 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
               <div className="bet-card-header">
                 <div className="bet-matchup">
                   <span className="sport-icon" title={getSportMeta(bet.matchup.sport).label}>
-                    {getSportMeta(bet.matchup.sport).icon}
+                    <LeagueLogo sport={bet.matchup.sport} fallback={getSportMeta(bet.matchup.sport).icon} size={24} />
                   </span>
                   {isTotal ? (
                     <div className="teams-container">
@@ -1347,15 +1353,27 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
                           {side ? `${side === 'over' ? 'Over' : 'Under'} ${bet.estimation.pointSpread}` : `Total ${bet.estimation.pointSpread}`}
                         </span>
                       </div>
-                      <span className="vs-text">{away} @ {home} · total {totalUnit(bet.matchup.sport)}</span>
+                      <span className="vs-text team-logo-row">
+                        <AutoTeamLogo sport={bet.matchup.sport} name={bet.matchup.teamB.name} abbr={bet.matchup.teamB.abbreviation} size={20} />
+                        {away} @
+                        <AutoTeamLogo sport={bet.matchup.sport} name={bet.matchup.teamA.name} abbr={bet.matchup.teamA.abbreviation} size={20} />
+                        {home} · total {totalUnit(bet.matchup.sport)}
+                      </span>
                     </div>
                   ) : (
                     <div className="teams-container">
                       <div className="your-pick-label">
                         <span className="pick-badge">YOUR PICK</span>
-                        <span className="pick-team-name">{home}</span>
+                        <span className="pick-team-name team-logo-row">
+                          <AutoTeamLogo sport={bet.matchup.sport} name={bet.matchup.teamA.name} abbr={bet.matchup.teamA.abbreviation} size={26} />
+                          {home}
+                        </span>
                       </div>
-                      <span className="vs-text">vs {away}</span>
+                      <span className="vs-text team-logo-row">
+                        vs
+                        <AutoTeamLogo sport={bet.matchup.sport} name={bet.matchup.teamB.name} abbr={bet.matchup.teamB.abbreviation} size={20} />
+                        {away}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -2081,6 +2099,18 @@ export const BetLoggerStyles = `
   }
   .sport-icon {
     font-size: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+  }
+  .team-logo-row {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .pick-team.team-logo-row {
+    display: flex;
+    justify-content: center;
   }
   .teams {
     font-weight: 700;
