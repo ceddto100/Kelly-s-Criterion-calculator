@@ -40,6 +40,7 @@ const matchup = require('./scrapers/matchup');
 const { analyzeMatchupRoute } = require('./gemini/chat');
 const { fetchNBATeamStats, findTeamByName } = require('./scrapers/nbaStatsApi');
 const { fetchDailyGames } = require('./scrapers/dailyGames');
+const { fetchTeamDirectory, TEAM_ENDPOINTS } = require('./scrapers/teamDirectory');
 const { buildDailyMLBInputs } = require('./scrapers/mlbStatsApi');
 
 // Configure Passport
@@ -580,6 +581,18 @@ app.get('/api/games/daily', asyncHandler(async (req, res) => {
   }
   const data = await fetchDailyGames(sport);
   res.json({ success: true, ...data });
+}));
+
+// Every team in a league with ESPN id, abbreviation, names, color and logo URLs.
+// Used by the frontend to show team logos wherever a team is named.
+app.get('/api/teams', asyncHandler(async (req, res) => {
+  const sport = (req.query.sport || '').toString().toUpperCase();
+  if (!TEAM_ENDPOINTS[sport]) {
+    return res.status(400).json({ success: false, error: `Invalid sport: ${sport}` });
+  }
+  const teams = await fetchTeamDirectory(sport);
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({ success: true, sport, count: teams.length, teams });
 }));
 
 // Today's MLB games as ready-to-project inputs (StatsAPI starters/stats + ESPN
