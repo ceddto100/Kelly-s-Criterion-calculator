@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { openUpgradeCheckout } from '../utils/stripeCheckout';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 interface User {
   name?: string;
@@ -33,37 +33,11 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     setUpgradeError(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/stripe/create-checkout-session`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}));
-        throw new Error(errorPayload.error || 'Unable to start checkout');
-      }
-
-      const data = await response.json();
-
-      // Go straight to the hosted Checkout URL the backend created — the same
-      // path the estimator's upgrade prompt uses. (Stripe.js redirectToCheckout
-      // is deprecated and fails when the publishable key doesn't match the
-      // session's live/test mode, showing "Something went wrong".)
-      if (!data.url) {
-        throw new Error('Stripe checkout URL was not returned');
-      }
-
-      window.location.assign(data.url);
+      await openUpgradeCheckout(user?.email);
     } catch (error) {
       setUpgradeStatus('error');
       setUpgradeError(error instanceof Error ? error.message : 'Checkout failed');
-      return;
     }
-
-    setUpgradeStatus('idle');
   };
 
   if (!user) {
@@ -129,7 +103,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
           <div style={styles.subscriptionCard}>
             <div>
               <div style={styles.planTitle}>Betgistics – Core Access</div>
-              <div style={styles.planDetails}>$60/month · Unlimited calculations</div>
+              <div style={styles.planDetails}>Unlimited calculations · Billed monthly</div>
             </div>
             <button
               onClick={handleUpgrade}
