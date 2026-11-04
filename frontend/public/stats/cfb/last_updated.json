@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-04T04:45:18.301Z",
+  "updatedAt": "2026-11-04T19:19:56.860Z",
   "season": 2026,
   "seasonType": "regular",
   "week": 10,
@@ -11,8 +11,8 @@
   "ratingsUpdatedAt": "2026-11-03T19:01:27.228Z",
   "poll": "Playoff Committee Rankings, week 10",
   "apiCalls": 3,
-  "picksPending": 11,
-  "picksLogged": 4,
+  "picksPending": 22,
+  "picksLogged": 5,
   "modelVersion": "walters-cfb-2026.09-v1",
   "venueElevationUnit": "meters",
   "sources": [
