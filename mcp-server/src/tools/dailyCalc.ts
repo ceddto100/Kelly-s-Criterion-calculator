@@ -88,12 +88,15 @@ export interface PickCandidate {
   homeAbbr?: string;
   awayTeam: string;
   awayAbbr?: string;
-  market: 'moneyline' | 'total';
-  /** Human-readable pick, e.g. "Boston Celtics ML" or "Over 6.5". */
+  market: 'moneyline' | 'spread' | 'total';
+  /** Human-readable pick, e.g. "Boston Celtics -2.5" or "Over 6.5". */
   pick: string;
   /** Team being backed (moneyline) — used as teamA in the bet log. */
   pickedSide: 'home' | 'away' | 'over' | 'under';
-  /** Total line for totals bets; 0 for moneyline. */
+  /**
+   * Book line: the total for totals bets, the picked team's spread for spread
+   * bets (negative = favored). Only real sportsbook lines are ever used.
+   */
   line: number;
   /** Model probability (%) that the picked side wins. */
   probability: number;
@@ -260,8 +263,8 @@ async function calcNHLGame(
   const overSide = overProbability >= 50;
   const sideProb = overSide ? overProbability : 100 - overProbability;
 
-  // Only a real sportsbook line makes a bettable total.
-  if (collector && game.overUnder !== undefined) {
+  // Only a real sportsbook line makes a bettable total, and only before puck drop.
+  if (collector && game.overUnder !== undefined && game.status === 'scheduled') {
     collector.push({
       sport: 'NHL',
       sportLabel: 'hockey',
@@ -327,6 +330,91 @@ async function calcNHLGame(
 // SINGLE GAME CALCULATION
 // ============================================================================
 
+type SpreadTeamStats = ReturnType<typeof getNBATeamStats> | ReturnType<typeof getNFLTeamStats>;
+
+/**
+ * Run the NBA/NFL spread model with the home team as Team A. `spread` is the
+ * home team's spread; the returned probability is P(home covers it).
+ */
+async function spreadModel(
+  game: DailyGame,
+  homeStats: SpreadTeamStats,
+  awayStats: SpreadTeamStats,
+  spread: number
+): Promise<{ probability: number; predictedMargin: number }> {
+  let probability = 0;
+  let predictedMargin = 0;
+  if (game.sport === 'NBA') {
+    const nbaHome = homeStats as ReturnType<typeof getNBATeamStats>;
+    const nbaAway = awayStats as ReturnType<typeof getNBATeamStats>;
+
+    const probResult = await handleBasketballProbability({
+      teamA: {
+        name: game.homeTeam,
+        ppg: nbaHome!.ppg,
+        pointsAllowed: nbaHome!.pointsAllowed,
+        fgPct: nbaHome!.fgPct,
+        reboundMargin: nbaHome!.reboundMargin,
+        turnoverMargin: nbaHome!.turnoverMargin,
+        pace: nbaHome!.pace,
+        threePRate: nbaHome!.threeRate,
+        threePPct: nbaHome!.threePct,
+      },
+      teamB: {
+        name: game.awayTeam,
+        ppg: nbaAway!.ppg,
+        pointsAllowed: nbaAway!.pointsAllowed,
+        fgPct: nbaAway!.fgPct,
+        reboundMargin: nbaAway!.reboundMargin,
+        turnoverMargin: nbaAway!.turnoverMargin,
+        pace: nbaAway!.pace,
+        threePRate: nbaAway!.threeRate,
+        threePPct: nbaAway!.threePct,
+      },
+      spread,
+      venue: 'home',    // home team has home advantage
+      league: 'NBA',
+    });
+
+    if (probResult.success) {
+      probability = probResult.result.probability;
+      predictedMargin = probResult.result.predictedMargin;
+    }
+  } else {
+    // NFL
+    const nflHome = homeStats as ReturnType<typeof getNFLTeamStats>;
+    const nflAway = awayStats as ReturnType<typeof getNFLTeamStats>;
+
+    const probResult = await handleFootballProbability({
+      teamA: {
+        name: game.homeTeam,
+        ppg: nflHome!.ppg,
+        pointsAllowed: nflHome!.pointsAllowed,
+        offensiveYards: nflHome!.offensiveYards,
+        defensiveYards: nflHome!.defensiveYards,
+        turnoverDiff: nflHome!.turnoverDiff,
+      },
+      teamB: {
+        name: game.awayTeam,
+        ppg: nflAway!.ppg,
+        pointsAllowed: nflAway!.pointsAllowed,
+        offensiveYards: nflAway!.offensiveYards,
+        defensiveYards: nflAway!.defensiveYards,
+        turnoverDiff: nflAway!.turnoverDiff,
+      },
+      spread,
+      venue: 'home',
+      league: 'NFL',
+    });
+
+    if (probResult.success) {
+      probability = probResult.result.probability;
+      predictedMargin = probResult.result.predictedMargin;
+    }
+  }
+  return { probability, predictedMargin };
+}
+
 async function calcGame(
   game: DailyGame,
   bankroll: number,
@@ -380,90 +468,41 @@ async function calcGame(
     return { ...baseResult, skipped: `No stats found for away team: ${game.awayTeam} (${game.awayAbbr})` };
   }
 
-  // 2. Calculate probability
+  // 2. Calculate probability. The moneyline (spread 0) win probability feeds
+  //    the backtesting projection; the bet itself is priced against the real
+  //    sportsbook spread, and only when one is posted.
   let probability = 0;
   let predictedMargin = 0;
-
   try {
-    if (game.sport === 'NBA') {
-      const nbaHome = homeStats as ReturnType<typeof getNBATeamStats>;
-      const nbaAway = awayStats as ReturnType<typeof getNBATeamStats>;
-
-      const probResult = await handleBasketballProbability({
-        teamA: {
-          name: game.homeTeam,
-          ppg: nbaHome!.ppg,
-          pointsAllowed: nbaHome!.pointsAllowed,
-          fgPct: nbaHome!.fgPct,
-          reboundMargin: nbaHome!.reboundMargin,
-          turnoverMargin: nbaHome!.turnoverMargin,
-          pace: nbaHome!.pace,
-          threePRate: nbaHome!.threeRate,
-          threePPct: nbaHome!.threePct,
-        },
-        teamB: {
-          name: game.awayTeam,
-          ppg: nbaAway!.ppg,
-          pointsAllowed: nbaAway!.pointsAllowed,
-          fgPct: nbaAway!.fgPct,
-          reboundMargin: nbaAway!.reboundMargin,
-          turnoverMargin: nbaAway!.turnoverMargin,
-          pace: nbaAway!.pace,
-          threePRate: nbaAway!.threeRate,
-          threePPct: nbaAway!.threePct,
-        },
-        spread: 0,        // pick'em — we're calculating overall win probability
-        venue: 'home',    // home team has home advantage
-        league: 'NBA',
-      });
-
-      if (probResult.success) {
-        probability = probResult.result.probability;
-        predictedMargin = probResult.result.predictedMargin;
-      }
-    } else {
-      // NFL
-      const nflHome = homeStats as ReturnType<typeof getNFLTeamStats>;
-      const nflAway = awayStats as ReturnType<typeof getNFLTeamStats>;
-
-      const probResult = await handleFootballProbability({
-        teamA: {
-          name: game.homeTeam,
-          ppg: nflHome!.ppg,
-          pointsAllowed: nflHome!.pointsAllowed,
-          offensiveYards: nflHome!.offensiveYards,
-          defensiveYards: nflHome!.defensiveYards,
-          turnoverDiff: nflHome!.turnoverDiff,
-        },
-        teamB: {
-          name: game.awayTeam,
-          ppg: nflAway!.ppg,
-          pointsAllowed: nflAway!.pointsAllowed,
-          offensiveYards: nflAway!.offensiveYards,
-          defensiveYards: nflAway!.defensiveYards,
-          turnoverDiff: nflAway!.turnoverDiff,
-        },
-        spread: 0,
-        venue: 'home',
-        league: 'NFL',
-      });
-
-      if (probResult.success) {
-        probability = probResult.result.probability;
-        predictedMargin = probResult.result.predictedMargin;
-      }
-    }
+    ({ probability, predictedMargin } = await spreadModel(game, homeStats, awayStats, 0));
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { ...baseResult, error: `Probability calculation failed: ${errMsg}` };
+  }
+
+  const homeSpread = game.homeSpread;
+  let coverProbability = 0; // P(home covers homeSpread)
+  if (homeSpread !== undefined) {
+    try {
+      coverProbability = homeSpread === 0
+        ? probability
+        : (await spreadModel(game, homeStats, awayStats, homeSpread)).probability;
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return { ...baseResult, error: `Spread probability calculation failed: ${errMsg}` };
+    }
   }
 
   if (probability === 0) {
     return { ...baseResult, skipped: 'Probability calculation returned 0' };
   }
 
-  if (collector) {
-    const homeFav = probability >= 50;
+  // Bet the side the model expects to cover the posted spread. No spread
+  // posted → no bet (a later re-run picks the game up once the line is out).
+  const backHome = coverProbability >= 50;
+  const pickProbability = backHome ? coverProbability : 100 - coverProbability;
+  const pickLine = homeSpread === undefined ? 0 : backHome ? homeSpread : -homeSpread;
+  if (collector && homeSpread !== undefined && game.status === 'scheduled') {
     collector.push({
       sport: game.sport as 'NBA' | 'NFL',
       sportLabel: game.sport === 'NBA' ? 'basketball' : 'football',
@@ -471,18 +510,18 @@ async function calcGame(
       homeAbbr: game.homeAbbr,
       awayTeam: game.awayTeam,
       awayAbbr: game.awayAbbr,
-      market: 'moneyline',
-      pick: `${homeFav ? game.homeTeam : game.awayTeam} ML`,
-      pickedSide: homeFav ? 'home' : 'away',
-      line: 0,
-      probability: homeFav ? probability : 100 - probability,
-      expectedMargin: homeFav ? predictedMargin : -predictedMargin,
+      market: 'spread',
+      pick: `${backHome ? game.homeTeam : game.awayTeam} ${formatLine(pickLine)}`,
+      pickedSide: backHome ? 'home' : 'away',
+      line: pickLine,
+      probability: pickProbability,
+      expectedMargin: backHome ? predictedMargin : -predictedMargin,
     });
   }
 
-  // 3. Calculate Kelly
-  const edge = probability - IMPLIED_PROB_AT_MINUS_110;
-  const hasValue = edge > 0;
+  // 3. Calculate Kelly on the spread pick (no spread → no value, no bet)
+  const edge = homeSpread === undefined ? 0 : pickProbability - IMPLIED_PROB_AT_MINUS_110;
+  const hasValue = homeSpread !== undefined && edge > 0;
 
   let recommendedStake = 0;
   let stakePercentage = 0;
@@ -490,7 +529,7 @@ async function calcGame(
   try {
     const kellyResult = await handleKellyCalculation({
       bankroll,
-      probability,
+      probability: homeSpread === undefined ? probability : pickProbability,
       americanOdds,
       fraction: kellyFraction,
     });
@@ -511,21 +550,18 @@ async function calcGame(
   if (hasValue && logBets && userId) {
     try {
       const sportLabel = game.sport === 'NBA' ? 'basketball' : 'football';
+      const home = { name: game.homeTeam, abbreviation: game.homeAbbr };
+      const away = { name: game.awayTeam, abbreviation: game.awayAbbr };
       const logResult = await handleLogBet({
         userId,
         sport: sportLabel as 'basketball' | 'football',
-        teamA: {
-          name: game.homeTeam,
-          abbreviation: game.homeAbbr,
-        },
-        teamB: {
-          name: game.awayTeam,
-          abbreviation: game.awayAbbr,
-        },
-        venue: 'home' as const,
-        pointSpread: 0,
-        calculatedProbability: probability,
-        expectedMargin: predictedMargin,
+        teamA: backHome ? home : away,
+        teamB: backHome ? away : home,
+        venue: backHome ? 'home' : 'away',
+        pointSpread: pickLine,
+        betType: 'spread',
+        calculatedProbability: pickProbability,
+        expectedMargin: backHome ? predictedMargin : -predictedMargin,
         impliedProbability: IMPLIED_PROB_AT_MINUS_110,
         edge,
         bankroll,
@@ -593,7 +629,7 @@ async function calcGame(
     sport: game.sport,
     homeTeam: game.homeTeam,
     awayTeam: game.awayTeam,
-    probability,
+    probability: homeSpread === undefined ? probability : pickProbability,
     impliedProbability: IMPLIED_PROB_AT_MINUS_110,
     edge,
     hasValue,
@@ -603,6 +639,7 @@ async function calcGame(
     betLogged,
     betId,
     projectionRecorded,
+    ...(homeSpread === undefined ? { skipped: 'No sportsbook spread posted yet — no bet' } : {}),
   };
 }
 
@@ -722,6 +759,10 @@ async function runMLBDailyCalc(
 // RANDOM PICKS (N random games across all sports, fractional Kelly)
 // ============================================================================
 
+function formatLine(n: number): string {
+  return n === 0 ? 'PK' : `${n > 0 ? '+' : ''}${n}`;
+}
+
 function shuffle<T>(items: T[]): T[] {
   const a = [...items];
   for (let i = a.length - 1; i > 0; i--) {
@@ -834,6 +875,8 @@ async function logPicks(
         teamB,
         venue: backAway ? 'away' : 'home',
         pointSpread: c.line,
+        betType: c.market,
+        totalSide: c.market === 'total' ? (c.pickedSide as 'over' | 'under') : undefined,
         calculatedProbability: c.probability,
         expectedMargin: c.expectedMargin,
         impliedProbability: IMPLIED_PROB_AT_MINUS_110,
@@ -1029,6 +1072,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
 
     const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, perGameLogBets, recordProjections, collector);
     summary.allResults.push(result);
+    if (result.projectionRecorded) summary.projectionsRecorded++;
 
     if (result.skipped) {
       summary.gamesSkipped++;
@@ -1038,7 +1082,6 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
       summary.gamesSkipped++;
     } else {
       summary.gamesAnalyzed++;
-      if (result.projectionRecorded) summary.projectionsRecorded++;
       if (result.hasValue) {
         summary.highValueBets.push(result);
         if (result.betLogged) summary.betsLogged++;

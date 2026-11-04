@@ -33,6 +33,11 @@ export interface DailyGame {
   homeScore?: number;
   awayScore?: number;
   overUnder?: number;      // sportsbook total from ESPN odds, when available
+  /**
+   * Sportsbook point spread from the HOME team's perspective (negative = home
+   * favored, 0 = pick'em). Undefined when ESPN has not posted a spread yet.
+   */
+  homeSpread?: number;
 }
 
 export interface TodaysGamesResult {
@@ -89,6 +94,36 @@ function mapStatus(stateType: string, detail: string): DailyGame['status'] {
   return 'scheduled';
 }
 
+/**
+ * Pull the home-perspective spread out of an ESPN odds entry. ESPN's `details`
+ * reads like "DET -2.5" (favorite + line) or "EVEN"/"PK"; the numeric `spread`
+ * plus home/away `favorite` flags are used as a fallback. Returns undefined when
+ * no spread is posted — callers must treat that as "no line", never as 0.
+ */
+export function parseHomeSpread(odds: any, homeAbbr: string, awayAbbr: string): number | undefined {
+  if (!odds) return undefined;
+  const details = typeof odds.details === 'string' ? odds.details.trim() : '';
+  if (/^(even|pk|pick|pick'?em)$/i.test(details)) return 0;
+  const m = details.match(/^([A-Za-z]{2,5})\s+([+-]?\d+(?:\.\d+)?)$/);
+  if (m) {
+    const abbr = m[1].toUpperCase();
+    const val = parseFloat(m[2]);
+    if (!isNaN(val)) {
+      if (abbr === (homeAbbr || '').toUpperCase()) return val;
+      if (abbr === (awayAbbr || '').toUpperCase()) return -val;
+    }
+  }
+  const raw = odds.spread;
+  const num = raw !== undefined && raw !== null && raw !== '' ? parseFloat(raw) : NaN;
+  if (isNaN(num)) return undefined;
+  if (num === 0) return 0;
+  const homeFav = odds.homeTeamOdds?.favorite === true;
+  const awayFav = odds.awayTeamOdds?.favorite === true;
+  if (homeFav && !awayFav) return -Math.abs(num);
+  if (awayFav && !homeFav) return Math.abs(num);
+  return undefined; // can't tell which side the number belongs to
+}
+
 function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): DailyGame[] {
   const d = data as any;
   const events = d?.events || [];
@@ -125,6 +160,11 @@ function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): Daily
       homeScore: isNaN(homeScore as number) ? undefined : homeScore,
       awayScore: isNaN(awayScore as number) ? undefined : awayScore,
       overUnder: overUnder !== undefined && !isNaN(overUnder) ? overUnder : undefined,
+      homeSpread: parseHomeSpread(
+        competition.odds?.[0],
+        home.team?.abbreviation || '',
+        away.team?.abbreviation || ''
+      ),
     });
   }
 
