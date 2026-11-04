@@ -6,6 +6,7 @@ const { User } = require('../config/database');
 const { ensureAuthenticated } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { checkPendingBets } = require('../utils/betGrading');
+const { summarize } = require('./trackRecord');
 
 // All routes require authentication
 router.use(ensureAuthenticated);
@@ -180,6 +181,16 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/stats', asyncHandler(async (req, res) => {
   const stats = await BetLog.getUserStats(getUserId(req));
   res.json(stats);
+}));
+
+// GET /api/bets/track-record - The user's own record, in the same shape as the
+// public founder's track record so the Bets tab can render the same panel.
+router.get('/track-record', asyncHandler(async (req, res) => {
+  const bets = await BetLog.find({ userId: getUserId(req), 'outcome.result': { $ne: 'cancelled' } })
+    .select('matchup.sport matchup.teamA.name matchup.teamB.name estimation.betType estimation.totalSide estimation.pointSpread actualWager outcome.result outcome.payout outcome.settledAt createdAt')
+    .lean();
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, totalBets: bets.length, ...summarize(bets) });
 }));
 
 // GET /api/bets/pending - Get only pending bets

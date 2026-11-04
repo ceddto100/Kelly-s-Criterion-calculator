@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { AutoTeamLogo, LeagueLogo } from './TeamLogo';
+import { TrackRecordPanel } from './TrackRecordPanel';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
 
@@ -1005,6 +1006,9 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
   const [updatingBet, setUpdatingBet] = useState<string | null>(null);
   const [live, setLive] = useState<Record<string, LiveBetInfo>>({});
   const [justGraded, setJustGraded] = useState<SavedBet[]>([]);
+  // Refetch the track record whenever stats are refreshed (log, grade, delete).
+  const [trackVersion, setTrackVersion] = useState(0);
+  useEffect(() => { if (stats) setTrackVersion(v => v + 1); }, [stats]);
 
   // Pull live scores for pending bets; the backend auto-grades any whose game
   // has gone final and returns them already settled.
@@ -1234,44 +1238,17 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
         </div>
       )}
 
-      {/* Stats Dashboard */}
-      {stats && (
-        <div className="stats-dashboard">
-          <h3>📊 Your Betting Stats</h3>
-          <div className="stats-grid-dashboard">
-            <div className="stat-card">
-              <div className="stat-value">{stats.totalBets}</div>
-              <div className="stat-label">Total Bets</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.wins}-{stats.losses}</div>
-              <div className="stat-label">Record</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value" style={{ color: parseFloat(stats.winRate) >= 50 ? '#10b981' : '#ef4444' }}>
-                {stats.winRate}%
-              </div>
-              <div className="stat-label">Win Rate</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value" style={{ color: stats.netProfit >= 0 ? '#10b981' : '#ef4444' }}>
-                {formatCurrency(stats.netProfit)}
-              </div>
-              <div className="stat-label">Net Profit</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value" style={{ color: parseFloat(stats.roi) >= 0 ? '#10b981' : '#ef4444' }}>
-                {stats.roi}%
-              </div>
-              <div className="stat-label">ROI</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{stats.pendingBets}</div>
-              <div className="stat-label">Pending</div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Your track record — same panel as the founder's on the Lab page */}
+      <TrackRecordPanel
+        endpoint="/api/bets/track-record"
+        title="Your Track Record"
+        tag="YOUR BETS"
+        explain="Every bet you've logged, graded automatically from final scores."
+        emptyText="Log a bet and your graded results will show up here."
+        withCredentials
+        hideOnError={false}
+        refreshKey={trackVersion}
+      />
 
       {/* Filters */}
       <div className="bet-filters">
