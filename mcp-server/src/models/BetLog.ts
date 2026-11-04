@@ -26,6 +26,8 @@ export interface IMatchup {
 
 export interface IEstimation {
   pointSpread: number;
+  betType?: 'spread' | 'total' | 'moneyline';
+  totalSide?: 'over' | 'under';
   calculatedProbability: number;
   expectedMargin?: number;
   impliedProbability?: number;
@@ -120,6 +122,10 @@ const betLogSchema = new Schema<IBetLog>(
     },
     estimation: {
       pointSpread: { type: Number, required: true },
+      // Market the bet is on. For totals, pointSpread is the total line and
+      // totalSide says which side was bet. Mirrors backend/models/BetLog.js.
+      betType: { type: String, enum: ['spread', 'total', 'moneyline'] },
+      totalSide: { type: String, enum: ['over', 'under'] },
       calculatedProbability: { type: Number, required: true },
       expectedMargin: { type: Number },
       impliedProbability: { type: Number },

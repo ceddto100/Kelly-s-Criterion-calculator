@@ -64,6 +64,16 @@ export const logBetInputSchema = z.object({
     .number()
     .describe('Point spread from Team A perspective'),
 
+  betType: z
+    .enum(['spread', 'total', 'moneyline'])
+    .optional()
+    .describe('Market: spread (pointSpread is Team A\'s spread), total (pointSpread is the total line) or moneyline'),
+
+  totalSide: z
+    .enum(['over', 'under'])
+    .optional()
+    .describe('For total bets: which side was bet (over or under)'),
+
   calculatedProbability: z
     .number()
     .min(0)
@@ -308,6 +318,8 @@ export async function handleLogBet(input: unknown): Promise<LogBetOutput> {
     },
     estimation: {
       pointSpread: parsed.pointSpread,
+      betType: parsed.betType,
+      totalSide: parsed.betType === 'total' ? parsed.totalSide : undefined,
       calculatedProbability: parsed.calculatedProbability,
       expectedMargin: parsed.expectedMargin,
       impliedProbability: parsed.impliedProbability,
