@@ -447,6 +447,45 @@ interface EstimationData {
   expectedMargin?: number;
 }
 
+/* ===================== Bet description helpers (Kelly) ===================== */
+const BET_SPORT_LABELS: Record<string, string> = { football: 'NFL', basketball: 'NBA', hockey: 'NHL', mlb: 'MLB', cfb: 'CFB', cbb: 'CBB', wnba: 'WNBA' };
+const betSportLabel = (sport?: string) => BET_SPORT_LABELS[(sport || '').toLowerCase()] || (sport || '').toUpperCase();
+
+/** "Packers -3.5", "Under 6.5", "Packers ML" — the side the stake goes on. */
+function describePick(m: MatchupData, e: EstimationData): string {
+  const isTotal = e.betType === 'total' || (!e.betType && m.sport === 'hockey');
+  if (isTotal) {
+    const side = e.totalSide === 'over' ? 'Over' : e.totalSide === 'under' ? 'Under' : 'Total';
+    return Number.isFinite(e.pointSpread) ? `${side} ${e.pointSpread}` : side;
+  }
+  if (e.betType === 'moneyline') return `${m.teamA.name} ML`;
+  const sp = e.pointSpread;
+  if (!Number.isFinite(sp)) return m.teamA.name;
+  return `${m.teamA.name} ${sp === 0 ? 'PK' : (sp > 0 ? '+' : '') + sp}`;
+}
+
+function describeMatchup(m: MatchupData): string {
+  if (m.venue === 'home') return `${m.teamB.name} at ${m.teamA.name}`;
+  if (m.venue === 'away') return `${m.teamA.name} at ${m.teamB.name}`;
+  return `${m.teamA.name} vs ${m.teamB.name}`;
+}
+
+/** The insight endpoint replies in JSON mode; pull the plain sentence out. */
+function extractInsightText(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  let text = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === 'string') text = parsed;
+    else if (parsed && typeof parsed === 'object') {
+      const values = Object.values(parsed as Record<string, unknown>);
+      const first = values.find((v) => typeof v === 'string') as string | undefined;
+      text = first ?? text;
+    }
+  } catch { /* already plain text */ }
+  return text.replace(/^["'{\s]+|["'}\s]+$/g, '').trim();
+}
+
 /* ========================= Probability Estimator panel ===================== */
 /* Estimator sport tabs, mapped to the league keys the admin can hide. */
 const ESTIMATOR_SPORT_TABS: { key: string; label: string; league: ManagedSport }[] = [
@@ -1521,19 +1560,31 @@ function KellyCalculator({
       setIsGenerating(true); setExplanation('');
       try {
         const systemInstruction =
-          "You are an elite betting analyst. Give sharp, 1–2 sentence insights explaining each Kelly Criterion recommendation. Be confident, direct, and responsibly bold with a touch of sass. Keep explanations concise, varied, and never repetitive.";
+          'You are a sharp sports-betting analyst writing a 2-sentence note on one specific bet. ' +
+          'Name the actual pick and matchup when given. Use the concrete numbers provided (model win probability vs. the ' +
+          'sportsbook\'s implied probability, the edge in points, the projected margin or total, the stake and Kelly fraction) ' +
+          'and say what would make the bet go wrong. No hype, no clichés like "money on the table" or "soft market", ' +
+          'no guarantees. Reply as JSON: {"insight": "<your two sentences>"}.';
+        const betLine = matchupData && estimationData
+          ? `Bet: ${describePick(matchupData, estimationData)} (${betSportLabel(matchupData.sport)}, ${describeMatchup(matchupData)}).` +
+            (estimationData.expectedMargin !== undefined
+              ? ` Model projection: ${estimationData.betType === 'total' ? 'total' : `${matchupData.teamA.name} margin`} ${estimationData.expectedMargin.toFixed(1)}.`
+              : '')
+          : 'No specific game attached; this is a manual calculation.';
+        const numbers = `American odds ${odds} (implied ${impliedProb !== null ? impliedProb.toFixed(1) : '?'}%), model win probability ${probability}%, ` +
+          `edge ${edge !== null ? edge.toFixed(1) : '?'} points, bankroll ${formatCurrency(bankroll)}, Kelly fraction ${fraction}x.`;
         const userPrompt = hasValue
-          ? `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) result in a recommended stake of ${formatCurrency(stake)} (${stakePercentage.toFixed(2)}%). Provide a concise, 1-2 sentence explanation.`
-          : `A user's inputs (Bankroll: ${formatCurrency(bankroll)}, Odds: ${odds}, Win Probability: ${probability}%) indicate a "No Value" bet. Provide a concise explanation emphasizing bankroll protection.`;
+          ? `${betLine} ${numbers} Recommended stake: ${formatCurrency(stake)} (${stakePercentage.toFixed(2)}% of bankroll). Explain why this size fits this bet and the main risk.`
+          : `${betLine} ${numbers} Kelly says there is no value. Explain briefly why passing is right here.`;
         const response = await fetchFromApi(userPrompt, systemInstruction);
-        setExplanation(response.text);
+        setExplanation(extractInsightText(response.text) || 'Could not generate an analysis at this time.');
       } catch (e:any) {
         setExplanation(e?.message || "Could not generate an analysis at this time.");
       } finally { setIsGenerating(false); }
     };
     const t = setTimeout(getExplanation, 500);
     return () => clearTimeout(t);
-  }, [stake, stakePercentage, hasValue, bankroll, odds, probability]);
+  }, [stake, stakePercentage, hasValue, bankroll, odds, probability, fraction, matchupData, estimationData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadHistoryItem = (item: HistoryEntry) => {
     setBankroll(formatBankrollValue(item.bankroll));
@@ -1710,9 +1761,23 @@ function KellyCalculator({
 
       <div className="tool-aside">
       <div className="panel">
+      {matchupData && estimationData ? (
+        <div className="kelly-bet-card" aria-label="Bet being sized">
+          <span className="kelly-bet-label">Your bet · {betSportLabel(matchupData.sport)}</span>
+          <strong className="kelly-bet-pick">{describePick(matchupData, estimationData)}</strong>
+          <span className="kelly-bet-matchup">{describeMatchup(matchupData)}</span>
+          <span className="kelly-bet-meta">{Number(odds) > 0 ? `+${odds}` : odds} · {probability}% model win chance</span>
+        </div>
+      ) : (
+        <div className="kelly-bet-card kelly-bet-card--empty" aria-label="No game selected">
+          <span className="kelly-bet-label">Your bet</span>
+          <strong className="kelly-bet-pick">No game selected</strong>
+          <span className="kelly-bet-matchup">Pick a game in Games or the Probability Estimator and press “Use in Kelly Calculator” to size a specific bet.</span>
+        </div>
+      )}
       {hasValue ? (
         <div className="results">
-          <p>Recommended Stake</p>
+          <p>Recommended Stake{matchupData && estimationData ? ` on ${describePick(matchupData, estimationData)}` : ''}</p>
           <h2>{formatCurrency(stake)}</h2>
           <div className="results-details">
             <span>{stakePercentage.toFixed(2)}% of Bankroll</span>
@@ -1751,8 +1816,8 @@ function KellyCalculator({
                   🔒 Sign in to Log Bets
                 </button>
               ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '.9rem', margin: 0 }}>
-                  💡 Use the Probability Estimator first to enable bet logging with full matchup data
+                <p style={{ color: 'var(--text-muted)', fontSize: '.9rem', margin: 0, textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>
+                  Pick a game first to log this bet
                 </p>
               )}
             </div>

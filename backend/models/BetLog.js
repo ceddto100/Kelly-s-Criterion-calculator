@@ -158,81 +158,57 @@ betLogSchema.methods.calculateProfit = function() {
   return null;
 };
 
-// Static method to get user's betting stats
+// Static method to get user's betting stats.
+// Profit is computed bet-by-bet from settled results only (same formula as the
+// public Founder's Track Record), so the Bets tab and the Lab panel always agree:
+//   win  -> payout - stake, loss -> -stake, push -> 0; pending/cancelled ignored.
 betLogSchema.statics.getUserStats = async function(userId) {
-  const stats = await this.aggregate([
-    { $match: { userId } },
-    {
-      $group: {
-        _id: null,
-        totalBets: { $sum: 1 },
-        pendingBets: {
-          $sum: { $cond: [{ $eq: ['$outcome.result', 'pending'] }, 1, 0] }
-        },
-        wins: {
-          $sum: { $cond: [{ $eq: ['$outcome.result', 'win'] }, 1, 0] }
-        },
-        losses: {
-          $sum: { $cond: [{ $eq: ['$outcome.result', 'loss'] }, 1, 0] }
-        },
-        pushes: {
-          $sum: { $cond: [{ $eq: ['$outcome.result', 'push'] }, 1, 0] }
-        },
-        totalWagered: { $sum: '$actualWager' },
-        totalPayout: {
-          $sum: {
-            $cond: [
-              { $eq: ['$outcome.result', 'win'] },
-              '$outcome.payout',
-              0
-            ]
-          }
-        },
-        avgProbability: { $avg: '$estimation.calculatedProbability' },
-        avgEdge: { $avg: '$estimation.edge' }
-      }
-    }
-  ]);
+  const bets = await this.find({ userId })
+    .select('actualWager outcome.result outcome.payout estimation.calculatedProbability estimation.edge')
+    .lean();
+  return computeStats(bets);
+};
 
-  if (stats.length === 0) {
-    return {
-      totalBets: 0,
-      pendingBets: 0,
-      wins: 0,
-      losses: 0,
-      pushes: 0,
-      winRate: 0,
-      totalWagered: 0,
-      totalPayout: 0,
-      netProfit: 0,
-      roi: 0,
-      avgProbability: 0,
-      avgEdge: 0
-    };
-  }
+function computeStats(bets) {
+  const counted = bets.filter((b) => b.outcome?.result !== 'cancelled');
+  const count = (r) => counted.filter((b) => b.outcome?.result === r).length;
+  const wins = count('win');
+  const losses = count('loss');
+  const pushes = count('push');
+  const pendingBets = count('pending');
+  const settled = counted.filter((b) => ['win', 'loss', 'push'].includes(b.outcome?.result));
 
-  const s = stats[0];
-  const settledBets = s.wins + s.losses;
-  const winRate = settledBets > 0 ? (s.wins / settledBets) * 100 : 0;
-  const netProfit = s.totalPayout - (s.totalWagered - s.pendingBets * (s.totalWagered / s.totalBets));
-  const settledWagered = s.totalWagered * (settledBets / s.totalBets);
-  const roi = settledWagered > 0 ? (netProfit / settledWagered) * 100 : 0;
+  const settledWagered = settled.reduce((s, b) => s + (b.actualWager || 0), 0);
+  const netProfit = settled.reduce((s, b) => {
+    if (b.outcome.result === 'win') return s + (b.outcome.payout || 0) - (b.actualWager || 0);
+    if (b.outcome.result === 'loss') return s - (b.actualWager || 0);
+    return s;
+  }, 0);
+  const totalPayout = settled
+    .filter((b) => b.outcome.result === 'win')
+    .reduce((s, b) => s + (b.outcome.payout || 0), 0);
+  const avg = (key) => {
+    const vals = counted.map((b) => b.estimation?.[key]).filter((v) => typeof v === 'number');
+    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  };
+  const decided = wins + losses;
+  const round2 = (n) => Math.round(n * 100) / 100;
 
   return {
-    totalBets: s.totalBets,
-    pendingBets: s.pendingBets,
-    wins: s.wins,
-    losses: s.losses,
-    pushes: s.pushes,
-    winRate: winRate.toFixed(1),
-    totalWagered: s.totalWagered,
-    totalPayout: s.totalPayout,
-    netProfit,
-    roi: roi.toFixed(1),
-    avgProbability: s.avgProbability?.toFixed(1) || 0,
-    avgEdge: s.avgEdge?.toFixed(1) || 0
+    totalBets: counted.length,
+    pendingBets,
+    wins,
+    losses,
+    pushes,
+    winRate: (decided ? (wins / decided) * 100 : 0).toFixed(1),
+    totalWagered: round2(settledWagered),
+    totalPayout: round2(totalPayout),
+    netProfit: round2(netProfit),
+    roi: (settledWagered ? (netProfit / settledWagered) * 100 : 0).toFixed(1),
+    avgProbability: avg('calculatedProbability').toFixed(1),
+    avgEdge: avg('edge').toFixed(1)
   };
-};
+}
 
 // Index for efficient queries
 betLogSchema.index({ userId: 1, createdAt: -1 });

@@ -59,7 +59,7 @@ function TrackRecordPanel() {
   const [failed,setFailed]=useState(false);
   useEffect(()=>{
     let active=true;
-    fetch(`${BACKEND_URL}/api/track-record`).then(r=>r.ok?r.json():Promise.reject()).then(d=>{if(!active)return;if(d&&typeof d.settled==='number'&&Array.isArray(d.recent)&&Array.isArray(d.profitTrend)&&Array.isArray(d.bySport))setData({...d,streak:d.streak||{type:null,count:0}});else setFailed(true);}).catch(()=>{if(active)setFailed(true);});
+    fetch(`${BACKEND_URL}/api/track-record`,{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(d=>{if(!active)return;if(d&&typeof d.settled==='number'&&Array.isArray(d.recent)&&Array.isArray(d.profitTrend)&&Array.isArray(d.bySport))setData({...d,streak:d.streak||{type:null,count:0}});else setFailed(true);}).catch(()=>{if(active)setFailed(true);});
     return()=>{active=false;};
   },[]);
   if(failed) return null;
@@ -77,7 +77,7 @@ function TrackRecordPanel() {
       </div>
       <div className="tr-body">
         <div className="tr-trend"><small>Profit over time · {data.settled} graded bets · avg bet {money(data.avgStake)}</small><Sparkline points={data.profitTrend} format={v=>money(v,true)}/>
-          {data.bySport.length>0&&<div className="tr-sports">{data.bySport.map(s=><span key={s.sport}><b>{s.sport}</b> {s.wins}-{s.losses}{s.pushes?`-${s.pushes}`:''} <i className={s.profit>=0?'tr-pos':'tr-neg'}>{money(s.profit,true)}</i></span>)}</div>}
+          {data.bySport.length>0&&<div className="tr-sports">{data.bySport.map(s=><span key={s.sport}><b>{s.sport}</b> {s.wins}-{s.losses}{s.pushes?`-${s.pushes}`:''}</span>)}</div>}
         </div>
         <div className="tr-recent"><small>Last {data.recent.length}</small>
           <div className="tr-form" aria-label="Recent results">{[...data.recent].reverse().map((r,i)=><span key={i} className={'tr-dot tr-'+r.result} title={`${r.pick} · ${r.result}`}>{r.result[0].toUpperCase()}</span>)}</div>
