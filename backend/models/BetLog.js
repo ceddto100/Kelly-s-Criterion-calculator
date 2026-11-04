@@ -113,7 +113,7 @@ const betLogSchema = new mongoose.Schema({
   },
   tags: [{
     type: String,
-    maxlength: 50
+    maxlength: 120 // auto-pick game tags (game-<date>-<sport>-<away>-at-<home>) run ~70 chars
   }],
 
   createdAt: {

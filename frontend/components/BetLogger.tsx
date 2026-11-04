@@ -1100,9 +1100,13 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
       if (response.ok) {
         const data = await response.json();
         setBets(prev => prev.map(b => b._id === betId ? data.bet : b));
+      } else {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Server returned ${response.status}`);
       }
     } catch (err) {
       console.error('Failed to set over/under side:', err);
+      alert(`Couldn't save Over/Under: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setUpdatingBet(null);
     }
