@@ -50,6 +50,7 @@ import { StatsPage } from './components/StatsPage';
 /* === SEO Component === */
 import { SEO, SEO_CONFIG } from './components/SEO';
 import { evaluateDecision } from './utils/decision';
+import { openUpgradeCheckout } from './utils/stripeCheckout';
 import { calculateNHLProjection } from './utils/nhlProjection';
 import type { DailyGameSelection, MLBFieldState } from './utils/dailyGameTransfer';
 import type { WaltersPrefill } from './utils/cfbStatsLoader';
@@ -773,27 +774,9 @@ function ProbabilityEstimator({
   const handleUpgrade = async () => {
     setIsUpgradeLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/stripe/create-checkout-session`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Unable to start checkout');
-      }
-
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.assign(data.url);
-        return;
-      }
+      await openUpgradeCheckout();
     } catch (error) {
       console.error(error);
-    } finally {
       setIsUpgradeLoading(false);
     }
   };
