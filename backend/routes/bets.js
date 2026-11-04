@@ -241,7 +241,7 @@ router.post('/sync-scores', asyncHandler(async (req, res) => {
     applyOutcome(bet, result, { teamA: scoreA, teamB: scoreB });
     bet.outcome.autoGraded = true;
     bet.outcome.gameId = gameId;
-    await bet.save();
+    await bet.save({ validateModifiedOnly: true });
     graded.push(bet);
   }
 
@@ -271,7 +271,7 @@ router.patch('/:id/outcome', asyncHandler(async (req, res) => {
   applyOutcome(bet, result, actualScore, payout);
   bet.outcome.autoGraded = false;
 
-  await bet.save();
+  await bet.save({ validateModifiedOnly: true });
 
   // Bankroll is no longer auto-adjusted based on bet outcomes
   const user = await getOrCreateUser(getUserId(req));
@@ -322,7 +322,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     bet.estimation.totalSide = totalSide;
   }
 
-  await bet.save();
+  await bet.save({ validateModifiedOnly: true });
 
   res.json({
     success: true,
