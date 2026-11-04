@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { TrackRecordPanel } from './TrackRecordPanel';
 import { useHiddenSports } from '../utils/sportVisibility';
 import { loadCatalog, predictFromCatalog, type Catalog, type Prediction, type PredictionSport } from '../../mcp-server/src/utils/predictionCore';
 
@@ -19,7 +20,6 @@ function catalogFor(sport: PredictionSport, refresh = false) {
   }).catch(e=>{cache.delete(sport);throw e;});
   cache.set(sport,{time:Date.now(),promise});return promise;
 }
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 const METHOD_STEPS = [
   {n:'01',title:'Read the stats',body:'Team-by-team season data runs through a sport-specific model to project the score.'},
@@ -28,65 +28,14 @@ const METHOD_STEPS = [
   {n:'04',title:'Size it with Kelly',body:'Stake a disciplined slice of your bankroll, then log it and track every result.'},
 ];
 
-interface TrackRecord {
-  settled:number; pending:number; wins:number; losses:number; pushes:number;
-  winRate:number; roi:number; units:number; profit:number; wagered:number; avgStake:number; profitTrend:number[]; streak:{type:'win'|'loss'|null;count:number};
-  unitsTrend:number[]; bySport:{sport:string;wins:number;losses:number;pushes:number;roi:number;profit:number}[];
-  recent:{sport:string;matchup:string;pick:string;result:'win'|'loss'|'push';date:string;stake:number;profit:number}[];
-  since:string|null;
-}
-
-function Sparkline({points,format=(v:number)=>String(v)}:{points:number[];format?:(v:number)=>string}) {
-  if(points.length<2) return null;
-  const data=[0,...points],w=240,h=56,min=Math.min(0,...data),max=Math.max(0,...data),span=max-min||1;
-  const x=(i:number)=>(i/(data.length-1))*w, y=(v:number)=>h-((v-min)/span)*h;
-  const d=data.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
-  const up=data[data.length-1]>=0;
-  return <svg className="tr-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={`Profit over time, now ${format(data[data.length-1])}`}>
-    <line x1="0" x2={w} y1={y(0)} y2={y(0)} className="tr-spark-zero"/>
-    <path d={d} className={up?'tr-spark-up':'tr-spark-down'}/>
-  </svg>;
-}
-
-const signed=(n:number,suffix='')=>`${n>0?'+':''}${n}${suffix}`;
-const money=(n:number,showSign=false)=>{
-  const abs=Math.abs(n).toLocaleString(undefined,{style:'currency',currency:'USD',minimumFractionDigits:Math.abs(n)>=1000?0:2,maximumFractionDigits:Math.abs(n)>=1000?0:2});
-  return n<0?`-${abs}`:showSign&&n>0?`+${abs}`:abs;
-};
-
-function TrackRecordPanel() {
-  const [data,setData]=useState<TrackRecord|null>(null);
-  const [failed,setFailed]=useState(false);
-  useEffect(()=>{
-    let active=true;
-    fetch(`${BACKEND_URL}/api/track-record`,{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(d=>{if(!active)return;if(d&&typeof d.settled==='number'&&Array.isArray(d.recent)&&Array.isArray(d.profitTrend)&&Array.isArray(d.bySport))setData({...d,streak:d.streak||{type:null,count:0}});else setFailed(true);}).catch(()=>{if(active)setFailed(true);});
-    return()=>{active=false;};
-  },[]);
-  if(failed) return null;
-  const header=<div className="panel-heading"><h3 className="tr-title"><span className="signal-dot" aria-hidden="true"/>Founder's Track Record</h3><span className="result-tag">REAL BETS</span></div>;
-  if(!data) return <section className="track-record" aria-busy="true">{header}<p className="tr-explain">Loading results…</p></section>;
-  return <section className="track-record" aria-label="Founder's track record">
-    {header}
-    <p className="tr-explain">These are the Betgistics founder's own logged bets, made with the method above and graded automatically from final scores. They aren't your bets, and they aren't picks to copy.</p>
-    {data.settled===0 ? <p className="tr-empty">The first graded bets will show up here.</p> : <>
-      <div className="tr-stats">
-        <div><small>Record</small><strong>{data.wins}-{data.losses}{data.pushes?`-${data.pushes}`:''}</strong><span>{data.winRate}% win rate</span></div>
-        <div><small>ROI</small><strong className={data.roi>=0?'tr-pos':'tr-neg'}>{signed(data.roi,'%')}</strong><span>return per dollar staked</span></div>
-        <div><small>Net profit</small><strong className={data.profit>=0?'tr-pos':'tr-neg'}>{money(data.profit,true)}</strong><span>{signed(data.units,'u')} · {money(data.wagered)} staked</span></div>
-        <div><small>Streak</small><strong>{data.streak.type?`${data.streak.type==='win'?'W':'L'}${data.streak.count}`:'—'}</strong><span>{data.pending} pending</span></div>
-      </div>
-      <div className="tr-body">
-        <div className="tr-trend"><small>Profit over time · {data.settled} graded bets · avg bet {money(data.avgStake)}</small><Sparkline points={data.profitTrend} format={v=>money(v,true)}/>
-          {data.bySport.length>0&&<div className="tr-sports">{data.bySport.map(s=><span key={s.sport}><b>{s.sport}</b> <i className={s.profit>=0?'tr-pos':'tr-neg'}>{money(s.profit,true)}</i></span>)}</div>}
-        </div>
-        <div className="tr-recent"><small>Last {data.recent.length}</small>
-          <div className="tr-form" aria-label="Recent results">{[...data.recent].reverse().map((r,i)=><span key={i} className={'tr-dot tr-'+r.result} title={`${r.pick} · ${r.result}`}>{r.result[0].toUpperCase()}</span>)}</div>
-          <ul>{data.recent.slice(0,5).map((r,i)=><li key={i}><span className={'tr-chip tr-'+r.result}>{r.result.toUpperCase()}</span><span className="tr-pick"><b>{r.pick}</b><small>{r.sport} · {r.matchup}</small></span><span className={'tr-amt '+(r.profit>0?'tr-pos':r.profit<0?'tr-neg':'')}>{money(r.profit,true)}<small>on {money(r.stake)}</small></span></li>)}</ul>
-        </div>
-      </div>
-    </>}
-    <p className="tr-foot">Past results don't predict future results. Even a disciplined approach has losing stretches — only bet what you can afford to lose.</p>
-  </section>;
+function FounderTrackRecord() {
+  return <TrackRecordPanel
+    endpoint="/api/track-record"
+    title="Founder's Track Record"
+    tag="REAL BETS"
+    explain="These are the Betgistics founder's own logged bets, made with the method above and graded automatically from final scores. They aren't your bets, and they aren't picks to copy."
+    footer="Past results don't predict future results. Even a disciplined approach has losing stretches — only bet what you can afford to lose."
+  />;
 }
 
 const initials=(name:string)=>name.split(' ').map(w=>w[0]).slice(-2).join('');
@@ -161,7 +110,7 @@ export default function PredictionHub() {
         </> : <div className="prediction-empty"><span className="empty-orbit" aria-hidden="true">↗</span><span className="eyebrow">LESS GUESSWORK. MORE CONTEXT.</span><h3>Your next read<br/>starts here.</h3><p>Pick two teams. We’ll turn their statistics into an outcome you can explore.</p><div className="empty-steps"><span>Select teams</span><i>→</i><span>See the projection</span><i>→</i><span>Explore why</span></div></div>}
       </section>
     </div>
-    <TrackRecordPanel/>
+    <FounderTrackRecord/>
     <section className="insight-tiles" aria-label="Betting with discipline"><article><span className="tile-index">THE EDGE</span><h4>Only bet the gap.</h4><p>When the model's probability beats the sportsbook's implied odds, that's an edge. When it doesn't, passing is the winning move.</p></article><article><span className="tile-index">THE BANKROLL</span><h4>Stake like a pro.</h4><p>Kelly sizing grows your stake when the edge is bigger and shrinks it when it's thin, so no single game sinks your bankroll.</p></article><article><span className="tile-index">THE LONG GAME</span><h4>Track everything.</h4><p>Log every bet. Results only mean something over hundreds of bets, not one weekend.</p></article></section>
   </div>;
 }

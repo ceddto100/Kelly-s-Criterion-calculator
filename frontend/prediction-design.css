@@ -112,7 +112,7 @@ body::before {background:linear-gradient(150deg,#101921,#0b1014 50%);}
 .method-steps p {font-size:11px;color:#b3c4cd;line-height:1.7;margin:0;}
 
 /* Founder's track record: real logged bets, clearly labeled. */
-.track-record {border:1px solid #45623b;border-radius:14px;padding:24px;background:linear-gradient(160deg,#18261b,#131c23 60%);}
+.track-record {--lime:#c5f36b;--muted:#a9bbc5;color:#f1f6f7;margin-bottom:20px;border:1px solid #45623b;border-radius:14px;padding:24px;background:linear-gradient(160deg,#18261b,#131c23 60%);}
 .track-record .panel-heading {margin-bottom:10px;}
 .tr-title {display:flex;align-items:center;gap:12px;margin:0;font-size:clamp(24px,2.6vw,34px);font-weight:900;letter-spacing:-1px;line-height:1.1;color:#f1f6f7;}
 .tr-title .signal-dot {width:10px;height:10px;flex:none;box-shadow:0 0 12px #c5f36b;}
