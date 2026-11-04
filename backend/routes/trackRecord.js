@@ -12,9 +12,6 @@ const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
 
-const CACHE_MS = 5 * 60 * 1000;
-let cached = null; // { at, body }
-
 const SPORT_LABELS = {
   football: 'NFL', nfl: 'NFL', basketball: 'NBA', nba: 'NBA', hockey: 'NHL', nhl: 'NHL',
   baseball: 'MLB', mlb: 'MLB', cfb: 'CFB', ncaaf: 'CFB', cbb: 'CBB', ncaab: 'CBB', wnba: 'WNBA',
@@ -122,8 +119,9 @@ function summarize(bets) {
 }
 
 // GET /api/track-record — public.
+// Always computed live from the admin's bet log (no cache), so it matches the
+// admin's Bets tab the moment a bet is logged or graded.
 router.get('/', asyncHandler(async (_req, res) => {
-  if (cached && Date.now() - cached.at < CACHE_MS) return res.json(cached.body);
 
   const admins = await User.find({ email: { $in: ADMIN_EMAILS } }).select('identifier _id').lean();
   const ids = admins.flatMap((u) => [u.identifier, String(u._id)]).filter(Boolean);
@@ -133,9 +131,8 @@ router.get('/', asyncHandler(async (_req, res) => {
         .lean()
     : [];
 
-  const body = { success: true, updatedAt: new Date().toISOString(), ...summarize(bets) };
-  cached = { at: Date.now(), body };
-  res.json(body);
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, updatedAt: new Date().toISOString(), ...summarize(bets) });
 }));
 
 module.exports = router;
