@@ -868,11 +868,38 @@ async function findAlreadyLogged(
     { userId, $or: [{ tags: dayTag }, ...(idTags.length ? [{ tags: { $in: idTags } }] : [])] },
     { tags: 1 }
   ).lean();
-  return new Set<string>(
+  const out = new Set<string>(
     existing.flatMap((b: { tags?: string[] }) =>
       (b.tags || []).filter((t) => t.startsWith('game-') || t.startsWith('gid-'))
     )
   );
+
+  // Bets logged before game-id tags existed only carry a dated game tag, often
+  // with the wrong date (e.g. a Sunday NFL game logged on Thursday). Match them
+  // by matchup over the last week so those games aren't logged a second time.
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recent = await BetLog.find(
+    { userId, createdAt: { $gte: since }, tags: { $regex: '^game-' } },
+    { tags: 1 }
+  ).lean();
+  const recentMatchups = new Set<string>(
+    recent
+      .filter((b: { tags?: string[] }) => !(b.tags || []).some((t) => t.startsWith('gid-')))
+      .flatMap((b: { tags?: string[] }) =>
+        (b.tags || []).filter((t) => t.startsWith('game-')).map(undatedGameTag)
+      )
+  );
+  for (const c of candidates) {
+    const key = undatedGameTag(gameTag('0000-00-00', c));
+    if (!recentMatchups.has(key)) continue;
+    if (c.gameIdTag) out.add(c.gameIdTag);
+  }
+  return out;
+}
+
+/** "game-2026-11-05-nba-heat-at-celtics" -> "nba-heat-at-celtics". */
+function undatedGameTag(tag: string): string {
+  return tag.replace(/^game-\d{4}-\d{2}-\d{2}-/, '');
 }
 
 async function logPicks(
