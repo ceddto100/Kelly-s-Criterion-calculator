@@ -5,7 +5,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 const POLL_MS = 30000;
 
 type Result = 'win' | 'loss' | 'push';
-interface Side { name: string; abbr: string; score: number | null }
+interface Side { name: string; abbr: string; score: number | null; logo?: string }
 export interface TopPick {
   id: string; sport: string; pick: string; market: string;
   edge: number | null; probability: number | null; stake: number;
@@ -46,7 +46,7 @@ function Badge({ p }: { p: TopPick }) {
 
 function Row({ side, sport, won }: { side: Side; sport: string; won: boolean }) {
   return <div className={'tp-team' + (won ? ' tp-leader' : '')}>
-    <AutoTeamLogo sport={sport} name={side.name} abbr={side.abbr} size={22} />
+    <AutoTeamLogo sport={sport} name={side.name} abbr={side.abbr} src={side.logo || null} size={22} />
     <span className="tp-name">{side.name}</span>
     <strong className="tp-score">{side.score ?? '–'}</strong>
   </div>;

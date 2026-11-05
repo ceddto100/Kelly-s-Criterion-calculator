@@ -206,6 +206,8 @@ async function checkPendingBets(bets, { fetch = fetchScoreboard, now = Date.now(
       scoreA: started ? scoreA : null,
       scoreB: started ? scoreB : null,
       teamAIsHome,
+      homeLogo: game.homeLogo || '',
+      awayLogo: game.awayLogo || '',
       currentGrade: grade, // how the bet stands right now
     };
     if (game.status === 'final' && grade) {

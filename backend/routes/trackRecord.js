@@ -180,9 +180,9 @@ function describePick(bet, live) {
     // The game is over but the bet hasn't been saved as graded yet.
     if (status === 'final') result = currentGrade;
   }
-  const team = (t, score) => ({ name: t.name || '', abbr: t.abbreviation || '', score });
-  const home = teamAIsHome ? team(A, scoreA) : team(B, scoreB);
-  const away = teamAIsHome ? team(B, scoreB) : team(A, scoreA);
+  const team = (t, score, logo) => ({ name: t.name || '', abbr: t.abbreviation || '', score, logo: logo || '' });
+  const home = teamAIsHome ? team(A, scoreA, live?.homeLogo) : team(B, scoreB, live?.homeLogo);
+  const away = teamAIsHome ? team(B, scoreB, live?.awayLogo) : team(A, scoreA, live?.awayLogo);
   const stake = bet.actualWager || 0;
   const round2 = (n) => Math.round(n * 100) / 100;
   return {

@@ -90,7 +90,8 @@ test('top picks: none', () => {
 
 test('describe pick: live game keeps away @ home and clock', () => {
   const b = autoBet('x', 5, 5);
-  const p = describePick(b, { matched: true, status: 'in_progress', statusDetail: 'Q3 5:42', scoreA: 70, scoreB: 61, teamAIsHome: true, currentGrade: 'win', startTime: '2026-11-05T23:30Z' });
+  const p = describePick(b, { matched: true, status: 'in_progress', statusDetail: 'Q3 5:42', scoreA: 70, scoreB: 61, teamAIsHome: true, currentGrade: 'win', startTime: '2026-11-05T23:30Z', homeLogo: 'h.png', awayLogo: 'a.png' });
+  assert.deepStrictEqual([p.home.logo, p.away.logo], ['h.png', 'a.png']);
   assert.strictEqual(p.sport, 'NBA');
   assert.strictEqual(p.pick, 'Boston Celtics -3.5');
   assert.deepStrictEqual([p.away.name, p.away.score, p.home.name, p.home.score], ['Miami Heat', 61, 'Boston Celtics', 70]);
