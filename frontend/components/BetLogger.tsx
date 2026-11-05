@@ -40,12 +40,17 @@ export const getSportMeta = (sport: string) =>
   SPORT_META[sport] || { label: sport, icon: '🎯' };
 
 // Legacy generic sport values that should match a league filter
+// (calculator bets are saved as basketball/football; those are NBA/NFL).
 const SPORT_ALIASES: Record<string, string[]> = {
+  nba: ['basketball'],
+  nfl: ['football'],
   nhl: ['hockey'],
   mlb: ['baseball'],
 };
-const sportMatchesFilter = (betSport: string, filter: string) =>
-  betSport === filter || (SPORT_ALIASES[filter] || []).includes(betSport);
+const sportMatchesFilter = (betSport: string | undefined, filter: string) => {
+  const s = (betSport || '').toLowerCase();
+  return s === filter || (SPORT_ALIASES[filter] || []).includes(s);
+};
 
 // ---- Bet type (spread vs over/under) ----
 export type BetType = 'spread' | 'total' | 'moneyline';
@@ -1041,15 +1046,24 @@ export function BetHistory({ isAuthenticated, onBankrollUpdate, onLoginRequired 
 
     setIsLoading(true);
     try {
-      const [betsRes, statsRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/bets?limit=50`, { credentials: 'include' }),
+      // Load every bet (paged), so filters cover the whole history, not just the latest few.
+      const loadAllBets = async (): Promise<SavedBet[] | null> => {
+        const all: SavedBet[] = [];
+        for (let page = 1; page <= 50; page++) {
+          const res = await fetch(`${BACKEND_URL}/api/bets?limit=200&page=${page}`, { credentials: 'include' });
+          if (!res.ok) return page === 1 ? null : all;
+          const data = await res.json();
+          all.push(...(data.bets || []));
+          if (!data.pagination || page >= data.pagination.pages) break;
+        }
+        return all;
+      };
+      const [allBets, statsRes] = await Promise.all([
+        loadAllBets(),
         fetch(`${BACKEND_URL}/api/bets/stats`, { credentials: 'include' })
       ]);
 
-      if (betsRes.ok) {
-        const betsData = await betsRes.json();
-        setBets(betsData.bets);
-      }
+      if (allBets) setBets(allBets);
 
       if (statsRes.ok) {
         const statsData = await statsRes.json();
