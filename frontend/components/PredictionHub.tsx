@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TrackRecordPanel } from './TrackRecordPanel';
+import { TopEdgePicks } from './TopEdgePicks';
 import { useHiddenSports } from '../utils/sportVisibility';
 import { loadCatalog, predictFromCatalog, type Catalog, type Prediction, type PredictionSport } from '../../mcp-server/src/utils/predictionCore';
 
@@ -107,7 +108,7 @@ export default function PredictionHub() {
           {prediction.probability!==undefined&&(prediction.homeWinProbability===undefined||line.trim()!=='')&&<div className="probability-read"><div><span>{prediction.probabilityLabel}</span><strong>{prediction.probability.toFixed(1)}%</strong></div><div className="probability-track" aria-hidden="true"><span style={{width:prediction.probability+'%'}}/></div>{!!prediction.pushProbability&&<small>Push at this line: {prediction.pushProbability.toFixed(1)}%</small>}</div>}
           <details className="model-details"><summary>Why this prediction?</summary><ul>{prediction.drivers.map(d=><li key={d}>{d}</li>)}</ul><p>{prediction.warnings.join(' ')}</p><details><summary>View source statistics</summary><pre>{JSON.stringify(prediction.inputs,(_k,v)=>typeof v==='number'&&!Number.isInteger(v)?Math.round(v*1000)/1000:v,2)}</pre></details></details>
           <p className="estimate-note">Research-informed estimate · not yet backtested. Outcomes can differ.</p>
-        </> : <div className="prediction-empty"><span className="empty-orbit" aria-hidden="true">↗</span><span className="eyebrow">LESS GUESSWORK. MORE CONTEXT.</span><h3>Your next read<br/>starts here.</h3><p>Pick two teams. We’ll turn their statistics into an outcome you can explore.</p><div className="empty-steps"><span>Select teams</span><i>→</i><span>See the projection</span><i>→</i><span>Explore why</span></div></div>}
+        </> : <TopEdgePicks fallback={<div className="prediction-empty"><span className="empty-orbit" aria-hidden="true">↗</span><span className="eyebrow">LESS GUESSWORK. MORE CONTEXT.</span><h3>Your next read<br/>starts here.</h3><p>Pick two teams. We’ll turn their statistics into an outcome you can explore.</p><div className="empty-steps"><span>Select teams</span><i>→</i><span>See the projection</span><i>→</i><span>Explore why</span></div></div>}/>}
       </section>
     </div>
     <FounderTrackRecord/>
