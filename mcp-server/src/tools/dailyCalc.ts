@@ -17,7 +17,7 @@
  */
 
 import { z } from 'zod';
-import { getTodaysGames, DailyGame } from './gamesOfDay.js';
+import { getTodaysGames, DailyGame, easternDate } from './gamesOfDay.js';
 import { handleFootballProbability } from './probability.js';
 import { handleBasketballProbability } from './probability.js';
 import { handleHockeyProbability } from './hockeyProbability.js';
@@ -101,6 +101,11 @@ export interface PickCandidate {
   /** Model probability (%) that the picked side wins. */
   probability: number;
   expectedMargin?: number;
+  /**
+   * Stable provider game id tag (e.g. "gid-espn-nba-401585123", "gid-mlb-745001").
+   * Used to make sure a game is only ever logged once, across all days.
+   */
+  gameIdTag?: string;
 }
 
 export interface LoggedPick {
@@ -278,6 +283,7 @@ async function calcNHLGame(
       line: game.overUnder,
       probability: sideProb,
       expectedMargin: projectedTotal - game.overUnder,
+      gameIdTag: gameIdTag('espn', game.sport, game.gameId),
     });
   }
   const decision = evaluateDecision({
@@ -296,7 +302,7 @@ async function calcNHLGame(
   if (recordProjections) {
     try {
       await handleRecordProjection({
-        gameDate: new Date().toISOString().split('T')[0],
+        gameDate: easternDate(),
         sport: 'hockey',
         league: 'NHL',
         homeTeam: game.homeTeam,
@@ -516,6 +522,7 @@ async function calcGame(
       line: pickLine,
       probability: pickProbability,
       expectedMargin: backHome ? predictedMargin : -predictedMargin,
+      gameIdTag: gameIdTag('espn', game.sport, game.gameId),
     });
   }
 
@@ -547,8 +554,12 @@ async function calcGame(
   let betLogged = false;
   let betId: string | undefined;
 
-  if (hasValue && logBets && userId) {
+  const idTag = gameIdTag('espn', game.sport, game.gameId);
+  if (hasValue && logBets && userId && game.status === 'scheduled') {
     try {
+      if (idTag && (await BetLog.exists({ userId, tags: idTag }))) {
+        throw new Error('already logged on an earlier run');
+      }
       const sportLabel = game.sport === 'NBA' ? 'basketball' : 'football';
       const home = { name: game.homeTeam, abbreviation: game.homeAbbr };
       const away = { name: game.awayTeam, abbreviation: game.awayAbbr };
@@ -569,8 +580,8 @@ async function calcGame(
         kellyFraction: kellyFraction >= 0.75 ? 1 : kellyFraction >= 0.4 ? 0.5 : 0.25,
         recommendedStake,
         stakePercentage,
-        notes: `Auto-logged by daily cron job on ${new Date().toISOString().split('T')[0]}`,
-        tags: ['auto', 'daily-cron', game.sport.toLowerCase()],
+        notes: `Auto-logged by daily cron job on ${easternDate()}`,
+        tags: ['auto', 'daily-cron', game.sport.toLowerCase(), ...(idTag ? [idTag] : [])],
       });
 
       if (logResult.success) {
@@ -598,7 +609,7 @@ async function calcGame(
       const lean = decision.recommendation === 'bet' ? 'home' : 'no-bet';
 
       await handleRecordProjection({
-        gameDate: new Date().toISOString().split('T')[0],
+        gameDate: easternDate(),
         sport: game.sport === 'NBA' ? 'basketball' : 'football',
         league: game.sport,
         homeTeam: game.homeTeam,
@@ -667,7 +678,7 @@ async function runMLBDailyCalc(
   let totals;
   try {
     // Schedule + probable starters from StatsAPI; book totals from ESPN.
-    [games, totals] = await Promise.all([fetchMLBSchedule(), fetchMLBTotals()]);
+    [games, totals] = await Promise.all([fetchMLBSchedule(easternDate()), fetchMLBTotals()]);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     summary.errors.push(`MLB: failed to fetch schedule: ${msg}`);
@@ -675,7 +686,11 @@ async function runMLBDailyCalc(
   }
 
   // Only project games that haven't started yet.
-  const upcoming = games.filter((g) => g.abstractState === 'Preview');
+  // Only project today's (Eastern) games that haven't started yet.
+  const today = easternDate();
+  const upcoming = games.filter(
+    (g) => g.abstractState === 'Preview' && (!g.gameDate || easternDate(g.gameDate) === today)
+  );
   console.log(
     `[DailyCalc] MLB: ${upcoming.length} upcoming games today, ${totals.size / 2 | 0} with book totals`
   );
@@ -703,6 +718,7 @@ async function runMLBDailyCalc(
           line: bookTotal,
           probability: over ? result.totals.overProbability : result.totals.underProbability,
           expectedMargin: result.totals.projectedTotal - bookTotal,
+          gameIdTag: gameIdTag('mlb', 'MLB', game.gamePk),
         });
       }
 
@@ -728,7 +744,7 @@ async function runMLBDailyCalc(
 
       if (recordProjections) {
         await handleRecordProjection({
-          gameDate: new Date().toISOString().split('T')[0],
+          gameDate: easternDate(),
           sport: 'baseball',
           league: 'MLB',
           homeTeam: game.home.name,
@@ -791,6 +807,20 @@ function allPicksTag(date: string): string {
   return `all-picks-${date}`;
 }
 
+/**
+ * Date-independent tag built from the provider's game id. Unlike gameTag it does
+ * not change from one day to the next, so a game logged yesterday is never
+ * logged again today.
+ */
+export function gameIdTag(
+  source: 'espn' | 'mlb',
+  sport: string,
+  id: string | number | undefined | null
+): string | undefined {
+  if (id === undefined || id === null || id === '') return undefined;
+  return `gid-${source}-${sport.toLowerCase()}-${id}`;
+}
+
 /** Stable per-game, per-day tag used to avoid logging the same game twice. */
 export function gameTag(date: string, c: Pick<PickCandidate, 'sport' | 'awayTeam' | 'homeTeam'>): string {
   const slug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -815,10 +845,34 @@ export function selectAllPicks(
     if (c.probability <= IMPLIED_PROB_AT_MINUS_110) continue;
     const tag = gameTag(date, c);
     if (seen.has(tag) || alreadyLogged.has(tag)) continue;
+    if (c.gameIdTag && (seen.has(c.gameIdTag) || alreadyLogged.has(c.gameIdTag))) continue;
     seen.add(tag);
+    if (c.gameIdTag) seen.add(c.gameIdTag);
     out.push(c);
   }
   return out.sort((a, b) => b.probability - a.probability);
+}
+
+/**
+ * Tags of games that must not be logged again: today's per-day game tags plus
+ * any provider game id already logged on ANY day (e.g. a game whose bet was
+ * logged yesterday when it showed up on yesterday's scoreboard).
+ */
+async function findAlreadyLogged(
+  userId: string,
+  dayTag: string,
+  candidates: PickCandidate[]
+): Promise<Set<string>> {
+  const idTags = [...new Set(candidates.map((c) => c.gameIdTag).filter((t): t is string => !!t))];
+  const existing = await BetLog.find(
+    { userId, $or: [{ tags: dayTag }, ...(idTags.length ? [{ tags: { $in: idTags } }] : [])] },
+    { tags: 1 }
+  ).lean();
+  return new Set<string>(
+    existing.flatMap((b: { tags?: string[] }) =>
+      (b.tags || []).filter((t) => t.startsWith('game-') || t.startsWith('gid-'))
+    )
+  );
 }
 
 async function logPicks(
@@ -895,6 +949,7 @@ async function logPicks(
             ? ['all-picks', allPicksTag(today)]
             : ['random-picks', randomPicksTag(today)]),
           gameTag(today, c),
+          ...(c.gameIdTag ? [c.gameIdTag] : []),
           c.sport.toLowerCase(),
           c.market,
           ...(edge > 0 ? [] : ['no-edge']),
@@ -939,7 +994,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   const perGameLogBets = logBets && !picksMode;
   const collector: PickCandidate[] | undefined = picksMode ? [] : undefined;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = easternDate();
   console.log(`[DailyCalc] Starting daily calculations for ${today}`);
   console.log(`[DailyCalc] Settings: bankroll=${bankroll ?? 'admin/default'}, kelly=${kellyFraction}, odds=${americanOdds}, logBets=${logBets}, randomPicks=${randomPicks}, allPicks=${allMode ? allPicksSports.join('/') : 'off'}`);
 
@@ -990,15 +1045,13 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
       summary.errors.push('All picks: admin user not found, nothing logged');
       return;
     }
-    const existing = await BetLog.find({ userId, tags: allPicksTag(today) }, { tags: 1 }).lean();
-    const alreadyLogged = new Set<string>(
-      existing.flatMap((b: { tags?: string[] }) => (b.tags || []).filter((t) => t.startsWith('game-')))
-    );
+    const alreadyLogged = await findAlreadyLogged(userId, allPicksTag(today), collector);
     const picks = selectAllPicks(collector, allPicksSports, today, alreadyLogged);
     summary.allPicks = await logPicks(picks, 'all', userId, finalBankroll, kellyFraction, americanOdds, today);
     summary.betsLogged += summary.allPicks.filter((p) => p.betLogged).length;
-    if (alreadyLogged.size > 0) {
-      summary.errors.push(`All picks: ${alreadyLogged.size} games already logged for ${today}, skipped`);
+    const skipped = selectAllPicks(collector, allPicksSports, today).length - picks.length;
+    if (skipped > 0) {
+      summary.errors.push(`All picks: ${skipped} games already logged, skipped`);
     }
     if (picks.length === 0) {
       summary.errors.push(`All picks: no new positive-edge ${allPicksSports.join('/')} games for ${today}`);
@@ -1013,8 +1066,10 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
       summary.errors.push('Random picks: admin user not found, nothing logged');
       return;
     }
+    const alreadyLogged = await findAlreadyLogged(userId, randomPicksTag(today), collector);
+    const fresh = collector.filter((c) => !c.gameIdTag || !alreadyLogged.has(c.gameIdTag));
     summary.randomPicks = await logPicks(
-      selectRandomPicks(collector, randomPicks), 'random', userId, finalBankroll, kellyFraction, americanOdds, today
+      selectRandomPicks(fresh, randomPicks), 'random', userId, finalBankroll, kellyFraction, americanOdds, today
     );
     summary.betsLogged += summary.randomPicks.filter((p) => p.betLogged).length;
     if (summary.randomPicks.length < randomPicks) {
@@ -1049,10 +1104,10 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   let games: DailyGame[] = [];
 
   try {
-    games = await getTodaysGames(fetchSport as 'NBA' | 'NFL' | 'NHL' | 'ALL');
+    games = await getTodaysGames(fetchSport as 'NBA' | 'NFL' | 'NHL' | 'ALL', today);
     // Filter to only scheduled or in_progress games (skip final/postponed)
     games = games.filter((g) => g.status === 'scheduled' || g.status === 'in_progress');
-    console.log(`[DailyCalc] Found ${games.length} active games today`);
+    console.log(`[DailyCalc] Found ${games.length} active games on today's (${today} ET) slate`);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     summary.errors.push(`Failed to fetch games: ${errMsg}`);

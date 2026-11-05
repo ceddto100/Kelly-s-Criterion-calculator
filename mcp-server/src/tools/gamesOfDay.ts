@@ -62,11 +62,39 @@ const ESPN_ENDPOINTS: Record<'NBA' | 'NFL' | 'NHL', string> = {
 const ESPN_HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; Betgistics/1.0)' };
 
 // ============================================================================
+// DATES (US slate day = America/New_York)
+// ============================================================================
+
+/**
+ * Calendar date (YYYY-MM-DD) of an instant in US Eastern time. US sports slates
+ * are scheduled on Eastern dates; a 7 PM ET tip-off is already "tomorrow" in
+ * UTC, so UTC dates must never be used to decide which day a game belongs to.
+ */
+export function easternDate(when: Date | string = new Date()): string {
+  const d = typeof when === 'string' ? new Date(when) : when;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+/** True when the game starts on the given Eastern date (YYYY-MM-DD). */
+export function isGameOnDate(game: Pick<DailyGame, 'startTime'>, date: string): boolean {
+  const t = new Date(game.startTime);
+  if (isNaN(t.getTime())) return false;
+  return easternDate(t) === date;
+}
+
+// ============================================================================
 // FETCH
 // ============================================================================
 
-async function fetchScoreboard(sport: 'NBA' | 'NFL' | 'NHL'): Promise<unknown> {
-  const url = ESPN_ENDPOINTS[sport];
+async function fetchScoreboard(sport: 'NBA' | 'NFL' | 'NHL', date?: string): Promise<unknown> {
+  // ESPN's default NFL scoreboard is the whole week, and the default NBA/NHL
+  // board can lag a day behind; always ask for the exact slate date.
+  const url = date ? `${ESPN_ENDPOINTS[sport]}?dates=${date.replace(/-/g, '')}` : ESPN_ENDPOINTS[sport];
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -175,19 +203,27 @@ function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): Daily
 // PUBLIC API
 // ============================================================================
 
-export async function getTodaysGames(sport: 'NBA' | 'NFL' | 'NHL' | 'ALL' = 'ALL'): Promise<DailyGame[]> {
+/**
+ * Games that start on `date` (Eastern, YYYY-MM-DD; defaults to today ET).
+ * Games on other days — e.g. Sunday NFL games returned on a Thursday — are
+ * dropped, so callers never act on a game that isn't on today's slate.
+ */
+export async function getTodaysGames(
+  sport: 'NBA' | 'NFL' | 'NHL' | 'ALL' = 'ALL',
+  date: string = easternDate()
+): Promise<DailyGame[]> {
   const sportsToFetch: Array<'NBA' | 'NFL' | 'NHL'> =
     sport === 'ALL' ? ['NBA', 'NFL', 'NHL'] : [sport];
 
   const results = await Promise.all(
     sportsToFetch.map(async (s) => {
-      const data = await fetchScoreboard(s);
+      const data = await fetchScoreboard(s, date);
       if (!data) return [];
       return parseESPNScoreboard(data, s);
     })
   );
 
-  return results.flat();
+  return results.flat().filter((g) => isGameOnDate(g, date));
 }
 
 // ============================================================================
@@ -223,7 +259,7 @@ export async function handleGetTodaysGames(
       games = games.filter((g) => g.status === statusFilter);
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = easternDate();
 
     return {
       success: true,
@@ -236,7 +272,7 @@ export async function handleGetTodaysGames(
     const error = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      date: new Date().toISOString().split('T')[0],
+      date: easternDate(),
       sport,
       games: [],
       total: 0,

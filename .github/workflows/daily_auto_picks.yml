@@ -7,6 +7,8 @@ name: Daily Auto Picks (all positive-edge NBA/NFL/NHL games, half Kelly)
 # the second scheduled run) only add games that were missing — e.g. an NHL total
 # or NBA/NFL spread whose line was posted late. Games with no posted line are
 # never logged (no default 0 spread), and games that already started are skipped.
+# Only games on TODAY's Eastern-time slate are logged (no Sunday NFL games on a
+# Thursday), and a game is never logged twice, even on a later day.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
 #   MCP_SERVER_URL  e.g. https://your-mcp-server.onrender.com  (no trailing slash)
