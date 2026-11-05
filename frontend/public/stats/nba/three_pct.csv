@@ -1,31 +1,31 @@
 "team","abbreviation","three_pct"
-"Memphis Grizzlies","MEM",42.1
-"Los Angeles Lakers","LAL",39.7
-"Houston Rockets","HOU",39.1
+"Memphis Grizzlies","MEM",40
 "Golden State Warriors","GS",38.9
-"LA Clippers","LAC",38.4
-"Detroit Pistons","DET",38.1
-"Minnesota Timberwolves","MIN",37.5
-"Denver Nuggets","DEN",37
-"Cleveland Cavaliers","CLE",36.9
-"New York Knicks","NY",35.7
+"Los Angeles Lakers","LAL",38.8
+"Houston Rockets","HOU",38.6
+"LA Clippers","LAC",38.2
+"Minnesota Timberwolves","MIN",38
+"Detroit Pistons","DET",37.8
+"Cleveland Cavaliers","CLE",37.2
+"Denver Nuggets","DEN",37.2
+"New York Knicks","NY",36.6
 "Portland Trail Blazers","POR",35.5
-"Phoenix Suns","PHX",35.1
-"Brooklyn Nets","BKN",35
-"Miami Heat","MIA",34.8
-"San Antonio Spurs","SA",34.8
-"Atlanta Hawks","ATL",34.6
-"Boston Celtics","BOS",34.5
+"Boston Celtics","BOS",35.3
+"Brooklyn Nets","BKN",35.3
+"Atlanta Hawks","ATL",35.1
+"Philadelphia 76ers","PHI",34.4
+"Milwaukee Bucks","MIL",34.3
 "Orlando Magic","ORL",34.3
-"Philadelphia 76ers","PHI",34.2
-"Milwaukee Bucks","MIL",33.3
-"Dallas Mavericks","DAL",33.1
-"Utah Jazz","UTAH",33.1
-"Indiana Pacers","IND",32.9
-"Sacramento Kings","SAC",32.7
-"New Orleans Pelicans","NO",32.4
-"Oklahoma City Thunder","OKC",32
-"Toronto Raptors","TOR",31.5
-"Washington Wizards","WSH",30.2
+"Phoenix Suns","PHX",33.9
+"Dallas Mavericks","DAL",33.7
+"Miami Heat","MIA",33.5
+"Oklahoma City Thunder","OKC",33.3
+"Indiana Pacers","IND",32.8
+"Sacramento Kings","SAC",32.5
+"San Antonio Spurs","SA",32.2
+"Toronto Raptors","TOR",31.9
+"New Orleans Pelicans","NO",31.7
+"Utah Jazz","UTAH",31.5
 "Charlotte Hornets","CHA",29.6
-"Chicago Bulls","CHI",27.9
+"Washington Wizards","WSH",29.4
+"Chicago Bulls","CHI",27.2

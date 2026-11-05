@@ -1,31 +1,31 @@
 "team","abbreviation","net_rtg"
-"Memphis Grizzlies","MEM",13.9
-"Houston Rockets","HOU",12.3
-"Minnesota Timberwolves","MIN",11.7
-"Detroit Pistons","DET",10.8
-"Portland Trail Blazers","POR",10
-"San Antonio Spurs","SA",9.7
-"Los Angeles Lakers","LAL",7.4
-"Boston Celtics","BOS",7.2
-"Philadelphia 76ers","PHI",5.9
-"Toronto Raptors","TOR",5.8
-"Golden State Warriors","GS",3
-"Cleveland Cavaliers","CLE",2.7
-"New Orleans Pelicans","NO",2.6
-"Atlanta Hawks","ATL",2.1
-"New York Knicks","NY",1.4
-"Washington Wizards","WSH",0.5
-"Dallas Mavericks","DAL",-0.3
-"Oklahoma City Thunder","OKC",-0.9
-"Denver Nuggets","DEN",-1.5
-"Indiana Pacers","IND",-2.5
-"Miami Heat","MIA",-5.8
-"Brooklyn Nets","BKN",-7.7
-"LA Clippers","LAC",-7.7
-"Orlando Magic","ORL",-9.5
-"Milwaukee Bucks","MIL",-11.3
-"Utah Jazz","UTAH",-12.7
-"Charlotte Hornets","CHA",-12.8
-"Phoenix Suns","PHX",-13.2
-"Sacramento Kings","SAC",-14.5
-"Chicago Bulls","CHI",-16.8
+"Portland Trail Blazers","POR",10.9
+"Minnesota Timberwolves","MIN",10.8
+"Memphis Grizzlies","MEM",10.4
+"Houston Rockets","HOU",10.2
+"Detroit Pistons","DET",9.2
+"San Antonio Spurs","SA",8.1
+"Los Angeles Lakers","LAL",7.7
+"Boston Celtics","BOS",6
+"Philadelphia 76ers","PHI",5.7
+"New York Knicks","NY",4.9
+"Toronto Raptors","TOR",4.2
+"Golden State Warriors","GS",2.9
+"Atlanta Hawks","ATL",2.6
+"New Orleans Pelicans","NO",2.2
+"Cleveland Cavaliers","CLE",2.1
+"Oklahoma City Thunder","OKC",1.2
+"Denver Nuggets","DEN",0.7
+"Washington Wizards","WSH",-0.1
+"Dallas Mavericks","DAL",-0.4
+"Indiana Pacers","IND",-2.9
+"Miami Heat","MIA",-5
+"Brooklyn Nets","BKN",-6.2
+"LA Clippers","LAC",-6.8
+"Orlando Magic","ORL",-8.9
+"Phoenix Suns","PHX",-10.7
+"Utah Jazz","UTAH",-11
+"Charlotte Hornets","CHA",-11.3
+"Milwaukee Bucks","MIL",-11.8
+"Sacramento Kings","SAC",-13.4
+"Chicago Bulls","CHI",-16.6
