@@ -5,15 +5,15 @@
 "Memphis Grizzlies","MEM",120.5
 "Cleveland Cavaliers","CLE",119.3
 "Minnesota Timberwolves","MIN",118.8
-"Miami Heat","MIA",118
 "Houston Rockets","HOU",117.9
 "Toronto Raptors","TOR",117.9
-"Golden State Warriors","GS",117.5
+"Golden State Warriors","GS",117.8
 "San Antonio Spurs","SA",116.9
+"Miami Heat","MIA",116
 "Atlanta Hawks","ATL",115.8
 "Denver Nuggets","DEN",115.4
 "Boston Celtics","BOS",114.3
-"Phoenix Suns","PHX",113.3
+"Phoenix Suns","PHX",113.9
 "Dallas Mavericks","DAL",111.9
 "Chicago Bulls","CHI",111.6
 "Indiana Pacers","IND",111.2
@@ -27,5 +27,5 @@
 "Washington Wizards","WSH",108.9
 "Utah Jazz","UTAH",107.8
 "Brooklyn Nets","BKN",106.6
-"Orlando Magic","ORL",105.7
+"Orlando Magic","ORL",105.5
 "Charlotte Hornets","CHA",98.1
