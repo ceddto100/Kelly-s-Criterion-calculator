@@ -1,33 +1,33 @@
 "team","abbreviation","times_shorthanded"
-"Dallas Stars","DAL",2.6
-"St. Louis Blues","STL",3
-"Columbus Blue Jackets","CBJ",3.08
-"New Jersey Devils","NJD",3.27
+"Dallas Stars","DAL",2.56
+"St. Louis Blues","STL",3.06
+"Columbus Blue Jackets","CBJ",3.07
+"Pittsburgh Penguins","PIT",3.31
+"New Jersey Devils","NJD",3.31
 "Nashville Predators","NSH",3.33
 "Washington Capitals","WSH",3.36
 "Calgary Flames","CGY",3.38
-"Pittsburgh Penguins","PIT",3.47
-"Vegas Golden Knights","VGK",3.47
-"New York Rangers","NYR",3.5
-"Winnipeg Jets","WPG",3.63
+"New York Rangers","NYR",3.41
+"Vegas Golden Knights","VGK",3.44
+"Chicago Blackhawks","CHI",3.59
+"Winnipeg Jets","WPG",3.59
+"Philadelphia Flyers","PHI",3.61
 "Buffalo Sabres","BUF",3.67
-"Chicago Blackhawks","CHI",3.69
 "Toronto Maple Leafs","TOR",3.71
-"Philadelphia Flyers","PHI",3.76
+"Boston Bruins","BOS",3.76
+"Vancouver Canucks","VAN",3.78
 "Colorado Avalanche","COL",3.81
-"Edmonton Oilers","EDM",3.88
+"Carolina Hurricanes","CAR",3.83
 "New York Islanders","NYI",3.93
-"Boston Bruins","BOS",3.94
-"Vancouver Canucks","VAN",3.94
-"Carolina Hurricanes","CAR",3.94
 "Minnesota Wild","MIN",4
+"Detroit Red Wings","DET",4
 "Tampa Bay Lightning","TBL",4.07
-"Montreal Canadiens","MTL",4.13
+"Edmonton Oilers","EDM",4.12
 "Seattle Kraken","SEA",4.13
-"Anaheim Ducks","ANA",4.13
-"Detroit Red Wings","DET",4.13
 "Los Angeles Kings","LAK",4.21
 "San Jose Sharks","SJS",4.24
-"Utah Mammoth","UTA",4.38
+"Montreal Canadiens","MTL",4.31
+"Anaheim Ducks","ANA",4.44
+"Utah Mammoth","UTA",4.59
 "Ottawa Senators","OTT",5.06
 "Florida Panthers","FLA",5.25
