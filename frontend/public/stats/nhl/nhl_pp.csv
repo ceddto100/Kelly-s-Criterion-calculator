@@ -1,18 +1,18 @@
 "team","abbreviation","pp"
 "Utah Mammoth","UTA",38.3
-"Anaheim Ducks","ANA",36.2
+"Anaheim Ducks","ANA",36.1
 "Edmonton Oilers","EDM",33.9
-"Calgary Flames","CGY",29.7
+"Calgary Flames","CGY",30
 "Nashville Predators","NSH",29.6
 "Toronto Maple Leafs","TOR",28.8
 "Vegas Golden Knights","VGK",27.8
-"Minnesota Wild","MIN",25.4
+"Minnesota Wild","MIN",26.6
 "Florida Panthers","FLA",23.9
-"San Jose Sharks","SJS",23
 "Dallas Stars","DAL",22.9
 "Detroit Red Wings","DET",22.8
 "Carolina Hurricanes","CAR",22.6
 "Los Angeles Kings","LAK",22.4
+"San Jose Sharks","SJS",21.9
 "Seattle Kraken","SEA",21.6
 "Washington Capitals","WSH",21.6
 "Vancouver Canucks","VAN",21.4
@@ -23,10 +23,10 @@
 "New Jersey Devils","NJD",18
 "Winnipeg Jets","WPG",18
 "Pittsburgh Penguins","PIT",17.8
+"Columbus Blue Jackets","CBJ",17.5
 "Tampa Bay Lightning","TBL",17.3
 "Philadelphia Flyers","PHI",16.4
-"Buffalo Sabres","BUF",16.3
-"Columbus Blue Jackets","CBJ",16.2
+"Buffalo Sabres","BUF",15.1
 "New York Islanders","NYI",14.6
 "Montreal Canadiens","MTL",14
 "Ottawa Senators","OTT",12.1
