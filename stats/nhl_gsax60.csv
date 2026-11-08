@@ -3,23 +3,23 @@
 "Minnesota Wild","MIN",0.62
 "New York Islanders","NYI",0.51
 "Dallas Stars","DAL",0.5
+"Nashville Predators","NSH",0.39
 "San Jose Sharks","SJS",0.37
-"Nashville Predators","NSH",0.34
 "Columbus Blue Jackets","CBJ",0.3
 "Carolina Hurricanes","CAR",0.29
 "Montreal Canadiens","MTL",0.28
 "Philadelphia Flyers","PHI",0.22
-"Toronto Maple Leafs","TOR",0.18
 "New York Rangers","NYR",0.18
+"Toronto Maple Leafs","TOR",0.18
 "Detroit Red Wings","DET",0.13
-"Washington Capitals","WSH",0.07
+"Washington Capitals","WSH",0.11
+"St. Louis Blues","STL",0.07
 "Buffalo Sabres","BUF",0.05
-"St. Louis Blues","STL",0.03
-"Florida Panthers","FLA",0.01
+"Florida Panthers","FLA",0.02
 "Vegas Golden Knights","VGK",0
 "Ottawa Senators","OTT",-0.01
-"Winnipeg Jets","WPG",-0.09
 "Tampa Bay Lightning","TBL",-0.09
+"Winnipeg Jets","WPG",-0.09
 "Pittsburgh Penguins","PIT",-0.11
 "Seattle Kraken","SEA",-0.15
 "Edmonton Oilers","EDM",-0.22
