@@ -1,31 +1,31 @@
 "team","abbreviation","def_rtg"
 "Detroit Pistons","DET",100.9
-"Oklahoma City Thunder","OKC",102.2
 "Philadelphia 76ers","PHI",103.8
-"New York Knicks","NY",104.1
 "Minnesota Timberwolves","MIN",104.8
 "Boston Celtics","BOS",105.8
-"San Antonio Spurs","SA",106.8
-"Houston Rockets","HOU",107.2
+"Oklahoma City Thunder","OKC",107.5
 "Toronto Raptors","TOR",107.8
 "Memphis Grizzlies","MEM",108.4
 "Dallas Mavericks","DAL",108.6
-"Atlanta Hawks","ATL",109.9
-"Cleveland Cavaliers","CLE",109.9
-"Indiana Pacers","IND",110.4
-"Washington Wizards","WSH",110.5
-"Golden State Warriors","GS",110.6
+"New York Knicks","NY",110.5
+"Los Angeles Lakers","LAL",111.2
+"San Antonio Spurs","SA",111.5
 "Charlotte Hornets","CHA",111.9
-"Brooklyn Nets","BKN",112.6
+"Houston Rockets","HOU",112.1
 "LA Clippers","LAC",113.2
-"Denver Nuggets","DEN",114
 "New Orleans Pelicans","NO",114
-"Orlando Magic","ORL",114
+"Atlanta Hawks","ATL",114.7
 "Utah Jazz","UTAH",115.5
+"Cleveland Cavaliers","CLE",116.3
 "Miami Heat","MIA",116.3
-"Portland Trail Blazers","POR",116.9
-"Los Angeles Lakers","LAL",117
+"Washington Wizards","WSH",116.3
+"Indiana Pacers","IND",116.5
 "Milwaukee Bucks","MIL",117.2
-"Phoenix Suns","PHX",118.9
+"Portland Trail Blazers","POR",117.2
+"Golden State Warriors","GS",117.8
+"Brooklyn Nets","BKN",118.7
 "Sacramento Kings","SAC",119
 "Chicago Bulls","CHI",119.8
+"Denver Nuggets","DEN",121.4
+"Orlando Magic","ORL",122.5
+"Phoenix Suns","PHX",124.4
