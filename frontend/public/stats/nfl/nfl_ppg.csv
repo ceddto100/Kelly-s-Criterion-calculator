@@ -1,33 +1,33 @@
 "team","abbreviation","ppg"
 "Buffalo Bills","BUF",33.3
-"Cincinnati Bengals","CIN",29.4
-"Detroit Lions","DET",29
+"Cincinnati Bengals","CIN",30
+"San Francisco 49ers","SF",29.4
 "Jacksonville Jaguars","JAX",28.6
-"San Francisco 49ers","SF",28.1
-"Las Vegas Raiders","LV",27.6
-"Dallas Cowboys","DAL",27.4
+"Detroit Lions","DET",27.8
+"Dallas Cowboys","DAL",27.3
 "Chicago Bears","CHI",26.8
-"Carolina Panthers","CAR",25.4
-"Los Angeles Rams","LAR",24.3
-"Kansas City Chiefs","KC",23.9
-"Houston Texans","HOU",23.6
-"New York Giants","NYG",23.3
+"Las Vegas Raiders","LV",26.4
+"Houston Texans","HOU",26.1
+"Kansas City Chiefs","KC",25.3
+"Carolina Panthers","CAR",24.9
+"Green Bay Packers","GB",24
+"Los Angeles Rams","LAR",23.8
+"New England Patriots","NE",23.4
 "New Orleans Saints","NO",23.1
-"Seattle Seahawks","SEA",23.1
-"New England Patriots","NE",23
-"Washington Commanders","WSH",22.7
+"New York Giants","NYG",22.8
 "Pittsburgh Steelers","PIT",22.5
-"Tampa Bay Buccaneers","TB",22.3
-"Arizona Cardinals","ARI",21.9
-"Denver Broncos","DEN",21.5
-"Atlanta Falcons","ATL",21.4
-"Green Bay Packers","GB",21.4
-"New York Jets","NYJ",21.3
+"Seattle Seahawks","SEA",22.4
+"Tampa Bay Buccaneers","TB",22.4
+"Denver Broncos","DEN",22
+"Washington Commanders","WSH",21.5
 "Baltimore Ravens","BAL",21
-"Indianapolis Colts","IND",20.1
+"Atlanta Falcons","ATL",20.9
+"Indianapolis Colts","IND",20.4
+"New York Jets","NYJ",20.2
 "Minnesota Vikings","MIN",20
+"Arizona Cardinals","ARI",19.8
 "Tennessee Titans","TEN",18
-"Cleveland Browns","CLE",17.4
-"Philadelphia Eagles","PHI",17.1
-"Miami Dolphins","MIA",16.7
-"Los Angeles Chargers","LAC",14.1
+"Cleveland Browns","CLE",17.9
+"Philadelphia Eagles","PHI",16.4
+"Miami Dolphins","MIA",15.8
+"Los Angeles Chargers","LAC",15.1

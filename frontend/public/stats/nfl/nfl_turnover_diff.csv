@@ -2,12 +2,12 @@
 "Jacksonville Jaguars","JAX",9
 "Green Bay Packers","GB",8
 "Minnesota Vikings","MIN",7
+"Tampa Bay Buccaneers","TB",7
 "Washington Commanders","WSH",7
 "Denver Broncos","DEN",5
 "Pittsburgh Steelers","PIT",5
 "Houston Texans","HOU",4
 "Kansas City Chiefs","KC",4
-"Tampa Bay Buccaneers","TB",4
 "Detroit Lions","DET",3
 "New York Jets","NYJ",3
 "Cincinnati Bengals","CIN",2
@@ -16,7 +16,6 @@
 "San Francisco 49ers","SF",1
 "Arizona Cardinals","ARI",0
 "Carolina Panthers","CAR",-1
-"Chicago Bears","CHI",-1
 "Dallas Cowboys","DAL",-1
 "Seattle Seahawks","SEA",-1
 "Tennessee Titans","TEN",-1
@@ -24,6 +23,7 @@
 "Buffalo Bills","BUF",-2
 "New York Giants","NYG",-2
 "Miami Dolphins","MIA",-3
+"Chicago Bears","CHI",-4
 "Los Angeles Rams","LAR",-4
 "Philadelphia Eagles","PHI",-4
 "New Orleans Saints","NO",-6

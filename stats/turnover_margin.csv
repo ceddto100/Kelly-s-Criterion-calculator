@@ -11,9 +11,9 @@
 "Los Angeles Lakers","LAL",1.5
 "Denver Nuggets","DEN",1.1
 "Golden State Warriors","GS",0.6
-"New Orleans Pelicans","NO",0.6
 "Minnesota Timberwolves","MIN",0.5
 "Houston Rockets","HOU",0.4
+"New Orleans Pelicans","NO",-0.1
 "Washington Wizards","WSH",-0.1
 "Indiana Pacers","IND",-0.3
 "Cleveland Cavaliers","CLE",-0.6
@@ -26,6 +26,6 @@
 "Sacramento Kings","SAC",-2.6
 "Portland Trail Blazers","POR",-2.8
 "Orlando Magic","ORL",-2.9
-"LA Clippers","LAC",-4.1
+"LA Clippers","LAC",-3
 "Milwaukee Bucks","MIL",-4.1
 "Charlotte Hornets","CHA",-4.7

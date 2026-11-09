@@ -1,31 +1,31 @@
 "team","abbreviation","pace"
-"Chicago Bulls","CHI",108.2
-"Miami Heat","MIA",105.5
+"Atlanta Hawks","ATL",105.6
 "Toronto Raptors","TOR",104.6
-"Milwaukee Bucks","MIL",104.2
-"New Orleans Pelicans","NO",104.2
-"Sacramento Kings","SAC",103.6
 "Memphis Grizzlies","MEM",103.2
-"Los Angeles Lakers","LAL",102.8
-"Minnesota Timberwolves","MIN",102.8
-"Philadelphia 76ers","PHI",102.7
-"Utah Jazz","UTAH",102.4
-"LA Clippers","LAC",102.2
-"Dallas Mavericks","DAL",102.1
-"Detroit Pistons","DET",100.9
-"Atlanta Hawks","ATL",100.7
-"Boston Celtics","BOS",99.3
+"Indiana Pacers","IND",103
+"Portland Trail Blazers","POR",103
+"Cleveland Cavaliers","CLE",102.9
+"San Antonio Spurs","SA",102.3
+"Golden State Warriors","GS",102
+"Oklahoma City Thunder","OKC",102
+"Chicago Bulls","CHI",101.9
+"Washington Wizards","WSH",101.8
+"Phoenix Suns","PHX",101.7
+"Orlando Magic","ORL",100.9
+"Houston Rockets","HOU",100.3
+"Miami Heat","MIA",100
+"New York Knicks","NY",99.4
+"Denver Nuggets","DEN",99.3
+"New Orleans Pelicans","NO",99.1
 "Charlotte Hornets","CHA",98.5
-"Cleveland Cavaliers","CLE",98.1
-"Indiana Pacers","IND",98
-"Portland Trail Blazers","POR",97.1
-"San Antonio Spurs","SA",97
-"Oklahoma City Thunder","OKC",96.9
-"Washington Wizards","WSH",96.7
-"Golden State Warriors","GS",96.4
-"Brooklyn Nets","BKN",96.1
-"Houston Rockets","HOU",95.4
-"Phoenix Suns","PHX",95.4
-"Orlando Magic","ORL",94.8
-"New York Knicks","NY",94.3
-"Denver Nuggets","DEN",93.1
+"Sacramento Kings","SAC",98.4
+"Milwaukee Bucks","MIL",98.3
+"Minnesota Timberwolves","MIN",98.2
+"Los Angeles Lakers","LAL",98.1
+"Philadelphia 76ers","PHI",97.9
+"Utah Jazz","UTAH",97.3
+"Brooklyn Nets","BKN",97.1
+"Dallas Mavericks","DAL",97
+"LA Clippers","LAC",96.4
+"Detroit Pistons","DET",95.1
+"Boston Celtics","BOS",94
