@@ -1,21 +1,22 @@
 "team","abbreviation","turnover_diff"
 "Jacksonville Jaguars","JAX",9
+"Green Bay Packers","GB",8
 "Minnesota Vikings","MIN",7
 "Washington Commanders","WSH",7
-"Kansas City Chiefs","KC",5
-"Las Vegas Raiders","LV",5
+"Denver Broncos","DEN",5
 "Pittsburgh Steelers","PIT",5
-"Denver Broncos","DEN",4
-"Green Bay Packers","GB",4
+"Houston Texans","HOU",4
+"Kansas City Chiefs","KC",4
 "Tampa Bay Buccaneers","TB",4
 "Detroit Lions","DET",3
-"Houston Texans","HOU",3
+"New York Jets","NYJ",3
 "Cincinnati Bengals","CIN",2
-"New York Jets","NYJ",2
+"Cleveland Browns","CLE",1
+"Las Vegas Raiders","LV",1
+"San Francisco 49ers","SF",1
 "Arizona Cardinals","ARI",0
-"Carolina Panthers","CAR",0
+"Carolina Panthers","CAR",-1
 "Chicago Bears","CHI",-1
-"Cleveland Browns","CLE",-1
 "Dallas Cowboys","DAL",-1
 "Seattle Seahawks","SEA",-1
 "Tennessee Titans","TEN",-1
@@ -23,11 +24,10 @@
 "Buffalo Bills","BUF",-2
 "New York Giants","NYG",-2
 "Miami Dolphins","MIA",-3
-"San Francisco 49ers","SF",-3
 "Los Angeles Rams","LAR",-4
-"New Orleans Saints","NO",-4
 "Philadelphia Eagles","PHI",-4
-"Los Angeles Chargers","LAC",-6
+"New Orleans Saints","NO",-6
 "Atlanta Falcons","ATL",-7
-"New England Patriots","NE",-7
+"Los Angeles Chargers","LAC",-7
 "Indianapolis Colts","IND",-11
+"New England Patriots","NE",-11
