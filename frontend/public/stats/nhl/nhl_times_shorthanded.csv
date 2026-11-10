@@ -8,17 +8,17 @@
 "Pittsburgh Penguins","PIT",3.39
 "Washington Capitals","WSH",3.4
 "Vegas Golden Knights","VGK",3.42
-"New York Rangers","NYR",3.58
-"Philadelphia Flyers","PHI",3.58
-"New Jersey Devils","NJD",3.61
+"Philadelphia Flyers","PHI",3.5
+"New York Rangers","NYR",3.53
 "Winnipeg Jets","WPG",3.61
+"New Jersey Devils","NJD",3.61
 "Toronto Maple Leafs","TOR",3.63
 "Buffalo Sabres","BUF",3.65
 "Carolina Hurricanes","CAR",3.68
-"Vancouver Canucks","VAN",3.74
-"New York Islanders","NYI",3.81
-"Seattle Kraken","SEA",4
+"Vancouver Canucks","VAN",3.8
+"New York Islanders","NYI",3.94
 "Colorado Avalanche","COL",4
+"Seattle Kraken","SEA",4
 "Edmonton Oilers","EDM",4.05
 "Minnesota Wild","MIN",4.05
 "Detroit Red Wings","DET",4.11
@@ -26,8 +26,8 @@
 "Montreal Canadiens","MTL",4.18
 "Boston Bruins","BOS",4.28
 "Tampa Bay Lightning","TBL",4.29
-"San Jose Sharks","SJS",4.42
 "Anaheim Ducks","ANA",4.44
 "Utah Mammoth","UTA",4.44
+"San Jose Sharks","SJS",4.5
 "Ottawa Senators","OTT",4.89
 "Florida Panthers","FLA",5.44
