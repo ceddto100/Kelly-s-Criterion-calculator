@@ -9,9 +9,9 @@
 "Columbus Blue Jackets","CBJ",0.3
 "Carolina Hurricanes","CAR",0.26
 "Philadelphia Flyers","PHI",0.18
-"New York Rangers","NYR",0.17
 "Vegas Golden Knights","VGK",0.16
 "Washington Capitals","WSH",0.11
+"New York Rangers","NYR",0.1
 "Detroit Red Wings","DET",0.09
 "St. Louis Blues","STL",0.07
 "Toronto Maple Leafs","TOR",0.05
@@ -19,11 +19,11 @@
 "Ottawa Senators","OTT",0.02
 "Florida Panthers","FLA",0
 "Pittsburgh Penguins","PIT",-0.03
-"Tampa Bay Lightning","TBL",-0.12
+"Edmonton Oilers","EDM",-0.07
 "Seattle Kraken","SEA",-0.12
+"Tampa Bay Lightning","TBL",-0.12
 "Anaheim Ducks","ANA",-0.13
 "Winnipeg Jets","WPG",-0.15
-"Edmonton Oilers","EDM",-0.2
 "Calgary Flames","CGY",-0.23
 "Colorado Avalanche","COL",-0.28
 "New Jersey Devils","NJD",-0.32

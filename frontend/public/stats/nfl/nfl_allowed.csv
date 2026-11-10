@@ -1,5 +1,5 @@
 "team","abbreviation","allowed"
-"Minnesota Vikings","MIN",13.3
+"Minnesota Vikings","MIN",14.5
 "Jacksonville Jaguars","JAX",15.1
 "Kansas City Chiefs","KC",17.9
 "Pittsburgh Steelers","PIT",18
@@ -14,6 +14,7 @@
 "Cleveland Browns","CLE",21.8
 "Cincinnati Bengals","CIN",21.9
 "New England Patriots","NE",23
+"Buffalo Bills","BUF",23.4
 "Detroit Lions","DET",23.6
 "Houston Texans","HOU",24
 "Philadelphia Eagles","PHI",24.6
@@ -22,7 +23,6 @@
 "Tennessee Titans","TEN",24.9
 "Miami Dolphins","MIA",25
 "Washington Commanders","WSH",25.3
-"Buffalo Bills","BUF",25.9
 "Baltimore Ravens","BAL",26.2
 "Dallas Cowboys","DAL",26.2
 "New Orleans Saints","NO",27
