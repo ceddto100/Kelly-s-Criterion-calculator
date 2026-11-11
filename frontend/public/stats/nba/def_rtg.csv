@@ -1,9 +1,9 @@
 "team","abbreviation","def_rtg"
 "Oklahoma City Thunder","OKC",102.1
+"New York Knicks","NY",102.9
 "Minnesota Timberwolves","MIN",104.2
-"New York Knicks","NY",104.9
-"Philadelphia 76ers","PHI",105.3
-"Boston Celtics","BOS",105.9
+"Boston Celtics","BOS",105.5
+"Philadelphia 76ers","PHI",106.5
 "Detroit Pistons","DET",109
 "San Antonio Spurs","SA",109.8
 "Portland Trail Blazers","POR",110.5
@@ -11,21 +11,21 @@
 "Brooklyn Nets","BKN",113.2
 "Dallas Mavericks","DAL",113.2
 "Memphis Grizzlies","MEM",113.5
-"LA Clippers","LAC",114.1
 "Golden State Warriors","GS",114.3
 "Toronto Raptors","TOR",114.5
 "Atlanta Hawks","ATL",114.7
 "Orlando Magic","ORL",115.2
 "Utah Jazz","UTAH",115.2
 "Miami Heat","MIA",115.3
+"LA Clippers","LAC",115.7
 "Los Angeles Lakers","LAL",116.3
 "Washington Wizards","WSH",116.4
 "Indiana Pacers","IND",117
 "Cleveland Cavaliers","CLE",117.2
 "Charlotte Hornets","CHA",117.4
-"Milwaukee Bucks","MIL",118.2
+"Milwaukee Bucks","MIL",117.8
 "Sacramento Kings","SAC",118.4
 "Denver Nuggets","DEN",120.3
 "Chicago Bulls","CHI",120.4
+"Phoenix Suns","PHX",123.5
 "New Orleans Pelicans","NO",123.7
-"Phoenix Suns","PHX",124.5

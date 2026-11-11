@@ -1,33 +1,33 @@
 "team","abbreviation","gsax60"
-"Boston Bruins","BOS",0.84
+"Boston Bruins","BOS",0.86
+"Minnesota Wild","MIN",0.68
 "New York Islanders","NYI",0.59
-"Minnesota Wild","MIN",0.58
-"Dallas Stars","DAL",0.47
-"San Jose Sharks","SJS",0.42
+"Dallas Stars","DAL",0.46
+"San Jose Sharks","SJS",0.41
 "Nashville Predators","NSH",0.39
-"Montreal Canadiens","MTL",0.36
-"Columbus Blue Jackets","CBJ",0.3
+"Montreal Canadiens","MTL",0.39
 "Carolina Hurricanes","CAR",0.26
+"Columbus Blue Jackets","CBJ",0.25
 "Philadelphia Flyers","PHI",0.23
 "Vegas Golden Knights","VGK",0.16
-"Washington Capitals","WSH",0.11
+"Washington Capitals","WSH",0.15
+"Detroit Red Wings","DET",0.13
+"Florida Panthers","FLA",0.11
 "New York Rangers","NYR",0.1
-"Detroit Red Wings","DET",0.09
-"St. Louis Blues","STL",0.07
-"Toronto Maple Leafs","TOR",0.05
-"Buffalo Sabres","BUF",0.03
-"Ottawa Senators","OTT",0.02
-"Florida Panthers","FLA",0
+"St. Louis Blues","STL",0.1
+"Buffalo Sabres","BUF",0.02
 "Pittsburgh Penguins","PIT",-0.03
-"Edmonton Oilers","EDM",-0.06
+"Ottawa Senators","OTT",-0.04
+"Edmonton Oilers","EDM",-0.05
+"Toronto Maple Leafs","TOR",-0.06
+"Winnipeg Jets","WPG",-0.12
 "Tampa Bay Lightning","TBL",-0.12
-"Seattle Kraken","SEA",-0.12
+"Seattle Kraken","SEA",-0.13
 "Anaheim Ducks","ANA",-0.13
-"Winnipeg Jets","WPG",-0.15
-"Calgary Flames","CGY",-0.23
+"Calgary Flames","CGY",-0.24
 "Colorado Avalanche","COL",-0.28
-"New Jersey Devils","NJD",-0.32
-"Los Angeles Kings","LAK",-0.43
+"New Jersey Devils","NJD",-0.33
+"Los Angeles Kings","LAK",-0.42
 "Chicago Blackhawks","CHI",-0.56
-"Utah Mammoth","UTA",-0.71
+"Utah Mammoth","UTA",-0.69
 "Vancouver Canucks","VAN",-0.72
