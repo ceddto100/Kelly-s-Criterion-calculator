@@ -4,28 +4,28 @@
 "Miami Heat","MIA",105.1
 "Sacramento Kings","SAC",103.2
 "New Orleans Pelicans","NO",103.1
-"Toronto Raptors","TOR",102.9
 "Indiana Pacers","IND",102.8
 "Los Angeles Lakers","LAL",102.7
-"Minnesota Timberwolves","MIN",102.7
 "LA Clippers","LAC",102.4
 "Portland Trail Blazers","POR",102.4
 "Utah Jazz","UTAH",102.4
-"Dallas Mavericks","DAL",102.2
 "Brooklyn Nets","BKN",102.1
 "Memphis Grizzlies","MEM",102.1
-"Philadelphia 76ers","PHI",102.1
 "Cleveland Cavaliers","CLE",101.9
 "Milwaukee Bucks","MIL",101.9
-"Washington Wizards","WSH",101.8
 "Oklahoma City Thunder","OKC",101.7
-"Phoenix Suns","PHX",101.5
 "San Antonio Spurs","SA",101.4
-"Detroit Pistons","DET",101.3
 "Golden State Warriors","GS",101.2
 "Orlando Magic","ORL",100.8
 "Houston Rockets","HOU",99.7
 "Denver Nuggets","DEN",99
-"Charlotte Hornets","CHA",98.6
+"Minnesota Timberwolves","MIN",98.6
+"Toronto Raptors","TOR",98.5
 "Boston Celtics","BOS",98.2
 "New York Knicks","NY",98.2
+"Dallas Mavericks","DAL",98.1
+"Philadelphia 76ers","PHI",98
+"Washington Wizards","WSH",97
+"Phoenix Suns","PHX",96.7
+"Detroit Pistons","DET",95.5
+"Charlotte Hornets","CHA",94.6

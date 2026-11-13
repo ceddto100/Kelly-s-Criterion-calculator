@@ -1,13 +1,13 @@
 "team","abbreviation","times_shorthanded"
 "Dallas Stars","DAL",2.78
-"St. Louis Blues","STL",2.94
 "Columbus Blue Jackets","CBJ",3.06
+"St. Louis Blues","STL",3.11
 "Calgary Flames","CGY",3.21
 "Washington Capitals","WSH",3.35
 "Vegas Golden Knights","VGK",3.4
-"Nashville Predators","NSH",3.42
 "Pittsburgh Penguins","PIT",3.42
 "Chicago Blackhawks","CHI",3.42
+"Nashville Predators","NSH",3.42
 "Toronto Maple Leafs","TOR",3.43
 "Philadelphia Flyers","PHI",3.48
 "New York Rangers","NYR",3.5
@@ -19,14 +19,14 @@
 "Seattle Kraken","SEA",3.88
 "Edmonton Oilers","EDM",3.9
 "New York Islanders","NYI",3.94
-"Colorado Avalanche","COL",3.95
 "Detroit Red Wings","DET",3.95
+"Colorado Avalanche","COL",3.95
 "Minnesota Wild","MIN",4
 "Los Angeles Kings","LAK",4.06
 "Boston Bruins","BOS",4.11
 "Montreal Canadiens","MTL",4.11
 "Tampa Bay Lightning","TBL",4.21
-"Utah Mammoth","UTA",4.26
+"Utah Mammoth","UTA",4.3
 "Anaheim Ducks","ANA",4.37
 "San Jose Sharks","SJS",4.57
 "Ottawa Senators","OTT",4.8

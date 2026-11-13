@@ -1,33 +1,33 @@
 "team","abbreviation","pk"
-"Dallas Stars","DAL",89.7
 "Nashville Predators","NSH",89.5
+"Dallas Stars","DAL",88.5
 "New York Rangers","NYR",88.3
-"New York Islanders","NYI",86.7
-"Toronto Maple Leafs","TOR",86.4
-"Florida Panthers","FLA",85.9
-"Carolina Hurricanes","CAR",85
-"St. Louis Blues","STL",84.8
+"Florida Panthers","FLA",86.3
+"St. Louis Blues","STL",86
+"New York Islanders","NYI",85.7
+"Carolina Hurricanes","CAR",85.5
+"Toronto Maple Leafs","TOR",85.5
 "Calgary Flames","CGY",81.4
+"Colorado Avalanche","COL",80.3
+"Minnesota Wild","MIN",79.7
 "Philadelphia Flyers","PHI",79.4
-"Minnesota Wild","MIN",79
 "Pittsburgh Penguins","PIT",78.8
-"Chicago Blackhawks","CHI",78.6
-"Colorado Avalanche","COL",78.6
-"Montreal Canadiens","MTL",77.8
-"Washington Capitals","WSH",77.8
-"Boston Bruins","BOS",77
+"Boston Bruins","BOS",78.5
+"Chicago Blackhawks","CHI",78.3
+"Montreal Canadiens","MTL",78.1
+"Washington Capitals","WSH",77.2
 "Edmonton Oilers","EDM",76.9
 "Vegas Golden Knights","VGK",76.9
-"Ottawa Senators","OTT",76.1
 "San Jose Sharks","SJS",76
+"Ottawa Senators","OTT",75
+"Winnipeg Jets","WPG",74.6
 "Anaheim Ducks","ANA",74
 "Columbus Blue Jackets","CBJ",73.9
-"Winnipeg Jets","WPG",73.7
-"Tampa Bay Lightning","TBL",72.5
-"Buffalo Sabres","BUF",69.8
-"Detroit Red Wings","DET",69.5
-"Utah Mammoth","UTA",68.3
-"New Jersey Devils","NJD",65.9
-"Los Angeles Kings","LAK",65.4
-"Seattle Kraken","SEA",65.1
+"Tampa Bay Lightning","TBL",71.7
+"Utah Mammoth","UTA",70.8
+"Detroit Red Wings","DET",70.5
+"Buffalo Sabres","BUF",69.7
+"Los Angeles Kings","LAK",65.5
+"Seattle Kraken","SEA",65.2
+"New Jersey Devils","NJD",65.1
 "Vancouver Canucks","VAN",63.1
