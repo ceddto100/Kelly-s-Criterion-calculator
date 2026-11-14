@@ -1,7 +1,7 @@
 "team","abbreviation","pk"
-"Nashville Predators","NSH",89.5
+"Nashville Predators","NSH",89.7
+"New York Rangers","NYR",89.1
 "Dallas Stars","DAL",88.5
-"New York Rangers","NYR",88.3
 "Florida Panthers","FLA",86.3
 "St. Louis Blues","STL",86
 "New York Islanders","NYI",85.7
@@ -15,9 +15,9 @@
 "Boston Bruins","BOS",78.5
 "Chicago Blackhawks","CHI",78.3
 "Montreal Canadiens","MTL",78.1
+"Vegas Golden Knights","VGK",77.8
 "Washington Capitals","WSH",77.2
 "Edmonton Oilers","EDM",76.9
-"Vegas Golden Knights","VGK",76.9
 "San Jose Sharks","SJS",76
 "Ottawa Senators","OTT",75
 "Winnipeg Jets","WPG",74.6
@@ -30,4 +30,4 @@
 "Los Angeles Kings","LAK",65.5
 "Seattle Kraken","SEA",65.2
 "New Jersey Devils","NJD",65.1
-"Vancouver Canucks","VAN",63.1
+"Vancouver Canucks","VAN",62.7

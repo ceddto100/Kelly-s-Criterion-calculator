@@ -1,19 +1,19 @@
 "team","abbreviation","hdcf60"
 "Minnesota Wild","MIN",3.49
 "Tampa Bay Lightning","TBL",3.33
-"New York Rangers","NYR",3.29
+"New York Rangers","NYR",3.32
 "Carolina Hurricanes","CAR",3.07
 "Anaheim Ducks","ANA",2.98
-"Nashville Predators","NSH",2.77
 "Washington Capitals","WSH",2.75
 "Columbus Blue Jackets","CBJ",2.72
+"Nashville Predators","NSH",2.72
 "Montreal Canadiens","MTL",2.69
 "New Jersey Devils","NJD",2.57
 "Ottawa Senators","OTT",2.56
 "Edmonton Oilers","EDM",2.55
 "Buffalo Sabres","BUF",2.53
-"Vegas Golden Knights","VGK",2.52
 "San Jose Sharks","SJS",2.51
+"Vegas Golden Knights","VGK",2.49
 "Colorado Avalanche","COL",2.48
 "Pittsburgh Penguins","PIT",2.47
 "St. Louis Blues","STL",2.46
@@ -27,7 +27,7 @@
 "Philadelphia Flyers","PHI",2.06
 "New York Islanders","NYI",1.86
 "Chicago Blackhawks","CHI",1.73
-"Vancouver Canucks","VAN",1.69
+"Vancouver Canucks","VAN",1.7
 "Seattle Kraken","SEA",1.68
 "Calgary Flames","CGY",1.62
 "Toronto Maple Leafs","TOR",1.51

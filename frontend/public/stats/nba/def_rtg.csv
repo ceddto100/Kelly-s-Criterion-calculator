@@ -1,31 +1,31 @@
 "team","abbreviation","def_rtg"
+"Minnesota Timberwolves","MIN",102.8
+"San Antonio Spurs","SA",104.8
 "Boston Celtics","BOS",105
-"Oklahoma City Thunder","OKC",105.1
-"New York Knicks","NY",105.6
-"San Antonio Spurs","SA",106.6
-"Houston Rockets","HOU",106.8
-"Minnesota Timberwolves","MIN",107.4
-"Memphis Grizzlies","MEM",109.5
-"Portland Trail Blazers","POR",109.6
-"Golden State Warriors","GS",110.2
-"Indiana Pacers","IND",110.2
+"New York Knicks","NY",105.2
+"Detroit Pistons","DET",107
+"Philadelphia 76ers","PHI",107.4
+"Houston Rockets","HOU",107.8
+"Memphis Grizzlies","MEM",108.9
+"Portland Trail Blazers","POR",109.2
+"Dallas Mavericks","DAL",109.4
+"Oklahoma City Thunder","OKC",109.7
+"Toronto Raptors","TOR",110
+"Indiana Pacers","IND",110.1
 "Atlanta Hawks","ATL",110.6
+"Golden State Warriors","GS",111
+"Charlotte Hornets","CHA",111.1
 "Los Angeles Lakers","LAL",111.2
-"Philadelphia 76ers","PHI",111.6
-"Orlando Magic","ORL",111.9
+"Orlando Magic","ORL",112
 "Brooklyn Nets","BKN",112.9
-"Detroit Pistons","DET",112.9
-"Cleveland Cavaliers","CLE",113.7
-"Miami Heat","MIA",114.3
-"Dallas Mavericks","DAL",114.4
+"Cleveland Cavaliers","CLE",113.8
+"Washington Wizards","WSH",114.2
 "Denver Nuggets","DEN",114.4
-"Toronto Raptors","TOR",114.5
-"LA Clippers","LAC",115.3
-"Utah Jazz","UTAH",115.3
-"Charlotte Hornets","CHA",115.9
+"Phoenix Suns","PHX",114.6
+"Miami Heat","MIA",114.8
+"Utah Jazz","UTAH",116.2
 "Sacramento Kings","SAC",117.3
-"Milwaukee Bucks","MIL",118
-"Washington Wizards","WSH",119.4
+"Milwaukee Bucks","MIL",118.2
 "Chicago Bulls","CHI",120
-"Phoenix Suns","PHX",120.1
-"New Orleans Pelicans","NO",121.8
+"LA Clippers","LAC",120.3
+"New Orleans Pelicans","NO",121.3
