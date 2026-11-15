@@ -8,9 +8,9 @@
 "Pittsburgh Steelers","PIT",5
 "Houston Texans","HOU",4
 "Kansas City Chiefs","KC",4
-"Detroit Lions","DET",3
 "New York Jets","NYJ",3
 "Cincinnati Bengals","CIN",2
+"Detroit Lions","DET",2
 "Cleveland Browns","CLE",1
 "Las Vegas Raiders","LV",1
 "San Francisco 49ers","SF",1
@@ -29,5 +29,5 @@
 "New Orleans Saints","NO",-6
 "Atlanta Falcons","ATL",-7
 "Los Angeles Chargers","LAC",-7
+"New England Patriots","NE",-10
 "Indianapolis Colts","IND",-11
-"New England Patriots","NE",-11
