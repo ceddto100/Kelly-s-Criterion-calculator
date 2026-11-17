@@ -3,21 +3,21 @@
 "Minnesota Wild","MIN",3.67
 "New Jersey Devils","NJD",3.59
 "Tampa Bay Lightning","TBL",3.54
+"Utah Mammoth","UTA",3.53
 "Colorado Avalanche","COL",3.5
 "Washington Capitals","WSH",3.45
-"Utah Mammoth","UTA",3.42
 "Vegas Golden Knights","VGK",3.41
-"New York Rangers","NYR",3.35
-"Florida Panthers","FLA",3.28
+"New York Rangers","NYR",3.36
+"Montreal Canadiens","MTL",3.28
 "Anaheim Ducks","ANA",3.28
-"Montreal Canadiens","MTL",3.25
+"Florida Panthers","FLA",3.28
 "Pittsburgh Penguins","PIT",3.22
 "Winnipeg Jets","WPG",3.2
 "Boston Bruins","BOS",3.19
 "Ottawa Senators","OTT",3.18
 "Nashville Predators","NSH",3.15
-"Detroit Red Wings","DET",3.1
 "Buffalo Sabres","BUF",3.1
+"Detroit Red Wings","DET",3.1
 "Los Angeles Kings","LAK",3.08
 "Dallas Stars","DAL",3.04
 "St. Louis Blues","STL",3.02
@@ -30,4 +30,4 @@
 "Calgary Flames","CGY",2.72
 "Seattle Kraken","SEA",2.64
 "Chicago Blackhawks","CHI",2.61
-"Vancouver Canucks","VAN",2.51
+"Vancouver Canucks","VAN",2.54
