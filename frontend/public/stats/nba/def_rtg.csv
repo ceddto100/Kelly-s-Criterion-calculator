@@ -1,31 +1,31 @@
 "team","abbreviation","def_rtg"
 "Minnesota Timberwolves","MIN",102.6
-"Boston Celtics","BOS",105.3
 "San Antonio Spurs","SA",105.3
-"Oklahoma City Thunder","OKC",105.8
 "New York Knicks","NY",106.5
 "Portland Trail Blazers","POR",108
-"Detroit Pistons","DET",108.3
-"Philadelphia 76ers","PHI",109.4
-"Houston Rockets","HOU",109.5
-"Atlanta Hawks","ATL",109.6
-"Memphis Grizzlies","MEM",110.1
-"Dallas Mavericks","DAL",110.8
-"Toronto Raptors","TOR",111
-"Golden State Warriors","GS",111.6
-"Indiana Pacers","IND",111.7
-"Orlando Magic","ORL",112.2
-"Denver Nuggets","DEN",113
-"Cleveland Cavaliers","CLE",113.7
-"Phoenix Suns","PHX",114.7
-"Miami Heat","MIA",115.1
-"Utah Jazz","UTAH",115.7
+"Boston Celtics","BOS",108.8
+"Oklahoma City Thunder","OKC",109.2
+"Charlotte Hornets","CHA",112.3
+"Detroit Pistons","DET",112.4
+"Houston Rockets","HOU",113
+"Philadelphia 76ers","PHI",113.2
+"Atlanta Hawks","ATL",113.4
+"Memphis Grizzlies","MEM",114
+"Dallas Mavericks","DAL",114.7
+"Toronto Raptors","TOR",115.1
+"Los Angeles Lakers","LAL",115.2
+"Golden State Warriors","GS",115.3
+"Indiana Pacers","IND",115.7
 "LA Clippers","LAC",115.8
-"Los Angeles Lakers","LAL",116
-"Washington Wizards","WSH",116
-"Charlotte Hornets","CHA",116.8
-"Chicago Bulls","CHI",116.8
-"Brooklyn Nets","BKN",117
-"Sacramento Kings","SAC",117.6
-"Milwaukee Bucks","MIL",118.6
-"New Orleans Pelicans","NO",119
+"Orlando Magic","ORL",116.6
+"Denver Nuggets","DEN",117.4
+"Cleveland Cavaliers","CLE",117.6
+"Utah Jazz","UTAH",117.9
+"Phoenix Suns","PHX",118.3
+"Miami Heat","MIA",118.8
+"Washington Wizards","WSH",120
+"Brooklyn Nets","BKN",121.2
+"Chicago Bulls","CHI",121.3
+"Milwaukee Bucks","MIL",122.4
+"Sacramento Kings","SAC",122.6
+"New Orleans Pelicans","NO",122.9
