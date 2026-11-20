@@ -1,22 +1,22 @@
 "team","abbreviation","fg_pct"
 "Los Angeles Lakers","LAL",48.9
+"Memphis Grizzlies","MEM",48.4
 "Denver Nuggets","DEN",48.2
 "Houston Rockets","HOU",48.1
-"Memphis Grizzlies","MEM",48.1
 "Phoenix Suns","PHX",47.5
 "Cleveland Cavaliers","CLE",47.4
 "Miami Heat","MIA",47.3
 "Indiana Pacers","IND",47.2
-"Minnesota Timberwolves","MIN",47
 "Detroit Pistons","DET",46.9
+"Minnesota Timberwolves","MIN",46.9
+"San Antonio Spurs","SA",46.8
+"LA Clippers","LAC",46.6
 "Philadelphia 76ers","PHI",46.4
-"San Antonio Spurs","SA",46.4
 "Dallas Mavericks","DAL",46.3
-"LA Clippers","LAC",46.3
 "Oklahoma City Thunder","OKC",46.2
+"Portland Trail Blazers","POR",46.2
 "New Orleans Pelicans","NO",46.1
 "Orlando Magic","ORL",45.7
-"Portland Trail Blazers","POR",45.7
 "Washington Wizards","WSH",45.7
 "Sacramento Kings","SAC",45.6
 "Boston Celtics","BOS",45.4
@@ -24,8 +24,8 @@
 "Toronto Raptors","TOR",45.4
 "Atlanta Hawks","ATL",45.1
 "Brooklyn Nets","BKN",44.9
-"Golden State Warriors","GS",44.9
 "Utah Jazz","UTAH",44.8
+"Golden State Warriors","GS",44.7
 "New York Knicks","NY",44.2
-"Milwaukee Bucks","MIL",42.9
+"Milwaukee Bucks","MIL",43
 "Charlotte Hornets","CHA",40.4
