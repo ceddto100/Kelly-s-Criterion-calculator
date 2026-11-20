@@ -1,31 +1,31 @@
 "team","abbreviation","allowed"
 "Boston Celtics","BOS",103.4
-"New York Knicks","NY",103.9
-"San Antonio Spurs","SA",105.9
-"Minnesota Timberwolves","MIN",106.1
+"New York Knicks","NY",103.5
+"Minnesota Timberwolves","MIN",105.8
+"San Antonio Spurs","SA",106.3
 "Oklahoma City Thunder","OKC",107.7
 "Detroit Pistons","DET",108.9
 "Houston Rockets","HOU",109.2
 "Charlotte Hornets","CHA",110.4
-"Portland Trail Blazers","POR",111
+"Portland Trail Blazers","POR",111.2
 "Philadelphia 76ers","PHI",111.6
+"Memphis Grizzlies","MEM",111.9
 "Toronto Raptors","TOR",112
 "Denver Nuggets","DEN",112.2
-"Golden State Warriors","GS",112.8
 "Orlando Magic","ORL",112.8
-"Memphis Grizzlies","MEM",112.9
 "Dallas Mavericks","DAL",113.2
+"Golden State Warriors","GS",113.6
 "Los Angeles Lakers","LAL",114.4
 "Indiana Pacers","IND",114.8
 "Phoenix Suns","PHX",115.7
 "Atlanta Hawks","ATL",115.8
 "Utah Jazz","UTAH",116
 "Cleveland Cavaliers","CLE",116.3
-"LA Clippers","LAC",117.7
 "Washington Wizards","WSH",117.9
+"LA Clippers","LAC",118.1
 "Brooklyn Nets","BKN",119.2
 "Miami Heat","MIA",119.9
-"Milwaukee Bucks","MIL",120.9
+"Milwaukee Bucks","MIL",121.1
 "Sacramento Kings","SAC",121.7
 "New Orleans Pelicans","NO",122.8
 "Chicago Bulls","CHI",124.6
