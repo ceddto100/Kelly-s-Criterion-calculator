@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-21T05:32:20.238Z",
+  "updatedAt": "2026-11-21T18:41:29.983Z",
   "season": 2026,
   "seasonType": "regular",
   "week": 12,
@@ -11,8 +11,8 @@
   "ratingsUpdatedAt": "2026-11-17T20:27:46.496Z",
   "poll": "Playoff Committee Rankings, week 12",
   "apiCalls": 3,
-  "picksPending": 55,
-  "picksLogged": 142,
+  "picksPending": 54,
+  "picksLogged": 143,
   "modelVersion": "walters-cfb-2026.09-v1",
   "venueElevationUnit": "meters",
   "sources": [
