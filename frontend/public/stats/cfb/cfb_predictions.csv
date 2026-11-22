@@ -191,3 +191,8 @@
 "401858308","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T00:30:00.000Z","61.55","loss","home","STRONG","0","12","California","Stanford","walters-cfb-2026.09-v1"
 "401860918","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T00:30:00.000Z","54.69","win","away","LEAN","0","12","Fresno State","Colorado State","walters-cfb-2026.09-v1"
 "401862836","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T01:00:00.000Z","51.74","win","home","NO_BET","2.5","12","UAB","UTSA","walters-cfb-2026.09-v1"
+"401856872","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T02:00:00.000Z","55.96","win","away","LEAN","2","12","TCU","Utah","walters-cfb-2026.09-v1"
+"401860925","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T02:30:00.000Z","61.44","loss","home","STRONG","3.5","12","Boise State","San Diego State","walters-cfb-2026.09-v1"
+"401856870","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T03:15:00.000Z","62.74","win","away","STRONG","1","12","Arizona State","Oklahoma State","walters-cfb-2026.09-v1"
+"401860919","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T03:30:00.000Z","57.19","loss","home","BET","-3","12","Oregon State","Utah State","walters-cfb-2026.09-v1"
+"401864541","CFB","spread","2026-11-19T05:49:40.009Z","2026-11-22T03:30:00.000Z","62.03","win","home","STRONG","2.5","12","Nevada","Hawai'i","walters-cfb-2026.09-v1"

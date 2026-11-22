@@ -1,6 +1,6 @@
 "team","abbreviation","allowed"
+"Boston Celtics","BOS",103
 "New York Knicks","NY",103.1
-"Boston Celtics","BOS",103.4
 "Minnesota Timberwolves","MIN",105.2
 "San Antonio Spurs","SA",105.4
 "Oklahoma City Thunder","OKC",108.5
@@ -24,8 +24,8 @@
 "Washington Wizards","WSH",116.5
 "LA Clippers","LAC",117.6
 "Brooklyn Nets","BKN",118.8
+"Sacramento Kings","SAC",119.1
 "Miami Heat","MIA",119.9
-"Sacramento Kings","SAC",120.7
 "Milwaukee Bucks","MIL",121.7
 "New Orleans Pelicans","NO",122.5
 "Chicago Bulls","CHI",122.8
