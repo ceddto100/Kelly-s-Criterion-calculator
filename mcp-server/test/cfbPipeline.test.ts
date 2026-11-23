@@ -240,8 +240,10 @@ describe('college football refresh (fixtures)', () => {
     const pending = state().pending;
     expect(pending.map((p: { gameId: number; side: string; pickLineHome: number; confidence: string }) =>
       [p.gameId, p.side, p.pickLineHome, p.confidence])).toEqual([[3001, 'home', -7, 'STRONG'], [3002, 'home', -9.5, 'STRONG']]);
-    // 13.1 − 6.4 + 3 home + 1 bye; the visitor's travel (−1.5) and bounceback (+1.5) cancel.
-    expect(pending[0].probability).toBeCloseTo(59.14, 1);
+    // 13.1 − 6.4 + 3 home + 1 bye = 10.7; the visitor's travel (−1.5) and bounceback (+1.5) cancel.
+    // Against the −7 line that is a 3.7-point disagreement, anchored to the line:
+    // Φ(0.2 × 3.7 / 16) = 51.84% (the ratings alone said 59.14%).
+    expect(pending[0].probability).toBeCloseTo(51.84, 1);
 
     // Sunday after the games: picks graded against the final score and the closing line.
     const sun = fixtureApi({ week3Final: true });

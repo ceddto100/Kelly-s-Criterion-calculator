@@ -1,47 +1,23 @@
 /**
- * Statistical Probability Estimation Tools (Walters Protocol)
+ * Statistical Probability Estimation Tools
  *
- * This module implements the Walters Protocol, a sophisticated statistical methodology for estimating the probability
- * that a team will cover a given point spread based on team performance statistics. Named after legendary sports bettor
- * Billy Walters, this approach uses weighted analysis of multiple statistical factors combined with normal distribution
- * modeling to generate objective probability estimates. Unlike subjective handicapping or gut-feel betting, the Walters
- * Protocol provides data-driven probability calculations that can be fed into the Kelly Criterion for optimal bet sizing.
- * The module provides separate tools for football and basketball, each calibrated with sport-specific weights, home
- * field/court advantages, and standard deviation values that reflect the statistical realities of each sport.
+ * TOOL: estimate_football_probability / estimate_basketball_probability
+ * Estimate the probability that Team A covers a posted spread from season-to-
+ * date team statistics.
  *
- * TOOL: estimate_football_probability
- * Calculates the probability that a football team will cover the spread using a weighted statistical model that analyzes
- * points differential (40% weight), yards differential (25% weight), and turnover differential (20% weight). The tool
- * requires team statistics for both teams including points per game scored, points per game allowed, and optionally
- * offensive yards per game, defensive yards allowed per game, and turnover differential (positive indicates more takeaways).
- * The tool supports both NFL and college football (CFB) with different calibration constants - NFL uses a 2.5-point home
- * field advantage and 13.5-point standard deviation, while CFB uses a 3.0-point advantage and 16.0-point standard deviation
- * to account for greater variance in college games. The venue parameter (home/away/neutral) automatically applies the
- * appropriate home field advantage adjustment when Team A is playing at home or penalizes them when playing away. The
- * calculation first estimates the expected margin of victory by comparing offensive and defensive efficiency metrics,
- * applies home field adjustment, then uses normal distribution (z-score) to determine the probability of covering the
- * given spread. For example, if Team A is expected to win by 7 points and the spread is -3.5, the model calculates the
- * probability they'll win by more than 3.5 points. The response includes the cover probability percentage, predicted
- * margin of victory, the sigma (standard deviation) used, applied home field advantage, and a human-readable interpretation
- * categorizing the bet quality (strong cover, favorable, coin flip, unfavorable, or poor value).
+ *   projected margin = home edge + k(n) × raw season gap
+ *     NFL raw gap: 0.8 × net points + 0.2 × net yards / 15 (per game)
+ *     NBA raw gap: full net-efficiency difference at the shared pace
+ *     k(n) = n / (n + priorGames)  (NFL 6, NBA 10) regresses small samples
  *
- * TOOL: estimate_basketball_probability
- * Calculates the probability that a basketball team will cover the spread using a weighted statistical model optimized
- * for basketball's unique characteristics. The model analyzes seven marquee weighted inputs: points per game (15%), points allowed (15%), field goal percentage
- * differential (25%), rebound margin (17%), turnover margin (13%), 3PT% differential (8%), and 3PT rate differential
- * (7%). Pace is applied as a tempo multiplier after weighted components. The tool requires team statistics for both teams
- * including points per game scored, points allowed, and optionally field goal percentage (e.g., 45.5 for 45.5%), rebound
- * margin per game, turnover margin per game (positive means fewer turnovers than opponent), pace, 3PT%, and 3PT rate.
- * Like the football tool, it supports both professional (NBA) and college (CBB) basketball with different calibrations -
- * NBA uses a 1.5-point home court advantage and 12.0-point standard deviation, while CBB uses a 3.5-point advantage and
- * 10.5-point standard deviation, reflecting the slightly lower variance in college basketball due to shorter shot clocks
- * and different game dynamics. The venue parameter (home/away/neutral) applies the appropriate home court advantage or
- * disadvantage. The calculation methodology mirrors the football tool: calculate expected margin using weighted statistical
- * differentials, apply venue adjustment, then use normal distribution to determine cover probability. The response format
- * is identical to the football tool, providing probability, predicted margin, sigma, home court advantage applied, and an
- * interpretation of bet quality. Both probability tools form the statistical foundation for value betting, allowing users
- * to compare their calculated probabilities against bookmaker implied probabilities to identify positive expected value
- * opportunities that warrant Kelly Criterion bet sizing.
+ * The cover probability is anchored to the posted line: the line is the
+ * market's estimate and the model may move it only by `marketTrust` of its
+ * disagreement, measured after putting both on the same footing. Backtests on
+ * 4,063 NFL and 1,203 NBA games found no edge for these stats against closing
+ * lines, so unanchored probabilities (the old output) overstated value and
+ * oversized Kelly stakes. `result.modelProbability` keeps the model-only
+ * figure for reference. Constants: config/sportsConfig.ts; evidence:
+ * docs/PREDICTION_MODEL.md.
  */
 
 import { z } from 'zod';
@@ -94,7 +70,9 @@ export const footballProbabilityInputSchema = z.object({
 
   venue: venueSchema.describe('Where Team A is playing: home, away, or neutral site'),
 
-  league: z.enum(['NFL', 'CFB']).default('NFL').describe('League: NFL (professional) or CFB (college football)')
+  league: z.enum(['NFL', 'CFB']).default('NFL').describe('League: NFL (professional) or CFB (college football)'),
+
+  gamesPlayed: z.number().min(0).max(20).optional().describe('Games behind the season stats (estimated from the date when omitted)')
 });
 
 export const basketballProbabilityInputSchema = z.object({
@@ -133,7 +111,9 @@ export const basketballProbabilityInputSchema = z.object({
 
   venue: venueSchema.describe('Where Team A is playing: home, away, or neutral site'),
 
-  league: z.enum(['NBA', 'CBB']).default('NBA').describe('League: NBA (professional) or CBB (college basketball)')
+  league: z.enum(['NBA', 'CBB']).default('NBA').describe('League: NBA (professional) or CBB (college basketball)'),
+
+  gamesPlayed: z.number().min(0).max(90).optional().describe('Games behind the season stats (estimated from the date when omitted)')
 });
 
 export type FootballProbabilityInput = z.infer<typeof footballProbabilityInputSchema>;
@@ -281,7 +261,8 @@ export async function handleFootballProbability(input: unknown): Promise<Probabi
     stats,
     parsed.spread,
     parsed.venue,
-    parsed.league === 'NFL'
+    parsed.league === 'NFL',
+    { gamesPlayed: parsed.gamesPlayed }
   );
 
   const constants = parsed.league === 'NFL' ? NFL_CONSTANTS : CFB_CONSTANTS;
@@ -317,9 +298,13 @@ export async function handleFootballProbability(input: unknown): Promise<Probabi
     },
     result: {
       probability: result.probability,
+      modelProbability: result.modelProbability,
       predictedMargin: result.predictedMargin,
       sigma: result.sigma,
-      homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeFieldAdvantage : 0
+      homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeFieldAdvantage : 0,
+      gamesPlayed: result.gamesPlayed,
+      evidenceWeight: result.evidenceWeight,
+      marketTrust: result.marketTrust
     },
     decision,
     dataCompleteness: Math.round(dataCompleteness * 100) / 100,
@@ -359,7 +344,8 @@ export async function handleBasketballProbability(input: unknown): Promise<Proba
     stats,
     parsed.spread,
     parsed.venue,
-    parsed.league === 'NBA'
+    parsed.league === 'NBA',
+    { gamesPlayed: parsed.gamesPlayed }
   );
 
   const constants = parsed.league === 'NBA' ? NBA_CONSTANTS : CBB_CONSTANTS;
@@ -395,9 +381,13 @@ export async function handleBasketballProbability(input: unknown): Promise<Proba
     },
     result: {
       probability: result.probability,
+      modelProbability: result.modelProbability,
       predictedMargin: result.predictedMargin,
       sigma: result.sigma,
-      homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeCourtAdvantage : 0
+      homeFieldAdvantage: parsed.venue !== 'neutral' ? constants.homeCourtAdvantage : 0,
+      gamesPlayed: result.gamesPlayed,
+      evidenceWeight: result.evidenceWeight,
+      marketTrust: result.marketTrust
     },
     decision,
     dataCompleteness: Math.round(dataCompleteness * 100) / 100,
@@ -464,10 +454,16 @@ export interface ProbabilityOutput {
     venue: 'home' | 'away' | 'neutral';
   };
   result: {
+    /** Cover probability (%) anchored to the posted spread. */
     probability: number;
+    /** Model-only cover probability (%), before anchoring. */
+    modelProbability: number;
     predictedMargin: number;
     sigma: number;
     homeFieldAdvantage: number;
+    gamesPlayed: number | null;
+    evidenceWeight: number;
+    marketTrust: number | null;
   };
   decision: DecisionResult;
   dataCompleteness: number;

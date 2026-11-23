@@ -18,17 +18,22 @@
 
 import { z } from 'zod';
 import { getTodaysGames, DailyGame, easternDate } from './gamesOfDay.js';
-import { handleFootballProbability } from './probability.js';
-import { handleBasketballProbability } from './probability.js';
-import { handleHockeyProbability } from './hockeyProbability.js';
 import { handleKellyCalculation } from './kelly.js';
 import { handleLogBet } from './betLogging.js';
-import { getNBATeamStats, getNFLTeamStats, getNHLTeamStats, clearStatsCache } from '../utils/statsLoader.js';
+import { getNBATeamStats, getNFLTeamStats, getNHLTeamStats, getAllNHLTeams, clearStatsCache } from '../utils/statsLoader.js';
 import { isDatabaseConnected, ensureDatabaseConnection } from '../config/database.js';
 import { User } from '../models/User.js';
 import { BetLog } from '../models/BetLog.js';
 import { handleRecordProjection } from './projectionLog.js';
 import { evaluateDecision } from '../utils/decision.js';
+import { priceNHLTotal, priceSpread } from '../utils/marketPricing.js';
+import {
+  estimateBasketballProbability,
+  estimateFootballProbability,
+  type BasketballStats,
+  type FootballStats,
+} from '../utils/calculations.js';
+import { calculateNHLProjection, NHL_CONFIG } from '../utils/nhl.js';
 import { projectMLBGame } from '../utils/mlb.js';
 import {
   fetchMLBSchedule,
@@ -51,7 +56,9 @@ const IMPLIED_PROB_AT_MINUS_110 = 52.38;
 
 // Version tag stored with every recorded projection so backtests can compare
 // model iterations head-to-head. Bump when the formulas/config change materially.
-const MODEL_VERSION = 'daily-v1';
+// v2 (Nov 2026): games-played shrinkage, market-anchored probabilities, real
+// prices, NHL overtime/shootout goal and push-free probabilities.
+const MODEL_VERSION = 'daily-v2';
 
 // ============================================================================
 // TYPES
@@ -98,8 +105,17 @@ export interface PickCandidate {
    * bets (negative = favored). Only real sportsbook lines are ever used.
    */
   line: number;
-  /** Model probability (%) that the picked side wins. */
+  /**
+   * Probability (%) that the picked side wins, anchored to the market and
+   * excluding pushes. This is what Kelly sizes.
+   */
   probability: number;
+  /** American price of the picked side (the book's, or a standard-vig estimate). */
+  americanOdds?: number;
+  /** Break-even probability (%) of that price: bet only above it. */
+  breakEvenPct?: number;
+  /** Model-only probability (%) before anchoring, for transparency. */
+  modelProbability?: number;
   expectedMargin?: number;
   /**
    * Stable provider game id tag (e.g. "gid-espn-nba-401585123", "gid-mlb-745001").
@@ -238,35 +254,24 @@ async function calcNHLGame(
     return { ...baseResult, skipped: `No NHL stats for away team: ${game.awayTeam} (${game.awayAbbr})` };
   }
 
-  // The hockey tool needs a line; default to a typical NHL total when ESPN has
-  // none so we can still produce a projected total to record.
+  // The model needs a line to price; default to a typical NHL total when ESPN
+  // has none so we can still produce a projected total to record.
   const line = game.overUnder ?? 6.0;
 
-  let projectedTotal = 0;
-  let overProbability = 0;
+  let projection: ReturnType<typeof calculateNHLProjection>;
   try {
-    const probResult = await handleHockeyProbability({
-      homeTeam: { name: game.homeTeam, ...homeStats },
-      awayTeam: { name: game.awayTeam, ...awayStats },
-      line,
-      betType: 'over',
-    });
-    if (probResult.success) {
-      projectedTotal = probResult.projection.projectedTotal;
-      overProbability = probResult.result.overProbability;
-    }
+    projection = calculateNHLProjection(homeStats, awayStats, line);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { ...baseResult, error: `NHL projection failed: ${errMsg}` };
   }
-
-  if (projectedTotal === 0) {
+  const projectedTotal = projection.projectedTotal;
+  if (!(projectedTotal > 0)) {
     return { ...baseResult, skipped: 'NHL projection returned 0' };
   }
 
-  // Lean over/under via the shared decision layer against the (de-vigged) total.
-  const overSide = overProbability >= 50;
-  const sideProb = overSide ? overProbability : 100 - overProbability;
+  const side = priceNHLTotal(game, line, projection, nhlLeagueGoalsPerTeam());
+  const overSide = side.pickedSide === 'over';
 
   // Only a real sportsbook line makes a bettable total, and only before puck drop.
   if (collector && game.overUnder !== undefined && game.status === 'scheduled') {
@@ -279,19 +284,24 @@ async function calcNHLGame(
       awayAbbr: game.awayAbbr,
       market: 'total',
       pick: `${overSide ? 'Over' : 'Under'} ${game.overUnder}`,
-      pickedSide: overSide ? 'over' : 'under',
+      pickedSide: side.pickedSide,
       line: game.overUnder,
-      probability: sideProb,
+      probability: side.probability,
+      americanOdds: side.americanOdds,
+      breakEvenPct: side.breakEvenPct,
+      modelProbability: side.modelProbability,
       expectedMargin: projectedTotal - game.overUnder,
       gameIdTag: gameIdTag('espn', game.sport, game.gameId),
     });
   }
   const decision = evaluateDecision({
-    modelProbabilityPct: sideProb,
-    sideOdds: -110,
-    otherSideOdds: -110,
+    modelProbabilityPct: side.probability,
+    sideOdds: side.americanOdds,
+    otherSideOdds: side.otherOdds,
     dataCompleteness: 1,
   });
+  const sideProb = side.probability;
+  const overProbability = projection.overProbability;
   // Only lean when ESPN actually gave us a market line; otherwise no-bet.
   const lean =
     game.overUnder !== undefined && decision.recommendation === 'bet'
@@ -309,13 +319,18 @@ async function calcNHLGame(
         awayTeam: game.awayTeam,
         market: 'total',
         bookLine: game.overUnder ?? null,
-        bookOdds: -110,
+        bookOdds: side.americanOdds,
         projectedValue: projectedTotal,
         edge: game.overUnder !== undefined ? decision.edgePct : null,
         lean,
         confidence: lean === 'no-bet' ? Math.min(decision.confidence, 44) : decision.confidence,
         modelVersion: MODEL_VERSION,
-        statsSnapshot: { home: homeStats, away: awayStats, line, overProbability },
+        statsSnapshot: {
+          home: homeStats, away: awayStats, line, overProbability,
+          underProbability: projection.underProbability, pushProbability: projection.pushProbability,
+          pickedSide: side.pickedSide, sideProbability: side.probability, sideOdds: side.americanOdds,
+          pricesFromBook: side.pricesFromBook,
+        },
       });
       projectionRecorded = true;
     } catch (err) {
@@ -326,10 +341,18 @@ async function calcNHLGame(
   return {
     ...baseResult,
     probability: sideProb,
+    impliedProbability: side.breakEvenPct,
     edge: game.overUnder !== undefined ? decision.edgePct : 0,
     hasValue: lean !== 'no-bet',
     projectionRecorded,
   };
+}
+
+/** League-average NHL regulation goals per team from the loaded CSVs. */
+function nhlLeagueGoalsPerTeam(): number {
+  const teams = getAllNHLTeams().filter((t) => t.xGF60 > 0 && t.xGA60 > 0);
+  if (teams.length < 10) return NHL_CONFIG.leagueGoalsPerTeam;
+  return teams.reduce((s, t) => s + (t.xGF60 + t.xGA60) / 2, 0) / teams.length;
 }
 
 // ============================================================================
@@ -338,87 +361,58 @@ async function calcNHLGame(
 
 type SpreadTeamStats = ReturnType<typeof getNBATeamStats> | ReturnType<typeof getNFLTeamStats>;
 
+/** The stats loader returns 0 for a missing cell; no real rate here is 0. */
+const present = (v: number | undefined): number | undefined => (v !== undefined && Number.isFinite(v) && v !== 0 ? v : undefined);
+
 /**
- * Run the NBA/NFL spread model with the home team as Team A. `spread` is the
- * home team's spread; the returned probability is P(home covers it).
+ * Run the NBA/NFL spread model with the home team as Team A. Returns the
+ * straight-up home win probability, the projected home margin and, when a
+ * spread is posted, P(home covers) both anchored to the line and model-only.
  */
-async function spreadModel(
+function spreadModel(
   game: DailyGame,
   homeStats: SpreadTeamStats,
   awayStats: SpreadTeamStats,
-  spread: number
-): Promise<{ probability: number; predictedMargin: number }> {
-  let probability = 0;
-  let predictedMargin = 0;
+  homeSpread: number | undefined
+): { homeWinProbability: number; predictedMargin: number; anchoredHomeCover?: number; modelHomeCover?: number; gamesPlayed: number | null } {
+  const venue = game.neutralSite ? 'neutral' : 'home';
+  const options = { asOf: new Date() };
+  let estimate: (spread: number, marketLine: boolean) => ReturnType<typeof estimateBasketballProbability>;
   if (game.sport === 'NBA') {
-    const nbaHome = homeStats as ReturnType<typeof getNBATeamStats>;
-    const nbaAway = awayStats as ReturnType<typeof getNBATeamStats>;
-
-    const probResult = await handleBasketballProbability({
-      teamA: {
-        name: game.homeTeam,
-        ppg: nbaHome!.ppg,
-        pointsAllowed: nbaHome!.pointsAllowed,
-        fgPct: nbaHome!.fgPct,
-        reboundMargin: nbaHome!.reboundMargin,
-        turnoverMargin: nbaHome!.turnoverMargin,
-        pace: nbaHome!.pace,
-        threePRate: nbaHome!.threeRate,
-        threePPct: nbaHome!.threePct,
-      },
-      teamB: {
-        name: game.awayTeam,
-        ppg: nbaAway!.ppg,
-        pointsAllowed: nbaAway!.pointsAllowed,
-        fgPct: nbaAway!.fgPct,
-        reboundMargin: nbaAway!.reboundMargin,
-        turnoverMargin: nbaAway!.turnoverMargin,
-        pace: nbaAway!.pace,
-        threePRate: nbaAway!.threeRate,
-        threePPct: nbaAway!.threePct,
-      },
-      spread,
-      venue: 'home',    // home team has home advantage
-      league: 'NBA',
-    });
-
-    if (probResult.success) {
-      probability = probResult.result.probability;
-      predictedMargin = probResult.result.predictedMargin;
-    }
+    const h = homeStats as NonNullable<ReturnType<typeof getNBATeamStats>>;
+    const a = awayStats as NonNullable<ReturnType<typeof getNBATeamStats>>;
+    const stats: BasketballStats = {
+      teamPPG: h.ppg, teamAllowed: h.pointsAllowed, opponentPPG: a.ppg, opponentAllowed: a.pointsAllowed,
+      teamPace: present(h.pace), opponentPace: present(a.pace),
+      teamOffRtg: present(h.offRtg), teamDefRtg: present(h.defRtg),
+      opponentOffRtg: present(a.offRtg), opponentDefRtg: present(a.defRtg),
+      teamFGPct: present(h.fgPct), opponentFGPct: present(a.fgPct),
+      teamReboundMargin: h.reboundMargin, opponentReboundMargin: a.reboundMargin,
+      teamTurnoverMargin: h.turnoverMargin, opponentTurnoverMargin: a.turnoverMargin,
+      team3PRate: present(h.threeRate), opponent3PRate: present(a.threeRate),
+      team3PPct: present(h.threePct), opponent3PPct: present(a.threePct),
+    };
+    estimate = (spread, marketLine) => estimateBasketballProbability(stats, spread, venue, true, { ...options, marketLine });
   } else {
-    // NFL
-    const nflHome = homeStats as ReturnType<typeof getNFLTeamStats>;
-    const nflAway = awayStats as ReturnType<typeof getNFLTeamStats>;
-
-    const probResult = await handleFootballProbability({
-      teamA: {
-        name: game.homeTeam,
-        ppg: nflHome!.ppg,
-        pointsAllowed: nflHome!.pointsAllowed,
-        offensiveYards: nflHome!.offensiveYards,
-        defensiveYards: nflHome!.defensiveYards,
-        turnoverDiff: nflHome!.turnoverDiff,
-      },
-      teamB: {
-        name: game.awayTeam,
-        ppg: nflAway!.ppg,
-        pointsAllowed: nflAway!.pointsAllowed,
-        offensiveYards: nflAway!.offensiveYards,
-        defensiveYards: nflAway!.defensiveYards,
-        turnoverDiff: nflAway!.turnoverDiff,
-      },
-      spread,
-      venue: 'home',
-      league: 'NFL',
-    });
-
-    if (probResult.success) {
-      probability = probResult.result.probability;
-      predictedMargin = probResult.result.predictedMargin;
-    }
+    const h = homeStats as NonNullable<ReturnType<typeof getNFLTeamStats>>;
+    const a = awayStats as NonNullable<ReturnType<typeof getNFLTeamStats>>;
+    const stats: FootballStats = {
+      teamPPG: h.ppg, teamAllowed: h.pointsAllowed, opponentPPG: a.ppg, opponentAllowed: a.pointsAllowed,
+      teamOffYards: present(h.offensiveYards), teamDefYards: present(h.defensiveYards),
+      opponentOffYards: present(a.offensiveYards), opponentDefYards: present(a.defensiveYards),
+      teamTurnoverDiff: h.turnoverDiff, opponentTurnoverDiff: a.turnoverDiff,
+    };
+    estimate = (spread, marketLine) => estimateFootballProbability(stats, spread, venue, true, { ...options, marketLine });
   }
-  return { probability, predictedMargin };
+  const straightUp = estimate(0, false);
+  const cover = homeSpread === undefined ? undefined : estimate(homeSpread, true);
+  return {
+    homeWinProbability: straightUp.probability,
+    predictedMargin: straightUp.predictedMargin,
+    anchoredHomeCover: cover?.probability,
+    modelHomeCover: cover?.modelProbability,
+    gamesPlayed: straightUp.gamesPlayed,
+  };
 }
 
 async function calcGame(
@@ -474,41 +468,35 @@ async function calcGame(
     return { ...baseResult, skipped: `No stats found for away team: ${game.awayTeam} (${game.awayAbbr})` };
   }
 
-  // 2. Calculate probability. The moneyline (spread 0) win probability feeds
-  //    the backtesting projection; the bet itself is priced against the real
-  //    sportsbook spread, and only when one is posted.
-  let probability = 0;
-  let predictedMargin = 0;
+  // 2. Project the game. The straight-up win probability feeds the
+  //    backtesting projection; the bet itself is priced against the real
+  //    sportsbook spread (anchored to it), and only when one is posted.
+  const homeSpread = game.homeSpread;
+  let model: ReturnType<typeof spreadModel>;
   try {
-    ({ probability, predictedMargin } = await spreadModel(game, homeStats, awayStats, 0));
+    model = spreadModel(game, homeStats, awayStats, homeSpread);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { ...baseResult, error: `Probability calculation failed: ${errMsg}` };
   }
+  const probability = model.homeWinProbability;
+  const predictedMargin = model.predictedMargin;
 
-  const homeSpread = game.homeSpread;
-  let coverProbability = 0; // P(home covers homeSpread)
-  if (homeSpread !== undefined) {
-    try {
-      coverProbability = homeSpread === 0
-        ? probability
-        : (await spreadModel(game, homeStats, awayStats, homeSpread)).probability;
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      return { ...baseResult, error: `Spread probability calculation failed: ${errMsg}` };
-    }
-  }
-
-  if (probability === 0) {
+  if (!(probability > 0)) {
     return { ...baseResult, skipped: 'Probability calculation returned 0' };
   }
 
-  // Bet the side the model expects to cover the posted spread. No spread
-  // posted → no bet (a later re-run picks the game up once the line is out).
-  const backHome = coverProbability >= 50;
-  const pickProbability = backHome ? coverProbability : 100 - coverProbability;
+  // Bet the side with the larger edge over its own price. No spread posted →
+  // no bet (a later re-run picks the game up once the line is out).
+  const side = homeSpread === undefined
+    ? undefined
+    : priceSpread(game, model.anchoredHomeCover!, model.modelHomeCover!, americanOdds);
+  const backHome = side ? side.pickedSide === 'home' : true;
+  const pickProbability = side ? side.probability : probability;
   const pickLine = homeSpread === undefined ? 0 : backHome ? homeSpread : -homeSpread;
-  if (collector && homeSpread !== undefined && game.status === 'scheduled') {
+  const pickOdds = side ? side.americanOdds : americanOdds;
+  const breakEven = side ? side.breakEvenPct : IMPLIED_PROB_AT_MINUS_110;
+  if (collector && side && game.status === 'scheduled') {
     collector.push({
       sport: game.sport as 'NBA' | 'NFL',
       sportLabel: game.sport === 'NBA' ? 'basketball' : 'football',
@@ -520,15 +508,18 @@ async function calcGame(
       pick: `${backHome ? game.homeTeam : game.awayTeam} ${formatLine(pickLine)}`,
       pickedSide: backHome ? 'home' : 'away',
       line: pickLine,
-      probability: pickProbability,
+      probability: side.probability,
+      americanOdds: side.americanOdds,
+      breakEvenPct: side.breakEvenPct,
+      modelProbability: side.modelProbability,
       expectedMargin: backHome ? predictedMargin : -predictedMargin,
       gameIdTag: gameIdTag('espn', game.sport, game.gameId),
     });
   }
 
-  // 3. Calculate Kelly on the spread pick (no spread → no value, no bet)
-  const edge = homeSpread === undefined ? 0 : pickProbability - IMPLIED_PROB_AT_MINUS_110;
-  const hasValue = homeSpread !== undefined && edge > 0;
+  // 3. Calculate Kelly on the spread pick at its own price (no spread → no value, no bet)
+  const edge = side ? pickProbability - breakEven : 0;
+  const hasValue = side !== undefined && edge > 0;
 
   let recommendedStake = 0;
   let stakePercentage = 0;
@@ -536,8 +527,8 @@ async function calcGame(
   try {
     const kellyResult = await handleKellyCalculation({
       bankroll,
-      probability: homeSpread === undefined ? probability : pickProbability,
-      americanOdds,
+      probability: pickProbability,
+      americanOdds: pickOdds,
       fraction: kellyFraction,
     });
 
@@ -573,10 +564,10 @@ async function calcGame(
         betType: 'spread',
         calculatedProbability: pickProbability,
         expectedMargin: backHome ? predictedMargin : -predictedMargin,
-        impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+        impliedProbability: breakEven,
         edge,
         bankroll,
-        americanOdds,
+        americanOdds: pickOdds,
         kellyFraction: kellyFraction >= 0.75 ? 1 : kellyFraction >= 0.4 ? 0.5 : 0.25,
         recommendedStake,
         stakePercentage,
@@ -626,7 +617,11 @@ async function calcGame(
           home: homeStats,
           away: awayStats,
           predictedMargin,
-          venue: 'home',
+          venue: game.neutralSite ? 'neutral' : 'home',
+          gamesPlayed: model.gamesPlayed,
+          homeSpread: homeSpread ?? null,
+          anchoredHomeCover: model.anchoredHomeCover ?? null,
+          modelHomeCover: model.modelHomeCover ?? null,
         },
       });
       projectionRecorded = true;
@@ -640,8 +635,8 @@ async function calcGame(
     sport: game.sport,
     homeTeam: game.homeTeam,
     awayTeam: game.awayTeam,
-    probability: homeSpread === undefined ? probability : pickProbability,
-    impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+    probability: pickProbability,
+    impliedProbability: breakEven,
     edge,
     hasValue,
     kellyFraction,
@@ -788,14 +783,24 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
+/** Break-even probability (%) of a candidate's own price (-110 when unknown). */
+export function breakEvenOf(c: Pick<PickCandidate, 'breakEvenPct'>): number {
+  return c.breakEvenPct !== undefined && Number.isFinite(c.breakEvenPct) ? c.breakEvenPct : IMPLIED_PROB_AT_MINUS_110;
+}
+
+/** Edge (percentage points) of a candidate over its own break-even. */
+export function edgeOf(c: Pick<PickCandidate, 'probability' | 'breakEvenPct'>): number {
+  return c.probability - breakEvenOf(c);
+}
+
 /**
- * Choose `count` candidates at random. Positive-edge games (model probability
- * above the -110 break-even) are drawn first so Kelly actually stakes money;
- * leftover slots are filled randomly from the rest.
+ * Choose `count` candidates at random. Positive-edge games (probability above
+ * the break-even of their own price) are drawn first so Kelly actually stakes
+ * money; leftover slots are filled randomly from the rest.
  */
 export function selectRandomPicks(candidates: PickCandidate[], count: number): PickCandidate[] {
-  const value = candidates.filter((c) => c.probability > IMPLIED_PROB_AT_MINUS_110);
-  const rest = candidates.filter((c) => c.probability <= IMPLIED_PROB_AT_MINUS_110);
+  const value = candidates.filter((c) => edgeOf(c) > 0);
+  const rest = candidates.filter((c) => edgeOf(c) <= 0);
   return [...shuffle(value), ...shuffle(rest)].slice(0, Math.max(0, count));
 }
 
@@ -828,9 +833,9 @@ export function gameTag(date: string, c: Pick<PickCandidate, 'sport' | 'awayTeam
 }
 
 /**
- * All-picks selection: every positive-edge candidate (model probability above
- * the -110 break-even) from the requested sports, at most one per game, minus
- * games already logged (by game tag). No-edge games are never logged.
+ * All-picks selection: every positive-edge candidate (probability above the
+ * break-even of its own price) from the requested sports, at most one per
+ * game, minus games already logged (by game tag). No-edge games are never logged.
  */
 export function selectAllPicks(
   candidates: PickCandidate[],
@@ -842,7 +847,7 @@ export function selectAllPicks(
   const out: PickCandidate[] = [];
   for (const c of candidates) {
     if (!sports.includes(c.sport)) continue;
-    if (c.probability <= IMPLIED_PROB_AT_MINUS_110) continue;
+    if (edgeOf(c) <= 0) continue;
     const tag = gameTag(date, c);
     if (seen.has(tag) || alreadyLogged.has(tag)) continue;
     if (c.gameIdTag && (seen.has(c.gameIdTag) || alreadyLogged.has(c.gameIdTag))) continue;
@@ -850,7 +855,7 @@ export function selectAllPicks(
     if (c.gameIdTag) seen.add(c.gameIdTag);
     out.push(c);
   }
-  return out.sort((a, b) => b.probability - a.probability);
+  return out.sort((a, b) => edgeOf(b) - edgeOf(a));
 }
 
 /**
@@ -915,7 +920,8 @@ async function logPicks(
 
   for (const c of picks) {
     const game = `${c.awayTeam} @ ${c.homeTeam} (${c.sport})`;
-    const edge = c.probability - IMPLIED_PROB_AT_MINUS_110;
+    const edge = edgeOf(c);
+    const odds = c.americanOdds ?? americanOdds;
     const entry: LoggedPick = {
       game,
       sport: c.sport,
@@ -932,7 +938,7 @@ async function logPicks(
       const kelly = await handleKellyCalculation({
         bankroll,
         probability: Math.min(99, Math.max(1, c.probability)),
-        americanOdds,
+        americanOdds: odds,
         fraction: kellyFraction,
       });
       if (kelly.success) {
@@ -960,16 +966,17 @@ async function logPicks(
         totalSide: c.market === 'total' ? (c.pickedSide as 'over' | 'under') : undefined,
         calculatedProbability: c.probability,
         expectedMargin: c.expectedMargin,
-        impliedProbability: IMPLIED_PROB_AT_MINUS_110,
+        impliedProbability: breakEvenOf(c),
         edge,
         bankroll,
-        americanOdds,
+        americanOdds: odds,
         kellyFraction: kellyFraction >= 0.75 ? 1 : kellyFraction >= 0.4 ? 0.5 : 0.25,
         recommendedStake: entry.recommendedStake,
         stakePercentage: entry.stakePercentage,
         actualWager: entry.recommendedStake,
-        notes: `${mode === 'all' ? 'Daily auto pick' : 'Random daily pick'} (${today}): ${c.pick} [${c.market}]` +
-          (edge > 0 ? '' : ' — model shows no edge at -110, Kelly stake is $0'),
+        notes: `${mode === 'all' ? 'Daily auto pick' : 'Random daily pick'} (${today}): ${c.pick} [${c.market}] at ${odds > 0 ? '+' : ''}${odds}` +
+          (c.modelProbability !== undefined ? ` — model ${c.modelProbability.toFixed(1)}%, market-anchored ${c.probability.toFixed(1)}%` : '') +
+          (edge > 0 ? '' : ` — no edge at ${odds > 0 ? '+' : ''}${odds}, Kelly stake is $0`),
         tags: [
           'auto',
           ...(mode === 'all'
@@ -1169,7 +1176,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
         if (result.betLogged) summary.betsLogged++;
         console.log(`[DailyCalc]   Value bet: prob=${result.probability.toFixed(1)}%, edge=${result.edge.toFixed(1)}%, stake=$${result.recommendedStake.toFixed(2)}`);
       } else {
-        console.log(`[DailyCalc]   No value: prob=${result.probability.toFixed(1)}% (need >52.4%)`);
+        console.log(`[DailyCalc]   No value: prob=${result.probability.toFixed(1)}% (need >${result.impliedProbability.toFixed(1)}%)`);
       }
     }
   }

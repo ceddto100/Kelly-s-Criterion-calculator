@@ -38,6 +38,13 @@ export interface DailyGame {
    * favored, 0 = pick'em). Undefined when ESPN has not posted a spread yet.
    */
   homeSpread?: number;
+  /** American prices for the posted total / spread, when ESPN provides them. */
+  overOdds?: number;
+  underOdds?: number;
+  homeSpreadOdds?: number;
+  awaySpreadOdds?: number;
+  /** True for neutral-site games (e.g. international NFL games): no home edge. */
+  neutralSite?: boolean;
 }
 
 export interface TodaysGamesResult {
@@ -152,6 +159,62 @@ export function parseHomeSpread(odds: any, homeAbbr: string, awayAbbr: string): 
   return undefined; // can't tell which side the number belongs to
 }
 
+/** American odds from a number or an ESPN string ("-115", "+120", "EVEN"). */
+export function parseAmericanOdds(value: unknown): number | undefined {
+  let n: number;
+  if (typeof value === 'number') n = value;
+  else if (typeof value === 'string') {
+    const s = value.trim().toUpperCase();
+    if (s === 'EVEN' || s === 'EV') return 100;
+    n = parseFloat(s.replace(/^\+/, ''));
+  } else return undefined;
+  // American odds live outside (-100, 100); anything else is not a price.
+  return Number.isFinite(n) && Math.abs(n) >= 100 && Math.abs(n) <= 100000 ? n : undefined;
+}
+
+function firstOdds(...values: unknown[]): number | undefined {
+  for (const v of values) {
+    const n = parseAmericanOdds(v);
+    if (n !== undefined) return n;
+  }
+  return undefined;
+}
+
+/** Both prices of a two-way market, or neither when either is missing or implausible. */
+function pricePair(a: number | undefined, b: number | undefined): [number, number] | [undefined, undefined] {
+  if (a === undefined || b === undefined) return [undefined, undefined];
+  const implied = (o: number) => (o > 0 ? 100 / (o + 100) : -o / (-o + 100));
+  const overround = implied(a) + implied(b);
+  // A real two-way book sums to a bit over 100%; reject arbitrage or garbage.
+  return overround >= 0.99 && overround <= 1.2 ? [a, b] : [undefined, undefined];
+}
+
+/**
+ * Over/under prices from an ESPN odds entry. ESPN exposes either numeric
+ * `overOdds`/`underOdds` or a `total.{over,under}.{close,current,open}.odds`
+ * tree with string prices. Returns both or neither.
+ */
+export function parseTotalOdds(odds: any): { overOdds?: number; underOdds?: number } {
+  if (!odds) return {};
+  const t = odds.total || {};
+  const [over, under] = pricePair(
+    firstOdds(odds.overOdds, t.over?.close?.odds, t.over?.current?.odds, t.over?.open?.odds),
+    firstOdds(odds.underOdds, t.under?.close?.odds, t.under?.current?.odds, t.under?.open?.odds),
+  );
+  return over === undefined ? {} : { overOdds: over, underOdds: under };
+}
+
+/** Spread prices (home and away side) from an ESPN odds entry; both or neither. */
+export function parseSpreadOdds(odds: any): { homeSpreadOdds?: number; awaySpreadOdds?: number } {
+  if (!odds) return {};
+  const ps = odds.pointSpread || {};
+  const [home, away] = pricePair(
+    firstOdds(odds.homeTeamOdds?.spreadOdds, ps.home?.close?.odds, ps.home?.current?.odds, ps.home?.open?.odds),
+    firstOdds(odds.awayTeamOdds?.spreadOdds, ps.away?.close?.odds, ps.away?.current?.odds, ps.away?.open?.odds),
+  );
+  return home === undefined ? {} : { homeSpreadOdds: home, awaySpreadOdds: away };
+}
+
 function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): DailyGame[] {
   const d = data as any;
   const events = d?.events || [];
@@ -193,6 +256,10 @@ function parseESPNScoreboard(data: unknown, sport: 'NBA' | 'NFL' | 'NHL'): Daily
         home.team?.abbreviation || '',
         away.team?.abbreviation || ''
       ),
+      ...parseTotalOdds(competition.odds?.[0]),
+      // NHL "spread" is the puck line, which this app does not bet.
+      ...(sport === 'NHL' ? {} : parseSpreadOdds(competition.odds?.[0])),
+      ...(competition.neutralSite === true ? { neutralSite: true } : {}),
     });
   }
 
