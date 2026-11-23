@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-23T05:39:08.329Z",
+  "updatedAt": "2026-11-23T23:22:28.720Z",
   "season": 2026,
   "seasonType": "regular",
   "week": 13,
@@ -8,12 +8,12 @@
   "fbsGamesWithLines": 69,
   "rankedGames": 23,
   "ratedTeams": 138,
-  "ratingsUpdatedAt": "2026-11-23T05:39:08.329Z",
+  "ratingsUpdatedAt": "2026-11-23T23:22:28.720Z",
   "poll": "AP Top 25, week 13",
   "apiCalls": 5,
   "picksPending": 2,
   "picksLogged": 197,
-  "modelVersion": "walters-cfb-2026.09-v1",
+  "modelVersion": "walters-cfb-2026.11-v2",
   "venueElevationUnit": "meters",
   "sources": [
     "CollegeFootballData.com API: games, betting lines, rankings, SP+ and FPI ratings, venues, teams"
