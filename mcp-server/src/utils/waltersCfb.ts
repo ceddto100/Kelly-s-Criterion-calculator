@@ -25,7 +25,7 @@
  * support; see docs/PREDICTION_MODEL.md before changing a number.
  */
 
-export const WALTERS_CFB_VERSION = 'walters-cfb-2026.09-v1';
+export const WALTERS_CFB_VERSION = 'walters-cfb-2026.11-v2';
 
 export interface WaltersCfbConfig {
   /** Points for the home team; 0 at a neutral site. */
@@ -34,6 +34,13 @@ export interface WaltersCfbConfig {
   sigma: { base: number; knee: number; slopePerPoint: number };
   /** Lines this big (either the market's or the model's) cap confidence at LEAN. */
   bigSpread: number;
+  /**
+   * How far the posted line may move toward the ratings when pricing a cover
+   * (0 = the market is right, 1 = the ratings alone). The graded 2026 pick log
+   * (191 picks) fit a weight of −0.58 ± 0.42, and STRONG picks went 23-35, so
+   * the old implicit 1 overstated every probability fed to Kelly.
+   */
+  marketTrust: number;
   /** Rivalry games are pulled this many points toward a pick'em. */
   rivalryPull: number;
   /** Rating updater: new = old + (1 − decayRate) × capped surprise. */
@@ -74,6 +81,7 @@ export const WALTERS_CFB: WaltersCfbConfig = {
   homeFieldAdvantage: 3.0,
   sigma: { base: 16, knee: 14, slopePerPoint: 0.15 },
   bigSpread: 28,
+  marketTrust: 0.2,
   rivalryPull: 1.0,
   decayRate: 0.85,
   updateResidualCap: 21,
@@ -146,9 +154,14 @@ export interface WaltersResult {
   pick: Side | null;
   /** The picked side's own spread (Team B's is −marketSpread). */
   pickSpread: number | null;
-  /** Percent chance the PICKED side covers (normal approximation, pushes ignored). */
+  /**
+   * Percent chance the PICKED side covers (normal approximation, pushes
+   * ignored), anchored to the market line by `marketTrust`.
+   */
   pickProbability: number | null;
   coverProbabilityA: number | null;
+  /** The ratings-only cover probability for the picked side, before anchoring. */
+  modelPickProbability: number | null;
   confidence: Confidence;
   /** True when a lopsided line lowered the grade to LEAN. */
   cappedForBigSpread: boolean;
@@ -376,7 +389,7 @@ export function projectWalters(input: WaltersInput, config: WaltersCfbConfig = W
     return {
       predictedMargin, trueLine, marketSpread, sigma,
       edge: null, pick: null, pickSpread: null, pickProbability: null, coverProbabilityA: null,
-      confidence: 'NO_BET', cappedForBigSpread: false, breakdown,
+      modelPickProbability: null, confidence: 'NO_BET', cappedForBigSpread: false, breakdown,
     };
   }
 
@@ -384,9 +397,14 @@ export function projectWalters(input: WaltersInput, config: WaltersCfbConfig = W
   // Team A covers when margin + spread > 0, i.e. when the true line sits
   // below the market line.
   const pick: Side | null = trueLine < marketSpread ? 'A' : trueLine > marketSpread ? 'B' : null;
-  const coverProbabilityA = normalCdf((predictedMargin + marketSpread) / sigma) * 100;
+  // The line is the market's estimate; the ratings may move it only by
+  // marketTrust of their disagreement (predictedMargin + marketSpread).
+  const modelCoverA = normalCdf((predictedMargin + marketSpread) / sigma) * 100;
+  const coverProbabilityA = normalCdf((config.marketTrust * (predictedMargin + marketSpread)) / sigma) * 100;
   const pickProbability =
     pick === 'A' ? coverProbabilityA : pick === 'B' ? 100 - coverProbabilityA : null;
+  const modelPickProbability =
+    pick === 'A' ? modelCoverA : pick === 'B' ? 100 - modelCoverA : null;
   const pickSpread = pick === 'A' ? marketSpread : pick === 'B' ? negate(marketSpread) : null;
 
   const t = config.thresholds;
@@ -401,7 +419,7 @@ export function projectWalters(input: WaltersInput, config: WaltersCfbConfig = W
 
   return {
     predictedMargin, trueLine, marketSpread, sigma,
-    edge, pick, pickSpread, pickProbability, coverProbabilityA,
+    edge, pick, pickSpread, pickProbability, coverProbabilityA, modelPickProbability,
     confidence, cappedForBigSpread, breakdown,
   };
 }

@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { normCdf } from '../utils/calculations.js';
 import { evaluateDecision, type DecisionResult } from '../utils/decision.js';
+import { nhlAnchoredOver } from '../utils/marketPricing.js';
 
 export { calculateNHLProjection } from '../utils/nhl.js';
 import { calculateNHLProjection } from '../utils/nhl.js';
@@ -115,6 +116,8 @@ export interface HockeyProbabilityOutput {
     overProbability: number;
     underProbability: number;
     pushProbability: number;
+    /** Chosen side's probability (%) excluding pushes, anchored to the market price. */
+    marketAnchoredProbability: number;
     standardDeviation: number;
     zScore: number;
   };
@@ -144,7 +147,7 @@ function buildHockeyRiskFactors(projectedTotal: number, line: number, probabilit
 }
 
 function getHockeyInterpretation(probability: number, betType: 'over' | 'under', line: number, projectedTotal: number): string {
-  return 'Estimated ' + betType + ' ' + line + ' probability: ' + probability.toFixed(1) + '%. Projected total: ' + projectedTotal.toFixed(2) + '. This is an uncalibrated model estimate, not a value guarantee.';
+  return 'Estimated ' + betType + ' ' + line + ' probability: ' + probability.toFixed(1) + '%. Projected total: ' + projectedTotal.toFixed(2) + ' (includes the overtime/shootout goal). Calibrated to past finals, but not shown to beat market prices: not a value guarantee.';
 }
 
 export async function handleHockeyProbability(input: unknown): Promise<HockeyProbabilityOutput> {
@@ -178,10 +181,19 @@ export async function handleHockeyProbability(input: unknown): Promise<HockeyPro
   // The hockey tool requires all 7 stats per team, so inputs are always complete.
   const dataCompleteness = 1;
 
+  // Price the chosen side against the market: pushes excluded, the book's
+  // prices de-vigged (or a league-average game at this line when none are
+  // given), and the model allowed to move that fair number only by marketTrust.
+  const over = parsed.betType === 'over';
+  const prices = parsed.betOdds !== undefined && parsed.oppOdds !== undefined
+    ? { overOdds: over ? parsed.betOdds : parsed.oppOdds, underOdds: over ? parsed.oppOdds : parsed.betOdds }
+    : {};
+  const anchored = nhlAnchoredOver(prices, parsed.line, result);
+  const sideProbability = over ? anchored.anchoredOver : 100 - anchored.anchoredOver;
   const decision = evaluateDecision({
-    modelProbabilityPct: probability,
-    sideOdds: parsed.betOdds,
-    otherSideOdds: parsed.oppOdds,
+    modelProbabilityPct: sideProbability,
+    sideOdds: over ? anchored.overOdds : anchored.underOdds,
+    otherSideOdds: over ? anchored.underOdds : anchored.overOdds,
     dataCompleteness
   });
 
@@ -209,6 +221,7 @@ export async function handleHockeyProbability(input: unknown): Promise<HockeyPro
       overProbability: result.overProbability,
       underProbability: result.underProbability,
       pushProbability: result.pushProbability,
+      marketAnchoredProbability: Math.round(sideProbability * 100) / 100,
       standardDeviation: result.standardDeviation,
       zScore: result.zScore
     },

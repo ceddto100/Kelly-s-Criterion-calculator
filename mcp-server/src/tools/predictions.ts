@@ -28,10 +28,10 @@ export const MODEL_GUIDANCE = {
   modelVersion:MODEL_VERSION,
   source:'CSV',
   scope:'NBA, NFL, NHL and MLB team outcomes. No fabricated stats, news, injuries, odds, trends or betting actions.',
-  calibration:'Structural defaults, not fitted optimal weights. Historical pre-game snapshots and outcomes are required to validate accuracy.',
-  NBA:'Equal offense/defense efficiency blend at expected pace; scoring/pace fallback. Shooting, rebounds and turnovers are already represented in efficiency.',
-  NFL:'Net scoring gap × 0.5 + net yardage gap / 15 × 0.25, then home advantage. Season turnover totals are not given an extra bonus without games played.',
-  NHL:'All-situation xG blended across offense/defense, opponent GSAx regressed by half. No duplicate HDCF or PP/PK bonus. Negative binomial totals include pushes.',
+  calibration:'Constants fitted to past games (NFL 2010-2026, NBA 2025-27, NHL 2025-27; see docs/PREDICTION_MODEL.md). Projections are calibrated to results, but season stats showed no edge against closing lines, so probabilities against a posted line stay close to it.',
+  NBA:'Full offense-minus-defense efficiency gap at the shared pace, regressed by games played: weight n/(n+10). Home edge 2.0, sigma 14. Shooting, rebounds and turnovers are already represented in efficiency.',
+  NFL:'Gap = 0.8 × net scoring + 0.2 × net yardage / 15, regressed by games played: weight n/(n+6). Home edge 1.8, sigma 13. Season turnover totals get no extra bonus without games played.',
+  NHL:'All-situation xG blended across offense and defense for regulation goals (Poisson). A game tied after regulation adds one goal (OT/SO), as totals are graded. Season goalie GSAx is not used (it made backtests worse). Exact over/under/push.',
   MLB:'wRC+ offense anchor, then wOBA/OPS/runs fallbacks. Pitching is blended by expected innings, with existing park/weather/lineup adjustments.',
 };
 

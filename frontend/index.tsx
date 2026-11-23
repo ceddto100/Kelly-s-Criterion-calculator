@@ -5,7 +5,7 @@
  * UPDATED: With Bet Logging Integration + Performance Optimizations + SEO
 */
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
-import { predictedMarginFootball as footballMargin, predictedMarginBasketball as basketballMargin, coverProbability } from '../mcp-server/src/utils/calculations';
+import { estimateFootballProbability, estimateBasketballProbability, NFL_CONSTANTS, NBA_CONSTANTS } from '../mcp-server/src/utils/calculations';
 const PredictionHub = lazy(() => import('./components/PredictionHub'));
 import './prediction-design.css';
 import ReactDOM from 'react-dom/client';
@@ -334,7 +334,6 @@ function normCdf(x: number): number {
   return 0.5 * (1 + sign * y);
 }
 
-const coverProbabilityFromMargin = coverProbability;
 function statsForModel(stats: any) {
   const out: any = {};
   const aliases: Record<string,string> = {teamPointsFor:'teamPPG',opponentPointsFor:'opponentPPG',teamPointsAgainst:'teamAllowed',opponentPointsAgainst:'opponentAllowed',teamFgPct:'teamFGPct',opponentFgPct:'opponentFGPct'};
@@ -344,11 +343,13 @@ function statsForModel(stats: any) {
   }
   return out;
 }
-function predictedMarginFootball(stats: any, isHome: boolean | null = null) {
-  return footballMargin(statsForModel(stats)) + (isHome === null ? 0 : isHome ? 2.5 : -2.5);
-}
-function predictedMarginBasketball(stats: any, isHome: boolean | null = null) {
-  return basketballMargin(statsForModel(stats)) + (isHome === null ? 0 : isHome ? 2.5 : -2.5);
+// Shared server model (home edge, sample-size shrink, sigma and the line
+// anchoring all come from mcp-server config — no constants duplicated here).
+function spreadEstimate(sport: 'football' | 'basketball', stats: any, spread: number, isHome: boolean | null) {
+  const venue = isHome === null ? 'neutral' : isHome ? 'home' : 'away';
+  return sport === 'football'
+    ? estimateFootballProbability(statsForModel(stats), spread, venue)
+    : estimateBasketballProbability(statsForModel(stats), spread, venue);
 }
 
 /* ================================= Utilities ============================== */
@@ -686,11 +687,10 @@ function ProbabilityEstimator({
       }
 
       if (activeSport === CONSTANTS.SPORTS.HOCKEY) {
-        // NHL Over/Under via the shared projection engine (utils/nhlProjection),
-        // which mirrors the backend model: home-ice advantage, graduated pace
-        // and special-teams adjustments (no binary cliffs), an overtime boost,
-        // and an overdispersion-adjusted standard deviation. This replaces an
-        // older inline copy that used hard thresholds and pure-Poisson sigma.
+        // NHL Over/Under via the shared projection engine (utils/nhlProjection,
+        // same code as the server): Poisson regulation goals for each side,
+        // plus the overtime/shootout goal every tied game gets, so the final
+        // total distribution matches how totals are graded.
         const line = parseFloat(totalGoalsLine);
         if (Number.isNaN(line)) throw new Error('Invalid total goals line');
 
@@ -715,7 +715,11 @@ function ProbabilityEstimator({
           },
         }, line);
 
-        const finalProb = isOverBet ? projection.overProbability : projection.underProbability;
+        // Kelly needs the probability among graded outcomes: a push refunds
+        // the stake, so it must not count for (or against) either side.
+        const graded = projection.overProbability + projection.underProbability;
+        const sideProb = isOverBet ? projection.overProbability : projection.underProbability;
+        const finalProb = graded > 0 ? (sideProb / graded) * 100 : 50;
 
         setCalculatedProb(finalProb);
         setExpectedDiff(projection.projectedTotal);
@@ -724,15 +728,15 @@ function ProbabilityEstimator({
         const spread = parseFloat(pointSpread);
         if (Number.isNaN(spread)) throw new Error('Invalid spread');
 
-        const m = activeSport === CONSTANTS.SPORTS.FOOTBALL
-          ? predictedMarginFootball(footballStats, isTeamAHome)
-          : predictedMarginBasketball(basketballStats, isTeamAHome);
+        // The entered spread is treated as the sportsbook line: the cover
+        // probability is anchored to it, so Kelly never sizes off a stats-only
+        // number that backtests showed has no edge against closing lines.
+        const estimate = activeSport === CONSTANTS.SPORTS.FOOTBALL
+          ? spreadEstimate('football', footballStats, spread, isTeamAHome)
+          : spreadEstimate('basketball', basketballStats, spread, isTeamAHome);
 
-        const sigma = activeSport === CONSTANTS.SPORTS.FOOTBALL ? 13.5 : 12.0;
-        const p = coverProbabilityFromMargin(m, spread, sigma);
-
-        setCalculatedProb(p);
-        setExpectedDiff(m);
+        setCalculatedProb(estimate.probability);
+        setExpectedDiff(estimate.predictedMargin);
       }
     } catch (e) {
       console.error(e);
@@ -1081,7 +1085,7 @@ function ProbabilityEstimator({
               Venue
               <span className="tooltip">
                 <span className="help-icon">?</span>
-                <span className="tooltiptext">Home advantage is worth ~2.5 pts (NFL and NBA)</span>
+                <span className="tooltiptext">{`Home advantage is worth ~${NFL_CONSTANTS.homeFieldAdvantage} pts in the NFL and ~${NBA_CONSTANTS.homeCourtAdvantage} in the NBA`}</span>
               </span>
             </label>
             <select

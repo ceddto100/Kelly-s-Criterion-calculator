@@ -43,6 +43,40 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+/**
+ * Probability (%) of winning a bet that can push, counting only graded
+ * outcomes: a push refunds the stake, so Kelly and break-even comparisons use
+ * win / (win + loss). Never fold the push mass into either side.
+ */
+export function noPushProbability(winPct: number, lossPct: number): number {
+  const graded = winPct + lossPct;
+  if (!(graded > 0)) return 50;
+  return (winPct / graded) * 100;
+}
+
+/**
+ * Move a market's fair probability toward the model by `trust` (0-1).
+ * trust 0 = the market is right; trust 1 = the model alone.
+ */
+export function anchorToMarket(modelPct: number, fairPct: number, trust: number): number {
+  return clamp(fairPct + clamp(trust, 0, 1) * (modelPct - fairPct), 0.1, 99.9);
+}
+
+/** American odds for a win probability (%), no vig. */
+export function americanFromProbability(pct: number): number {
+  const p = clamp(pct, 0.5, 99.5) / 100;
+  return p >= 0.5 ? Math.round((-100 * p) / (1 - p)) : Math.round((100 * (1 - p)) / p);
+}
+
+/**
+ * A side's price when the book's own price is unknown: its fair probability
+ * marked up by the standard -110/-110 overround (4.76%). A 50% side gets -110.
+ */
+export function standardVigPrice(fairPct: number): number {
+  const overround = (2 * impliedProbabilityPct(STANDARD_VIG_ODDS)) / 100;
+  return americanFromProbability(clamp(fairPct * overround, 1, 99));
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------

@@ -1,10 +1,10 @@
-import { estimateBasketballProbability, estimateFootballProbability, coverProbability } from './calculations.js';
+import { estimateBasketballProbability, estimateFootballProbability } from './calculations.js';
 import { calculateNHLProjection } from './nhl.js';
 import { buildMatchupInput, buildSlateGame, loadMLBStatsFrom, type MLBStats } from './mlbCsv.js';
 import { projectMLBGame } from './mlb.js';
 
 export type PredictionSport = 'NBA' | 'NFL' | 'NHL' | 'MLB';
-export const MODEL_VERSION = 'csv-2026.09-v1';
+export const MODEL_VERSION = 'csv-2026.11-v2';
 export type CsvTeam = {team: string; abbreviation: string; stats: Record<string, number>};
 export type Catalog = {sport: PredictionSport; teams: CsvTeam[]; updatedAt: string | null; files: string[]; mlb?: MLBStats};
 export type PredictionRequest = {sport: PredictionSport; home: string; away: string; line?: number; gameDate?: string};
@@ -93,7 +93,7 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
   if (h.abbreviation === a.abbreviation) throw new Error('Choose two different teams');
   if (request.line !== undefined && !Number.isFinite(request.line)) throw new Error('Invalid line');
   if ((catalog.sport==='MLB'||catalog.sport==='NHL') && request.line !== undefined && request.line < 0) throw new Error('Game totals must be non-negative');
-  const warnings = ['Model estimates are not yet calibrated against historical game outcomes.'];
+  const warnings = ['Projections are calibrated to past results, but season stats showed no edge against closing lines; probabilities against a line stay close to it.'];
   if (!catalog.updatedAt) warnings.push('Snapshot date is unavailable.');
   else if (Date.now() - Date.parse(catalog.updatedAt) > 7 * 86400000) warnings.push('This snapshot is older than seven days; it may describe a previous season.');
   const result: Prediction = {sport:catalog.sport, home:h.team, away:a.team, headline:'',summary:'',drivers:[],warnings,updatedAt:catalog.updatedAt,modelVersion:MODEL_VERSION,source:'CSV',files:catalog.files,inputs:{home:h.stats,away:a.stats}};
@@ -128,27 +128,32 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
     const p = calculateNHLProjection(convert(h.stats),convert(a.stats),request.line ?? 0);
     result.homeScore=p.homeScore; result.awayScore=p.awayScore;result.total=p.projectedTotal;
     result.headline=p.projectedTotal.toFixed(1)+' projected goals';
-    result.summary='Expected scoring from each offense against the opposing defense and goaltending.';
+    result.summary='Expected final score from each offense against the opposing defense, including the overtime or shootout goal.';
     if(request.line!==undefined) {result.probability=p.overProbability;result.probabilityLabel='Over '+request.line+' goals';result.pushProbability=p.pushProbability;}
-    result.drivers=['All-situation expected goals balance offense and defense.', 'Goalie GSAx is regressed to reduce small-sample swings.', 'Chance quality and power plays are already included in expected goals.'];
+    result.drivers=['All-situation expected goals balance offense and defense.', 'A game tied after regulation adds one goal (overtime or shootout), as totals are graded.', 'Chance quality and power plays are already included in expected goals; season goalie GSAx did not improve backtests.'];
   } else {
     required(['ppg','allowed']);
     const hs=h.stats, as=a.stats;
     const common={teamPPG:hs.ppg,teamAllowed:hs.allowed,opponentPPG:as.ppg,opponentAllowed:as.allowed};
     const stats=catalog.sport==='NBA' ? {...common,teamPace:hs.pace,opponentPace:as.pace,teamOffRtg:hs.off_rtg,teamDefRtg:hs.def_rtg,opponentOffRtg:as.off_rtg,opponentDefRtg:as.def_rtg} : {...common,teamOffYards:hs.off_yards,teamDefYards:hs.def_yards,opponentOffYards:as.off_yards,opponentDefYards:as.def_yards,teamTurnoverDiff:hs.turnover_diff,opponentTurnoverDiff:as.turnover_diff};
     const estimate=catalog.sport==='NBA'?estimateBasketballProbability:estimateFootballProbability;
-    const p=estimate(stats,request.line ?? 0,'home');
+    // Games behind the stats follow the snapshot date (see estimateGamesPlayed).
+    const context={asOf:catalog.updatedAt ?? undefined};
+    const straightUp=estimate(stats,0,'home',true,{...context,marketLine:false});
+    const p=request.line===undefined ? straightUp : estimate(stats,request.line,'home',true,context);
     result.margin=p.predictedMargin;result.probability=p.probability;
-    // Straight-up win probability = P(home margin > 0) — the same normal model
-    // evaluated at a line of 0. With no line entered it equals p.probability.
-    const homeWin=request.line===undefined ? p.probability : Math.round(coverProbability(p.predictedMargin,0,p.sigma)*100)/100;
-    setWinProbabilities(result, homeWin, p.predictedMargin>=0);
-    // A line turns the probability into a COVER probability; label it as such
-    // so it never reads as a claim that the team covers.
+    // Straight-up win probability = P(home margin > 0), independent of any line.
+    setWinProbabilities(result, straightUp.probability, p.predictedMargin>=0);
+    // A line turns the probability into a COVER probability, anchored to that
+    // line as the market's estimate; label it so it never reads as a claim.
     result.probabilityLabel=request.line===undefined ? h.team+' (home) win probability' : h.team+' cover probability at '+(request.line>0?'+':'')+request.line;
     result.headline=result.projectedWinner+' projected to win by '+Math.abs(p.predictedMargin).toFixed(1);
     result.summary='Projected margin with home advantage, using the selected snapshot.';
-    result.drivers=catalog.sport==='NBA'?['Offensive and defensive efficiency share equal matchup weight.','Both teams are compared at the same expected pace.','Shooting, rebounds and turnovers are shown in stats, without counting them again.']:['Scoring differential is the primary matchup signal.','Yardage contributes a smaller supporting signal.','Season turnover totals receive no extra bonus without a games-played denominator.'];
+    const sample=p.gamesPlayed===null ? '' : ' (~'+Math.round(p.gamesPlayed)+' games in, weight '+p.evidenceWeight.toFixed(2)+')';
+    result.drivers=catalog.sport==='NBA'
+      ?['The full offensive and defensive efficiency gap is compared at the same expected pace.','Early-season gaps are regressed toward average until the sample grows'+sample+'.','Shooting, rebounds and turnovers are shown in stats, without counting them again.']
+      :['Scoring differential (80%) and yardage differential (20%) form the matchup gap.','The gap is regressed toward average until the sample grows'+sample+'.','Season turnover totals receive no extra bonus without a games-played denominator.'];
+    if(request.line!==undefined) result.drivers.push('Cover probability starts from the line and moves only '+Math.round(100*(p.marketTrust ?? 0))+'% of the way toward the model.');
   }
   return JSON.parse(JSON.stringify(result)) as Prediction;
 }
