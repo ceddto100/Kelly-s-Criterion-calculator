@@ -2,35 +2,62 @@
 // Learned from history: see scripts/backtest/README.md.
 export const CALIBRATION = {
   "fittedAt": "2026-11-24",
-  "method": "posterior mean under N(0, 0.3^2), clamped to [0, 0.6], step <= 0.1 per run",
+  "method": "precision-weighted: prior N(0, 0.3^2) + backtest fit + graded bet log; clamped to [0, 0.6], step <= 0.1 per run",
   "NFL": {
     "marketTrust": 0,
+    "combined": -0.132,
     "fit": {
       "weight": -0.13,
       "se": 0.119,
       "posterior": -0.112,
       "games": 2089,
       "window": "2018-present"
+    },
+    "betlog": {
+      "weight": -1.949,
+      "se": 1.056,
+      "bets": 29,
+      "wins": 12,
+      "losses": 17,
+      "statedMean": 58.7
     }
   },
   "NBA": {
-    "marketTrust": 0,
+    "marketTrust": 0.045,
+    "combined": 0.045,
     "fit": {
       "weight": -0.1,
       "se": 0.148,
       "posterior": -0.08,
       "games": 1204,
       "window": "2025-26 season to present"
+    },
+    "betlog": {
+      "weight": 0.329,
+      "se": 0.2,
+      "bets": 145,
+      "wins": 82,
+      "losses": 63,
+      "statedMean": 66.4
     }
   },
   "NHL": {
-    "marketTrust": 0.124,
+    "marketTrust": 0.18,
+    "combined": 0.18,
     "fit": {
       "weight": 0.41,
       "se": 0.456,
       "posterior": 0.124,
       "games": 462,
       "window": "games with a fresh pre-game snapshot and an ESPN closing price"
+    },
+    "betlog": {
+      "weight": 0.563,
+      "se": 0.655,
+      "bets": 104,
+      "wins": 56,
+      "losses": 48,
+      "statedMean": 56.8
     }
   }
 } as const;

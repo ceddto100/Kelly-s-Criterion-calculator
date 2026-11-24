@@ -96,6 +96,19 @@ First fit (November 24, 2026):
 
 The negative NFL/NBA fits mean that when these stats disagreed with the closing line, the line was right more often, so no honest setting creates an edge there yet. The NHL model matched the closing market's accuracy (Brier 0.2485 vs 0.2481), and a 50/50 blend beat both (0.2476). But its weight was +0.63 this season and −0.78 in January–April 2026, so it starts with a small trust that will grow only if the edge persists.
 
+### Graded bet log (Edge Finder `betlogs`, read-only)
+
+The cluster held 282 bet logs from the previous module: 278 graded and 4 pending. For each sport `betlog_evidence.py` fits w in logit(P(win)) = w × logit(stated probability). Here w = 1 means the stated probabilities were right and 0 means they carried no information. Only the per-sport summary is committed (`scripts/backtest/betlog_evidence.json`).
+
+| Sport | Bets | Record | Stated | Actual | Fitted w |
+|---|---|---|---|---|---|
+| NBA | 145 | 82-63 | 66.4% | 56.6% | +0.33 ± 0.20 |
+| NHL | 104 | 56-48 | 56.8% | 53.8% | +0.56 ± 0.66 |
+| NFL | 29 | 12-17 | 58.7% | 41.4% | −1.95 ± 1.06 |
+| All | 278 | 150-128 | 62.0% | 54.0% | +0.25 ± 0.19 |
+
+`calibrate.ts` combines each sport's w by precision with the backtest fit and the skeptical prior. That gave NBA +0.045 (from 0), NHL +0.18 (from 0.124) and NFL 0.
+
 ### Edge search: what was tested and rejected
 
 Each candidate was fitted on earlier seasons and judged only on later, unseen games:

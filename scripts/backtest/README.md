@@ -11,6 +11,8 @@ cd mcp-server && npx tsx ../scripts/backtest/validate.ts ../scripts/backtest/.ca
 cd mcp-server && npx tsx ../scripts/backtest/calibrate.ts ../scripts/backtest/.cache/backtest.json   # re-learn marketTrust (add --write to save)
 ```
 
+To include the graded bet log, export graded `betlogs` documents to JSON and run `python3 scripts/backtest/betlog_evidence.py EXPORT.json`. It writes per-sport summary numbers only, never individual bets, to `betlog_evidence.json`, which `calibrate.ts` folds in.
+
 The `Recalibrate models from history` workflow runs `calibrate.ts --write` every Monday and commits `mcp-server/src/config/calibration.generated.ts` when the learned trust changes.
 
 The first build downloads about 1.5 GB of NBA game files (it keeps only the line and box totals, about 1 MB on disk) and takes several minutes. Later runs fetch only new games.
