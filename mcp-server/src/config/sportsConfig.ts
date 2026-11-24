@@ -14,11 +14,11 @@
  * the model kept backing underdogs.
  *
  * `marketTrust` is how far a posted line may be moved toward the model's
- * opinion when pricing a bet. Against closing lines the fitted weight was
- * NFL −0.02 ± 0.06 and NBA −0.06 ± 0.09: no measurable edge. The default 0.1
- * is the largest weight those fits cannot rule out (upper 95% bound), so the
- * model only bets large disagreements, at small Kelly stakes. 0 turns betting
- * off; raise it only when new data shows an edge.
+ * opinion when pricing a bet. It is LEARNED FROM HISTORY: scripts/backtest/
+ * calibrate.ts grades the model against every completed game at the closing
+ * line, fits how much of its disagreement turned into results, shrinks that
+ * toward 0 by the evidence and writes calibration.generated.ts (weekly
+ * workflow). A sport earns picks only while its history shows an edge.
  *
  * `marketGapScale` (c): the model's disagreement is measured against c × the
  * market's implied team gap. The fitted slope of season gaps on market gaps
@@ -29,9 +29,11 @@
  * CFB/CBB keep their previous behaviour (priorGames 0 → no sample-size
  * shrink, same weights) because they were not part of this backtest.
  */
+import { CALIBRATION } from './calibration.generated.js';
+
 const footballScaling = {yardsPerPoint:15,pointsPerTurnover:4,turnoverRegression:0.5,turnoverClamp:10};
 export const FOOTBALL_CONFIG = {
-  NFL:{sigma:13,homeFieldAdvantage:1.8,decayRate:0.9,qbValue:7,priorGames:6,marketTrust:0.1,marketGapScale:1.15,
+  NFL:{sigma:13,homeFieldAdvantage:1.8,decayRate:0.9,qbValue:7,priorGames:6,marketTrust:CALIBRATION.NFL.marketTrust,marketGapScale:1.15,
     weights:{points:0.8,yards:0.2,turnovers:0},scaling:footballScaling},
   CFB:{sigma:16,homeFieldAdvantage:3,decayRate:0.85,qbValue:9,priorGames:0,marketTrust:1,marketGapScale:1,
     weights:{points:0.5,yards:0.25,turnovers:0},scaling:footballScaling},
@@ -41,7 +43,7 @@ const basketballScaling={fgPctPointsMultiplier:2,threePctMultiplier:1,threeRateM
 export const BASKETBALL_CONFIG = {
   // NBA: full net-efficiency gap (weight 1) shrunk by games played. Residual SD
   // of actual margins around NBA closing lines was 14.1 (2025-27), not 12.
-  NBA:{sigma:14,homeCourtAdvantage:2,decayRate:0.85,leagueAvgPace:100,priorGames:10,marketTrust:0.1,marketGapScale:0.91,
+  NBA:{sigma:14,homeCourtAdvantage:2,decayRate:0.85,leagueAvgPace:100,priorGames:10,marketTrust:CALIBRATION.NBA.marketTrust,marketGapScale:0.91,
     weights:{ppgFor:1,pointsAllowed:1,fgPct:0,rebounds:0,turnovers:0,threePct:0,threeRate:0},scaling:basketballScaling},
   CBB:{sigma:10.5,homeCourtAdvantage:3.5,decayRate:0.85,leagueAvgPace:68,priorGames:0,marketTrust:1,marketGapScale:1,
     weights:{ppgFor:0.5,pointsAllowed:0.5,fgPct:0,rebounds:0,turnovers:0,threePct:0,threeRate:0},scaling:basketballScaling},

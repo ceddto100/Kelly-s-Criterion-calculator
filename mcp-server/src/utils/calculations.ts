@@ -52,7 +52,8 @@ export function estimateGamesPlayed(league: SpreadLeague, asOf?: Date | string |
   const seasonYear = d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1;
   if (league === 'NBA') {
     const { games, seasonDays } = SEASON_CALENDAR.NBA;
-    const days = (t - nthWeekday(seasonYear, 9, 2, 3)) / DAY_MS;
+    // Whole days, so every call on the same day sees the same sample size.
+    const days = Math.floor((t - nthWeekday(seasonYear, 9, 2, 3)) / DAY_MS);
     if (days < 0) return games;
     return Math.min(games, Math.max(0, (days * games) / seasonDays));
   }

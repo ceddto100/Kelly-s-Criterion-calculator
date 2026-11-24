@@ -1,4 +1,5 @@
 import { normCdf } from './calculations.js';
+import { CALIBRATION } from '../config/calibration.generated.js';
 
 export interface NHLTeamStats {
   xGF60: number; xGA60: number; GSAx60: number; HDCF60: number;
@@ -38,12 +39,11 @@ export const NHL_CONFIG = {
   /** League regulation goals per team, used only when no matchup data exists. */
   leagueGoalsPerTeam: 3.1,
   /**
-   * How far a posted price may move toward the model (see sportsConfig). The
-   * xG totals had almost no correlation with actual totals game to game
-   * (r ≈ 0.01 on 462 games), so the market's price dominates: 0.1, as for
-   * the NFL and NBA.
+   * How far a posted price may move toward the model, learned from history
+   * against real ESPN closing prices (see sportsConfig and
+   * scripts/backtest/calibrate.ts).
    */
-  marketTrust: 0.1,
+  marketTrust: CALIBRATION.NHL.marketTrust,
 } as const;
 
 function poissonPmf(lambda: number, max: number): number[] {

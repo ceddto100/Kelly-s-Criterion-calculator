@@ -1,0 +1,87 @@
+name: Recalibrate models from history
+
+# Weekly: grade the production model against every completed game at the
+# closing line, re-learn how much each sport's projections beat the market
+# (marketTrust), and commit mcp-server/src/config/calibration.generated.ts
+# when it changes. A sport earns picks only while its history shows an edge.
+# Method and data sources: scripts/backtest/README.md.
+
+on:
+  schedule:
+    - cron: '23 10 * * 1'   # Mondays 10:23 UTC, after the weekend's games
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recalibrate-models
+  cancel-in-progress: false
+
+jobs:
+  recalibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 'Checkout (full history: the stat snapshots are the pre-game inputs)'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          pip install pandas pyarrow numpy
+          cd mcp-server && npm ci --no-audit --no-fund
+
+      - name: Restore backtest cache
+        uses: actions/cache/restore@v4
+        with:
+          path: scripts/backtest/.cache
+          key: backtest-${{ github.run_id }}
+          restore-keys: backtest-
+
+      - name: Build historical datasets
+        run: python3 scripts/backtest/build_datasets.py
+
+      - name: Save backtest cache
+        if: always() && hashFiles('scripts/backtest/.cache/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: scripts/backtest/.cache
+          key: backtest-${{ github.run_id }}
+
+      - name: Re-learn market trust
+        run: |
+          cd mcp-server
+          npx tsx ../scripts/backtest/calibrate.ts ../scripts/backtest/.cache/backtest.json --write | tee ../calibration.log
+          {
+            echo '### Model recalibration'
+            echo '```'
+            cat ../calibration.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Test with the new calibration
+        run: cd mcp-server && npx vitest run
+
+      - name: Commit calibration if it changed
+        run: |
+          if git diff --quiet -- mcp-server/src/config/calibration.generated.ts; then
+            echo "Calibration unchanged."; exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add mcp-server/src/config/calibration.generated.ts
+          git commit -m "Recalibrate models from history (automated) - $(date -u +'%Y-%m-%d')"
+          for i in 1 2 3; do git pull --rebase -q && git push && exit 0; sleep 10; done
+          exit 1

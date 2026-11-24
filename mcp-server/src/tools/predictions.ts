@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Express } from 'express';
 import { loadCatalog, predictFromCatalog, MODEL_VERSION, type PredictionSport, type Catalog } from '../utils/predictionCore.js';
+import { CALIBRATION } from '../config/calibration.generated.js';
 
 export const sportSchema = z.enum(['NBA','NFL','NHL','MLB']);
 export const predictionSchema = z.object({
@@ -18,7 +19,7 @@ export const predictionSchema = z.object({
 export const predictionOutputSchema = z.object({
   sport:sportSchema,home:z.string(),away:z.string(),headline:z.string(),summary:z.string(),
   homeScore:z.number().finite().optional(),awayScore:z.number().finite().optional(),margin:z.number().finite().optional(),total:z.number().finite().optional(),
-  probability:z.number().min(0).max(100).optional(),probabilityLabel:z.string().optional(),pushProbability:z.number().min(0).max(100).optional(),
+  probability:z.number().min(0).max(100).optional(),probabilityLabel:z.string().optional(),pushProbability:z.number().min(0).max(100).optional(),modelProbability:z.number().min(0).max(100).optional(),
   homeWinProbability:z.number().min(0).max(100).optional(),awayWinProbability:z.number().min(0).max(100).optional(),projectedWinner:z.string().optional(),
   drivers:z.array(z.string()),warnings:z.array(z.string()),updatedAt:z.string().nullable(),modelVersion:z.string(),source:z.literal('CSV'),files:z.array(z.string()),inputs:z.record(z.unknown()),
 });
@@ -28,7 +29,7 @@ export const MODEL_GUIDANCE = {
   modelVersion:MODEL_VERSION,
   source:'CSV',
   scope:'NBA, NFL, NHL and MLB team outcomes. No fabricated stats, news, injuries, odds, trends or betting actions.',
-  calibration:'Constants fitted to past games (NFL 2010-2026, NBA 2025-27, NHL 2025-27; see docs/PREDICTION_MODEL.md). Projections are calibrated to results, but season stats showed no edge against closing lines, so probabilities against a posted line stay close to it.',
+  calibration:'Constants fitted to past games (NFL 2010-2026, NBA 2022-27, NHL 2025-27; see docs/PREDICTION_MODEL.md). How far a posted line may move toward the model (marketTrust) is re-learned weekly from closing-line results: currently NFL '+CALIBRATION.NFL.marketTrust+', NBA '+CALIBRATION.NBA.marketTrust+', NHL '+CALIBRATION.NHL.marketTrust+' (0 = no proven edge yet).',
   NBA:'Full offense-minus-defense efficiency gap at the shared pace, regressed by games played: weight n/(n+10). Home edge 2.0, sigma 14. Shooting, rebounds and turnovers are already represented in efficiency.',
   NFL:'Gap = 0.8 × net scoring + 0.2 × net yardage / 15, regressed by games played: weight n/(n+6). Home edge 1.8, sigma 13. Season turnover totals get no extra bonus without games played.',
   NHL:'All-situation xG blended across offense and defense for regulation goals (Poisson). A game tied after regulation adds one goal (OT/SO), as totals are graded. Season goalie GSAx is not used (it made backtests worse). Exact over/under/push.',
