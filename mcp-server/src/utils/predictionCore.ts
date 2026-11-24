@@ -12,6 +12,8 @@ export type Prediction = {
   sport: PredictionSport; home: string; away: string; headline: string; summary: string;
   homeScore?: number; awayScore?: number; margin?: number; total?: number;
   probability?: number; probabilityLabel?: string; pushProbability?: number;
+  /** Model-only cover probability (%) before anchoring to the line; not a proven edge. */
+  modelProbability?: number;
   /** Straight-up win probabilities (%), independent of any entered line. */
   homeWinProbability?: number; awayWinProbability?: number; projectedWinner?: string;
   drivers: string[]; warnings: string[]; updatedAt: string | null; modelVersion: string;
@@ -93,7 +95,10 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
   if (h.abbreviation === a.abbreviation) throw new Error('Choose two different teams');
   if (request.line !== undefined && !Number.isFinite(request.line)) throw new Error('Invalid line');
   if ((catalog.sport==='MLB'||catalog.sport==='NHL') && request.line !== undefined && request.line < 0) throw new Error('Game totals must be non-negative');
-  const warnings = ['Projections are calibrated to past results, but season stats showed no edge against closing lines; probabilities against a line stay close to it.'];
+  // Sport-specific: only NBA/NFL/NHL were recalibrated against past results and closing lines.
+  const warnings = [catalog.sport === 'MLB'
+    ? 'MLB probabilities have not yet been recalibrated against historical outcomes or closing lines.'
+    : 'Projections are calibrated to past results. How far a posted line moves toward the model is learned from closing-line history, so probabilities against a line stay close to it until the model proves an edge.'];
   if (!catalog.updatedAt) warnings.push('Snapshot date is unavailable.');
   else if (Date.now() - Date.parse(catalog.updatedAt) > 7 * 86400000) warnings.push('This snapshot is older than seven days; it may describe a previous season.');
   const result: Prediction = {sport:catalog.sport, home:h.team, away:a.team, headline:'',summary:'',drivers:[],warnings,updatedAt:catalog.updatedAt,modelVersion:MODEL_VERSION,source:'CSV',files:catalog.files,inputs:{home:h.stats,away:a.stats}};
@@ -153,7 +158,13 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
     result.drivers=catalog.sport==='NBA'
       ?['The full offensive and defensive efficiency gap is compared at the same expected pace.','Early-season gaps are regressed toward average until the sample grows'+sample+'.','Shooting, rebounds and turnovers are shown in stats, without counting them again.']
       :['Scoring differential (80%) and yardage differential (20%) form the matchup gap.','The gap is regressed toward average until the sample grows'+sample+'.','Season turnover totals receive no extra bonus without a games-played denominator.'];
-    if(request.line!==undefined) result.drivers.push('Cover probability starts from the line and moves only '+Math.round(100*(p.marketTrust ?? 0))+'% of the way toward the model.');
+    if(request.line!==undefined){
+      result.modelProbability=p.modelProbability;
+      const trust=p.marketTrust ?? 0;
+      result.drivers.push(trust>0
+        ? 'Cover probability starts from the line and moves '+Math.round(100*trust)+'% of the way toward the model, the share its history against closing lines supports.'
+        : 'Against closing lines this model has shown no reliable edge yet, so the cover probability stays at the line; the model alone says '+p.modelProbability.toFixed(1)+'%. Its trust is re-learned weekly from new results.');
+    }
   }
   return JSON.parse(JSON.stringify(result)) as Prediction;
 }

@@ -65,11 +65,65 @@ P(cover)     = Φ(marketTrust × disagreement / sigma)
 ```
 
 - `c` (`marketGapScale`) is the measured slope of season gaps on market gaps: NBA 0.91; NFL 1.15, the midpoint of its fits. With it, the disagreement is uncorrelated with how big a favorite the market makes a team: underdog share in the NBA backtest fell from 88% to 54% at a trust of 0.2.
-- `marketTrust` = 0.1 for the NFL, NBA and NHL: the largest weight the closing-line fits above cannot rule out (upper 95% bound). CFB uses 0.2, its own bound.
-- Picks therefore fire only on large disagreements, and Kelly stakes stay small. 0 turns betting off; raise it only if new data shows an edge.
+- `marketTrust` is learned from history for the NFL, NBA and NHL (next section). CFB uses a fixed 0.2, the upper bound of its own pick-log fit.
+- Picks therefore fire only where a sport's history supports an edge, and Kelly stakes stay proportional to that evidence.
 - With `marketTrust` = 1 and k = c = 1 the formula is exactly the old `Φ((margin + spread) / sigma)`.
 
 The daily picks also use **real prices**. ESPN's odds entry carries over/under and spread prices; both sides are parsed (`parseTotalOdds`, `parseSpreadOdds`), de-vigged for the fair probability, and each side is bet only above the break-even of its own price, with Kelly sized at that price. When ESPN has no price, a spread is assumed at −110/−110. For an NHL total, the fair probability is a league-average game at that line, marked up by standard vig.
+
+## Learning from history (weekly)
+
+`scripts/backtest/calibrate.ts` grades the production model against every completed game at the closing market. For each sport it fits how much of the model's disagreement with the market actually turned into results:
+
+- **Spreads:** P(cover) = Φ(w × disagreement / σ).
+- **NHL totals:** P(over) = fair + w × (model − fair), using the de-vigged ESPN closing price.
+
+It then sets `marketTrust` with three guardrails:
+
+- **Shrinkage:** the posterior mean under a skeptical N(0, 0.3²) prior, so thin evidence moves little.
+- **Bounds:** clamped to [0, 0.6].
+- **Step limit:** at most ±0.1 per run.
+
+The `Recalibrate models from history` workflow runs every Monday, re-tests and commits `mcp-server/src/config/calibration.generated.ts`. A sport earns picks, and larger stakes, only while its history keeps showing an edge.
+
+First fit (November 24, 2026):
+
+| Sport | History | Fitted weight | marketTrust |
+|---|---|---|---|
+| NFL | 2,089 games since 2018 | −0.13 ± 0.12 | 0 |
+| NBA | 1,204 games since 2025-26 | −0.10 ± 0.15 | 0 |
+| NHL | 462 games at ESPN closing prices | +0.41 ± 0.46 | 0.124 |
+
+The negative NFL/NBA fits mean that when these stats disagreed with the closing line, the line was right more often, so no honest setting creates an edge there yet. The NHL model matched the closing market's accuracy (Brier 0.2485 vs 0.2481), and a 50/50 blend beat both (0.2476). But its weight was +0.63 this season and −0.78 in January–April 2026, so it starts with a small trust that will grow only if the edge persists.
+
+### Graded bet log (Edge Finder `betlogs`, read-only)
+
+The cluster held 282 bet logs from the previous module: 278 graded and 4 pending. For each sport `betlog_evidence.py` fits w in logit(P(win)) = w × logit(stated probability). Here w = 1 means the stated probabilities were right and 0 means they carried no information. Only the per-sport summary is committed (`scripts/backtest/betlog_evidence.json`).
+
+| Sport | Bets | Record | Stated | Actual | Fitted w |
+|---|---|---|---|---|---|
+| NBA | 145 | 82-63 | 66.4% | 56.6% | +0.33 ± 0.20 |
+| NHL | 104 | 56-48 | 56.8% | 53.8% | +0.56 ± 0.66 |
+| NFL | 29 | 12-17 | 58.7% | 41.4% | −1.95 ± 1.06 |
+| All | 278 | 150-128 | 62.0% | 54.0% | +0.25 ± 0.19 |
+
+`calibrate.ts` combines each sport's w by precision with the backtest fit and the skeptical prior. That gave NBA +0.045 (from 0), NHL +0.18 (from 0.124) and NFL 0.
+
+### Edge search: what was tested and rejected
+
+Each candidate was fitted on earlier seasons and judged only on later, unseen games:
+
+| Sport and candidate | Result |
+|---|---|
+| NFL, 2008-19 fit / 2020-26 test | No signal in model disagreement, recent form or rest days: 53.6% on 645 test bets, not distinguishable from the 52.4% break-even. The divisional-game under went 53.5% in 2010-19 but 49.9% since 2020 (48.8% since 2023): priced out. |
+| NBA, 2022-25 fit / 2025-27 test, 4,594 games | No signal in model disagreement, late-season effects, back-to-backs, rest or last-5 form (49.0% on unseen games). A pace × efficiency totals model also failed (48.7%). |
+| NBA underdogs | Covered 49.4–50.6% in every season, so the November 2026 run of underdog wins was variance, not a pattern. |
+| Daily auto picks | Graded at the real posted closing prices, the logged NHL picks were −4.1 units (−3.7 at the assumed −110). |
+
+Two data traps were caught and excluded:
+
+- ESPN's "Live Odds" books are captured in-game. They leak the result: correlation with the final margin is 0.92, against about 0.5 for real closing lines.
+- The live track record (147-126 through November 23) is too small to tune on. ±6 points of win rate is ordinary luck over 273 bets.
 
 ## NHL
 

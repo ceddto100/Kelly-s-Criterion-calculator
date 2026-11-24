@@ -8,6 +8,7 @@ Everything here is pre-game information plus final results:
       - NBA: sportsdataverse hoopR-nba-raw (scores + the DraftKings line ESPN
         stored with each game, team box totals for pace)
       - NHL: sportsdataverse fastRhockey-nhl-raw (final scores incl. OT/SO)
+        and ESPN game summaries (closing total and over/under prices)
   * the graded CFB Walters pick log in frontend/public/stats/cfb.
 
 Usage (from the repo root; needs pandas, pyarrow, numpy):
@@ -15,8 +16,8 @@ Usage (from the repo root; needs pandas, pyarrow, numpy):
 Then run validate.ts (see README.md). Downloads are cached; NBA per-game files
 are ~1 MB each and only the line/box fields are kept.
 """
-import argparse, collections, concurrent.futures as cf, csv, io, json, os, subprocess, urllib.request
-from datetime import datetime, timezone
+import argparse, collections, concurrent.futures as cf, csv, io, json, os, subprocess, time, urllib.request
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
@@ -26,6 +27,8 @@ NFLVERSE = f'{RAW}/nflverse/nfldata/master/data/games.csv'
 NBA_SCHED = f'{RAW}/sportsdataverse/hoopR-nba-raw/main/nba/schedules/parquet/nba_schedule_{{season}}.parquet'
 NBA_GAME = f'{RAW}/sportsdataverse/hoopR-nba-raw/main/nba/json/final/{{gid}}.json'
 NHL_SCHED = f'{RAW}/sportsdataverse/fastRhockey-nhl-raw/main/nhl/schedules/parquet/nhl_schedule_{{season}}.parquet'
+ESPN_NHL = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl'
+ESPN_CODES = {'LA': 'LAK', 'NJ': 'NJD', 'SJ': 'SJS', 'TB': 'TBL', 'UTAH': 'UTA'}  # ESPN -> NHL API
 SNAPSHOT_FILES = {
     'NBA': {'ppg': 'ppg', 'allowed': 'allowed', 'pace': 'pace', 'off_rtg': 'off_rtg', 'def_rtg': 'def_rtg'},
     'NFL': {'nfl_ppg': 'ppg', 'nfl_allowed': 'allowed', 'nfl_off_yards': 'off_yards', 'nfl_def_yards': 'def_yards', 'nfl_turnover_diff': 'turnover_diff'},
@@ -177,6 +180,60 @@ def build_nfl(cache, first_season=2010):
     return rows
 
 
+def get_json(url, tries=3):
+    for i in range(tries):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                return json.loads(r.read())
+        except Exception:
+            time.sleep(1.5 * (i + 1))
+    return None
+
+
+def nhl_closing_prices(start, end, cache):
+    """ESPN closing total + over/under prices per completed NHL game (cached JSONL)."""
+    path = f'{cache}/nhl_odds.jsonl'
+    have = {}
+    if os.path.exists(path):
+        for line in open(path):
+            r = json.loads(line)
+            if not r.get('error'):
+                have[r['event']] = r
+    todo, day = [], start
+    while day <= end:
+        sb = get_json(f'{ESPN_NHL}/scoreboard?dates={day:%Y%m%d}') or {}
+        for ev in sb.get('events', []):
+            if ev.get('season', {}).get('type') == 2 and ev['competitions'][0]['status']['type'].get('completed') and ev['id'] not in have:
+                todo.append((ev['id'], str(day)))
+        day += timedelta(days=1)
+
+    def one(item):
+        eid, d = item
+        summary = get_json(f'{ESPN_NHL}/summary?event={eid}')
+        if not summary:
+            return {'event': eid, 'error': True}
+        comp = summary['header']['competitions'][0]
+        teams = {c['homeAway']: c['team']['abbreviation'] for c in comp['competitors']}
+        pc = (summary.get('pickcenter') or [{}])[0]
+        return {'event': eid, 'date': d, 'home': ESPN_CODES.get(teams['home'], teams['home']), 'away': ESPN_CODES.get(teams['away'], teams['away']),
+                'line': pc.get('overUnder'), 'overOdds': pc.get('overOdds'), 'underOdds': pc.get('underOdds')}
+
+    with open(path, 'a') as f, cf.ThreadPoolExecutor(max_workers=4) as ex:
+        for r in ex.map(one, todo):
+            f.write(json.dumps(r) + '\n')
+            if not r.get('error'):
+                have[r['event']] = r
+    prices = {}
+    for r in have.values():
+        if r.get('line') is None or r.get('overOdds') is None or r.get('underOdds') is None:
+            continue
+        home, away = ESPN_CODES.get(r['home'], r['home']), ESPN_CODES.get(r['away'], r['away'])
+        for shift in (0, -1):  # ESPN's slate date can run a day ahead of the NHL API date
+            d = (datetime.fromisoformat(r['date']) + timedelta(days=shift)).date().isoformat()
+            prices[(d, home, away)] = r
+    return prices
+
+
 def build_nhl(seasons, cache):
     snaps = snapshots('NHL')
     rows = []
@@ -194,6 +251,13 @@ def build_nhl(seasons, cache):
                 continue
             rows.append(dict(gid=str(g.game_id), home=g.home_team_abbr, away=g.away_team_abbr, date=g.game_date,
                              total=float(g.home_score) + float(g.away_score), h=h, a=a))
+    if rows:
+        first = min(datetime.fromisoformat(r['date']).date() for r in rows) - timedelta(days=1)
+        prices = nhl_closing_prices(first, datetime.now(timezone.utc).date(), cache)
+        for r in rows:
+            p = prices.get((r['date'], r['home'], r['away']))
+            if p:
+                r.update(line=p['line'], overOdds=p['overOdds'], underOdds=p['underOdds'])
     return rows
 
 

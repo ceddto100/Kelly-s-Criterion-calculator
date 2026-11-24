@@ -1,0 +1,29 @@
+{
+  "source": "graded betlogs (previous prediction module)",
+  "sports": {
+    "NBA": {
+      "weight": 0.329,
+      "se": 0.2,
+      "bets": 145,
+      "wins": 82,
+      "losses": 63,
+      "statedMean": 66.4
+    },
+    "NFL": {
+      "weight": -1.949,
+      "se": 1.056,
+      "bets": 29,
+      "wins": 12,
+      "losses": 17,
+      "statedMean": 58.7
+    },
+    "NHL": {
+      "weight": 0.563,
+      "se": 0.655,
+      "bets": 104,
+      "wins": 56,
+      "losses": 48,
+      "statedMean": 56.8
+    }
+  }
+}

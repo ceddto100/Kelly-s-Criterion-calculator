@@ -7,8 +7,13 @@ Rebuilds what the models knew before each game, then grades the **production cod
 ```bash
 pip install pandas pyarrow numpy          # once
 python3 scripts/backtest/build_datasets.py  # from the repo root; caches downloads in scripts/backtest/.cache
-cd mcp-server && npx tsx ../scripts/backtest/validate.ts ../scripts/backtest/.cache/backtest.json
+cd mcp-server && npx tsx ../scripts/backtest/validate.ts ../scripts/backtest/.cache/backtest.json    # old vs new report
+cd mcp-server && npx tsx ../scripts/backtest/calibrate.ts ../scripts/backtest/.cache/backtest.json   # re-learn marketTrust (add --write to save)
 ```
+
+To include the graded bet log, export graded `betlogs` documents to JSON and run `python3 scripts/backtest/betlog_evidence.py EXPORT.json`. It writes per-sport summary numbers only, never individual bets, to `betlog_evidence.json`, which `calibrate.ts` folds in.
+
+The `Recalibrate models from history` workflow runs `calibrate.ts --write` every Monday and commits `mcp-server/src/config/calibration.generated.ts` when the learned trust changes.
 
 The first build downloads about 1.5 GB of NBA game files (it keeps only the line and box totals, about 1 MB on disk) and takes several minutes. Later runs fetch only new games.
 
@@ -21,6 +26,7 @@ The first build downloads about 1.5 GB of NBA game files (it keeps only the line
 | NFL scores and closing lines | [nflverse `games.csv`](https://github.com/nflverse/nfldata) |
 | NBA scores, closing lines, box totals | [sportsdataverse hoopR-nba-raw](https://github.com/sportsdataverse/hoopR-nba-raw) (the DraftKings line ESPN stored with each game) |
 | NHL final scores (OT/SO included) | [sportsdataverse fastRhockey-nhl-raw](https://github.com/sportsdataverse/fastRhockey-nhl-raw) |
+| NHL closing totals and over/under prices | ESPN game summaries (`pickcenter`), cached in `.cache/nhl_odds.jsonl` |
 | CFB graded picks | `frontend/public/stats/cfb/cfb_predictions.csv` |
 
 These are validation inputs only. The models still read nothing but the CSVs the updaters write.

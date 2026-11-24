@@ -103,7 +103,10 @@ describe('market-anchored cover probability',()=>{
   it('separates the model-only probability from the anchored one',()=>{
     const team={teamPPG:120,teamAllowed:105,opponentPPG:108,opponentAllowed:118,teamPace:100,opponentPace:100};
     const r=estimateBasketballProbability(team,-3,'home',true,{gamesPlayed:40});
-    expect(r.modelProbability).toBeGreaterThan(r.probability);expect(r.probability).toBeGreaterThan(50);
+    // Whatever trust history assigns (0 = no proven edge), the anchored figure sits
+    // between the line's coin flip and the model's own view.
+    expect(r.modelProbability).toBeGreaterThan(r.probability);expect(r.probability).toBeGreaterThanOrEqual(50);
+    if((r.marketTrust ?? 0)>0) expect(r.probability).toBeGreaterThan(50); else expect(r.probability).toBe(50);
     const su=estimateBasketballProbability(team,0,'home',true,{gamesPlayed:40,marketLine:false});
     expect(su.probability).toBe(su.modelProbability);expect(su.marketTrust).toBeNull();
     const f=estimateFootballProbability({teamPPG:24,teamAllowed:24,opponentPPG:24,opponentAllowed:24},-1.8,'home',true,{gamesPlayed:8});
@@ -111,3 +114,17 @@ describe('market-anchored cover probability',()=>{
   });
 });
 
+
+describe('learned calibration (scripts/backtest/calibrate.ts)', () => {
+  it('feeds every sport and stays inside its guardrails', async () => {
+    const { CALIBRATION } = await import('../src/config/calibration.generated.js');
+    const { NFL_CONSTANTS, NBA_CONSTANTS } = await import('../src/utils/calculations.js');
+    const { NHL_CONFIG } = await import('../src/utils/nhl.js');
+    expect(NFL_CONSTANTS.marketTrust).toBe(CALIBRATION.NFL.marketTrust);
+    expect(NBA_CONSTANTS.marketTrust).toBe(CALIBRATION.NBA.marketTrust);
+    expect(NHL_CONFIG.marketTrust).toBe(CALIBRATION.NHL.marketTrust);
+    for (const t of [CALIBRATION.NFL.marketTrust, CALIBRATION.NBA.marketTrust, CALIBRATION.NHL.marketTrust]) {
+      expect(t).toBeGreaterThanOrEqual(0); expect(t).toBeLessThanOrEqual(0.6);
+    }
+  });
+});
