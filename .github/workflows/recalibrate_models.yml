@@ -60,6 +60,31 @@ jobs:
           path: scripts/backtest/.cache
           key: backtest-${{ github.run_id }}
 
+      - name: Fetch the live tracking record
+        # Summary numbers only: per sport, the record and fitted trust of the
+        # model's lean on every game with a real line, graded daily on the
+        # server. Skipped (calibration runs without it) if the server is unset
+        # or unreachable.
+        env:
+          MCP_SERVER_URL: ${{ secrets.MCP_SERVER_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+        run: |
+          if [ -z "$MCP_SERVER_URL" ] || [ -z "$ADMIN_KEY" ]; then
+            echo "MCP_SERVER_URL/ADMIN_KEY not set; calibrating without the tracking record."; exit 0
+          fi
+          for i in $(seq 1 10); do
+            curl -fsS --max-time 60 "$MCP_SERVER_URL/health" | grep -q '"database":"connected"' && break
+            sleep 20
+          done
+          if curl -fsS --max-time 120 -H "x-admin-key: $ADMIN_KEY" \
+               "$MCP_SERVER_URL/api/projections/tracking-evidence" -o tracking.json \
+             && node -e 'const r=require("./tracking.json"); if(!r.success) process.exit(1)'; then
+            mv tracking.json scripts/backtest/tracking_evidence.json
+            cat scripts/backtest/tracking_evidence.json
+          else
+            echo "::warning::Could not fetch the tracking record; calibrating without it."
+          fi
+
       - name: Re-learn market trust
         run: |
           cd mcp-server
@@ -76,12 +101,14 @@ jobs:
 
       - name: Commit calibration if it changed
         run: |
-          if git diff --quiet -- mcp-server/src/config/calibration.generated.ts; then
+          git add -N scripts/backtest/tracking_evidence.json 2>/dev/null || true
+          if git diff --quiet -- mcp-server/src/config/calibration.generated.ts scripts/backtest/tracking_evidence.json; then
             echo "Calibration unchanged."; exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add mcp-server/src/config/calibration.generated.ts
+          [ -f scripts/backtest/tracking_evidence.json ] && git add scripts/backtest/tracking_evidence.json
           git commit -m "Recalibrate models from history (automated) - $(date -u +'%Y-%m-%d')"
           for i in 1 2 3; do git pull --rebase -q && git push && exit 0; sleep 10; done
           exit 1

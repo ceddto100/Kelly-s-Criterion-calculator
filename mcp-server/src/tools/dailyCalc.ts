@@ -24,12 +24,14 @@ import { getNBATeamStats, getNFLTeamStats, getNHLTeamStats, getAllNHLTeams, clea
 import { isDatabaseConnected, ensureDatabaseConnection } from '../config/database.js';
 import { User } from '../models/User.js';
 import { BetLog } from '../models/BetLog.js';
-import { handleRecordProjection } from './projectionLog.js';
-import { evaluateDecision } from '../utils/decision.js';
+import { handleRecordProjection, settlePendingProjections, type SettleSummary } from './projectionLog.js';
+import { evaluateDecision, fairImpliedPct } from '../utils/decision.js';
+import type { ProjectionTrack } from '../models/Projection.js';
 import { priceNHLTotal, priceSpread } from '../utils/marketPricing.js';
 import {
   estimateBasketballProbability,
   estimateFootballProbability,
+  normCdf,
   type BasketballStats,
   type FootballStats,
 } from '../utils/calculations.js';
@@ -153,6 +155,8 @@ export interface DailyCalcSummary {
   randomPicks?: LoggedPick[];
   /** Present when the run used all-picks mode. */
   allPicks?: LoggedPick[];
+  /** Earlier games graded at the start of this run (tracked leans included). */
+  settled?: SettleSummary;
 }
 
 export interface DailyCalcOptions {
@@ -325,6 +329,9 @@ async function calcNHLGame(
         lean,
         confidence: lean === 'no-bet' ? Math.min(decision.confidence, 44) : decision.confidence,
         modelVersion: MODEL_VERSION,
+        track: game.overUnder !== undefined && game.status === 'scheduled'
+          ? totalTrack(game.overUnder, side, game)
+          : undefined,
         statsSnapshot: {
           home: homeStats, away: awayStats, line, overProbability,
           underProbability: projection.underProbability, pushProbability: projection.pushProbability,
@@ -347,6 +354,59 @@ async function calcNHLGame(
     projectionRecorded,
   };
 }
+
+/**
+ * The model's own lean on an NHL total, graded later whether or not it was bet.
+ * Recomputes the push-free model and fair over probabilities the pricing used.
+ */
+function totalTrack(
+  line: number,
+  side: ReturnType<typeof priceNHLTotal>,
+  prices: { overOdds?: number; underOdds?: number }
+): ProjectionTrack {
+  const over = side.pickedSide === 'over';
+  const modelOver = over ? side.modelProbability : 100 - side.modelProbability;
+  const fairOver = side.pricesFromBook
+    ? fairImpliedPct(prices.overOdds!, prices.underOdds!)
+    : fairImpliedPct(over ? side.americanOdds : side.otherOdds, over ? side.otherOdds : side.americanOdds);
+  const modelSide = modelOver >= 50 ? 'over' : 'under';
+  return {
+    market: 'total',
+    line,
+    side: modelSide,
+    modelProbability: round1(modelSide === 'over' ? modelOver : 100 - modelOver),
+    marketProbability: round1(modelSide === 'over' ? fairOver : 100 - fairOver),
+    modelOver: round1(modelOver),
+    fairOver: round1(fairOver),
+    marketTrust: NHL_CONFIG.marketTrust,
+  };
+}
+
+/** The model's own lean against a posted spread (fairHome in %). */
+function spreadTrack(
+  homeSpread: number,
+  model: ReturnType<typeof spreadModel>,
+  fairHome: number
+): ProjectionTrack {
+  // The model's effective view at full trust: the disagreement (games-played
+  // shrinkage included) moved off the market's fair split. This is the same
+  // quantity the calibration fits, so side and probability always agree.
+  const modelHome = Math.min(99.9, Math.max(0.1, fairHome + 100 * (normCdf(model.disagreement! / model.sigma!) - 0.5)));
+  const side = model.disagreement! >= 0 ? 'home' : 'away';
+  return {
+    market: 'spread',
+    line: homeSpread,
+    side,
+    modelProbability: round1(side === 'home' ? modelHome : 100 - modelHome),
+    marketProbability: round1(side === 'home' ? fairHome : 100 - fairHome),
+    disagreement: Math.round(model.disagreement! * 100) / 100,
+    sigma: model.sigma,
+    fairHome: round1(fairHome),
+    marketTrust: model.marketTrust ?? 0,
+  };
+}
+
+const round1 = (v: number) => Math.round(v * 10) / 10;
 
 /** League-average NHL regulation goals per team from the loaded CSVs. */
 function nhlLeagueGoalsPerTeam(): number {
@@ -374,7 +434,10 @@ function spreadModel(
   homeStats: SpreadTeamStats,
   awayStats: SpreadTeamStats,
   homeSpread: number | undefined
-): { homeWinProbability: number; predictedMargin: number; anchoredHomeCover?: number; modelHomeCover?: number; gamesPlayed: number | null } {
+): {
+  homeWinProbability: number; predictedMargin: number; anchoredHomeCover?: number; modelHomeCover?: number;
+  gamesPlayed: number | null; disagreement?: number; sigma?: number; marketTrust?: number;
+} {
   const venue = game.neutralSite ? 'neutral' : 'home';
   const options = { asOf: new Date() };
   let estimate: (spread: number, marketLine: boolean) => ReturnType<typeof estimateBasketballProbability>;
@@ -412,6 +475,9 @@ function spreadModel(
     anchoredHomeCover: cover?.probability,
     modelHomeCover: cover?.modelProbability,
     gamesPlayed: straightUp.gamesPlayed,
+    disagreement: cover?.disagreement ?? undefined,
+    sigma: cover?.sigma,
+    marketTrust: cover?.marketTrust ?? undefined,
   };
 }
 
@@ -613,6 +679,9 @@ async function calcGame(
         lean,
         confidence: decision.confidence,
         modelVersion: MODEL_VERSION,
+        track: side && game.status === 'scheduled' && model.disagreement !== undefined
+          ? spreadTrack(homeSpread!, model, side.pricesFromBook ? fairImpliedPct(side.pickedSide === 'home' ? side.americanOdds : side.otherOdds, side.pickedSide === 'home' ? side.otherOdds : side.americanOdds) : 50)
+          : undefined,
         statsSnapshot: {
           home: homeStats,
           away: awayStats,
@@ -1043,6 +1112,17 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     allResults: [],
     errors: [],
   };
+
+  // Grade earlier projections first, so every run adds finished games to the
+  // tracking record whether or not anything was bet.
+  if (recordProjections) {
+    try {
+      summary.settled = await settlePendingProjections();
+      console.log(`[DailyCalc] Settled ${summary.settled.settled} projections (${summary.settled.tracked} tracked leans), ${summary.settled.stillPending} still pending`);
+    } catch (err) {
+      summary.errors.push(`Settling projections failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   // Get admin user ID for logging
   let userId: string | null = null;

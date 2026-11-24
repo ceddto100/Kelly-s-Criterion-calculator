@@ -13,6 +13,8 @@ cd mcp-server && npx tsx ../scripts/backtest/calibrate.ts ../scripts/backtest/.c
 
 To include the graded bet log, export graded `betlogs` documents to JSON and run `python3 scripts/backtest/betlog_evidence.py EXPORT.json`. It writes per-sport summary numbers only, never individual bets, to `betlog_evidence.json`, which `calibrate.ts` folds in.
 
+The live tracking record (the model's graded lean on every lined game, bet or not) comes from the server's `GET /api/projections/tracking-evidence` (header `x-admin-key`). Save its JSON as `scripts/backtest/tracking_evidence.json` and `calibrate.ts` folds it in as well; the weekly workflow does this automatically.
+
 The `Recalibrate models from history` workflow runs `calibrate.ts --write` every Monday and commits `mcp-server/src/config/calibration.generated.ts` when the learned trust changes.
 
 The first build downloads about 1.5 GB of NBA game files (it keeps only the line and box totals, about 1 MB on disk) and takes several minutes. Later runs fetch only new games.

@@ -15,8 +15,11 @@ import {
   Projection,
   type ProjectionMarket,
   type ProjectionResult,
+  type ProjectionTrack,
 } from '../models/Projection.js';
 import { ensureDatabaseConnection, isDatabaseConnected } from '../config/database.js';
+import { getTodaysGames, type DailyGame } from './gamesOfDay.js';
+import { fitTrust, spreadObs, totalObs, type TrustObs } from '../utils/trustFit.js';
 
 // ============================================================================
 // record_projection
@@ -37,6 +40,7 @@ export const recordProjectionInputSchema = z.object({
   confidence: z.number().min(0).max(100),
   modelVersion: z.string().default('v1'),
   statsSnapshot: z.record(z.any()).describe('Exact inputs used (for honest replay)'),
+  track: z.record(z.any()).optional().describe('Model lean on a lined game, graded even when not bet'),
 });
 
 export const recordProjectionToolDefinition = {
@@ -73,6 +77,9 @@ export async function handleRecordProjection(input: unknown) {
         lean: p.lean,
         confidence: p.confidence,
         statsSnapshot: p.statsSnapshot,
+        // Only a pre-game record carries a track; a later run (game started,
+        // line pulled) must not erase it.
+        ...(p.track ? { track: p.track, trackResult: 'pending' } : {}),
       },
       $setOnInsert: { result: 'pending' },
     },
@@ -209,4 +216,146 @@ export async function handleBacktestSummary(input: unknown) {
   if (!isDatabaseConnected()) await ensureDatabaseConnection();
   const summary = await Projection.getBacktestSummary(p);
   return { success: true, filter: p, summary };
+}
+
+// ============================================================================
+// Tracking: grade the model's lean on every lined game
+// ============================================================================
+
+/** Grade a tracked lean against the final score. */
+export function gradeTrack(
+  track: Pick<ProjectionTrack, 'market' | 'line' | 'side'>,
+  finalHomeScore: number,
+  finalAwayScore: number
+): ProjectionResult {
+  if (track.market === 'total') {
+    const total = finalHomeScore + finalAwayScore;
+    if (total === track.line) return 'push';
+    return (total > track.line) === (track.side === 'over') ? 'win' : 'loss';
+  }
+  const homeCover = finalHomeScore - finalAwayScore + track.line;
+  if (homeCover === 0) return 'push';
+  return (homeCover > 0) === (track.side === 'home') ? 'win' : 'loss';
+}
+
+const SETTLE_LEAGUES = new Set(['NBA', 'NFL', 'NHL']);
+const SETTLE_WINDOW_DAYS = 21;
+
+export interface SettleSummary {
+  checked: number;
+  settled: number;
+  tracked: number;
+  stillPending: number;
+  errors: string[];
+}
+
+/**
+ * Settle every pending NBA/NFL/NHL projection from the last three weeks whose
+ * game ESPN reports as final: store the score, grade the recorded lean
+ * (`result`) and the tracked model lean (`trackResult`).
+ */
+export async function settlePendingProjections(
+  { fetchGames = getTodaysGames, now = new Date() }: {
+    fetchGames?: (sport: 'NBA' | 'NFL' | 'NHL', date: string) => Promise<DailyGame[]>;
+    now?: Date;
+  } = {}
+): Promise<SettleSummary> {
+  if (!isDatabaseConnected()) await ensureDatabaseConnection();
+  const since = new Date(now.getTime() - SETTLE_WINDOW_DAYS * 86400000);
+  const pending = await Projection.find({
+    result: 'pending',
+    league: { $in: [...SETTLE_LEAGUES] },
+    gameDate: { $gte: since, $lt: now },
+  });
+  const summary: SettleSummary = { checked: pending.length, settled: 0, tracked: 0, stillPending: 0, errors: [] };
+  const boards = new Map<string, Promise<DailyGame[]>>();
+  for (const doc of pending) {
+    const date = doc.gameDate.toISOString().slice(0, 10);
+    const league = doc.league as 'NBA' | 'NFL' | 'NHL';
+    const key = `${league}:${date}`;
+    if (!boards.has(key)) boards.set(key, fetchGames(league, date).catch(() => []));
+    const game = (await boards.get(key)!).find(
+      (g) => g.homeTeam === doc.homeTeam && g.awayTeam === doc.awayTeam
+    );
+    if (!game || game.status !== 'final' || game.homeScore === undefined || game.awayScore === undefined) {
+      summary.stillPending++;
+      continue;
+    }
+    try {
+      doc.finalHomeScore = game.homeScore;
+      doc.finalAwayScore = game.awayScore;
+      doc.result = gradeProjection(doc.market, doc.lean, doc.bookLine, game.homeScore, game.awayScore);
+      if (doc.track) {
+        doc.trackResult = gradeTrack(doc.track, game.homeScore, game.awayScore);
+        summary.tracked++;
+      }
+      doc.settledAt = new Date();
+      await doc.save();
+      summary.settled++;
+    } catch (err) {
+      summary.errors.push(`${doc.awayTeam} @ ${doc.homeTeam} ${date}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return summary;
+}
+
+export interface TrackingEvidence {
+  weight: number;
+  se: number;
+  games: number;
+  wins: number;
+  losses: number;
+  pushes: number;
+  /** Mean model-only probability (%) of the leaned side. */
+  statedMean: number;
+  first: string | null;
+  last: string | null;
+}
+
+/** Trust-fit observation for one graded tracked game (null if ungradeable). */
+export function trackObs(track: ProjectionTrack, finalHomeScore: number, finalAwayScore: number): TrustObs | null {
+  if (track.market === 'total') {
+    const total = finalHomeScore + finalAwayScore;
+    if (total === track.line || track.modelOver === undefined || track.fairOver === undefined) return null;
+    return totalObs(track.modelOver / 100, track.fairOver / 100, total > track.line);
+  }
+  const homeCover = finalHomeScore - finalAwayScore + track.line;
+  if (homeCover === 0 || track.disagreement === undefined || !track.sigma) return null;
+  return spreadObs(track.disagreement / track.sigma, homeCover > 0, (track.fairHome ?? 50) / 100);
+}
+
+/**
+ * Per-league summary of every graded tracked lean: record, mean stated
+ * probability and the fitted market trust. Summary numbers only.
+ */
+export async function getTrackingEvidence(): Promise<Record<string, TrackingEvidence>> {
+  if (!isDatabaseConnected()) await ensureDatabaseConnection();
+  const docs = await Projection.find({ trackResult: { $in: ['win', 'loss', 'push'] } })
+    .select('league gameDate track trackResult finalHomeScore finalAwayScore')
+    .lean();
+  const by = new Map<string, typeof docs>();
+  for (const d of docs) by.set(d.league, [...(by.get(d.league) ?? []), d]);
+  const out: Record<string, TrackingEvidence> = {};
+  for (const [league, rows] of by) {
+    const obs = rows
+      .map((d) => trackObs(d.track as ProjectionTrack, d.finalHomeScore!, d.finalAwayScore!))
+      .filter((o): o is TrustObs => o !== null);
+    const fit = fitTrust(obs);
+    const decided = rows.filter((d) => d.trackResult !== 'push');
+    const dates = rows.map((d) => d.gameDate.toISOString().slice(0, 10)).sort();
+    out[league] = {
+      weight: fit.weight,
+      se: fit.se,
+      games: fit.games,
+      wins: rows.filter((d) => d.trackResult === 'win').length,
+      losses: rows.filter((d) => d.trackResult === 'loss').length,
+      pushes: rows.length - decided.length,
+      statedMean: decided.length
+        ? Math.round((10 * decided.reduce((s, d) => s + (d.track as ProjectionTrack).modelProbability, 0)) / decided.length) / 10
+        : 0,
+      first: dates[0] ?? null,
+      last: dates[dates.length - 1] ?? null,
+    };
+  }
+  return out;
 }
