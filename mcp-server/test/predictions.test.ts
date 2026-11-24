@@ -146,3 +146,12 @@ describe('MLB efficiency anchor',()=>{
   it('does not dilute wRC+ with correlated raw stats',()=>expect(calculateOffenseScore({wrcPlus:110,woba:.4,ops:1,runsPerGame:7}).multiplier).toBe(calculateOffenseScore({wrcPlus:110}).multiplier));
   it('shares the exact function with browser',()=>expect(browserMLB).toBe(projectMLBGame));
 });
+describe('sport-specific calibration warning',()=>{
+  it('does not tell MLB users their probabilities were calibrated',async()=>{
+    const mlb=await loadCatalog('MLB',read);const nba=await loadCatalog('NBA',read);
+    const pm=predictFromCatalog(mlb,{sport:'MLB',home:mlb.teams[0].abbreviation,away:mlb.teams[1].abbreviation});
+    expect(pm.warnings[0]).toMatch(/not yet been recalibrated/);
+    const pn=predictFromCatalog(nba,{sport:'NBA',home:nba.teams[0].abbreviation,away:nba.teams[1].abbreviation});
+    expect(pn.warnings[0]).toMatch(/learned from closing-line history/);
+  });
+});

@@ -95,7 +95,10 @@ export function predictFromCatalog(catalog: Catalog, request: PredictionRequest)
   if (h.abbreviation === a.abbreviation) throw new Error('Choose two different teams');
   if (request.line !== undefined && !Number.isFinite(request.line)) throw new Error('Invalid line');
   if ((catalog.sport==='MLB'||catalog.sport==='NHL') && request.line !== undefined && request.line < 0) throw new Error('Game totals must be non-negative');
-  const warnings = ['Projections are calibrated to past results, but season stats showed no edge against closing lines; probabilities against a line stay close to it.'];
+  // Sport-specific: only NBA/NFL/NHL were recalibrated against past results and closing lines.
+  const warnings = [catalog.sport === 'MLB'
+    ? 'MLB probabilities have not yet been recalibrated against historical outcomes or closing lines.'
+    : 'Projections are calibrated to past results. How far a posted line moves toward the model is learned from closing-line history, so probabilities against a line stay close to it until the model proves an edge.'];
   if (!catalog.updatedAt) warnings.push('Snapshot date is unavailable.');
   else if (Date.now() - Date.parse(catalog.updatedAt) > 7 * 86400000) warnings.push('This snapshot is older than seven days; it may describe a previous season.');
   const result: Prediction = {sport:catalog.sport, home:h.team, away:a.team, headline:'',summary:'',drivers:[],warnings,updatedAt:catalog.updatedAt,modelVersion:MODEL_VERSION,source:'CSV',files:catalog.files,inputs:{home:h.stats,away:a.stats}};
