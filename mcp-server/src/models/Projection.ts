@@ -30,6 +30,33 @@ export type ProjectionLean =
   | 'no-bet';
 export type ProjectionResult = 'pending' | 'win' | 'loss' | 'push';
 
+/**
+ * The model's own lean on a game with a real sportsbook line, recorded whether
+ * or not it clears the bet threshold. Grading these every day gives the
+ * calibration hundreds of games a month without staking anything.
+ */
+export interface ProjectionTrack {
+  market: 'spread' | 'total';
+  /** Home spread (spreads) or total (totals) the lean is graded against. */
+  line: number;
+  /** The side the model alone prefers. */
+  side: 'home' | 'away' | 'over' | 'under';
+  /** Model-only probability (%) of that side, pushes excluded. */
+  modelProbability: number;
+  /** The market's fair probability (%) of that side, de-vigged. */
+  marketProbability: number;
+  /** Spreads: model-vs-market disagreement in points and the sport's σ. */
+  disagreement?: number;
+  sigma?: number;
+  /** Fair P(home covers) / P(over) in %, for the trust fit. */
+  fairHome?: number;
+  fairOver?: number;
+  /** Totals: model-only P(over) in %, pushes excluded. */
+  modelOver?: number;
+  /** Market trust in force when recorded. */
+  marketTrust: number;
+}
+
 export interface IProjection extends Document {
   // --- identity ---
   gameDate: Date;
@@ -60,6 +87,10 @@ export interface IProjection extends Document {
   finalAwayScore?: number;
   closingLine?: number; // for closing-line-value analysis
   settledAt?: Date;
+
+  // --- the model's lean on every lined game (graded even when not bet) ---
+  track?: ProjectionTrack;
+  trackResult?: ProjectionResult;
 
   createdAt: Date;
   updatedAt: Date;
@@ -135,6 +166,9 @@ const projectionSchema = new Schema<IProjection>(
     finalAwayScore: { type: Number },
     closingLine: { type: Number },
     settledAt: { type: Date },
+
+    track: { type: Schema.Types.Mixed },
+    trackResult: { type: String, enum: ['pending', 'win', 'loss', 'push'] },
   },
   { timestamps: true }
 );

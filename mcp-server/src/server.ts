@@ -115,7 +115,9 @@ import {
   handleSettleProjection,
   backtestSummaryToolDefinition,
   backtestSummaryInputSchema,
-  handleBacktestSummary
+  handleBacktestSummary,
+  settlePendingProjections,
+  getTrackingEvidence
 } from './tools/projectionLog.js';
 import {
   getTeamStatsToolDefinition,
@@ -1013,6 +1015,46 @@ app.post('/api/daily-calcs', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/projections/settle
+ * Grade every pending NBA/NFL/NHL projection from the last three weeks whose
+ * game is final (the daily run also does this first).
+ * Headers: x-admin-key (required; ADMIN_KEY must be configured)
+ */
+app.post('/api/projections/settle', async (req: Request, res: Response) => {
+  if (!isAuthorized(req)) {
+    res.status(401).json({ success: false, error: 'Unauthorized' });
+    return;
+  }
+  try {
+    res.json({ success: true, ...(await settlePendingProjections()) });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[HTTP] /api/projections/settle error:', message);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+/**
+ * GET /api/projections/tracking-evidence
+ * Per-league record and fitted market trust of the model's tracked leans on
+ * every lined game. Summary numbers only; the weekly recalibration reads it.
+ * Headers: x-admin-key (required; ADMIN_KEY must be configured)
+ */
+app.get('/api/projections/tracking-evidence', async (req: Request, res: Response) => {
+  if (!isAuthorized(req)) {
+    res.status(401).json({ success: false, error: 'Unauthorized' });
+    return;
+  }
+  try {
+    res.json({ success: true, source: 'graded tracked leans (live, every lined game)', sports: await getTrackingEvidence() });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[HTTP] /api/projections/tracking-evidence error:', message);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
 // ============================================================================
 // SERVER STARTUP
 // ============================================================================
@@ -1052,6 +1094,8 @@ async function start() {
     console.log('[Server] Health check: GET /health');
     console.log('[Server] Stats update: POST /api/update-stats');
     console.log('[Server] Daily calcs:  POST /api/daily-calcs');
+    console.log('[Server] Settle:       POST /api/projections/settle');
+    console.log('[Server] Tracking:     GET  /api/projections/tracking-evidence');
     console.log('\n[Tools Available]');
     console.log('  - predict_game');
     console.log('  - get_sports_catalog');

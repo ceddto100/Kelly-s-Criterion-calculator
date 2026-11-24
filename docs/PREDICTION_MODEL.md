@@ -109,6 +109,16 @@ The cluster held 282 bet logs from the previous module: 278 graded and 4 pending
 
 `calibrate.ts` combines each sport's w by precision with the backtest fit and the skeptical prior. That gave NBA +0.045 (from 0), NHL +0.18 (from 0.124) and NFL 0.
 
+### Live tracking: every lined game, bet or not
+
+Low trust means few bets, and few bets would mean almost no new evidence. So the daily run records the model's own lean on **every** NBA, NFL and NHL game with a real sportsbook line, before it starts, whether or not the lean clears the bet threshold. Nothing is staked. This is stored on the game's projection record (`track`), separately from the bet log, so it never touches the bankroll or the track record of real bets.
+
+- **What is recorded:** the line, the side the model alone prefers, the model's probability for it (games-played shrinkage included), the market's de-vigged probability, and the disagreement and σ (spreads) or model and fair P(over) (totals).
+- **Grading:** each daily run first settles every pending projection from the last 21 days whose game ESPN reports as final, filling `trackResult` (win/loss/push). `POST /api/projections/settle` does the same on demand.
+- **Learning:** `GET /api/projections/tracking-evidence` returns, per sport, the record and the trust weight fitted with the same likelihood as the backtest (`mcp-server/src/utils/trustFit.ts`). The weekly workflow saves it to `scripts/backtest/tracking_evidence.json` and `calibrate.ts` adds it as a third source, by precision.
+
+Every evidence source is weighted by its precision, so a few dozen tracked games barely move trust. The uncertainty shrinks with the square root of the number of games: in the backtest, 1,204 NBA games pinned the weight to ±0.15 and 462 NHL games to ±0.46. A full regular season of tracked games (about 1,230 NBA, 1,312 NHL and 272 NFL) is what it takes to settle a sport either way. Because these games were predicted before they were played, by the model now in production, this is the cleanest evidence the system has. If a sport's lean keeps beating the closing line, its trust rises 0.1 a week at most, and it starts producing picks.
+
 ### Edge search: what was tested and rejected
 
 Each candidate was fitted on earlier seasons and judged only on later, unseen games:
