@@ -10,6 +10,9 @@ const { User } = require('../config/database');
 const { ADMIN_EMAILS } = require('../config/admin');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { checkPendingBets, espnDate } = require('../utils/betGrading');
+const Projection = require('../models/Projection');
+const { describeLean, leanRecord, latestDay } = require('../utils/modelLeans');
+const { fetchScoreboard } = require('../scrapers/dailyGames');
 
 const router = express.Router();
 
@@ -256,6 +259,38 @@ router.get('/', asyncHandler(async (_req, res) => {
 
   res.set('Cache-Control', 'no-store');
   res.json({ success: true, updatedAt: new Date().toISOString(), ...summarize(bets) });
+}));
+
+// GET /api/track-record/leans — public, read-only.
+// The model's lean on every game with a real line on the latest slate, tracked
+// but never bet, plus the running record of every graded lean. Live scores and
+// logos come from ESPN's scoreboard.
+const LEANS_LOOKBACK_DAYS = 4;
+router.get('/leans', asyncHandler(async (_req, res) => {
+  const since = new Date(Date.now() - LEANS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  const [recent, graded] = await Promise.all([
+    Projection.find({ track: { $exists: true }, gameDate: { $gte: since } })
+      .select('league homeTeam awayTeam gameDate track trackResult finalHomeScore finalAwayScore')
+      .lean(),
+    Projection.find({ trackResult: { $in: ['win', 'loss', 'push'] } })
+      .select('league gameDate track trackResult finalHomeScore finalAwayScore')
+      .lean(),
+  ]);
+
+  const day = latestDay(recent);
+  const slate = day ? recent.filter((d) => new Date(d.gameDate).toISOString().slice(0, 10) === day) : [];
+  const leagues = [...new Set(slate.map((d) => d.league))];
+  const boards = new Map(await Promise.all(
+    leagues.map(async (l) => [l, await fetchScoreboard(l, day.replace(/-/g, ''))])
+  ));
+  const leans = slate
+    .map((d) => describeLean(d, (boards.get(d.league) || []).find(
+      (g) => g.homeTeam === d.homeTeam && g.awayTeam === d.awayTeam
+    )))
+    .sort((a, b) => b.gap - a.gap);
+
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, updatedAt: new Date().toISOString(), day, leans, record: leanRecord(graded) });
 }));
 
 module.exports = router;

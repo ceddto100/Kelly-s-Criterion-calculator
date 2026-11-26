@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrackRecordPanel } from './TrackRecordPanel';
 import { TopEdgePicks } from './TopEdgePicks';
+import { ModelLeans } from './ModelLeans';
 import { useHiddenSports } from '../utils/sportVisibility';
 import { loadCatalog, predictFromCatalog, type Catalog, type Prediction, type PredictionSport } from '../../mcp-server/src/utils/predictionCore';
 
@@ -111,6 +112,7 @@ export default function PredictionHub() {
         </> : <TopEdgePicks fallback={<div className="prediction-empty"><span className="empty-orbit" aria-hidden="true">↗</span><span className="eyebrow">LESS GUESSWORK. MORE CONTEXT.</span><h3>Your next read<br/>starts here.</h3><p>Pick two teams. We’ll turn their statistics into an outcome you can explore.</p><div className="empty-steps"><span>Select teams</span><i>→</i><span>See the projection</span><i>→</i><span>Explore why</span></div></div>}/>}
       </section>
     </div>
+    <ModelLeans/>
     <FounderTrackRecord/>
     <section className="insight-tiles" aria-label="Betting with discipline"><article><span className="tile-index">THE EDGE</span><h4>Only bet the gap.</h4><p>When the model's probability beats the sportsbook's implied odds, that's an edge. When it doesn't, passing is the winning move.</p></article><article><span className="tile-index">THE BANKROLL</span><h4>Stake like a pro.</h4><p>Kelly sizing grows your stake when the edge is bigger and shrinks it when it's thin, so no single game sinks your bankroll.</p></article><article><span className="tile-index">THE LONG GAME</span><h4>Track everything.</h4><p>Log every bet. Results only mean something over hundreds of bets, not one weekend.</p></article></section>
   </div>;
