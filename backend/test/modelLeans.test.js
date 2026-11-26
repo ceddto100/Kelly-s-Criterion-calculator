@@ -3,6 +3,7 @@ const assert = require('assert');
 const { leanLabel, gradeLean, describeLean, leanRecord, latestDay } = require('../utils/modelLeans');
 
 let passed = 0;
+const round = (n) => Math.round(n * 10) / 10;
 function test(name, fn) {
   try { fn(); passed++; } catch (e) { console.error(`✗ ${name}\n  ${e.message}`); process.exitCode = 1; }
 }
@@ -93,6 +94,30 @@ test('re-derives an old total lean as the value side', () => {
   assert.strictEqual(l.result, 'win');
   assert.strictEqual(l.gap, 6.7);
   assert.strictEqual(leanRecord([{ ...doc, gameDate: '2026-11-25' }]).wins, 1);
+});
+
+test('a lean shows its own price and break-even', () => {
+  const l = describeLean(spread('home', -4.5, { track: { market: 'spread', line: -4.5, side: 'home', modelProbability: 55, marketProbability: 51.2, odds: -105, pricesFromBook: true } }));
+  assert.strictEqual(l.odds, -105);
+  assert.strictEqual(l.breakEven, 51.2);
+  assert.strictEqual(l.priceFromBook, true);
+});
+
+test('older leans without a stored price show none', () => {
+  const l = describeLean(spread('home', -4.5));
+  assert.strictEqual(l.odds, null);
+  assert.strictEqual(l.breakEven, null);
+});
+
+test('record counts units and break-even at each lean\'s own price', () => {
+  const g = (r, odds) => ({ league: 'NHL', gameDate: '2026-11-27', trackResult: r, track: { market: 'total', line: 6.5, side: 'over', odds } });
+  const r = leanRecord([g('win', +120), g('loss', -130), g('win', -110), g('push', -110), g('win')]);
+  assert.strictEqual(r.wins, 3);
+  assert.deepStrictEqual(r.priced, { leans: 3, units: 1.1, breakEven: round(( (100/220) + (130/230) + (110/210) ) / 3 * 100) });
+});
+
+test('no priced leans yet', () => {
+  assert.strictEqual(leanRecord([{ league: 'NBA', gameDate: '2026-11-25', trackResult: 'win', track: { market: 'spread', line: -3, side: 'home' } }]).priced, null);
 });
 
 console.log(`modelLeans: ${passed} passed`);
