@@ -369,7 +369,9 @@ function totalTrack(
   const fairOver = side.pricesFromBook
     ? fairImpliedPct(prices.overOdds!, prices.underOdds!)
     : fairImpliedPct(over ? side.americanOdds : side.otherOdds, over ? side.otherOdds : side.americanOdds);
-  const modelSide = modelOver >= 50 ? 'over' : 'under';
+  // The lean is the side the model rates higher than the market does (the
+  // value side), not the side it gives over 50%.
+  const modelSide = modelOver >= fairOver ? 'over' : 'under';
   return {
     market: 'total',
     line,
