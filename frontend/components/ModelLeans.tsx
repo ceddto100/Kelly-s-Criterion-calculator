@@ -10,15 +10,18 @@ interface Side { name: string; score: number | null; logo?: string }
 interface Lean {
   id: string; sport: string; market: 'spread' | 'total'; pick: string;
   modelPct: number; marketPct: number; gap: number;
+  odds: number | null; breakEven: number | null; priceFromBook: boolean | null;
   home: Side; away: Side;
   status: 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'unknown';
   statusDetail: string; startTime: string | null;
   result: Result | null; currentGrade: Result | null;
 }
 interface Record_ { wins: number; losses: number; pushes: number; winRate: number | null; since: string | null;
+  priced: { leans: number; units: number; breakEven: number } | null;
   bySport: { sport: string; wins: number; losses: number; pushes: number; winRate: number | null }[] }
 interface LeansResponse { day: string | null; leans: Lean[]; record: Record_ }
 
+const fmtOdds = (o: number) => (o > 0 ? `+${o}` : `${o}`);
 const wlp = (r: { wins: number; losses: number; pushes: number }) => `${r.wins}-${r.losses}${r.pushes ? `-${r.pushes}` : ''}`;
 const dayLabel = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -84,7 +87,9 @@ export function ModelLeans() {
 
     <div className="ml-record">
       <div className="ml-total"><small>Lean record vs. the line</small><strong>{record.wins + record.losses + record.pushes ? wlp(record) : '—'}</strong>
-        <span>{record.winRate !== null ? `${record.winRate}% · break-even at -110 is 52.4%` : 'First grades land after tonight’s games'}{record.since ? ` · since ${dayLabel(record.since)}` : ''}</span></div>
+        <span>{record.winRate !== null ? `${record.winRate}% won` : 'First grades land after tonight’s games'}
+          {record.priced ? ` · at their real prices these needed ${record.priced.breakEven}% to break even (${record.priced.units > 0 ? '+' : ''}${record.priced.units}u over ${record.priced.leans} priced leans)` : ''}
+          {record.since ? ` · since ${dayLabel(record.since)}` : ''}</span></div>
       {record.bySport.length > 0 && <div className="tr-sports">{record.bySport.map(s => <span key={s.sport}>{s.sport}<i>{wlp(s)}</i></span>)}</div>}
     </div>
 
@@ -117,6 +122,7 @@ export function ModelLeans() {
               <span>Model <b>{l.modelPct.toFixed(1)}%</b></span>
               <span>Market <b>{l.marketPct.toFixed(1)}%</b></span>
               <span>Gap <b className={l.gap >= 3 ? 'tr-pos' : ''}>{l.gap > 0 ? '+' : ''}{l.gap.toFixed(1)}</b></span>
+              {l.odds !== null && l.breakEven !== null && <span title={l.priceFromBook ? 'Price posted by the sportsbook' : 'No price posted yet; standard-vig estimate'}>Price <b>{fmtOdds(l.odds)}</b>{l.priceFromBook ? '' : ' est.'} · needs <b>{l.breakEven.toFixed(1)}%</b></span>}
             </div>
           </li>;
         })}

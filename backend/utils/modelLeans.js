@@ -8,6 +8,19 @@
 const SPORTS = ['NBA', 'NFL', 'NHL'];
 const round1 = (n) => Math.round(n * 10) / 10;
 const signed = (n) => (n > 0 ? `+${n}` : n === 0 ? 'PK' : `${n}`);
+const validOdds = (o) => typeof o === 'number' && Number.isFinite(o) && Math.abs(o) >= 100;
+
+/** Break-even win probability (%) of an American price, vig included. */
+function breakEvenPct(odds) {
+  return odds < 0 ? (-odds / (-odds + 100)) * 100 : (100 / (odds + 100)) * 100;
+}
+
+/** Profit in units on a 1-unit stake at an American price. */
+function unitProfit(result, odds) {
+  if (result === 'win') return odds < 0 ? 100 / -odds : odds / 100;
+  if (result === 'loss') return -1;
+  return 0;
+}
 
 /**
  * The lean as the side the model rates higher than the market (the value
@@ -15,7 +28,8 @@ const signed = (n) => (n > 0 ? `+${n}` : n === 0 ? 'PK' : `${n}`);
  * over 50% instead; they carry modelOver/fairOver, so re-derive the side.
  */
 function normalizeTrack(track) {
-  if (!track || track.market !== 'total' || typeof track.modelOver !== 'number' || typeof track.fairOver !== 'number') return track;
+  // Records with their own price (Nov 2026 on) already store the value side.
+  if (!track || track.market !== 'total' || validOdds(track.odds) || typeof track.modelOver !== 'number' || typeof track.fairOver !== 'number') return track;
   const over = track.modelOver >= track.fairOver;
   return {
     ...track,
@@ -78,6 +92,11 @@ function describeLean(doc, game) {
     modelPct: round1(t.modelProbability),
     marketPct: round1(t.marketProbability),
     gap: round1(t.modelProbability - t.marketProbability),
+    // The lean's own price and what it needs to win to break even. Older
+    // records (before prices were stored per lean) have none.
+    odds: validOdds(t.odds) ? t.odds : null,
+    breakEven: validOdds(t.odds) ? round1(breakEvenPct(t.odds)) : null,
+    priceFromBook: validOdds(t.odds) ? t.pricesFromBook !== false : null,
     home: { name: doc.homeTeam, score: homeScore, logo: game?.homeLogo || '' },
     away: { name: doc.awayTeam, score: awayScore, logo: game?.awayLogo || '' },
     status,
@@ -94,9 +113,18 @@ function leanRecord(docs) {
   const all = blank();
   const bySport = Object.fromEntries(SPORTS.map((s) => [s, blank()]));
   let first = null;
+  // Leans with a recorded price: units won or lost at that price, and the
+  // average win rate those prices needed.
+  const priced = { leans: 0, units: 0, breakEvenSum: 0 };
   for (const d of docs) {
     const r = leanResult(d);
     if (!r) continue;
+    const odds = d.track?.odds;
+    if (validOdds(odds) && r !== 'push') {
+      priced.leans++;
+      priced.units += unitProfit(r, odds);
+      priced.breakEvenSum += breakEvenPct(odds);
+    }
     const key = r === 'win' ? 'wins' : r === 'loss' ? 'losses' : 'pushes';
     all[key]++;
     if (bySport[d.league]) bySport[d.league][key]++;
@@ -108,6 +136,9 @@ function leanRecord(docs) {
     ...all,
     winRate: rate(all),
     since: first,
+    priced: priced.leans
+      ? { leans: priced.leans, units: round1(priced.units), breakEven: round1(priced.breakEvenSum / priced.leans) }
+      : null,
     bySport: SPORTS.map((s) => ({ sport: s, ...bySport[s], winRate: rate(bySport[s]) }))
       .filter((r) => r.wins + r.losses + r.pushes > 0),
   };
@@ -123,4 +154,4 @@ function latestDay(docs) {
   return best;
 }
 
-module.exports = { normalizeTrack, leanResult, leanLabel, gradeLean, describeLean, leanRecord, latestDay, SPORTS };
+module.exports = { breakEvenPct, unitProfit, normalizeTrack, leanResult, leanLabel, gradeLean, describeLean, leanRecord, latestDay, SPORTS };

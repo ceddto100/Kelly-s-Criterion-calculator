@@ -372,10 +372,14 @@ function totalTrack(
   // The lean is the side the model rates higher than the market does (the
   // value side), not the side it gives over 50%.
   const modelSide = modelOver >= fairOver ? 'over' : 'under';
+  const overOdds = over ? side.americanOdds : side.otherOdds;
+  const underOdds = over ? side.otherOdds : side.americanOdds;
   return {
     market: 'total',
     line,
     side: modelSide,
+    odds: modelSide === 'over' ? overOdds : underOdds,
+    pricesFromBook: side.pricesFromBook,
     modelProbability: round1(modelSide === 'over' ? modelOver : 100 - modelOver),
     marketProbability: round1(modelSide === 'over' ? fairOver : 100 - fairOver),
     modelOver: round1(modelOver),
@@ -388,8 +392,11 @@ function totalTrack(
 function spreadTrack(
   homeSpread: number,
   model: ReturnType<typeof spreadModel>,
-  fairHome: number
+  priced: ReturnType<typeof priceSpread>
 ): ProjectionTrack {
+  const homeOdds = priced.pickedSide === 'home' ? priced.americanOdds : priced.otherOdds;
+  const awayOdds = priced.pickedSide === 'home' ? priced.otherOdds : priced.americanOdds;
+  const fairHome = fairImpliedPct(homeOdds, awayOdds);
   // The model's effective view at full trust: the disagreement (games-played
   // shrinkage included) moved off the market's fair split. This is the same
   // quantity the calibration fits, so side and probability always agree.
@@ -399,6 +406,8 @@ function spreadTrack(
     market: 'spread',
     line: homeSpread,
     side,
+    odds: side === 'home' ? homeOdds : awayOdds,
+    pricesFromBook: priced.pricesFromBook,
     modelProbability: round1(side === 'home' ? modelHome : 100 - modelHome),
     marketProbability: round1(side === 'home' ? fairHome : 100 - fairHome),
     disagreement: Math.round(model.disagreement! * 100) / 100,
@@ -675,14 +684,16 @@ async function calcGame(
         awayTeam: game.awayTeam,
         market: 'moneyline',
         bookLine: null,
-        bookOdds: americanOdds,
+        // No moneyline price is read for this straight-up record, so none is
+        // stored (it used to say -110). The real spread prices are in the
+        // snapshot and on the tracked lean.
         projectedValue: probability,
         edge: decision.edgePct,
         lean,
         confidence: decision.confidence,
         modelVersion: MODEL_VERSION,
         track: side && game.status === 'scheduled' && model.disagreement !== undefined
-          ? spreadTrack(homeSpread!, model, side.pricesFromBook ? fairImpliedPct(side.pickedSide === 'home' ? side.americanOdds : side.otherOdds, side.pickedSide === 'home' ? side.otherOdds : side.americanOdds) : 50)
+          ? spreadTrack(homeSpread!, model, side)
           : undefined,
         statsSnapshot: {
           home: homeStats,
@@ -691,6 +702,8 @@ async function calcGame(
           venue: game.neutralSite ? 'neutral' : 'home',
           gamesPlayed: model.gamesPlayed,
           homeSpread: homeSpread ?? null,
+          homeSpreadOdds: game.homeSpreadOdds ?? null,
+          awaySpreadOdds: game.awaySpreadOdds ?? null,
           anchoredHomeCover: model.anchoredHomeCover ?? null,
           modelHomeCover: model.modelHomeCover ?? null,
         },

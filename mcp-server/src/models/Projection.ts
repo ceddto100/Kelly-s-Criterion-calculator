@@ -41,6 +41,10 @@ export interface ProjectionTrack {
   line: number;
   /** The side the model alone prefers. */
   side: 'home' | 'away' | 'over' | 'under';
+  /** American price of that side (recorded from Nov 2026 on). */
+  odds?: number;
+  /** True when both prices came from the book (false = standard-vig estimate). */
+  pricesFromBook?: boolean;
   /** Model-only probability (%) of that side, pushes excluded. */
   modelProbability: number;
   /** The market's fair probability (%) of that side, de-vigged. */
