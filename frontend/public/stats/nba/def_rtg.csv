@@ -1,31 +1,31 @@
 "team","abbreviation","def_rtg"
-"Minnesota Timberwolves","MIN",102.9
-"San Antonio Spurs","SA",105.3
-"New York Knicks","NY",105.6
-"Boston Celtics","BOS",107.7
-"Oklahoma City Thunder","OKC",108.2
-"Portland Trail Blazers","POR",108.2
+"Boston Celtics","BOS",104.5
+"Minnesota Timberwolves","MIN",105.7
+"Detroit Pistons","DET",107.8
+"San Antonio Spurs","SA",108.1
 "Atlanta Hawks","ATL",108.3
-"Memphis Grizzlies","MEM",109.1
-"Houston Rockets","HOU",110.1
+"New York Knicks","NY",108.7
+"Dallas Mavericks","DAL",109.9
 "Los Angeles Lakers","LAL",110.6
-"Detroit Pistons","DET",110.9
-"Philadelphia 76ers","PHI",111.3
-"Golden State Warriors","GS",111.6
+"Oklahoma City Thunder","OKC",111.2
+"Portland Trail Blazers","POR",111.3
 "Toronto Raptors","TOR",111.7
+"Memphis Grizzlies","MEM",112.1
 "Indiana Pacers","IND",112.3
-"Charlotte Hornets","CHA",112.7
-"Dallas Mavericks","DAL",113
-"Phoenix Suns","PHX",113.8
-"Miami Heat","MIA",114
+"Orlando Magic","ORL",113.1
+"Houston Rockets","HOU",113.2
 "Utah Jazz","UTAH",114
-"Cleveland Cavaliers","CLE",114.5
-"LA Clippers","LAC",115.8
-"Chicago Bulls","CHI",116.3
-"Orlando Magic","ORL",116.3
-"Brooklyn Nets","BKN",116.8
-"Milwaukee Bucks","MIL",117.2
-"Sacramento Kings","SAC",117.7
-"Washington Wizards","WSH",118.4
-"Denver Nuggets","DEN",119.1
+"Philadelphia 76ers","PHI",114.5
+"Golden State Warriors","GS",114.7
+"Washington Wizards","WSH",115.1
+"Denver Nuggets","DEN",115.2
+"Charlotte Hornets","CHA",116.3
+"Phoenix Suns","PHX",117.2
+"Cleveland Cavaliers","CLE",117.6
+"Miami Heat","MIA",117.7
 "New Orleans Pelicans","NO",119.3
+"LA Clippers","LAC",119.4
+"Chicago Bulls","CHI",120.1
+"Brooklyn Nets","BKN",120.4
+"Milwaukee Bucks","MIL",120.5
+"Sacramento Kings","SAC",121.1
