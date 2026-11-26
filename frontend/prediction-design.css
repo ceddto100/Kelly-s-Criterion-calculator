@@ -155,7 +155,15 @@ body::before {background:linear-gradient(150deg,#101921,#0b1014 50%);}
 .tr-amt {margin-left:auto;flex:none;text-align:right;font-size:12px;font-weight:800;display:flex;flex-direction:column;}
 .tr-amt small {font-size:9px;font-weight:600;color:#8fa3ad;}
 .tr-foot {margin:16px 0 0;font-size:10px;color:#8fa3ad;line-height:1.6;}
-.model-leans {--lime:#c5f36b;--teal:#7ad7cb;--muted:#a9bbc5;color:#f1f6f7;margin-bottom:20px;border:1px solid #2c4f52;border-radius:14px;padding:24px;background:linear-gradient(160deg,#142427,#131c23 60%);}
+.model-leans {--lime:#c5f36b;--teal:#7ad7cb;--muted:#a9bbc5;position:relative;isolation:isolate;overflow:hidden;color:#f1f6f7;margin-bottom:20px;border:1px solid #2c4f52;border-radius:14px;padding:24px;background:#000;}
+.model-leans>* {position:relative;z-index:1;}
+/* Fizz: shimmering grain plus bubbles drifting up, like carbonation. */
+.model-leans::before {content:"";position:absolute;inset:-40px;z-index:0;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.55'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.16;animation:ml-grain .6s steps(4) infinite;}
+.model-leans::after {content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(circle at 12% 30%,rgba(122,215,203,.55) 0 1.2px,transparent 2px),radial-gradient(circle at 47% 70%,rgba(255,255,255,.45) 0 1px,transparent 1.8px),radial-gradient(circle at 81% 18%,rgba(122,215,203,.4) 0 1.6px,transparent 2.4px),radial-gradient(circle at 30% 88%,rgba(255,255,255,.35) 0 .9px,transparent 1.6px),radial-gradient(circle at 66% 45%,rgba(197,243,107,.35) 0 1.1px,transparent 1.9px);background-size:180px 220px,140px 260px,230px 200px,120px 180px,200px 240px;animation:ml-fizz 9s linear infinite;opacity:.8;}
+@keyframes ml-grain {0%{transform:translate(0,0)}25%{transform:translate(-12px,8px)}50%{transform:translate(9px,-14px)}75%{transform:translate(-6px,-5px)}100%{transform:translate(0,0)}}
+@keyframes ml-fizz {from{background-position:0 0,0 0,0 0,0 0,0 0}to{background-position:6px -220px,-4px -260px,8px -200px,-3px -180px,5px -240px}}
+@media (prefers-reduced-motion:reduce) {.model-leans::before,.model-leans::after {animation:none}}
+.model-leans .tp-card,.model-leans .ml-record {background:rgba(8,10,11,.86);backdrop-filter:blur(1px);}
 .model-leans .panel-heading {margin-bottom:10px;gap:12px;}
 .model-leans .ml-dot {background:var(--teal);box-shadow:0 0 12px #7ad7cb;width:10px;height:10px;flex:none;}
 .model-leans .ml-tag {white-space:nowrap;color:var(--teal);border-color:#2c4f52;}
