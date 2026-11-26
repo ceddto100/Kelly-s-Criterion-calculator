@@ -1,7 +1,7 @@
 "team","abbreviation","def_yards"
 "Seattle Seahawks","SEA",236.1
 "Minnesota Vikings","MIN",280.3
-"Los Angeles Rams","LAR",284.5
+"Los Angeles Rams","LAR",280.8
 "Tampa Bay Buccaneers","TB",302.2
 "Kansas City Chiefs","KC",303.8
 "San Francisco 49ers","SF",309.8
@@ -10,10 +10,10 @@
 "Jacksonville Jaguars","JAX",311.1
 "Pittsburgh Steelers","PIT",314.3
 "Buffalo Bills","BUF",320.4
-"Green Bay Packers","GB",321.8
 "Houston Texans","HOU",325.5
 "New York Jets","NYJ",325.6
 "Detroit Lions","DET",326.5
+"Green Bay Packers","GB",326.5
 "Cleveland Browns","CLE",327.4
 "Miami Dolphins","MIA",329
 "Baltimore Ravens","BAL",330.2
