@@ -21,6 +21,7 @@ const SPORT_LABELS = {
   baseball: 'MLB', mlb: 'MLB', cfb: 'CFB', ncaaf: 'CFB', cbb: 'CBB', ncaab: 'CBB', wnba: 'WNBA',
 };
 const sportLabel = (s) => SPORT_LABELS[(s || '').toLowerCase()] || (s || 'Other').toUpperCase();
+const isGapPick = (b) => (b.tags || []).includes('gap-pick');
 
 /** Profit on one settled bet, in dollars (payout includes the returned stake). */
 function betProfit(bet) {
@@ -101,7 +102,29 @@ function summarize(bets) {
     profit: round2(betProfit(b)),
     result: b.outcome.result,
     date: b.outcome?.settledAt || b.createdAt,
+    gapPick: isGapPick(b),
   }));
+
+  // Gap picks (every lean with a green model-vs-market gap), flat-staked, as
+  // their own record inside the founder's.
+  const gapAll = bets.filter(isGapPick);
+  const gapSettled = settled.filter(isGapPick);
+  const gapWins = gapSettled.filter((b) => b.outcome.result === 'win').length;
+  const gapLosses = gapSettled.filter((b) => b.outcome.result === 'loss').length;
+  const gapWagered = gapSettled.reduce((s, b) => s + (b.actualWager || 0), 0);
+  const gapProfit = gapSettled.reduce((s, b) => s + betProfit(b), 0);
+  const gapUnit = gapSettled.length ? gapWagered / gapSettled.length : 0;
+  const gapPicks = gapAll.length ? {
+    settled: gapSettled.length,
+    pending: gapAll.filter((b) => b.outcome?.result === 'pending').length,
+    wins: gapWins,
+    losses: gapLosses,
+    pushes: gapSettled.length - gapWins - gapLosses,
+    winRate: gapWins + gapLosses ? round1((gapWins / (gapWins + gapLosses)) * 100) : 0,
+    units: gapUnit ? round1(gapProfit / gapUnit) : 0,
+    profit: round2(gapProfit),
+    roi: gapWagered ? round1((gapProfit / gapWagered) * 100) : 0,
+  } : null;
 
   return {
     settled: settled.length,
@@ -118,6 +141,7 @@ function summarize(bets) {
     unitsTrend,
     bySport,
     recent,
+    gapPicks,
     since: settled.length ? settled[0].outcome?.settledAt || settled[0].createdAt : null,
   };
 }
@@ -253,7 +277,7 @@ router.get('/', asyncHandler(async (_req, res) => {
   const ids = await adminIds();
   const bets = ids.length
     ? await BetLog.find({ userId: { $in: ids }, 'outcome.result': { $ne: 'cancelled' } })
-        .select('matchup.sport matchup.teamA.name matchup.teamB.name estimation.betType estimation.totalSide estimation.pointSpread actualWager outcome.result outcome.payout outcome.settledAt createdAt')
+        .select('matchup.sport matchup.teamA.name matchup.teamB.name estimation.betType estimation.totalSide estimation.pointSpread actualWager outcome.result outcome.payout outcome.settledAt createdAt tags')
         .lean()
     : [];
 
