@@ -6,7 +6,9 @@ export interface TrackRecord {
   settled:number; pending:number; wins:number; losses:number; pushes:number; totalBets?:number;
   winRate:number; roi:number; units:number; profit:number; wagered:number; avgStake:number; profitTrend:number[]; streak:{type:'win'|'loss'|null;count:number};
   unitsTrend:number[]; bySport:{sport:string;wins:number;losses:number;pushes:number;roi:number;profit:number}[];
-  recent:{sport:string;matchup:string;pick:string;result:'win'|'loss'|'push';date:string;stake:number;profit:number}[];
+  recent:{sport:string;matchup:string;pick:string;result:'win'|'loss'|'push';date:string;stake:number;profit:number;gapPick?:boolean}[];
+  /** The daily gap pick (model's biggest disagreement with the market), as its own record. */
+  gapPicks?:{settled:number;pending:number;wins:number;losses:number;pushes:number;winRate:number;units:number;profit:number;roi:number}|null;
   since:string|null;
 }
 
@@ -72,10 +74,14 @@ export function TrackRecordPanel({endpoint,title,tag,explain,emptyText='The firs
       <div className="tr-body">
         <div className="tr-trend"><small>Profit over time · {data.settled} graded bets · avg bet {money(data.avgStake)}</small><Sparkline points={data.profitTrend} format={v=>money(v,true)}/>
           {data.bySport.length>0&&<div className="tr-sports">{data.bySport.map(s=><span key={s.sport}><b>{s.sport}</b> <i className={s.profit>=0?'tr-pos':'tr-neg'}>{money(s.profit,true)}</i></span>)}</div>}
+          {data.gapPicks&&<div className="tr-gap" title="Each day the lean with the biggest gap between the model and the market is logged at a flat stake.">
+            <small>Biggest-gap pick</small>
+            <span><b>{data.gapPicks.wins}-{data.gapPicks.losses}{data.gapPicks.pushes?`-${data.gapPicks.pushes}`:''}</b>{data.gapPicks.settled?` · ${data.gapPicks.winRate}%`:''} · <i className={data.gapPicks.units>=0?'tr-pos':'tr-neg'}>{signed(data.gapPicks.units,'u')}</i>{data.gapPicks.pending?` · ${data.gapPicks.pending} pending`:''}</span>
+          </div>}
         </div>
         <div className="tr-recent"><small>Last {data.recent.length}</small>
           <div className="tr-form" aria-label="Recent results">{[...data.recent].reverse().map((r,i)=><span key={i} className={'tr-dot tr-'+r.result} title={`${r.pick} · ${r.result}`}>{r.result[0].toUpperCase()}</span>)}</div>
-          <ul>{data.recent.slice(0,5).map((r,i)=><li key={i}><span className={'tr-chip tr-'+r.result}>{r.result.toUpperCase()}</span><span className="tr-pick"><b>{r.pick}</b><small>{r.sport} · {r.matchup}</small></span><span className={'tr-amt '+(r.profit>0?'tr-pos':r.profit<0?'tr-neg':'')}>{money(r.profit,true)}<small>on {money(r.stake)}</small></span></li>)}</ul>
+          <ul>{data.recent.slice(0,5).map((r,i)=><li key={i}><span className={'tr-chip tr-'+r.result}>{r.result.toUpperCase()}</span><span className="tr-pick"><b>{r.pick}{r.gapPick&&<em className="tr-gap-tag">GAP</em>}</b><small>{r.sport} · {r.matchup}</small></span><span className={'tr-amt '+(r.profit>0?'tr-pos':r.profit<0?'tr-neg':'')}>{money(r.profit,true)}<small>on {money(r.stake)}</small></span></li>)}</ul>
         </div>
       </div>
     </>}

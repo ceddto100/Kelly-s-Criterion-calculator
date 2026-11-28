@@ -129,7 +129,7 @@ export function ModelLeans() {
       </ul>
       {leans.length > SHOW && <button type="button" className="ml-more" onClick={() => setAll(v => !v)}>{all ? 'Show fewer' : `Show all ${leans.length} leans`}</button>}
     </>}
-    <p className="tp-foot">A big gap is not a bet. The model has to prove these leans beat the line over hundreds of games first; until then the bettable number stays close to the market's.</p>
+    <p className="tp-foot">A big gap is not a bet. The model has to prove these leans beat the line over hundreds of games first; until then the bettable number stays close to the market's. To test it with real stakes, each day's biggest-gap lean is logged at a flat 1% stake and graded in the Founder's Track Record.</p>
   </section>;
 }
 

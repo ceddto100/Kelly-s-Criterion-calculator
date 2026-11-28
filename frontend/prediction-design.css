@@ -233,3 +233,7 @@ body::after {content:'';position:fixed;inset:-80px;z-index:-1;pointer-events:non
 .tp-meta b.tr-neg {color:#f87171;}
 .tp-foot {font-size:10px;color:var(--muted);margin:14px 0 0;}
 @media(max-width:700px) {.top-picks {min-height:0}.tp-title {font-size:22px}.tp-card {padding:11px 12px}.tp-clock {min-width:62px;padding-left:10px}}
+.tr-gap {display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:10px;padding:8px 10px;border:1px solid #2c2c2d;border-radius:10px;background:#141415;font-size:12px;color:#c3d2d9;}
+.tr-gap small {text-transform:uppercase;letter-spacing:.08em;font-size:10px;color:#8a9aa1;}
+.tr-gap i {font-style:normal;font-weight:700;}
+.tr-gap-tag {font-style:normal;font-size:9px;font-weight:700;letter-spacing:.08em;margin-left:6px;padding:1px 5px;border-radius:4px;background:#7fd8c6;color:#0b0b0c;vertical-align:middle;}

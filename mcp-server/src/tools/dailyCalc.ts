@@ -55,6 +55,11 @@ const DEFAULT_AMERICAN_ODDS = -110;
 
 // Implied probability from -110 odds: 110 / (110 + 100) = 52.38%
 const IMPLIED_PROB_AT_MINUS_110 = 52.38;
+const IMPLIED_ODDS_FALLBACK = -110;
+
+// The daily gap pick (the lean with the biggest model-vs-market gap) is staked
+// flat at this percent of the bankroll, so every one counts the same in units.
+const GAP_PICK_STAKE_PCT = parseFloat(process.env.DAILY_GAP_PICK_STAKE_PCT || '1') || 1;
 
 // Version tag stored with every recorded projection so backtests can compare
 // model iterations head-to-head. Bump when the formulas/config change materially.
@@ -126,6 +131,18 @@ export interface PickCandidate {
   gameIdTag?: string;
 }
 
+/**
+ * One tracked lean (the side the model alone prefers against the real line),
+ * with how far the model is from the market's fair probability. The lean with
+ * the biggest gap each day is logged to the admin as the "gap pick".
+ */
+export interface GapCandidate extends PickCandidate {
+  /** Model probability minus market fair probability, in percentage points. */
+  gap: number;
+  /** Market's no-vig probability (%) of the same side. */
+  marketProbability: number;
+}
+
 export interface LoggedPick {
   game: string;
   sport: PickCandidate['sport'];
@@ -155,6 +172,8 @@ export interface DailyCalcSummary {
   randomPicks?: LoggedPick[];
   /** Present when the run used all-picks mode. */
   allPicks?: LoggedPick[];
+  /** The day's gap pick, when one was logged on this run. */
+  gapPick?: LoggedPick & { gap: number; modelProbability: number; marketProbability: number };
   /** Earlier games graded at the start of this run (tracked leans included). */
   settled?: SettleSummary;
 }
@@ -193,6 +212,13 @@ export interface DailyCalcOptions {
   allPicks?: boolean;
   /** Sports included in all-picks mode. Defaults to NBA, NFL and NHL. */
   allPicksSports?: PickCandidate['sport'][];
+  /**
+   * Gap pick: log the single lean with the biggest model-vs-market gap as a
+   * flat-stake bet to the admin, so it is graded in the Founder's Track Record.
+   * Once per day (the first run with a lined game picks it). Defaults to true
+   * whenever logBets is on.
+   */
+  gapPick?: boolean;
 }
 
 export const DEFAULT_ALL_PICKS_SPORTS: PickCandidate['sport'][] = ['NBA', 'NFL', 'NHL'];
@@ -231,7 +257,8 @@ async function getAdminUserId(): Promise<string | null> {
 async function calcNHLGame(
   game: DailyGame,
   recordProjections: boolean,
-  collector?: PickCandidate[]
+  collector?: PickCandidate[],
+  gapCollector?: GapCandidate[]
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (NHL)`;
   const baseResult: GameCalcResult = {
@@ -312,6 +339,11 @@ async function calcNHLGame(
       ? (overSide ? 'over' : 'under')
       : 'no-bet';
 
+  const nhlTrack = game.overUnder !== undefined && game.status === 'scheduled'
+    ? totalTrack(game.overUnder, side, game)
+    : undefined;
+  if (gapCollector && nhlTrack) gapCollector.push(gapCandidate(game, nhlTrack));
+
   let projectionRecorded = false;
   if (recordProjections) {
     try {
@@ -329,9 +361,7 @@ async function calcNHLGame(
         lean,
         confidence: lean === 'no-bet' ? Math.min(decision.confidence, 44) : decision.confidence,
         modelVersion: MODEL_VERSION,
-        track: game.overUnder !== undefined && game.status === 'scheduled'
-          ? totalTrack(game.overUnder, side, game)
-          : undefined,
+        track: nhlTrack,
         statsSnapshot: {
           home: homeStats, away: awayStats, line, overProbability,
           underProbability: projection.underProbability, pushProbability: projection.pushProbability,
@@ -419,6 +449,73 @@ function spreadTrack(
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
+/** Break-even probability (%) of an American price. */
+function breakEvenFromOdds(odds: number): number {
+  return odds < 0 ? (-odds / (-odds + 100)) * 100 : (100 / (odds + 100)) * 100;
+}
+
+/** A tracked lean as a loggable candidate (the model's own side and price). */
+export function gapCandidate(
+  game: Pick<DailyGame, 'sport' | 'homeTeam' | 'homeAbbr' | 'awayTeam' | 'awayAbbr' | 'gameId'>,
+  track: ProjectionTrack
+): GapCandidate {
+  const sport = game.sport as GapCandidate['sport'];
+  const sportLabel = sport === 'NBA' ? 'basketball' : sport === 'NFL' ? 'football' : sport === 'NHL' ? 'hockey' : 'baseball';
+  const odds = typeof track.odds === 'number' && Math.abs(track.odds) >= 100 ? track.odds : IMPLIED_ODDS_FALLBACK;
+  let pick: string;
+  let line: number;
+  if (track.market === 'total') {
+    line = track.line;
+    pick = `${track.side === 'over' ? 'Over' : 'Under'} ${track.line}`;
+  } else {
+    line = track.side === 'home' ? track.line : -track.line;
+    pick = `${track.side === 'home' ? game.homeTeam : game.awayTeam} ${formatLine(line)}`;
+  }
+  return {
+    sport,
+    sportLabel,
+    homeTeam: game.homeTeam,
+    homeAbbr: game.homeAbbr,
+    awayTeam: game.awayTeam,
+    awayAbbr: game.awayAbbr,
+    market: track.market === 'total' ? 'total' : 'spread',
+    pick,
+    pickedSide: track.side as GapCandidate['pickedSide'],
+    line,
+    // The gap pick backs the model's own number, not the market-anchored one.
+    probability: track.modelProbability,
+    modelProbability: track.modelProbability,
+    marketProbability: track.marketProbability,
+    gap: round1(track.modelProbability - track.marketProbability),
+    americanOdds: odds,
+    breakEvenPct: breakEvenFromOdds(odds),
+    gameIdTag: gameIdTag('espn', game.sport, game.gameId),
+  };
+}
+
+/**
+ * The day's gap pick: the lean whose model probability is furthest above the
+ * market's fair probability. Games already gap-picked on any day are skipped.
+ */
+export function selectGapPick(candidates: GapCandidate[], alreadyPicked: Set<string> = new Set()): GapCandidate | null {
+  let best: GapCandidate | null = null;
+  for (const c of candidates) {
+    if (!(c.gap > 0)) continue;
+    if (c.gameIdTag && alreadyPicked.has(gapGameTag(c.gameIdTag))) continue;
+    if (!best || c.gap > best.gap) best = c;
+  }
+  return best;
+}
+
+export function gapPickTag(date: string): string {
+  return `gap-pick-${date}`;
+}
+
+/** Per-game gap-pick tag. Kept separate from "gid-" so it never blocks the other pick modes. */
+function gapGameTag(idTag: string): string {
+  return `gap-${idTag}`;
+}
+
 /** League-average NHL regulation goals per team from the loaded CSVs. */
 function nhlLeagueGoalsPerTeam(): number {
   const teams = getAllNHLTeams().filter((t) => t.xGF60 > 0 && t.xGA60 > 0);
@@ -500,7 +597,8 @@ async function calcGame(
   userId: string | null,
   logBets: boolean,
   recordProjections: boolean,
-  collector?: PickCandidate[]
+  collector?: PickCandidate[],
+  gapCollector?: GapCandidate[]
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (${game.sport})`;
 
@@ -522,7 +620,7 @@ async function calcGame(
   // NHL uses a totals (over/under) model, not a spread/moneyline one, so it has
   // its own path. NBA/NFL continue through the shared spread/moneyline flow below.
   if (game.sport === 'NHL') {
-    return calcNHLGame(game, recordProjections, collector);
+    return calcNHLGame(game, recordProjections, collector, gapCollector);
   }
 
   // 1. Load team stats
@@ -661,6 +759,11 @@ async function calcGame(
     }
   }
 
+  const spreadLean = side && game.status === 'scheduled' && model.disagreement !== undefined
+    ? spreadTrack(homeSpread!, model, side)
+    : undefined;
+  if (gapCollector && spreadLean) gapCollector.push(gapCandidate(game, spreadLean));
+
   // 5. Record a backtesting projection for EVERY analyzed game (not just value
   //    bets). The decision layer turns the home win probability into a
   //    home/away/no-bet lean so the stored record matches how the model would
@@ -692,9 +795,7 @@ async function calcGame(
         lean,
         confidence: decision.confidence,
         modelVersion: MODEL_VERSION,
-        track: side && game.status === 'scheduled' && model.disagreement !== undefined
-          ? spreadTrack(homeSpread!, model, side)
-          : undefined,
+        track: spreadLean,
         statsSnapshot: {
           home: homeStats,
           away: awayStats,
@@ -1088,6 +1189,83 @@ async function logPicks(
   return logged;
 }
 
+/**
+ * Log today's gap pick: the lean with the biggest model-vs-market gap, at a
+ * flat GAP_PICK_STAKE_PCT of the bankroll on the model's own probability.
+ */
+async function logGapPick(
+  candidates: GapCandidate[],
+  userId: string,
+  bankroll: number,
+  today: string,
+  summary: DailyCalcSummary
+): Promise<void> {
+  if (await BetLog.exists({ userId, tags: gapPickTag(today) })) return;
+  const idTags = candidates.map((c) => c.gameIdTag).filter((t): t is string => !!t).map(gapGameTag);
+  const prior = idTags.length
+    ? await BetLog.find({ userId, tags: { $in: idTags } }, { tags: 1 }).lean()
+    : [];
+  const picked = new Set<string>(prior.flatMap((b: { tags?: string[] }) => b.tags || []));
+  const c = selectGapPick(candidates, picked);
+  if (!c) {
+    summary.errors.push(`Gap pick: no lined game with a positive gap for ${today}`);
+    return;
+  }
+  const odds = c.americanOdds ?? IMPLIED_ODDS_FALLBACK;
+  const breakEven = breakEvenOf(c);
+  const edge = c.probability - breakEven;
+  const stake = Math.round(bankroll * GAP_PICK_STAKE_PCT) / 100;
+  const backAway = c.pickedSide === 'away';
+  const home = { name: c.homeTeam, abbreviation: c.homeAbbr };
+  const away = { name: c.awayTeam, abbreviation: c.awayAbbr };
+  const fmt = (o: number) => (o > 0 ? `+${o}` : `${o}`);
+  const res = await handleLogBet({
+    userId,
+    sport: c.sportLabel,
+    teamA: backAway ? away : home,
+    teamB: backAway ? home : away,
+    venue: backAway ? 'away' : 'home',
+    pointSpread: c.line,
+    betType: c.market,
+    totalSide: c.market === 'total' ? (c.pickedSide as 'over' | 'under') : undefined,
+    calculatedProbability: c.probability,
+    impliedProbability: breakEven,
+    edge,
+    bankroll,
+    americanOdds: odds,
+    kellyFraction: 0.25,
+    recommendedStake: stake,
+    stakePercentage: GAP_PICK_STAKE_PCT,
+    actualWager: stake,
+    notes: `Daily gap pick (${today}): ${c.pick} [${c.market}] at ${fmt(odds)} — model ${c.modelProbability!.toFixed(1)}% vs market ${c.marketProbability.toFixed(1)}% (gap +${c.gap.toFixed(1)}), needs ${breakEven.toFixed(1)}%. Flat ${GAP_PICK_STAKE_PCT}% stake.`,
+    tags: [
+      'auto',
+      'gap-pick',
+      gapPickTag(today),
+      ...(c.gameIdTag ? [gapGameTag(c.gameIdTag)] : []),
+      c.sport.toLowerCase(),
+      c.market,
+    ],
+  });
+  summary.gapPick = {
+    game: `${c.awayTeam} @ ${c.homeTeam} (${c.sport})`,
+    sport: c.sport,
+    market: c.market,
+    pick: c.pick,
+    probability: c.probability,
+    edge,
+    recommendedStake: stake,
+    stakePercentage: GAP_PICK_STAKE_PCT,
+    betLogged: !!res.success,
+    betId: res.betId,
+    gap: c.gap,
+    modelProbability: c.modelProbability!,
+    marketProbability: c.marketProbability,
+  };
+  if (res.success) summary.betsLogged++;
+  console.log(`[DailyCalc] Gap pick logged: ${c.pick} (gap +${c.gap.toFixed(1)}) $${stake.toFixed(2)}`);
+}
+
 // ============================================================================
 // MAIN DAILY CALC FUNCTION
 // ============================================================================
@@ -1102,6 +1280,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     randomPicks = 0,
     allPicks = false,
     allPicksSports = DEFAULT_ALL_PICKS_SPORTS,
+    gapPick = true,
   } = options;
   let { bankroll } = options;
   // In random-/all-picks mode only the chosen picks get logged; the per-game
@@ -1111,6 +1290,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   const picksMode = allMode || randomMode;
   const perGameLogBets = logBets && !picksMode;
   const collector: PickCandidate[] | undefined = picksMode ? [] : undefined;
+  const gapCollector: GapCandidate[] | undefined = gapPick && logBets ? [] : undefined;
 
   const today = easternDate();
   console.log(`[DailyCalc] Starting daily calculations for ${today}`);
@@ -1254,7 +1434,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   for (const game of games) {
     console.log(`[DailyCalc] Processing: ${game.awayTeam} @ ${game.homeTeam} (${game.sport})`);
 
-    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, perGameLogBets, recordProjections, collector);
+    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, perGameLogBets, recordProjections, collector, gapCollector);
     summary.allResults.push(result);
     if (result.projectionRecorded) summary.projectionsRecorded++;
 
@@ -1277,6 +1457,13 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   }
 
   await finishRandomPicks();
+  if (gapCollector && userId) {
+    try {
+      await logGapPick(gapCollector, userId, bankroll, today, summary);
+    } catch (err) {
+      summary.errors.push(`Gap pick failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   summary.success = true;
   console.log(`[DailyCalc] Done. ${summary.gamesAnalyzed} analyzed, ${summary.highValueBets.length} value bets, ${summary.betsLogged} logged, ${summary.projectionsRecorded} projections recorded`);
@@ -1336,6 +1523,10 @@ export const runDailyCalcInputSchema = z.object({
     .array(z.enum(['NBA', 'NFL', 'NHL', 'MLB']))
     .optional()
     .describe('Sports included in all-picks mode. Defaults to NBA, NFL, NHL.'),
+  gapPick: z
+    .boolean()
+    .optional()
+    .describe('Log the lean with the biggest model-vs-market gap as a flat-stake bet (once per day). Defaults to true.'),
 });
 
 export async function handleRunDailyCalc(
@@ -1351,5 +1542,6 @@ export async function handleRunDailyCalc(
     randomPicks: params.randomPicks,
     allPicks: params.allPicks,
     allPicksSports: params.allPicksSports,
+    gapPick: params.gapPick,
   });
 }

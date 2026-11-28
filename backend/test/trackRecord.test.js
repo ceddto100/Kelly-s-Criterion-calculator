@@ -118,3 +118,29 @@ test('describe pick: final on scoreboard but not yet saved', () => {
 });
 
 console.log(`trackRecord: ${passed} passed`);
+
+test('summary: gap picks get their own record', () => {
+  const gap = (result, payout, extra = {}) => ({
+    tags: ['auto', 'gap-pick', 'gap-pick-2026-11-27'],
+    matchup: { sport: 'basketball', teamA: { name: 'Detroit Pistons' }, teamB: { name: 'Milwaukee Bucks' } },
+    estimation: { betType: 'spread', pointSpread: -9.5 },
+    actualWager: 10,
+    outcome: { result, payout, settledAt: new Date('2026-11-27T05:00Z') },
+    createdAt: new Date('2026-11-27T09:00Z'),
+    ...extra,
+  });
+  const s = summarize([
+    gap('win', 20),
+    gap('loss', 0),
+    gap('win', 20),
+    gap('pending', 0),
+    { tags: ['auto'], matchup: { sport: 'nba', teamA: { name: 'A' }, teamB: { name: 'B' } }, estimation: {}, actualWager: 10, outcome: { result: 'loss' }, createdAt: new Date() },
+  ]);
+  assert.deepStrictEqual(
+    [s.gapPicks.wins, s.gapPicks.losses, s.gapPicks.pending, s.gapPicks.units, s.gapPicks.winRate],
+    [2, 1, 1, 1, 66.7]
+  );
+  assert.strictEqual(s.wins + s.losses, 4);
+  assert.ok(s.recent.some((r) => r.gapPick));
+  assert.strictEqual(summarize([]).gapPicks, null);
+});
