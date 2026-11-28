@@ -7,7 +7,7 @@ export interface TrackRecord {
   winRate:number; roi:number; units:number; profit:number; wagered:number; avgStake:number; profitTrend:number[]; streak:{type:'win'|'loss'|null;count:number};
   unitsTrend:number[]; bySport:{sport:string;wins:number;losses:number;pushes:number;roi:number;profit:number}[];
   recent:{sport:string;matchup:string;pick:string;result:'win'|'loss'|'push';date:string;stake:number;profit:number;gapPick?:boolean}[];
-  /** The daily gap pick (model's biggest disagreement with the market), as its own record. */
+  /** Gap picks (every green model-vs-market gap), as their own record. */
   gapPicks?:{settled:number;pending:number;wins:number;losses:number;pushes:number;winRate:number;units:number;profit:number;roi:number}|null;
   since:string|null;
 }
@@ -74,8 +74,8 @@ export function TrackRecordPanel({endpoint,title,tag,explain,emptyText='The firs
       <div className="tr-body">
         <div className="tr-trend"><small>Profit over time · {data.settled} graded bets · avg bet {money(data.avgStake)}</small><Sparkline points={data.profitTrend} format={v=>money(v,true)}/>
           {data.bySport.length>0&&<div className="tr-sports">{data.bySport.map(s=><span key={s.sport}><b>{s.sport}</b> <i className={s.profit>=0?'tr-pos':'tr-neg'}>{money(s.profit,true)}</i></span>)}</div>}
-          {data.gapPicks&&<div className="tr-gap" title="Each day the lean with the biggest gap between the model and the market is logged at a flat stake.">
-            <small>Biggest-gap pick</small>
+          {data.gapPicks&&<div className="tr-gap" title="Every lean with a green gap (model +3 or more over the market) is logged at a flat 5% of bankroll.">
+            <small>Gap picks</small>
             <span><b>{data.gapPicks.wins}-{data.gapPicks.losses}{data.gapPicks.pushes?`-${data.gapPicks.pushes}`:''}</b>{data.gapPicks.settled?` · ${data.gapPicks.winRate}%`:''} · <i className={data.gapPicks.units>=0?'tr-pos':'tr-neg'}>{signed(data.gapPicks.units,'u')}</i>{data.gapPicks.pending?` · ${data.gapPicks.pending} pending`:''}</span>
           </div>}
         </div>

@@ -57,9 +57,11 @@ const DEFAULT_AMERICAN_ODDS = -110;
 const IMPLIED_PROB_AT_MINUS_110 = 52.38;
 const IMPLIED_ODDS_FALLBACK = -110;
 
-// The daily gap pick (the lean with the biggest model-vs-market gap) is staked
-// flat at this percent of the bankroll, so every one counts the same in units.
-const GAP_PICK_STAKE_PCT = parseFloat(process.env.DAILY_GAP_PICK_STAKE_PCT || '1') || 1;
+// Gap picks: every lean whose model probability is at least GAP_PICK_MIN_GAP
+// points above the market's fair probability (the green gaps on the Lab's
+// leans panel) is logged, staked flat at GAP_PICK_STAKE_PCT of the bankroll.
+const GAP_PICK_STAKE_PCT = parseFloat(process.env.DAILY_GAP_PICK_STAKE_PCT || '5') || 5;
+export const GAP_PICK_MIN_GAP = parseFloat(process.env.DAILY_GAP_PICK_MIN_GAP || '3') || 3;
 
 // Version tag stored with every recorded projection so backtests can compare
 // model iterations head-to-head. Bump when the formulas/config change materially.
@@ -172,8 +174,8 @@ export interface DailyCalcSummary {
   randomPicks?: LoggedPick[];
   /** Present when the run used all-picks mode. */
   allPicks?: LoggedPick[];
-  /** The day's gap pick, when one was logged on this run. */
-  gapPick?: LoggedPick & { gap: number; modelProbability: number; marketProbability: number };
+  /** Gap picks logged on this run. */
+  gapPicks?: (LoggedPick & { gap: number; modelProbability: number; marketProbability: number })[];
   /** Earlier games graded at the start of this run (tracked leans included). */
   settled?: SettleSummary;
 }
@@ -213,10 +215,11 @@ export interface DailyCalcOptions {
   /** Sports included in all-picks mode. Defaults to NBA, NFL and NHL. */
   allPicksSports?: PickCandidate['sport'][];
   /**
-   * Gap pick: log the single lean with the biggest model-vs-market gap as a
-   * flat-stake bet to the admin, so it is graded in the Founder's Track Record.
-   * Once per day (the first run with a lined game picks it). Defaults to true
-   * whenever logBets is on.
+   * Gap picks: log every lean with a green gap (model at least GAP_PICK_MIN_GAP
+   * points above the market) as a flat-stake bet to the admin, so it is graded
+   * in the Founder's Track Record. Each game is logged at most once, so re-runs
+   * only add games whose line was posted later. Defaults to true whenever
+   * logBets is on.
    */
   gapPick?: boolean;
 }
@@ -494,17 +497,26 @@ export function gapCandidate(
 }
 
 /**
- * The day's gap pick: the lean whose model probability is furthest above the
- * market's fair probability. Games already gap-picked on any day are skipped.
+ * Gap picks: every lean whose gap is at least `minGap` (green on the leans
+ * panel), biggest gap first, one per game. Games already gap-picked on any day
+ * are skipped.
  */
-export function selectGapPick(candidates: GapCandidate[], alreadyPicked: Set<string> = new Set()): GapCandidate | null {
-  let best: GapCandidate | null = null;
-  for (const c of candidates) {
-    if (!(c.gap > 0)) continue;
-    if (c.gameIdTag && alreadyPicked.has(gapGameTag(c.gameIdTag))) continue;
-    if (!best || c.gap > best.gap) best = c;
-  }
-  return best;
+export function selectGapPicks(
+  candidates: GapCandidate[],
+  alreadyPicked: Set<string> = new Set(),
+  minGap: number = GAP_PICK_MIN_GAP
+): GapCandidate[] {
+  const seen = new Set<string>();
+  return candidates
+    .filter((c) => c.gap >= minGap)
+    .sort((a, b) => b.gap - a.gap)
+    .filter((c) => {
+      if (!c.gameIdTag) return true;
+      const tag = gapGameTag(c.gameIdTag);
+      if (alreadyPicked.has(tag) || seen.has(tag)) return false;
+      seen.add(tag);
+      return true;
+    });
 }
 
 export function gapPickTag(date: string): string {
@@ -1190,80 +1202,93 @@ async function logPicks(
 }
 
 /**
- * Log today's gap pick: the lean with the biggest model-vs-market gap, at a
- * flat GAP_PICK_STAKE_PCT of the bankroll on the model's own probability.
+ * Log today's gap picks: every lean with a green gap, each at a flat
+ * GAP_PICK_STAKE_PCT of the bankroll on the model's own probability.
  */
-async function logGapPick(
+async function logGapPicks(
   candidates: GapCandidate[],
   userId: string,
   bankroll: number,
   today: string,
   summary: DailyCalcSummary
 ): Promise<void> {
-  if (await BetLog.exists({ userId, tags: gapPickTag(today) })) return;
   const idTags = candidates.map((c) => c.gameIdTag).filter((t): t is string => !!t).map(gapGameTag);
   const prior = idTags.length
     ? await BetLog.find({ userId, tags: { $in: idTags } }, { tags: 1 }).lean()
     : [];
   const picked = new Set<string>(prior.flatMap((b: { tags?: string[] }) => b.tags || []));
-  const c = selectGapPick(candidates, picked);
-  if (!c) {
-    summary.errors.push(`Gap pick: no lined game with a positive gap for ${today}`);
+  const picks = selectGapPicks(candidates, picked);
+  summary.gapPicks = [];
+  if (!picks.length) {
+    summary.errors.push(`Gap picks: no new lined game with a gap of +${GAP_PICK_MIN_GAP} or more for ${today}`);
     return;
   }
-  const odds = c.americanOdds ?? IMPLIED_ODDS_FALLBACK;
-  const breakEven = breakEvenOf(c);
-  const edge = c.probability - breakEven;
   const stake = Math.round(bankroll * GAP_PICK_STAKE_PCT) / 100;
-  const backAway = c.pickedSide === 'away';
-  const home = { name: c.homeTeam, abbreviation: c.homeAbbr };
-  const away = { name: c.awayTeam, abbreviation: c.awayAbbr };
   const fmt = (o: number) => (o > 0 ? `+${o}` : `${o}`);
-  const res = await handleLogBet({
-    userId,
-    sport: c.sportLabel,
-    teamA: backAway ? away : home,
-    teamB: backAway ? home : away,
-    venue: backAway ? 'away' : 'home',
-    pointSpread: c.line,
-    betType: c.market,
-    totalSide: c.market === 'total' ? (c.pickedSide as 'over' | 'under') : undefined,
-    calculatedProbability: c.probability,
-    impliedProbability: breakEven,
-    edge,
-    bankroll,
-    americanOdds: odds,
-    kellyFraction: 0.25,
-    recommendedStake: stake,
-    stakePercentage: GAP_PICK_STAKE_PCT,
-    actualWager: stake,
-    notes: `Daily gap pick (${today}): ${c.pick} [${c.market}] at ${fmt(odds)} — model ${c.modelProbability!.toFixed(1)}% vs market ${c.marketProbability.toFixed(1)}% (gap +${c.gap.toFixed(1)}), needs ${breakEven.toFixed(1)}%. Flat ${GAP_PICK_STAKE_PCT}% stake.`,
-    tags: [
-      'auto',
-      'gap-pick',
-      gapPickTag(today),
-      ...(c.gameIdTag ? [gapGameTag(c.gameIdTag)] : []),
-      c.sport.toLowerCase(),
-      c.market,
-    ],
-  });
-  summary.gapPick = {
-    game: `${c.awayTeam} @ ${c.homeTeam} (${c.sport})`,
-    sport: c.sport,
-    market: c.market,
-    pick: c.pick,
-    probability: c.probability,
-    edge,
-    recommendedStake: stake,
-    stakePercentage: GAP_PICK_STAKE_PCT,
-    betLogged: !!res.success,
-    betId: res.betId,
-    gap: c.gap,
-    modelProbability: c.modelProbability!,
-    marketProbability: c.marketProbability,
-  };
-  if (res.success) summary.betsLogged++;
-  console.log(`[DailyCalc] Gap pick logged: ${c.pick} (gap +${c.gap.toFixed(1)}) $${stake.toFixed(2)}`);
+  for (const c of picks) {
+    const odds = c.americanOdds ?? IMPLIED_ODDS_FALLBACK;
+    const breakEven = breakEvenOf(c);
+    const edge = c.probability - breakEven;
+    const backAway = c.pickedSide === 'away';
+    const home = { name: c.homeTeam, abbreviation: c.homeAbbr };
+    const away = { name: c.awayTeam, abbreviation: c.awayAbbr };
+    const entry = {
+      game: `${c.awayTeam} @ ${c.homeTeam} (${c.sport})`,
+      sport: c.sport,
+      market: c.market,
+      pick: c.pick,
+      probability: c.probability,
+      edge,
+      recommendedStake: stake,
+      stakePercentage: GAP_PICK_STAKE_PCT,
+      betLogged: false,
+      betId: undefined as string | undefined,
+      error: undefined as string | undefined,
+      gap: c.gap,
+      modelProbability: c.modelProbability!,
+      marketProbability: c.marketProbability,
+    };
+    try {
+      const res = await handleLogBet({
+        userId,
+        sport: c.sportLabel,
+        teamA: backAway ? away : home,
+        teamB: backAway ? home : away,
+        venue: backAway ? 'away' : 'home',
+        pointSpread: c.line,
+        betType: c.market,
+        totalSide: c.market === 'total' ? (c.pickedSide as 'over' | 'under') : undefined,
+        calculatedProbability: c.probability,
+        impliedProbability: breakEven,
+        edge,
+        bankroll,
+        americanOdds: odds,
+        kellyFraction: 0.25,
+        recommendedStake: stake,
+        stakePercentage: GAP_PICK_STAKE_PCT,
+        actualWager: stake,
+        notes: `Daily gap pick (${today}): ${c.pick} [${c.market}] at ${fmt(odds)} — model ${c.modelProbability!.toFixed(1)}% vs market ${c.marketProbability.toFixed(1)}% (gap +${c.gap.toFixed(1)}), needs ${breakEven.toFixed(1)}%. Flat ${GAP_PICK_STAKE_PCT}% stake.`,
+        tags: [
+          'auto',
+          'gap-pick',
+          gapPickTag(today),
+          ...(c.gameIdTag ? [gapGameTag(c.gameIdTag)] : []),
+          c.sport.toLowerCase(),
+          c.market,
+        ],
+      });
+      if (res.success) {
+        entry.betLogged = true;
+        entry.betId = res.betId;
+        summary.betsLogged++;
+      }
+    } catch (err) {
+      entry.error = err instanceof Error ? err.message : String(err);
+      console.warn(`[DailyCalc] Gap pick logging failed for ${entry.game}:`, err);
+    }
+    summary.gapPicks.push(entry);
+  }
+  console.log(`[DailyCalc] Gap picks logged (${summary.gapPicks.filter((p) => p.betLogged).length}): ${summary.gapPicks.map((p) => `${p.pick} (gap +${p.gap.toFixed(1)})`).join(', ')} at $${stake.toFixed(2)} each`);
 }
 
 // ============================================================================
@@ -1459,7 +1484,7 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
   await finishRandomPicks();
   if (gapCollector && userId) {
     try {
-      await logGapPick(gapCollector, userId, bankroll, today, summary);
+      await logGapPicks(gapCollector, userId, bankroll, today, summary);
     } catch (err) {
       summary.errors.push(`Gap pick failed: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -1526,7 +1551,7 @@ export const runDailyCalcInputSchema = z.object({
   gapPick: z
     .boolean()
     .optional()
-    .describe('Log the lean with the biggest model-vs-market gap as a flat-stake bet (once per day). Defaults to true.'),
+    .describe('Log every lean with a green model-vs-market gap (+3 or more) as a flat 5%-of-bankroll bet, once per game. Defaults to true.'),
 });
 
 export async function handleRunDailyCalc(

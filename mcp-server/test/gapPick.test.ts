@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gapCandidate, selectGapPick } from '../src/tools/dailyCalc.js';
+import { gapCandidate, selectGapPicks } from '../src/tools/dailyCalc.js';
 import type { ProjectionTrack } from '../src/models/Projection.js';
 
 const game = (id: string, sport = 'NBA') => ({
@@ -39,20 +39,19 @@ describe('gapCandidate', () => {
   });
 });
 
-describe('selectGapPick', () => {
-  it('picks the biggest gap', () => {
-    const a = gapCandidate(game('a'), spread('home', 58.2, 50.4));
-    const b = gapCandidate(game('b'), spread('home', 69.2, 51.5));
-    const c = gapCandidate(game('c'), spread('home', 61.6, 48));
-    expect(selectGapPick([a, b, c])?.gameIdTag).toBe('gid-espn-nba-b');
+describe('selectGapPicks', () => {
+  it('takes every green gap (+3 or more), biggest first', () => {
+    const a = gapCandidate(game('a'), spread('home', 58.2, 50.4)); // +7.8
+    const b = gapCandidate(game('b'), spread('home', 69.2, 51.5)); // +17.7
+    const c = gapCandidate(game('c'), spread('home', 53, 50.1));   // +2.9, not green
+    const d = gapCandidate(game('d'), spread('home', 53, 50));     // +3.0, green
+    expect(selectGapPicks([a, b, c, d]).map((p) => p.gameIdTag)).toEqual(['gid-espn-nba-b', 'gid-espn-nba-a', 'gid-espn-nba-d']);
   });
 
-  it('skips games already gap-picked and non-positive gaps', () => {
+  it('skips games already gap-picked and duplicates', () => {
     const a = gapCandidate(game('a'), spread('home', 58, 50));
     const b = gapCandidate(game('b'), spread('home', 70, 50));
-    const none = gapCandidate(game('n'), spread('home', 50, 50));
-    expect(selectGapPick([a, b], new Set(['gap-gid-espn-nba-b']))?.gameIdTag).toBe('gid-espn-nba-a');
-    expect(selectGapPick([none])).toBeNull();
-    expect(selectGapPick([])).toBeNull();
+    expect(selectGapPicks([a, b, a], new Set(['gap-gid-espn-nba-b'])).map((p) => p.gameIdTag)).toEqual(['gid-espn-nba-a']);
+    expect(selectGapPicks([])).toEqual([]);
   });
 });

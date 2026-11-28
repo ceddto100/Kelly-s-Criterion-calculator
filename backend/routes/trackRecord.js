@@ -105,8 +105,8 @@ function summarize(bets) {
     gapPick: isGapPick(b),
   }));
 
-  // The daily gap pick (the model's biggest disagreement with the market),
-  // flat-staked, as its own record inside the founder's.
+  // Gap picks (every lean with a green model-vs-market gap), flat-staked, as
+  // their own record inside the founder's.
   const gapAll = bets.filter(isGapPick);
   const gapSettled = settled.filter(isGapPick);
   const gapWins = gapSettled.filter((b) => b.outcome.result === 'win').length;
