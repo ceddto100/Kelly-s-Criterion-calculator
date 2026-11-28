@@ -34,6 +34,11 @@ export const NHL_CONFIG = {
    * 69-70% odd totals (actual 69%), mean 6.41 (6.42), over 6.5 48.8% (49.1%).
    */
   tieInflation: 1.25,
+  /**
+   * Priced games needed before a slate's market level is applied in full
+   * (fewer are shrunk toward no adjustment). See nhlSlateLevelScale.
+   */
+  minSlateForLevel: 4,
   /** Goal cap for the exact sum (P(more than 40 in regulation) is negligible). */
   maxGoals: 40,
   /** League regulation goals per team, used only when no matchup data exists. */
@@ -112,7 +117,7 @@ export function nhlRegulationRates(home: NHLTeamStats, away: NHLTeamStats) {
  * Project an NHL game's final score distribution and price a goals line.
  * over + under + push = 100; whole-number lines carry push mass.
  */
-export function calculateNHLProjection(home: NHLTeamStats, away: NHLTeamStats, line: number) {
+export function calculateNHLProjection(home: NHLTeamStats, away: NHLTeamStats, line: number, levelScale: number = 1) {
   if (!Number.isFinite(line) || line < 0 || line > 100) throw new Error('Invalid goals line');
   for (const team of [home, away]) {
     for (const [key, value] of Object.entries(team)) {
@@ -121,7 +126,10 @@ export function calculateNHLProjection(home: NHLTeamStats, away: NHLTeamStats, l
     }
     if (!(team.xGF60 > 0 && team.xGA60 > 0) || !Number.isFinite(team.GSAx60)) throw new Error('Missing NHL scoring data');
   }
-  const { lambdaHome, lambdaAway } = nhlRegulationRates(home, away);
+  if (!(levelScale > 0) || !Number.isFinite(levelScale)) throw new Error('Invalid NHL level scale');
+  const rates = nhlRegulationRates(home, away);
+  const lambdaHome = rates.lambdaHome * levelScale;
+  const lambdaAway = rates.lambdaAway * levelScale;
   const { total, tieProbability } = nhlFinalTotalDistribution(lambdaHome, lambdaAway);
   const projectedTotal = total.reduce((s, p, k) => s + p * k, 0);
   const variance = total.reduce((s, p, k) => s + p * k * k, 0) - projectedTotal ** 2;
@@ -141,6 +149,44 @@ export function calculateNHLProjection(home: NHLTeamStats, away: NHLTeamStats, l
   };
 }
 export type NHLProjectionResult = ReturnType<typeof calculateNHLProjection>;
+
+/**
+ * The scoring level the market is pricing for this matchup, relative to the
+ * model: the factor s such that the model's rates × s give the book's fair
+ * (push-free) over probability at its line. s < 1 means the book expects fewer
+ * goals than the model does. Null when the price can't be matched.
+ */
+export function nhlMarketScale(home: NHLTeamStats, away: NHLTeamStats, line: number, fairOverPct: number): number | null {
+  if (!Number.isFinite(line) || !(fairOverPct > 0 && fairOverPct < 100)) return null;
+  const { lambdaHome, lambdaAway } = nhlRegulationRates(home, away);
+  const overAt = (s: number) => {
+    const { over, under } = totalLineProbabilities(nhlFinalTotalDistribution(lambdaHome * s, lambdaAway * s).total, line);
+    return over + under > 0 ? (100 * over) / (over + under) : 50;
+  };
+  let lo = 0.4, hi = 2.0;
+  if (overAt(lo) > fairOverPct || overAt(hi) < fairOverPct) return null;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (overAt(mid) < fairOverPct) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/**
+ * The slate's market level relative to the model: the median of each priced
+ * game's market scale. Applied to every game, it removes the model's overall
+ * scoring-level disagreement with the books (which made nearly every lean an
+ * Over or nearly every lean an Under) and keeps only the matchup-relative
+ * signal. Slates with fewer than NHL_CONFIG.minSlateForLevel priced games are
+ * shrunk toward 1 so one or two prices can't swing it.
+ */
+export function nhlSlateLevelScale(scales: number[]): number {
+  const s = scales.filter((v) => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
+  if (!s.length) return 1;
+  const m = s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+  const weight = Math.min(1, s.length / NHL_CONFIG.minSlateForLevel);
+  return 1 + (m - 1) * weight;
+}
 
 /** League-average final-total probabilities for a line (no matchup information). */
 export function nhlLeagueBaseline(line: number, goalsPerTeam: number = NHL_CONFIG.leagueGoalsPerTeam) {

@@ -35,7 +35,7 @@ import {
   type BasketballStats,
   type FootballStats,
 } from '../utils/calculations.js';
-import { calculateNHLProjection, NHL_CONFIG } from '../utils/nhl.js';
+import { calculateNHLProjection, nhlMarketScale, nhlSlateLevelScale, NHL_CONFIG } from '../utils/nhl.js';
 import { projectMLBGame } from '../utils/mlb.js';
 import {
   fetchMLBSchedule,
@@ -176,6 +176,11 @@ export interface DailyCalcSummary {
   allPicks?: LoggedPick[];
   /** Gap picks logged on this run. */
   gapPicks?: (LoggedPick & { gap: number; modelProbability: number; marketProbability: number })[];
+  /**
+   * NHL market level applied this run: the books' scoring level relative to
+   * the model (below 1 = books expect fewer goals), and how many priced games set it.
+   */
+  nhlLevel?: { scale: number; pricedGames: number };
   /** Earlier games graded at the start of this run (tracked leans included). */
   settled?: SettleSummary;
 }
@@ -261,7 +266,8 @@ async function calcNHLGame(
   game: DailyGame,
   recordProjections: boolean,
   collector?: PickCandidate[],
-  gapCollector?: GapCandidate[]
+  gapCollector?: GapCandidate[],
+  levelScale: number = 1
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (NHL)`;
   const baseResult: GameCalcResult = {
@@ -294,7 +300,7 @@ async function calcNHLGame(
 
   let projection: ReturnType<typeof calculateNHLProjection>;
   try {
-    projection = calculateNHLProjection(homeStats, awayStats, line);
+    projection = calculateNHLProjection(homeStats, awayStats, line, levelScale);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { ...baseResult, error: `NHL projection failed: ${errMsg}` };
@@ -369,7 +375,7 @@ async function calcNHLGame(
           home: homeStats, away: awayStats, line, overProbability,
           underProbability: projection.underProbability, pushProbability: projection.pushProbability,
           pickedSide: side.pickedSide, sideProbability: side.probability, sideOdds: side.americanOdds,
-          pricesFromBook: side.pricesFromBook,
+          pricesFromBook: side.pricesFromBook, levelScale,
         },
       });
       projectionRecorded = true;
@@ -396,12 +402,15 @@ function totalTrack(
   line: number,
   side: ReturnType<typeof priceNHLTotal>,
   prices: { overOdds?: number; underOdds?: number }
-): ProjectionTrack {
+): ProjectionTrack | undefined {
   const over = side.pickedSide === 'over';
   const modelOver = over ? side.modelProbability : 100 - side.modelProbability;
   const fairOver = side.pricesFromBook
     ? fairImpliedPct(prices.overOdds!, prices.underOdds!)
     : fairImpliedPct(over ? side.americanOdds : side.otherOdds, over ? side.otherOdds : side.americanOdds);
+  // No opinion when the model and the market agree (e.g. the slate's median
+  // game once the market level is applied): recording one would add an Over.
+  if (Math.abs(modelOver - fairOver) < 0.1) return undefined;
   // The lean is the side the model rates higher than the market does (the
   // value side), not the side it gives over 50%.
   const modelSide = modelOver >= fairOver ? 'over' : 'under';
@@ -529,6 +538,24 @@ function gapGameTag(idTag: string): string {
 }
 
 /** League-average NHL regulation goals per team from the loaded CSVs. */
+/**
+ * The books' NHL scoring level for today's slate relative to the model, from
+ * every scheduled game with a posted total and both prices.
+ */
+export function slateNHLLevel(games: DailyGame[]): { scale: number; pricedGames: number } {
+  const scales: number[] = [];
+  for (const g of games) {
+    if (g.sport !== 'NHL' || g.status !== 'scheduled' || g.overUnder === undefined) continue;
+    if (g.overOdds === undefined || g.underOdds === undefined) continue;
+    const home = getNHLTeamStats(g.homeTeam) || getNHLTeamStats(g.homeAbbr);
+    const away = getNHLTeamStats(g.awayTeam) || getNHLTeamStats(g.awayAbbr);
+    if (!home || !away) continue;
+    const s = nhlMarketScale(home, away, g.overUnder, fairImpliedPct(g.overOdds, g.underOdds));
+    if (s !== null) scales.push(s);
+  }
+  return { scale: nhlSlateLevelScale(scales), pricedGames: scales.length };
+}
+
 function nhlLeagueGoalsPerTeam(): number {
   const teams = getAllNHLTeams().filter((t) => t.xGF60 > 0 && t.xGA60 > 0);
   if (teams.length < 10) return NHL_CONFIG.leagueGoalsPerTeam;
@@ -610,7 +637,8 @@ async function calcGame(
   logBets: boolean,
   recordProjections: boolean,
   collector?: PickCandidate[],
-  gapCollector?: GapCandidate[]
+  gapCollector?: GapCandidate[],
+  nhlLevelScale: number = 1
 ): Promise<GameCalcResult> {
   const label = `${game.homeTeam} vs ${game.awayTeam} (${game.sport})`;
 
@@ -632,7 +660,7 @@ async function calcGame(
   // NHL uses a totals (over/under) model, not a spread/moneyline one, so it has
   // its own path. NBA/NFL continue through the shared spread/moneyline flow below.
   if (game.sport === 'NHL') {
-    return calcNHLGame(game, recordProjections, collector, gapCollector);
+    return calcNHLGame(game, recordProjections, collector, gapCollector, nhlLevelScale);
   }
 
   // 1. Load team stats
@@ -1455,11 +1483,17 @@ export async function runDailyCalculations(options: DailyCalcOptions = {}): Prom
     return summary;
   }
 
+  const nhlLevelScale = slateNHLLevel(games);
+  summary.nhlLevel = nhlLevelScale;
+  if (nhlLevelScale.pricedGames) {
+    console.log(`[DailyCalc] NHL market level ${nhlLevelScale.scale.toFixed(3)} from ${nhlLevelScale.pricedGames} priced games`);
+  }
+
   // Process each game sequentially to avoid rate limits
   for (const game of games) {
     console.log(`[DailyCalc] Processing: ${game.awayTeam} @ ${game.homeTeam} (${game.sport})`);
 
-    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, perGameLogBets, recordProjections, collector, gapCollector);
+    const result = await calcGame(game, bankroll, kellyFraction, americanOdds, userId, perGameLogBets, recordProjections, collector, gapCollector, nhlLevelScale.scale);
     summary.allResults.push(result);
     if (result.projectionRecorded) summary.projectionsRecorded++;
 
