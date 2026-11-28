@@ -163,6 +163,14 @@ Season goalie GSAx is no longer subtracted. Every backtested weight above 0 made
 
 Over, under and push are summed exactly. Bets use push-free probabilities, win / (win + loss), because a push refunds the stake. The old code folded the whole push mass into the Under on whole-number lines.
 
+### Market scoring level (November 28, 2026)
+
+The model's scoring level comes from season xG (about 6.46 goals a game on the Nov 27 snapshot). When the books price a lower level, every game looks high to the model and nearly every lean is an Over; a higher level does the same for Unders. On simulated slates, books pricing 3% fewer goals turned 63% of leans into Overs, and 6% fewer turned 83% into Overs. The live NHL leans went 8-16 while leaning mostly Over.
+
+`marketTrust` cannot fix this: it scales how far the bet probability moves off the market, not which side the lean takes.
+
+The daily run now reads the books' level from the slate itself. For each scheduled game with a total and both prices, `nhlMarketScale` finds the factor on the model's scoring rates that reproduces the book's fair over probability. The slate's median factor (`nhlSlateLevelScale`, shrunk toward 1 below four priced games) is applied to every game. What remains is the matchup-relative signal: a game leans Over only when the model expects more scoring than the market does relative to the rest of the slate. In simulation the Over share stays near 48% at any market level. Games where the model and the market agree (under 0.1 points apart) record no lean. The factor is stored on each projection snapshot (`levelScale`) and in the run summary (`nhlLevel`).
+
 ## MLB
 
 Not recalibrated in November 2026: the season had ended, the slate CSVs store no final scores, and MLB is not in the daily auto picks. Before next season it should get the same results-based check, including anchoring its probabilities to the posted price.
